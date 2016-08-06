@@ -137,9 +137,9 @@ class PyMod:
         # the .add_element_to_pymod() method.
         self.unique_index = 0
 
-        # -----
-        # Prepare PyMod files and folders that will be created in the project main directory.
-        # -----
+        #--------------------------------------------------------------------------------------
+        # Prepare PyMod files and folders that will be created in the project main directory. -
+        # -------------------------------------------------------------------------------------
 
         # PyMod directory. The main folder where all PyMod files (with the exception of the
         # configuration file) will be stored.
@@ -713,10 +713,10 @@ class PyMod:
 
     def launch_default(self):
         """
-        For development only. A the 'open_sequence_file', 'open_pdb_file' and
+        For development only. A the 'open_sequence_file', 'open_structure_file' and
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
-        pass
+        self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
 
 
     def create_main_window_panes(self):
@@ -959,6 +959,7 @@ class PyMod:
 
     def launch_pymod_update(self):
         # Gets the latest release number from network.
+        return None
         try:
             update_found = pmup.check_for_updates(self.pymod_version, self.pymod_revision)
         except Exception, e:
@@ -1809,75 +1810,73 @@ class PyMod:
     # FILES MANAGMENT.                                                                            #
     ###############################################################################################
 
+    def open_file_from_the_main_menu(self):
+        """
+        This method is called when using the 'File -> Open from File...' command in the main menu.
+        """
+        # Creates a tkinter widget that lets the user select multiple files.
+        file_paths = askopenfilename(filetypes=pmdt.supported_file_types, multiple=True, parent=self.main_window)
+        for single_file_path in pmos.get_askopenfilename_tuple(file_paths):
+            extension = os.path.splitext(single_file_path)[1].replace(".","").lower()
+            try:
+                if extension == "fasta":
+                    self.open_sequence_file(single_file_path, "fasta")
+                elif extension == "gp":
+                    self.open_sequence_file(single_file_path, "genbank")
+                elif extension in ("pdb", "ent"):
+                    self.open_structure_file(single_file_path, extension)
+                else:
+                    pass
+            except PyModInvalidFile, e:
+                title = "File Type Error"
+                message = "The selected File is not a valid %s." % (lf_vars.supported_sequence_file_types[extension])
+                self.show_error_message(title,message)
+
+
     #################################################################
     # Opening sequence files.                                       #
     #################################################################
 
-    def open_file_from_the_main_menu(self):
+    def open_sequence_file(self, file_full_path, file_format="fasta"):
         """
-        This method is called when new sequences are loaded from the main menu.
+        Method for opening primary sequence files (FASTA, and also others should be included).
+        It only needs the path of the file to open.
         """
-        # Creates a tkinter widget that lets the user select multiple files.
-        file_names = askopenfilename(filetypes=pmdt.supported_file_types, multiple=True, parent=self.main_window)
-        for single_file_name in pmos.get_askopenfilename_tuple(file_names):
-            extension = os.path.splitext(os.path.basename(single_file_name))[1].replace(".","")
-            if extension.lower() == "fasta":
-                if self.is_sequence_file(single_file_name, "fasta"):
-                    self.open_sequence_file(single_file_name, "fasta")
-            elif extension.lower() == "gp":
-                if self.is_sequence_file(single_file_name, "genbank"):
-                    self.open_sequence_file(single_file_name, "genbank")
-            elif extension.lower() == "pdb":
-                if self.is_pdb(single_file_name):
-                    self.open_pdb_file(single_file_name)
-            elif extension.lower() == "ent":
-                if self.is_pdb(single_file_name):
-                    self.open_pdb_file(single_file_name)
+        if not self.is_sequence_file(file_full_path, file_format):
+            raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
+        fn = open(file_full_path, "rU")
+        # Parses a fasta file through Biopython. This will automatically crop headers that have " "
+        # (space) characters.
+        for record in SeqIO.parse(fn, file_format):
+            # Then builds a PyMod_element object and add it to the pymod_elements_list.
+            c = self.build_pymod_element_from_seqrecord(record)
+            self.add_element_to_pymod(c,"mother")
+        fn.close()
+        self.gridder()
 
 
-    def is_sequence_file(self, file_name, file_format, show_error=True):
+    def is_sequence_file(self, file_path, file_format, show_error=True):
         """
-        Try to open a sequence file using Biopython. Returns 'True' if the file is a valid fasta file.
+        Try to open a sequence file using Biopython. Returns 'True' if the file is a valid file of
+        the format specified in the 'file_format' argument.
         """
         valid_file = False
         file_handler = None
         try:
-            file_handler = open(file_name,"r")
-            r = list(SeqIO.parse(file_handler, file_format))
+            file_handler = open(file_path,"r")
+            r = list(Bio.SeqIO.parse(file_handler, file_format))
             if len(r) > 0:
                 valid_file = True
-            else:
-                valid_file = False
         except:
             valid_file = False
         if file_handler != None:
             file_handler.close()
-        if not valid_file:
-            title = "File Type Error"
-            message = "The selected File is not a valid %s." % (pmdt.supported_sequence_file_types[file_format])
-            if show_error:
-                self.show_error_message(title,message)
         return valid_file
 
 
-    def is_pdb(self,file_name, show_error=True):
-        valid_pdb = False
-        file_handler = open(file_name, "r")
-        for line in file_handler.readlines():
-            if line.startswith("ATOM") or line.startswith("HETATM"):
-                try:
-                    x,y,z = float(line[30:38]), float(line[38:46]), float(line[46:54])
-                    valid_pdb = True
-                    break
-                except:
-                    pass
-        file_handler.close()
-        if not valid_pdb and show_error:
-            title = "FileType Error"
-            message = "The selected File is not a valid PDB."
-            self.show_error_message(title,message)
-        return valid_pdb
-
+    #################################################################
+    # Add new sequences.                                            #
+    #################################################################
 
     def raw_seq_input(self):
         """
@@ -1947,22 +1946,6 @@ class PyMod:
 
         the_menu = Menu(seq_name, tearoff=0)
         the_menu.add_command(label="Paste")
-
-
-    def open_sequence_file(self, file_full_path, file_format="fasta"):
-        """
-        Method for opening primary sequence files (FASTA, and also others should be included).
-        It only needs the path of the file to open.
-        """
-        fn = open(file_full_path, "rU")
-        # Parses a fasta file through Biopython. This will automatically crop headers that have " "
-        # (space) characters.
-        for record in SeqIO.parse(fn, file_format):
-            # Then builds a PyMod_element object and add it to the pymod_elements_list.
-            c = self.build_pymod_element_from_seqrecord(record)
-            self.add_element_to_pymod(c,"mother")
-        fn.close()
-        self.gridder()
 
 
     def build_pymod_element_from_seqrecord(self, seqrecord):
@@ -2130,11 +2113,33 @@ class PyMod:
         return openfilename, extension
 
 
-    def open_pdb_file(self,pdb_file_full_path, grid=True):
+    def is_valid_structure_file(self,file_name, format="pdb", show_error=True):
+        valid_pdb = False
+        file_handler = open(file_name, "r")
+        for line in file_handler.readlines():
+            if line.startswith("ATOM") or line.startswith("HETATM"):
+                try:
+                    x,y,z = float(line[30:38]), float(line[38:46]), float(line[46:54])
+                    valid_pdb = True
+                    break
+                except:
+                    pass
+        file_handler.close()
+        if not valid_pdb and show_error:
+            title = "FileType Error"
+            message = "The selected File is not a valid PDB."
+            self.show_error_message(title,message)
+        return valid_pdb
+
+
+    def open_structure_file(self,pdb_file_full_path, file_format="pdb", grid=True):
         """
         Opens a PDB file (specified in 'pdb_file_full_path'), reads its content and imports in PyMod
         the sequences of the polypeptide chains and loads in PyMOL their 3D structures.
         """
+        if not self.is_valid_structure_file(pdb_file_full_path, file_format):
+            raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
+
         # Builds a 'Parsed_pdb_file' object.
         pdb_file = Parsed_pdb_file(pdb_file_full_path)
         # Copies the original PDB file to the Structures directory in the current project folder.
@@ -2278,7 +2283,7 @@ class PyMod:
                     self.show_associate_structure_error()
 
             # Load each chain found in the PDB file where the 3D structure of the hit sequence is
-            # present. This is actually like opening a new PDB file with the 'open_pdb_file()'
+            # present. This is actually like opening a new PDB file with the 'open_structure_file()'
             # method, except that in this case, the chains not corresponging to the hit sequence
             # are colored in gray.
             elif import_mode == "multiple-chains":
@@ -2414,7 +2419,7 @@ class PyMod:
     def import_selections(self):
         """
         Method for importing PyMOL Selections into PyMod. It saves PyMOL objects selected by users
-        to file, and loads it into PyMOL using 'open_pdb_file()'.
+        to file, and loads it into PyMOL using 'open_structure_file()'.
         """
         # Find all structures already loaded into PyMod: items in struct_list are excluded from
         # importable PyMOL object list.
@@ -2466,7 +2471,7 @@ class PyMod:
                 pdb_file_shortcut = os.path.join(self.structures_directory, filename)
                 cmd.save(pdb_file_shortcut,sele)
                 cmd.delete(sele)
-                self.open_pdb_file(os.path.abspath(pdb_file_shortcut))
+                self.open_structure_file(os.path.abspath(pdb_file_shortcut))
         if not selected_num:
             tkMessageBox.showerror( "Selection Error",
                 "Please select at least one object to import.")
@@ -11339,7 +11344,7 @@ class PyMod_element: # ClusterSeq
                 compact_header = so.group(1)+"|"+so.group(2) # +"|"
             else:
                 compact_header = crop_header(header)
-        # Sequences imported from PDB files using the open_pdb_file() method.
+        # Sequences imported from PDB files using the open_structure_file() method.
         elif header[-8:-1] == "_Chain_":
             if len(header) == 12: # If it is the name of sequence with a 4 letter PDB id.
                 compact_header=header[0:4]+"_"+header[-1]
@@ -12982,3 +12987,14 @@ class PyMod_element: # ClusterSeq
         elif self.element_type == "structure" or self.element_type == "model":
             self.popup_menu_right.add_command(label="Select Residue in PyMOL", command=self.select_residue_in_pymol)
             self.popup_menu_right.add_command(label="Center Residue in PyMOL", command=self.center_residue_in_pymol)
+
+
+####################################################################################################
+# EXCEPTIONS.                                                                                      #
+####################################################################################################
+
+class PyModInvalidFile(Exception):
+    """
+    Used when a sequence or structure file containing some error is opened.
+    """
+    pass
