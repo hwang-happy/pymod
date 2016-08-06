@@ -94,6 +94,392 @@ target_box_style = {"background":'black', "bd":1, "relief":GROOVE, "padx":10, "p
 
 
 ###################################################################################################
+# MAIN WINDOW CLASS.                                                                              #
+###################################################################################################
+
+class PyMod_main_window(Toplevel):
+    """
+    A class for the Tkinter PyMod main window.
+    """
+    def __init__(self, parent = None, pymod = None, **configs):
+
+        Toplevel.__init__(self, parent, **configs)
+
+        self.pymod = pymod
+
+        self.title(self.pymod.pymod_plugin_name)
+        self.resizable(1,1)
+        self.geometry('800x320')
+
+        # Asks confirmation when the main window is closed by the user.
+        self.protocol("WM_DELETE_WINDOW", self.pymod.confirm_close)
+
+        # Hides PyMod main window, it will be displayed once the user begins a new project by
+        # inserting the project name in the 'new project' window.
+        self.withdraw()
+
+        # Creates a scrolled frame in the main window.
+        self.scroll_frame = Pmw.ScrolledFrame(self, borderframe = 0, usehullsize = 1,
+                                    horizflex = 'elastic', vertflex = 'elastic', hull_borderwidth = 0 )
+        self.scroll_frame.configure(frame_background = 'black')
+        self.scroll_frame.pack(fill = 'both', expand = 1)
+        self.frame_main = self.scroll_frame.interior()
+        self.frame_main.config()
+
+        # Creates a paned widget in the scrolled frame 'frame_main'.
+        self.panes = Pmw.PanedWidget(self.frame_main, orient = 'horizontal', hull_borderwidth = 0)
+
+        # Adds the left pane (where the name of the sequences are) and the right pane (where the
+        # sequences are displayed)
+        self.panes.add('left', size = 0.2)
+        self.panes.add('right', size = 0.8)
+        self.panes.pack(fill = 'both', expand = 1)
+
+        # This method is defined later
+        self.create_main_window_panes()
+
+        # Creates the bottom frame that display the name of the sequence
+        self.sequence_name_bar = Pmw.MessageBar(self,
+            entry_width = 10,
+            entry_relief='groove',
+            entry_bg = 'black',
+            labelpos = 'w',
+            label_text = 'Sequence:',
+            label_fg = 'white',
+            label_background='black')
+        self.sequence_name_bar.pack(side=LEFT, fill = 'x', expand = 1)
+
+        # Creates the bottom frame that display the number and the name of the residue
+        self.residue_bar = Pmw.MessageBar(self,
+                entry_width = 50, # This could be modified.
+                entry_relief='groove',
+                labelpos = 'w',
+                label_text = 'Position:',
+                label_fg = 'white',
+                label_background='black')
+        self.residue_bar.pack(side=RIGHT)
+
+        # Variables needed to make Pmw dialogs work on Ubuntu 14.04+.
+        self.pmw_dialog_wait = True
+        self.pmw_dialog_val = None
+
+        self.make_main_menu()
+
+
+    def create_main_window_panes(self):
+        """
+        This method allows to create the panes containing the names and sequences to display.
+        """
+        # Creates a scrolled frame inside the RIGHT pane of the paned frame
+        self.rightpan = Pmw.ScrolledFrame(self.panes.pane('right'),
+            hull_bg='black', frame_bg='black', usehullsize = 0, borderframe = 0,
+            hscrollmode='static', hull_borderwidth = 0, clipper_bg='black')
+        self.rightpan.pack(fill = 'both', expand = 1)
+
+        # Creates a scrolled frame inside the LEFT pane of the paned frame
+        self.leftpan = Pmw.ScrolledFrame(self.panes.pane('left'),
+            hull_bg='black', frame_bg = 'black', hull_borderwidth = 0, usehullsize = 0,
+            borderframe = 0, vscrollmode=NONE, hscrollmode='static', clipper_bg='black' )
+        self.leftpan.pack(fill = 'both', expand = 1)
+
+        # Allows to scroll both RIGHT and LEFT scrolled frame using only one ScrollBar.
+        def vertview(*args):
+            self.rightpan.yview(*args)
+            self.leftpan.yview(*args)
+
+        self.rightpan.configure(vertscrollbar_command = vertview)
+
+
+    def make_main_menu(self):
+        """
+        This method is called at the beginning of the constructor in order to build the main menu of
+        the main window.
+        """
+        self.menubar = Menu(self)
+
+        #---------------
+        # "File" menu. -
+        #---------------
+        self.filemenu = Menu(self.menubar, tearoff = 0)
+        self.sequence_menu = Menu(self.filemenu, tearoff = 0)
+        self.filemenu.add_cascade(label = "Sequences", menu = self.sequence_menu)
+        self.sequence_menu.add_command(label = "Open from File", command = self.pymod.open_file_from_the_main_menu)
+        self.sequence_menu.add_command(label = "Add Raw Sequence", command = self.pymod.raw_seq_input)
+        self.sequence_menu.add_command(label = "Import PyMOL Objects", command = self.pymod.import_selections)
+        self.sequence_menu.add_separator()
+        self.sequence_menu.add_command(label = "Save All", command = self.pymod.save_all_files_from_main_menu)
+        self.filemenu.add_separator()
+
+        # Workspace submenu.
+        # self.WorkSpaceMenu = Menu(self.filemenu, tearoff = 0)
+        # self.filemenu.add_cascade(label = "WorkSpace", menu = self.WorkSpaceMenu)
+        # self.WorkSpaceMenu.add_command(label = "New", command = self.workspace_new)
+        # self.WorkSpaceMenu.add_command(label = "Save", command = self.workspace_save)
+        # self.WorkSpaceMenu.add_command(label = "Open ", command = self.workspace_open)
+        # self.filemenu.add_separator()
+
+        # Submenu to open alignments.
+        self.alignment_files_menu = Menu(self.filemenu, tearoff = 0)
+        self.filemenu.add_cascade(label = "Alignment", menu = self.alignment_files_menu)
+        self.alignment_files_menu.add_command(label = "Open from File", command = self.pymod.open_alignment_from_main_menu)
+        self.filemenu.add_separator()
+
+        self.filemenu.add_command(label = "Exit", command = self.pymod.confirm_close)
+        self.menubar.add_cascade(label = "File", menu = self.filemenu)
+
+        #----------------
+        # "Tools" menu. -
+        #----------------
+        self.tools_menu = Menu(self.menubar, tearoff = 0)
+
+        # Sequence alignment tools.
+        self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
+        self.sequence_alignment_menu.add_command(label = "ClustalW",
+            command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "Clustal Omega",
+            command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "MUSCLE",
+            command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
+            command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+
+        # Profile alignment tools.
+        self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
+        self.profile_alignment_menu.add_command(label = "ClustalW",
+            command = lambda program="clustalw": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        self.profile_alignment_menu.add_command(label = "Clustal Omega",
+            command = lambda program="clustalo": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
+            command = lambda program="salign-seq": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+
+        # Structural alignment tools.
+        self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
+        self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose)
+        self.structural_alignment_menu.add_command(label = "CE Alignment",
+            command = lambda program="ce": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)",
+            command = lambda program="salign-str": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+
+        # Database search for homologous sequences.
+        self.database_search_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Database Search", menu = self.database_search_menu)
+        self.database_search_menu.add_command(label = "BLAST", command = self.pymod.launch_ncbiblast)
+        self.database_search_menu.add_command(label = "PSI-BLAST", command = self.pymod.launch_psiblast)
+
+        # Structural analysis.
+        self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
+        self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot)
+        self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
+        self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
+
+        # Homology modeling (MODELLER).
+        self.homology_modeling_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Homology Modeling", menu = self.homology_modeling_menu)
+        self.homology_modeling_menu.add_command(label = "MODELLER", command = self.pymod.launch_modeller_from_main_menu)
+
+        # Options.
+        self.tools_menu.add_separator()
+        self.tools_menu.add_command(label = "Options", command = self.pymod.show_pymod_options_window)
+
+        # Adds the "Tools" menu to the main menu
+        self.menubar.add_cascade(label = "Tools", menu = self.tools_menu)
+
+        #---------------------
+        # "Alignments" menu. -
+        #---------------------
+        self.alignments_menu = Menu(self.menubar, tearoff = 0)
+        # When the plugin is started there are no alignments.
+        self.build_alignment_submenu()
+        # Adds the "Alignments" menu to the main menu
+        self.menubar.add_cascade(label = "Alignments", menu = self.alignments_menu)
+        self.pymod.define_alignment_menu_structure()
+
+        #-----------------
+        # "Models" menu. -
+        #-----------------
+        self.models_menu = Menu(self.menubar, tearoff = 0)
+        # When the plugin is started there are no models.
+        self.build_models_submenu()
+        # Adds the "Alignments" menu to the main menu
+        self.menubar.add_cascade(label = "Models", menu = self.models_menu)
+        # self.define_models_menu_structure()
+
+        #--------------------
+        # "Selection" menu. -
+        #--------------------
+        self.main_selection_menu = Menu(self.menubar, tearoff = 0)
+        self.menubar.add_cascade(label = "Selection", menu = self.main_selection_menu)
+        # When the plugin is started there are no models.
+        self.main_selection_menu.add_command(label = "Select All", command=self.pymod.select_all_from_main_menu)
+        self.main_selection_menu.add_command(label = "Deselect All", command=self.pymod.deselect_all_from_main_menu)
+        # Structures selection submenu.
+        self.selection_structures_menu = Menu(self.main_selection_menu,tearoff=0)
+        self.selection_structures_menu.add_command(label="Show All in PyMOL",command=self.pymod.show_all_structures_from_main_menu)
+        self.selection_structures_menu.add_command(label="Hide All in PyMOL",command=self.pymod.hide_all_structures_from_main_menu)
+        self.selection_structures_menu.add_separator()
+        self.selection_structures_menu.add_command(label="Select All",command=self.pymod.select_all_structures_from_main_menu)
+        self.selection_structures_menu.add_command(label="Deselect All",command=self.pymod.deselect_all_structures_from_main_menu)
+        self.main_selection_menu.add_cascade(menu=self.selection_structures_menu, label="Structures")
+        # Clusters selection submenu.
+        self.selection_clusters_menu = Menu(self.main_selection_menu,tearoff=0)
+        self.selection_clusters_menu.add_command(label="Expand All",command=self.pymod.expand_all_clusters_from_main_menu)
+        self.selection_clusters_menu.add_command(label="Collapse All",command=self.pymod.collapse_all_clusters_from_main_menu)
+        self.main_selection_menu.add_cascade(menu=self.selection_clusters_menu, label="Clusters")
+
+        #------------------
+        # "Display" menu. -
+        #------------------
+        self.display_menu = Menu(self.menubar, tearoff = 0)
+
+        # Color menu.
+        self.main_color_menu = Menu(self.display_menu, tearoff = 0)
+        self.main_color_menu.add_command(label = "By Regular Color Scheme", command=lambda: self.pymod.color_selection("all", None, "regular"))
+        # Residues.
+        self.main_residues_colors_menu = Menu(self.main_color_menu,tearoff=0)
+        self.main_residues_colors_menu.add_command(label="Polarity",command=lambda: self.pymod.color_selection("all", None, "residue"))
+        self.main_color_menu.add_cascade(menu=self.main_residues_colors_menu, label="By residue properties")
+        # Secondary structure.
+        self.main_color_menu.add_command(label="Secondary Structure",command=lambda: self.pymod.color_selection("all", None, "secondary-auto"))
+        self.display_menu.add_cascade(menu=self.main_color_menu, label="Color all Sequences")
+
+        # Font size menu.
+        self.menu_sequence_font_size = StringVar()
+        self.default_font_size = 12 # "14"
+        self.menu_sequence_font_size.set(self.default_font_size)
+        self.font_menu = Menu(self.display_menu, tearoff = 0)
+        self.font_menu.add_radiobutton(label="6",value="6",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        self.font_menu.add_radiobutton(label="8",value="8",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        self.font_menu.add_radiobutton(label="10",value="10",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        self.font_menu.add_radiobutton(label="12",value="12",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        self.font_menu.add_radiobutton(label="14",value="14",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        self.font_menu.add_radiobutton(label="16",value="16",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        self.font_menu.add_radiobutton(label="18",value="18",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        self.display_menu.add_cascade(label = "Font size", menu = self.font_menu)
+
+        # Adds the "Display" menu to the main menu.
+        self.menubar.add_cascade(label = "Display", menu = self.display_menu)
+
+        #---------------
+        # "Help" menu. -
+        #---------------
+        self.help_menu = Menu(self.menubar, tearoff = 0)
+        self.menubar.add_cascade(label = "Help", menu = self.help_menu)
+        self.help_menu.add_command(label = "Online Documentation", command = self.pymod.open_online_documentation)
+        self.help_menu.add_command(label = "About", command = self.pymod.show_about_dialog)
+        self.help_menu.add_separator()
+        self.help_menu.add_command(label = "Check for PyMod Updates", command = self.pymod.launch_pymod_update)
+
+        self.config(menu = self.menubar)
+
+
+    def build_alignment_submenu(self):
+        """
+        Build an "Alignment N" voice in the "Alignments" submenu when alignment N is performed.
+        """
+        # Delete the old alignment submenu.
+        self.alignments_menu.delete(0,500)
+
+        # Then rebuilds it with the new alignments.
+        alignment_list = self.pymod.get_cluster_elements()
+
+        if alignment_list != []:
+            for element in alignment_list:
+                uid = element.unique_index
+                alignment = element.alignment
+
+                # Alignment menu for each cluster loaded in PyMod.
+                alignment_submenu = Menu(self.alignments_menu, tearoff = 0)
+                # Save to a file dialog.
+                alignment_submenu.add_command(label = "Save to File",
+                        command = lambda ui=uid: self.pymod.save_alignment_to_file_from_ali_menu(ui))
+                alignment_submenu.add_separator()
+
+                # Matrices submenu.
+                matrices_submenu = Menu(alignment_submenu, tearoff = 0)
+                alignment_submenu.add_cascade(label = "Matrices", menu = matrices_submenu)
+                matrices_submenu.add_command(label = "Identity matrix",
+                    command = lambda ui=uid: self.pymod.display_identity_matrix(ui))
+                if alignment.algorithm in self.pymod.can_show_rmsd_matrix and alignment.rmsd_list != None:
+                    matrices_submenu.add_command(label = "RMSD matrix",
+                        command = lambda ui=uid: self.pymod.display_rmsd_matrix(ui))
+
+                # Trees.
+                if alignment.initial_number_of_sequence > 2:
+                    trees_submenu = Menu(alignment_submenu, tearoff = 0)
+                    alignment_submenu.add_cascade(label = "Trees", menu = trees_submenu)
+                    if alignment.algorithm in self.pymod.can_show_guide_tree:
+                        trees_submenu.add_command(label = "Show Guide Tree",
+                            command = lambda ui=uid: self.pymod.show_guide_tree_from_alignments_menu(ui))
+                    if alignment.algorithm in self.pymod.can_show_dendrogram and 0:
+                        trees_submenu.add_command(label = "Show Dendrogram",
+                            command = lambda ui=uid: self.pymod.show_dendrogram_from_alignments_menu(ui))
+                    if len(self.pymod.get_children(element)) >= 2:
+                        trees_submenu.add_command(label = "Build Tree from Alignment",
+                            command = lambda ui=uid: self.pymod.build_tree_from_alignments_menu(ui))
+
+                # Evolutionary conservation.
+                evolutionary_submenu = Menu(alignment_submenu, tearoff = 0)
+                alignment_submenu.add_cascade(label = "Evolutionary Conservation", menu = evolutionary_submenu)
+                evolutionary_submenu.add_command(label = "CAMPO",
+                    command = lambda ui=uid: self.pymod.build_campo_window(ui))
+                if alignment.algorithm in self.pymod.can_use_scr_find and 0:
+                    evolutionary_submenu.add_command(label = "SCR_FIND",
+                        command = lambda ui=uid: self.pymod.build_scr_find_window(ui))
+
+                # Render alignment.
+                render_submenu = Menu(alignment_submenu, tearoff = 0)
+                alignment_submenu.add_cascade(label = "Render Alignment", menu = render_submenu)
+                render_submenu.add_command(label = "Generate Logo through WebLogo 3",
+                    command = lambda ui=uid: self.pymod.build_logo_options_window(ui))
+                render_submenu.add_command(label = "Launch ESPript in Web Browser",
+                    command = lambda ui=uid: self.pymod.espript(ui))
+
+                # Adds the alignment submenu to the PyMod main menu.
+                label_text = element.my_header
+                self.alignments_menu.add_cascade(label = label_text, menu = alignment_submenu)
+
+        else:
+            self.alignments_menu.add_command(label = "There aren't any alignments")
+
+
+    def build_models_submenu(self):
+        """
+        Build an "Modeling Session n" voice in the "Models" submenu once some models have been
+        built.
+        """
+        self.models_menu.delete(0,500)
+        # self.alignment_list = self.get_cluster_elements()
+
+        if self.pymod.modeling_session_list != []:
+            for modeling_session in self.pymod.modeling_session_list:
+                modeling_session_submenu = Menu(self.models_menu, tearoff = 0)
+                modeling_session_submenu.add_command(label = "DOPE Profile",
+                    command = lambda ms=modeling_session: self.pymod.show_session_profile(ms))
+                modeling_session_submenu.add_command(label = "Assessment Table",
+                    command = lambda ms=modeling_session: self.pymod.show_assessment_table(ms))
+                modeling_session_submenu.add_separator()
+                # Adds the alignment submenu to the PyMod main menu.
+                label_text = "Modeling Session %s" % (modeling_session.session_id)
+                for full_model in modeling_session.full_models:
+                    full_model_submenu = Menu(modeling_session_submenu, tearoff = 0)
+                    full_model_submenu.add_command(label = "Save to File",
+                        command = lambda fm=full_model: self.pymod.save_full_model_to_file(fm))
+                    full_model_submenu.add_separator()
+                    full_model_submenu.add_command(label = "DOPE Profile",
+                        command = lambda fm=full_model: self.pymod.show_full_model_profile(fm))
+                    full_model_submenu.add_command(label = "Assessment Values",
+                        command = lambda fm=full_model: self.pymod.show_full_model_assessment_values(fm))
+                    modeling_session_submenu.add_cascade(label = full_model.model_name, menu = full_model_submenu)
+                self.models_menu.add_cascade(label = label_text, menu = modeling_session_submenu)
+        else:
+            self.models_menu.add_command(label = "There aren't any models")
+
+
+###################################################################################################
 # CLASSES FOR WIDGETS USED THROUGHOUT THE PLUGIN MULTIPLE TIMES.                                  #
 ###################################################################################################
 
