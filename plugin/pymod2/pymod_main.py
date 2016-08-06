@@ -90,6 +90,7 @@ from pymod_lib import pymod_tool as pm_tool # Classes to represent tools used wi
 from pymod_lib import pymod_plot as pplt # Basic plots for building DOPE profiles and showing distance trees.
 from pymod_lib import pymod_sup as pmsp # Supplementary code for PyMod.
 from pymod_lib import pymod_updater as pmup # Updates PyMod fetching the latest stable version via network.
+from pymod_lib import pymod_element as pmel # Classes to represent sequences, structures and alignments.
 
 # CE-alignment.
 global ce_alignment_mode
@@ -139,7 +140,7 @@ class PyMod:
 
         #--------------------------------------------------------------------------------------
         # Prepare PyMod files and folders that will be created in the project main directory. -
-        # -------------------------------------------------------------------------------------
+        #--------------------------------------------------------------------------------------
 
         # PyMod directory. The main folder where all PyMod files (with the exception of the
         # configuration file) will be stored.
@@ -200,9 +201,9 @@ class PyMod:
         self.cfg_file_name = "preferences.pkl"
         self.cfg_file_path = os.path.join(self.cfg_directory_path, self.cfg_file_name)
 
-        # -----
-        # Prepare PyMod tools.
-        # -----
+        #-----------------------
+        # Prepare PyMod tools. -
+        #-----------------------
         self.pymod_tools = []
 
         # In order for the plugin to work, the name of the attribute containing a 'Tool' object must
@@ -263,9 +264,10 @@ class PyMod:
         for tool in self.pymod_tools:
             tool.show_message_method = self.show_error_message
 
-        # -----
-        # Prepares colors for PyMod and PyMOL.
-        # -----
+        #---------------------------------------
+        # Prepares colors for PyMod and PyMOL. -
+        #---------------------------------------
+
         # This is an index that will bw used to color each structure loaded into PyMod with a
         # different color taken from the list above. It will be used in "color_struct()".
         self.color_index = 0
@@ -292,9 +294,9 @@ class PyMod:
         # Builds the menu of the main window.
         self.make_main_menu()
 
-        # -----
-        # Starts up a new job.
-        # -----
+        #-----------------------
+        # Starts up a new job. -
+        #-----------------------
 
         # Cheks for PyMod configuration file.
         self.configuration_file_error = False
@@ -1812,7 +1814,7 @@ class PyMod:
 
     def open_file_from_the_main_menu(self):
         """
-        This method is called when using the 'File -> Open from File...' command in the main menu.
+        This method is called when using the 'File -> Open from File...' command in PyMod main menu.
         """
         # Creates a tkinter widget that lets the user select multiple files.
         file_paths = askopenfilename(filetypes=pmdt.supported_file_types, multiple=True, parent=self.main_window)
@@ -1830,7 +1832,7 @@ class PyMod:
             except PyModInvalidFile, e:
                 title = "File Type Error"
                 message = "The selected File is not a valid %s." % (lf_vars.supported_sequence_file_types[extension])
-                self.show_error_message(title,message)
+                self.show_error_message(title, message)
 
 
     #################################################################
@@ -1839,8 +1841,7 @@ class PyMod:
 
     def open_sequence_file(self, file_full_path, file_format="fasta"):
         """
-        Method for opening primary sequence files (FASTA, and also others should be included).
-        It only needs the path of the file to open.
+        Method for loading in PyMod new sequences parsed from sequence files.
         """
         if not self.is_sequence_file(file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
@@ -1852,6 +1853,7 @@ class PyMod:
             c = self.build_pymod_element_from_seqrecord(record)
             self.add_element_to_pymod(c,"mother")
         fn.close()
+        # Shows the new element in PyMod main window.
         self.gridder()
 
 
@@ -12998,3 +13000,7 @@ class PyModInvalidFile(Exception):
     Used when a sequence or structure file containing some error is opened.
     """
     pass
+
+# !WORKING!: implementazione delle nuove classi per le sequenze
+# TODO: implementazione delle nuove classi per le strutture.
+# TODO: implementa l'apertura di file dei sequenza con entry multiple.
