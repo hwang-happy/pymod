@@ -165,6 +165,8 @@ class PyMod_main_window(Toplevel):
 
         self.make_main_menu()
 
+        self.dict_of_elements_widgets = {}
+
 
     def create_main_window_panes(self):
         """
@@ -452,7 +454,6 @@ class PyMod_main_window(Toplevel):
         built.
         """
         self.models_menu.delete(0,500)
-        # self.alignment_list = self.get_cluster_elements()
 
         if self.pymod.modeling_session_list != []:
             for modeling_session in self.pymod.modeling_session_list:
@@ -477,6 +478,296 @@ class PyMod_main_window(Toplevel):
                 self.models_menu.add_cascade(label = label_text, menu = modeling_session_submenu)
         else:
             self.models_menu.add_command(label = "There aren't any models")
+
+
+    def add_pymod_element_widgets(self, pymod_element):
+        pewp = PyMod_element_widgets_pairs(self, pymod_element)
+        self.dict_of_elements_widgets.update({pymod_element: pewp})
+
+
+
+###################################################################################################
+# CLASSES FOR PYMOD MAIN WINDOW.                                                                  #
+###################################################################################################
+
+class PyMod_element_widgets_pairs:
+    def __init__(self, main_window, pymod_element):
+        self.header_entry = Header_entry(main_window.leftpan.interior(), pymod_element)
+        self.sequence_text = Sequence_text(main_window.rightpan.interior(), pymod_element)
+
+    def show_widgets(self, grid_index):
+        self.header_entry.grid(row = grid_index, sticky='nw')
+        self.sequence_text.grid(row = grid_index, sticky='nw')
+
+
+class PyMod_element_widgets:
+    sequence_font_type = fixed_width_font
+    sequence_font_size = 12
+    sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 14".
+    bg_color = "black"
+
+
+#####################################################################
+# Header entry.                                                     #
+#####################################################################
+
+class Header_entry(Entry, PyMod_element_widgets):
+
+    def __init__(self, parent = None, pymod_element=None, **configs):
+
+        self.parent = parent
+        self.pymod_element = pymod_element
+
+        # This is used only here to set the textvarialble of the entry as the header of the sequence.
+        self.header_entry_var = StringVar()
+        self.header_entry_var.set(self.pymod_element.my_header)
+
+        Entry.__init__(self, self.parent,
+            font = self.sequence_font,
+            cursor = "hand2",
+            textvariable= self.header_entry_var,
+            bd=0,
+            highlightcolor='black',
+            highlightbackground= self.bg_color,
+            state = DISABLED,
+            disabledforeground = 'red',
+            disabledbackground = self.bg_color,
+            selectbackground = 'green',
+            justify = LEFT,
+            width = int(len(self.header_entry_var.get())),
+            **configs)
+
+        # MAYBE THIS DOES NOT HAVE TO BE ASSIGNED EVERY TIME THE ENTRIES ARE DISPLAYED.
+        # Left menu object building and binding of the mouse events to the entries.
+        # self.build_left_popup_menu()
+        self.bind_events_to_header_entry()
+        # # Marks the element as being 'showed' in PyMod's main window.
+        # self.is_shown = True
+
+    def bind_events_to_header_entry(self):
+        self.header_entry.bind("<Button-1>", self.on_header_left_click)
+        self.header_entry.bind("<Motion>", self.display_protname)
+        if self.has_structure():
+            self.header_entry.bind("<Button-2>", self.click_structure_with_middle_button)
+        self.header_entry.bind("<ButtonRelease-3>", self.on_header_right_click)
+
+
+    # Select/Unselect a protein clicking on its name on the left pane.
+    def on_header_left_click(self,event):
+        self.toggle_element()
+
+    # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
+    def display_protname(self,event):
+            protein_name = self.full_original_header # self.header_entry.get()
+            pymod.sequence_name_bar.helpmessage(protein_name)
+
+    def click_structure_with_middle_button(self,event=None):
+            # Shows the structure and centers if the sequence is selected in Pymod.
+            if self.selected:
+                """
+                active_in_pymol = True
+                if active_in_pymol:
+                    # Centers the structure.
+                    self.center_chain_in_pymol()
+                    else:
+                """
+                self.show_chain_in_pymol()
+                self.center_chain_in_pymol()
+            # If the sequence is not selected in Pymod, hide it in PyMOL.
+            else:
+                self.hide_chain_in_pymol()
+
+    # A popup menu in the left frame to interact with the sequence
+    def on_header_right_click(self,event):
+        try:
+            self.header_entry["disabledbackground"] = 'grey'
+            self.popup_menu_left.tk_popup(event.x_root, event.y_root, 0)
+        except:
+            pass
+        #popup_menu.grab_release()
+        self.header_entry["disabledbackground"] = 'black'
+
+
+    ###################################
+    # Selection of elements.          #
+    ###################################
+
+    # Toggles elements.
+    def toggle_element(self):
+        if self.is_mother:
+            self.toggle_mother_element()
+        elif self.is_child:
+            if self.is_lead_of_collapsed_cluster():
+                self.toggle_lead_element()
+            else:
+                self.toggle_child_element()
+
+    # Toggle a mother element.
+    def toggle_mother_element(self):
+        # Inactivate.
+        if self.selected:
+            self.deselect_element()
+            # Deselects also all the children.
+            if self.is_cluster_element():
+                for c in pymod.get_children(self):
+                        if c.selected:
+                            c.deselect_element()
+        # Activate.
+        else:
+            self.select_element()
+            # Activate also all the children!
+            if self.is_cluster_element():
+                for c in pymod.get_children(self):
+                        if not c.selected:
+                            c.select_element()
+
+    # Toggle a child element.
+    def toggle_child_element(self):
+        mother = pymod.get_mother(self)
+        # Inactivate.
+        if self.selected:
+            # Modify the mother and the siblings according to what happens to the children.
+            if not mother.selected:
+                siblings = pymod.get_siblings(self)
+                # If it is not the last activated children in the cluster.
+                if True in [s.selected for s in siblings]:
+                    mother.deselect_element(is_in_cluster=True)
+                    self.deselect_element(is_in_cluster=True)
+                # If it is the last children to be inactivated.
+                else:
+                    mother.deselect_element()
+                    for s in siblings:
+                        s.deselect_element()
+                    self.deselect_element()
+            else:
+                self.deselect_element(is_in_cluster=True)
+                mother.deselect_element(is_in_cluster=True)
+
+        # Activate.
+        else:
+            self.select_element()
+            # If the mother is not selected and if by selecting this child, all the children
+            # are selected, also selects the mother.
+            if not mother.selected:
+                # If it is the last inactivated children in the cluster, then by selecting it all the
+                # elements in the cluster are selected and the mother is also selected.
+                siblings = pymod.get_siblings(self)
+                if not False in [c.selected for c in siblings]:
+                    mother.select_element()
+                else:
+                    # Used to make the mother "gray".
+                    mother.deselect_element(is_in_cluster=True)
+                    # Used to make the siblings "gray".
+                    for s in siblings:
+                        if not s.selected:
+                            s.deselect_element(is_in_cluster=True)
+
+
+    # Toggle a lead element when a cluster is collapsed.
+    def toggle_lead_element(self):
+        if self.selected:
+            self.deselect_element()
+        else:
+            self.select_element()
+
+    # Selects an element.
+    def select_element(self,is_in_cluster=False):
+        self.selected = True
+        if self.is_shown:
+            if not is_in_cluster:
+                self.header_entry["disabledforeground"] = 'green'
+            else:
+                self.header_entry["disabledforeground"] = 'green'
+
+    # Deselects an element.
+    def deselect_element(self, is_in_cluster=False):
+        self.selected = False
+        if self.is_shown:
+            if not is_in_cluster:
+                self.header_entry["disabledforeground"] = 'red'
+            else:
+                self.header_entry["disabledforeground"] = 'ghost white'
+
+    # The two following methods are used only when the user clicks on the mother of a collapsed
+    # cluster. They will select/deselect its children, without changing their color.
+    def select_hidden_child(self):
+        self.selected = True
+
+    def deselect_hidden_child(self):
+        self.selected = False
+
+
+#####################################################################
+# Sequence entry.                                                   #
+#####################################################################
+
+class Sequence_text(Text, PyMod_element_widgets):
+
+    def __init__(self, parent = None, pymod_element=None, **configs):
+        self.parent = parent
+        self.pymod_element = pymod_element
+
+        Text.__init__(self, self.parent, font = self.sequence_font,
+            cursor = "hand2",
+            wrap=NONE,
+            height=1,
+            borderwidth=0,
+            highlightcolor=self.bg_color,
+            highlightbackground=self.bg_color,
+            foreground = self.pymod_element.my_color,
+            background = self.bg_color,
+            exportselection=0,
+            selectbackground= self.bg_color,
+            selectforeground=self.pymod_element.my_color,
+            selectborderwidth=0,
+            width = len(self.pymod_element.my_sequence)) # The length of the entry is equal to the length of the sequence.
+        try:
+            self.configure(inactiveselectbackground=self.bg_color)
+        except:
+            pass
+
+        # Enters some sequence in the Text widget built above and colors it according to the element
+        # current color scheme.
+        self.build_text_to_display()
+
+        """
+        # Modifier that allows to display the symbol '|_' of a child sequence.
+        if self.is_child:
+            self.sonsign = StringVar()
+            self.sonsign.set("|_")
+            if self.is_blast_query:
+                self.sonsign.set("|q")
+            elif self.is_lead:
+                self.sonsign.set("|l")
+            elif self.is_bridge:
+                self.sonsign.set("|b")
+
+            # Creates a sequence entry inside the right-frame.
+            trattino=Entry(self.sequence_frame, font = self.sequence_font, cursor = "hand2",
+                           textvariable=self.sonsign, bd=0, state = DISABLED,
+                           disabledforeground = 'white', disabledbackground = self.bg_color,
+                           highlightbackground= self.bg_color, justify = LEFT, width = 2 )
+            trattino.grid(column =0, row = grid_position, sticky='nw', padx=0, pady=0,ipadx=0,ipady=0)
+
+        # Actually grids the sequence Text widget.
+        self.sequence_entry.grid(column = 2, row = grid_position, sticky='nw', padx=5)
+        """
+
+        # Builds the sequence popup menu and binds events to it.
+        # self.build_right_popup_menu()
+        # self.bind_events_to_sequence_entry()
+
+
+    def build_text_to_display(self):
+        """
+        This method displayes the sequence of an element by inserting it the ".sequence_entry" Text
+        widget. It is called by "create_entry" method when "gridder" moethod of the PyMod class is
+        called.
+        """
+        self.tag_add("normal", "2.0")
+        self.insert(END, self.pymod_element.my_sequence,"normal")
+        # self.color_element(on_grid=True,color_pdb=False)
+        self.config(state=DISABLED)
 
 
 ###################################################################################################

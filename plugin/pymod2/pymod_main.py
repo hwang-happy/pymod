@@ -664,6 +664,7 @@ class PyMod:
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
         self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
+        self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
 
 
     def define_alignment_menu_structure(self):
@@ -1613,16 +1614,22 @@ class PyMod:
         'pymod_elements_list' by this method, it will be displayed in the PyMod main window.
         """
         self.pymod_elements_list.append(element) # Adds the element to the pymod_elements_list.
+        self.main_window.add_pymod_element_widgets(element)
         element.unique_index = self.unique_index
         self.unique_index += 1
-        self.
 
 
     def gridder(self):
-        for element in self.pymod_elements_list:
-            print "---"
-            print element.my_header
-            print element.my_sequence
+        #@@@
+        terminal = False
+        if terminal:
+            for element in self.pymod_elements_list:
+                print "---"
+                print element.my_header
+                print element.my_sequence
+        #@@@
+        for grid_index,pymod_element in enumerate(self.pymod_elements_list):
+            self.main_window.dict_of_elements_widgets[pymod_element].show_widgets(grid_index)
 
 
     def is_sequence_file(self, file_path, file_format, show_error=True):
