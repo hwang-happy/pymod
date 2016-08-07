@@ -664,7 +664,7 @@ class PyMod:
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
         self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
-        self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
 
 
     def define_alignment_menu_structure(self):
@@ -1518,6 +1518,7 @@ class PyMod:
                 e.selected = True
 
         return selected_elements
+    '''
 
     def get_selected_sequences(self):
         """
@@ -1526,7 +1527,6 @@ class PyMod:
         selected_sequences = [e for e in self.pymod_elements_list if e.selected and not e.is_cluster_element()]
         return selected_sequences
 
-    '''
 
     def get_cluster_elements(self,cluster_type = "all"):
         """
@@ -1760,11 +1760,12 @@ class PyMod:
         Lets users choose an alignment file.
         """
         # Creates a tkinter widget that lets the user select multiple files.
-        openfilename = askopenfilename(filetypes=pmdt.alignment_file_formats, multiple=False,parent=self.main_window)
-        if openfilename == "":
+        alignment_file_path = askopenfilename(filetypes=pmdt.alignment_file_formats, multiple=False,parent=self.main_window)
+        if alignment_file_path == "":
             return (None, None)
         # Finds the right extension.
-        extension = os.path.splitext(os.path.basename(openfilename))[1].replace(".","") # BUG.
+        extension = os.path.splitext(alignment_file_path)[1].replace(".","")
+        # TODO: use dictionaries.
         if extension == "fasta":
             pass
         elif extension == "aln":
@@ -1775,7 +1776,7 @@ class PyMod:
             message = "Unkwnown alignment file format: %s" % (extension)
             self.show_error_message(title,message)
             return (None, None)
-        return openfilename, extension
+        return alignment_file_path, extension
 
 
     def open_alignment_from_main_menu(self):
@@ -1813,6 +1814,34 @@ class PyMod:
         # Sets the initial number of sequences in the alignment.
         self.set_initial_ali_seq_number(imported_alignment_element)
         self.gridder()
+
+        
+    # def build_cluster_from_alignment_file(self,alignment_file, extension="fasta"):
+    #     """
+    #     Creates a cluster with all the sequences contained in an alignment file.
+    #     """
+    #     aligned_elements = []
+    #     fh = open(alignment_file, "rU")
+    #     records = SeqIO.parse(fh, extension)
+    #     for record in records:
+    #         e = self.build_pymod_element_from_seqrecord(record)
+    #         aligned_elements.append(e)
+    #     fh.close()
+    #     # Creates an alignment element.
+    #     self.alignment_count += 1
+    #     alignment_name = self.set_alignment_element_name("imported",self.alignment_count)
+    #     imported_alignment_element = PyMod_element("...", alignment_name,
+    #         element_type = "alignment",
+    #         alignment_object = Alignment("imported",self.alignment_count), adjust_header=False)
+    #     self.add_element_to_pymod(imported_alignment_element, "mother")
+    #     # Adds the sequences to the new alignment cluster.
+    #     for element in aligned_elements:
+    #         self.add_element_to_pymod(element, "child", mother_index=imported_alignment_element.mother_index)
+    #     # Computes the stars of the new alignment element.
+    #     self.update_stars(imported_alignment_element)
+    #     # Sets the initial number of sequences in the alignment.
+    #     self.set_initial_ali_seq_number(imported_alignment_element)
+    #     self.gridder()
 
 
     def transfer_alignment(self,alignment_element):
@@ -10884,3 +10913,4 @@ class PyModInvalidFile(Exception):
 # !WORKING!: implementazione delle nuove classi per le sequenze
 # TODO: implementazione delle nuove classi per le strutture.
 # TODO: implementa l'apertura di file dei sequenza con entry multiple.
+# TODO: cerca sempre i TODO nel testo.

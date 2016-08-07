@@ -544,157 +544,179 @@ class Header_entry(Entry, PyMod_element_widgets):
         # # Marks the element as being 'showed' in PyMod's main window.
         # self.is_shown = True
 
+
     def bind_events_to_header_entry(self):
-        self.header_entry.bind("<Button-1>", self.on_header_left_click)
-        self.header_entry.bind("<Motion>", self.display_protname)
-        if self.has_structure():
-            self.header_entry.bind("<Button-2>", self.click_structure_with_middle_button)
-        self.header_entry.bind("<ButtonRelease-3>", self.on_header_right_click)
+        self.bind("<Button-1>", self.on_header_left_click)
+        # self.bind("<Motion>", self.display_protname)
+        # if self.has_structure():
+        #     self.bind("<Button-2>", self.click_structure_with_middle_button)
+        # self.bind("<ButtonRelease-3>", self.on_header_right_click)
 
 
-    # Select/Unselect a protein clicking on its name on the left pane.
-    def on_header_left_click(self,event):
+    def on_header_left_click(self, event):
+        """
+        Select/Unselect a sequence clicking on its name on the left pane.
+        """
         self.toggle_element()
 
-    # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
-    def display_protname(self,event):
-            protein_name = self.full_original_header # self.header_entry.get()
-            pymod.sequence_name_bar.helpmessage(protein_name)
 
-    def click_structure_with_middle_button(self,event=None):
-            # Shows the structure and centers if the sequence is selected in Pymod.
-            if self.selected:
-                """
-                active_in_pymol = True
-                if active_in_pymol:
-                    # Centers the structure.
-                    self.center_chain_in_pymol()
-                    else:
-                """
-                self.show_chain_in_pymol()
-                self.center_chain_in_pymol()
-            # If the sequence is not selected in Pymod, hide it in PyMOL.
-            else:
-                self.hide_chain_in_pymol()
-
-    # A popup menu in the left frame to interact with the sequence
-    def on_header_right_click(self,event):
-        try:
-            self.header_entry["disabledbackground"] = 'grey'
-            self.popup_menu_left.tk_popup(event.x_root, event.y_root, 0)
-        except:
-            pass
-        #popup_menu.grab_release()
-        self.header_entry["disabledbackground"] = 'black'
+    # # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
+    # def display_protname(self,event):
+    #         protein_name = self.full_original_header # self.header_entry.get()
+    #         pymod.sequence_name_bar.helpmessage(protein_name)
+    #
+    # def click_structure_with_middle_button(self,event=None):
+    #         # Shows the structure and centers if the sequence is selected in Pymod.
+    #         if self.selected:
+    #             """
+    #             active_in_pymol = True
+    #             if active_in_pymol:
+    #                 # Centers the structure.
+    #                 self.center_chain_in_pymol()
+    #                 else:
+    #             """
+    #             self.show_chain_in_pymol()
+    #             self.center_chain_in_pymol()
+    #         # If the sequence is not selected in Pymod, hide it in PyMOL.
+    #         else:
+    #             self.hide_chain_in_pymol()
+    #
+    # # A popup menu in the left frame to interact with the sequence
+    # def on_header_right_click(self,event):
+    #     try:
+    #         self.header_entry["disabledbackground"] = 'grey'
+    #         self.popup_menu_left.tk_popup(event.x_root, event.y_root, 0)
+    #     except:
+    #         pass
+    #     #popup_menu.grab_release()
+    #     self.header_entry["disabledbackground"] = 'black'
 
 
     ###################################
     # Selection of elements.          #
     ###################################
 
-    # Toggles elements.
+    # # Toggles elements.
+    # def toggle_element(self):
+    #     if self.is_mother:
+    #         self.toggle_mother_element()
+    #     elif self.is_child:
+    #         if self.is_lead_of_collapsed_cluster():
+    #             self.toggle_lead_element()
+    #         else:
+    #             self.toggle_child_element()
+    #
     def toggle_element(self):
-        if self.is_mother:
-            self.toggle_mother_element()
-        elif self.is_child:
-            if self.is_lead_of_collapsed_cluster():
-                self.toggle_lead_element()
-            else:
-                self.toggle_child_element()
-
-    # Toggle a mother element.
-    def toggle_mother_element(self):
-        # Inactivate.
-        if self.selected:
-            self.deselect_element()
-            # Deselects also all the children.
-            if self.is_cluster_element():
-                for c in pymod.get_children(self):
-                        if c.selected:
-                            c.deselect_element()
-        # Activate.
-        else:
-            self.select_element()
-            # Activate also all the children!
-            if self.is_cluster_element():
-                for c in pymod.get_children(self):
-                        if not c.selected:
-                            c.select_element()
-
-    # Toggle a child element.
-    def toggle_child_element(self):
-        mother = pymod.get_mother(self)
-        # Inactivate.
-        if self.selected:
-            # Modify the mother and the siblings according to what happens to the children.
-            if not mother.selected:
-                siblings = pymod.get_siblings(self)
-                # If it is not the last activated children in the cluster.
-                if True in [s.selected for s in siblings]:
-                    mother.deselect_element(is_in_cluster=True)
-                    self.deselect_element(is_in_cluster=True)
-                # If it is the last children to be inactivated.
-                else:
-                    mother.deselect_element()
-                    for s in siblings:
-                        s.deselect_element()
-                    self.deselect_element()
-            else:
-                self.deselect_element(is_in_cluster=True)
-                mother.deselect_element(is_in_cluster=True)
-
-        # Activate.
-        else:
-            self.select_element()
-            # If the mother is not selected and if by selecting this child, all the children
-            # are selected, also selects the mother.
-            if not mother.selected:
-                # If it is the last inactivated children in the cluster, then by selecting it all the
-                # elements in the cluster are selected and the mother is also selected.
-                siblings = pymod.get_siblings(self)
-                if not False in [c.selected for c in siblings]:
-                    mother.select_element()
-                else:
-                    # Used to make the mother "gray".
-                    mother.deselect_element(is_in_cluster=True)
-                    # Used to make the siblings "gray".
-                    for s in siblings:
-                        if not s.selected:
-                            s.deselect_element(is_in_cluster=True)
-
-
-    # Toggle a lead element when a cluster is collapsed.
-    def toggle_lead_element(self):
-        if self.selected:
+        if self.pymod_element.selected:
             self.deselect_element()
         else:
             self.select_element()
 
     # Selects an element.
-    def select_element(self,is_in_cluster=False):
-        self.selected = True
-        if self.is_shown:
-            if not is_in_cluster:
-                self.header_entry["disabledforeground"] = 'green'
-            else:
-                self.header_entry["disabledforeground"] = 'green'
+    def select_element(self, is_in_cluster=False):
+        self.pymod_element.selected = True
+        self["disabledforeground"] = 'green'
 
     # Deselects an element.
     def deselect_element(self, is_in_cluster=False):
-        self.selected = False
-        if self.is_shown:
-            if not is_in_cluster:
-                self.header_entry["disabledforeground"] = 'red'
-            else:
-                self.header_entry["disabledforeground"] = 'ghost white'
+        self.pymod_element.selected = False
+        self["disabledforeground"] = 'red'
+        # self.header_entry["disabledforeground"] = 'ghost white'
 
-    # The two following methods are used only when the user clicks on the mother of a collapsed
-    # cluster. They will select/deselect its children, without changing their color.
-    def select_hidden_child(self):
-        self.selected = True
 
-    def deselect_hidden_child(self):
-        self.selected = False
+    # # Toggle a mother element.
+    # def toggle_mother_element(self):
+    #     # Inactivate.
+    #     if self.selected:
+    #         self.deselect_element()
+    #         # Deselects also all the children.
+    #         if self.is_cluster_element():
+    #             for c in pymod.get_children(self):
+    #                     if c.selected:
+    #                         c.deselect_element()
+    #     # Activate.
+    #     else:
+    #         self.select_element()
+    #         # Activate also all the children!
+    #         if self.is_cluster_element():
+    #             for c in pymod.get_children(self):
+    #                     if not c.selected:
+    #                         c.select_element()
+    #
+    # # Toggle a child element.
+    # def toggle_child_element(self):
+    #     mother = pymod.get_mother(self)
+    #     # Inactivate.
+    #     if self.selected:
+    #         # Modify the mother and the siblings according to what happens to the children.
+    #         if not mother.selected:
+    #             siblings = pymod.get_siblings(self)
+    #             # If it is not the last activated children in the cluster.
+    #             if True in [s.selected for s in siblings]:
+    #                 mother.deselect_element(is_in_cluster=True)
+    #                 self.deselect_element(is_in_cluster=True)
+    #             # If it is the last children to be inactivated.
+    #             else:
+    #                 mother.deselect_element()
+    #                 for s in siblings:
+    #                     s.deselect_element()
+    #                 self.deselect_element()
+    #         else:
+    #             self.deselect_element(is_in_cluster=True)
+    #             mother.deselect_element(is_in_cluster=True)
+    #
+    #     # Activate.
+    #     else:
+    #         self.select_element()
+    #         # If the mother is not selected and if by selecting this child, all the children
+    #         # are selected, also selects the mother.
+    #         if not mother.selected:
+    #             # If it is the last inactivated children in the cluster, then by selecting it all the
+    #             # elements in the cluster are selected and the mother is also selected.
+    #             siblings = pymod.get_siblings(self)
+    #             if not False in [c.selected for c in siblings]:
+    #                 mother.select_element()
+    #             else:
+    #                 # Used to make the mother "gray".
+    #                 mother.deselect_element(is_in_cluster=True)
+    #                 # Used to make the siblings "gray".
+    #                 for s in siblings:
+    #                     if not s.selected:
+    #                         s.deselect_element(is_in_cluster=True)
+    #
+    #
+    # # Toggle a lead element when a cluster is collapsed.
+    # def toggle_lead_element(self):
+    #     if self.selected:
+    #         self.deselect_element()
+    #     else:
+    #         self.select_element()
+    #
+    # # Selects an element.
+    # def select_element(self,is_in_cluster=False):
+    #     self.selected = True
+    #     if self.is_shown:
+    #         if not is_in_cluster:
+    #             self.header_entry["disabledforeground"] = 'green'
+    #         else:
+    #             self.header_entry["disabledforeground"] = 'green'
+    #
+    # # Deselects an element.
+    # def deselect_element(self, is_in_cluster=False):
+    #     self.selected = False
+    #     if self.is_shown:
+    #         if not is_in_cluster:
+    #             self.header_entry["disabledforeground"] = 'red'
+    #         else:
+    #             self.header_entry["disabledforeground"] = 'ghost white'
+    #
+    # # The two following methods are used only when the user clicks on the mother of a collapsed
+    # # cluster. They will select/deselect its children, without changing their color.
+    # def select_hidden_child(self):
+    #     self.selected = True
+    #
+    # def deselect_hidden_child(self):
+    #     self.selected = False
 
 
 #####################################################################
