@@ -9,8 +9,7 @@ class PyMod_element:
                  sequence,
                  header,
                  full_original_header=None,
-                 color="white",
-                 structure=None):
+                 color="white"):
         # SeqRecord(seq=Seq('MDDDIAALVVDNGSGMCKAGFAGDDAPRAVFPSIVGRPRHQGVMVGMGQKDSYV...KCF', IUPACProtein()),
         #             id='NP_001092.1',
         #             name='NP_001092',
@@ -30,10 +29,6 @@ class PyMod_element:
         # self.mother_index = None
         # self.child_index = None
 
-        # This is needed to display the sequences in the right order. It will be defined inside the
-        # "create_entry()" method.
-        self.grid_position = None
-
         # Forms the header name.
         # self.set_header_name(record_header, adjust_header)
         self.my_sequence = sequence
@@ -43,7 +38,7 @@ class PyMod_element:
         if full_original_header != None:
             self.full_original_header = full_original_header
         else:
-            self.full_original_header = record_header
+            self.full_original_header = header
 
         # Sets the 'my_sequence' attribute. The primary sequence of an element. If the sequence is
         # changed or aligned by the user, it will be modified to include indels.
@@ -66,6 +61,21 @@ class PyMod_element:
         self.my_color = color
 
 
+# Clusters.
+class PyMod_cluster(PyMod_element):
+
+    def __init__(self, algorithm=None, cluster_id=None, **configs):
+        PyMod_element.__init__(self, **configs)
+        self.algorithm = algorithm
+        self.cluster_id = cluster_id
+        self.initial_number_of_sequences = None
+        self.list_of_children = []
+
+
+    def add_children(self, *children):
+        self.list_of_children.extend(children)
+        if self.initial_number_of_sequences == None:
+            self.initial_number_of_sequences = len(children)
 
 # Sequences.
 class PyMod_sequence(PyMod_element):
@@ -83,9 +93,4 @@ class PyMod_residue:
     pass
 
 class PyMod_structure:
-    pass
-
-
-# Clusters.
-class PyMod_cluster(PyMod_element):
     pass

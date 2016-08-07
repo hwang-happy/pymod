@@ -1214,35 +1214,35 @@ class PyMod:
         element.is_bridge = False
         element.is_lead = False
 
-    # Appends an element to some cluster/mother.
-    # Arguments (elements): mother, children
-    def add_to_mother(self, mother, element, child_index=None):
-
-        # Checks that the element to add is actually in the self.pymod_elements_list.
-        # ...
-        if mother.mother_index == element.mother_index:
-            raise Exception("You can't add an element to some mother with the same index.")
-
-        last_child_index = None
-        # For mothers.
-        if element.is_mother:
-            self.pop_mother(element)
-            self.set_as_children(element)
-        elif element.is_child:
-            self.pop_child(element)
-            self.cancel_memory(element)
-            # element.child_index = len(self.get_children(mother)) + 1
-            pass
-
-        # Get the last index of the mother.
-        last_child_index = len(self.get_children(mother)) + 1
-        if child_index != None:
-            # Check if the child index is correct...
-            # ...
-            element.child_index = child_index
-        else:
-            element.mother_index = mother.mother_index
-            element.child_index = last_child_index
+    # # Appends an element to some cluster/mother.
+    # # Arguments (elements): mother, children
+    # def add_to_mother(self, mother, element, child_index=None):
+    #
+    #     # Checks that the element to add is actually in the self.pymod_elements_list.
+    #     # ...
+    #     if mother.mother_index == element.mother_index:
+    #         raise Exception("You can't add an element to some mother with the same index.")
+    #
+    #     last_child_index = None
+    #     # For mothers.
+    #     if element.is_mother:
+    #         self.pop_mother(element)
+    #         self.set_as_children(element)
+    #     elif element.is_child:
+    #         self.pop_child(element)
+    #         self.cancel_memory(element)
+    #         # element.child_index = len(self.get_children(mother)) + 1
+    #         pass
+    #
+    #     # Get the last index of the mother.
+    #     last_child_index = len(self.get_children(mother)) + 1
+    #     if child_index != None:
+    #         # Check if the child index is correct...
+    #         # ...
+    #         element.child_index = child_index
+    #     else:
+    #         element.mother_index = mother.mother_index
+    #         element.child_index = last_child_index
 
 
     def extract_child(self,child):
@@ -1520,6 +1520,13 @@ class PyMod:
         return selected_elements
     '''
 
+    def add_to_mother(self, mother, child_elements):
+        """
+        Appends elements to some cluster/mother.
+        """
+        mother.add_children(child_elements)
+
+
     def get_selected_sequences(self):
         """
         Returns a list of all the sequences selected by the user.
@@ -1792,30 +1799,46 @@ class PyMod:
         """
         Creates a cluster with all the sequences contained in an alignment file.
         """
+        # Gets the sequences using Biopython.
         aligned_elements = []
         fh = open(alignment_file, "rU")
         records = SeqIO.parse(fh, extension)
         for record in records:
-            e = self.build_pymod_element_from_seqrecord(record)
-            aligned_elements.append(e)
+            aligned_elements.append(self.build_pymod_element_from_seqrecord(record))
         fh.close()
-        # Creates an alignment element.
-        self.alignment_count += 1
-        alignment_name = self.set_alignment_element_name("imported",self.alignment_count)
-        imported_alignment_element = PyMod_element("...", alignment_name,
-            element_type = "alignment",
-            alignment_object = Alignment("imported",self.alignment_count), adjust_header=False)
-        self.add_element_to_pymod(imported_alignment_element, "mother")
-        # Adds the sequences to the new alignment cluster.
-        for element in aligned_elements:
-            self.add_element_to_pymod(element, "child", mother_index=imported_alignment_element.mother_index)
-        # Computes the stars of the new alignment element.
-        self.update_stars(imported_alignment_element)
-        # Sets the initial number of sequences in the alignment.
-        self.set_initial_ali_seq_number(imported_alignment_element)
+
+        self.build_new_cluster(aligned_elements, "imported")
+
         self.gridder()
 
-        
+
+    def build_new_cluster(self, child_elements, algorithm):
+        # Creates an alignment element.
+        self.alignment_count += 1
+        alignment_name = self.set_alignment_element_name(algorithm, self.alignment_count)
+        # Adds the sequences to the new alignment cluster.
+        for element in child_elements:
+            self.add_element_to_pymod(element)
+        imported_alignment_element = pmel.PyMod_cluster(
+                                                    sequence="...", # Sets a temporary sequence.
+                                                    header=alignment_name,
+                                                    full_original_header=None,
+                                                    color="white",
+                                                    algorithm=algorithm,
+                                                    cluster_id=self.alignment_count)
+                                                #    adjust_header=False) TODO: what to do here?
+        self.add_element_to_pymod(imported_alignment_element)
+        self.add_to_mother(imported_alignment_element, child_elements)
+
+        #
+        # # Computes the stars of the new alignment element.
+        # self.update_stars(imported_alignment_element)
+        #
+        # # Sets the initial number of sequences in the alignment.
+        # self.set_initial_ali_seq_number(imported_alignment_element)
+        #
+
+
     # def build_cluster_from_alignment_file(self,alignment_file, extension="fasta"):
     #     """
     #     Creates a cluster with all the sequences contained in an alignment file.
@@ -10869,28 +10892,29 @@ class Full_model:
         self.assessment_data = None
 
 
-class Alignment:
-    """
-    Class for alignments.
-    """
-    def __init__(self, alignment_algorithm, alignment_id, initial_number_of_sequence=None):
-        """
-        alignment_algorithm: the algorithm used to perform the alignment
-        alignment_id: an int value that identifies the alignmente object
-        """
-        self.algorithm = alignment_algorithm
-        self.id = alignment_id
-        self.initial_number_of_sequence = initial_number_of_sequence
-        self.rmsd_list = None
-
-    def set_dnd_file_path(self, dnd_file_path):
-        self.dnd_file_path = dnd_file_path
-
-    def get_dnd_file_path(self):
-        return self.dnd_file_path
-
-    def set_rmsd_list(self, rmsd_list):
-        self.rmsd_list = rmsd_list
+# TODO: remove.
+# class Alignment:
+#     """
+#     Class for alignments.
+#     """
+#     def __init__(self, alignment_algorithm, alignment_id, initial_number_of_sequence=None):
+#         """
+#         alignment_algorithm: the algorithm used to perform the alignment
+#         alignment_id: an int value that identifies the alignmente object
+#         """
+#         self.algorithm = alignment_algorithm
+#         self.id = alignment_id
+#         self.initial_number_of_sequence = initial_number_of_sequence
+#         self.rmsd_list = None
+#
+#     def set_dnd_file_path(self, dnd_file_path):
+#         self.dnd_file_path = dnd_file_path
+#
+#     def get_dnd_file_path(self):
+#         return self.dnd_file_path
+#
+#     def set_rmsd_list(self, rmsd_list):
+#         self.rmsd_list = rmsd_list
 
 
 ###################################################################################################

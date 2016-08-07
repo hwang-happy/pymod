@@ -606,6 +606,7 @@ class Header_entry(Entry, PyMod_element_widgets):
     #         else:
     #             self.toggle_child_element()
     #
+    
     def toggle_element(self):
         if self.pymod_element.selected:
             self.deselect_element()
