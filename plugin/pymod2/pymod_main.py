@@ -1650,9 +1650,7 @@ class PyMod:
         for record in records:
             aligned_elements.append(self.build_pymod_element_from_seqrecord(record))
         fh.close()
-
         self.build_new_cluster(aligned_elements, "imported")
-
         self.gridder()
 
 
@@ -1665,23 +1663,35 @@ class PyMod:
                 print element.my_header
                 print element.my_sequence
         #@@@
-        # Assigns the grid indices.
+
+        #----------------------------
+        # Assigns the grid indices. -
+        #----------------------------
         grid_index = 0
         for pymod_element in self.pymod_elements_list:
             if pymod_element.is_mother:
-                self.main_window.dict_of_elements_widgets[pymod_element].set_grid_index(grid_index)
+                self.main_window.set_grid_index(pymod_element, grid_index)
                 grid_index += 1
                 if pymod_element.is_cluster_element():
                     for child_element in self.get_children(pymod_element):
-                        self.main_window.dict_of_elements_widgets[child_element].set_grid_index(grid_index)
+                        self.main_window.set_grid_index(child_element, grid_index)
                         grid_index += 1
-        # Shows the widgets.
+
+        #--------------------------------------------
+        # Grids the widgets with their new indices. -
+        #--------------------------------------------
         for pymod_element in self.pymod_elements_list:
             if pymod_element.is_mother:
                 self.main_window.show_widgets(pymod_element)
                 if pymod_element.is_cluster_element():
                     for child_element in self.get_children(pymod_element):
                         self.main_window.show_widgets(child_element)
+
+
+    def print_selected(self):
+        print "###"
+        print "# Selected list:"
+        print "\n".join([s.my_header for s in self.get_selected_sequences()])
 
 
     #################################################################
@@ -10934,7 +10944,13 @@ class PyModInvalidFile(Exception):
     """
     pass
 
-# !WORKING!: implementazione delle nuove classi per le sequenze
+# !WORKING!
+# - implementazione delle nuove classi per le sequenze
+#     - reimplementare la GUI della main window:
+#         - selection
+#         - popup menus
+#         - other events
+#         - edit sequences
 # TODO: implementazione delle nuove classi per le strutture.
 # TODO: implementa l'apertura di file dei sequenza con entry multiple.
 # TODO: cerca sempre i TODO nel testo.

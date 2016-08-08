@@ -67,10 +67,16 @@ class PyMod_element:
 
         # Name of the color of the sequence when its "color_by" attribute is set to "regular".
         self.my_color = color
-        
+
 
     def is_cluster_element(self):
         return self.is_cluster
+
+    def get_siblings(self):
+        if not self.mother:
+            return []
+        else:
+            return filter(lambda c: c != self, self.mother.list_of_children)
 
 
 # Clusters.
@@ -93,8 +99,10 @@ class PyMod_cluster(PyMod_element):
         for child in children:
             child.is_child = True
             child.is_mother = False
+            child.mother = self
         if self.initial_number_of_sequences == None:
             self.initial_number_of_sequences = len(children)
+
 
 # Sequences.
 class PyMod_sequence(PyMod_element):

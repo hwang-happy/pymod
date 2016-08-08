@@ -94,13 +94,346 @@ target_box_style = {"background":'black', "bd":1, "relief":GROOVE, "padx":10, "p
 
 
 ###################################################################################################
-# MAIN WINDOW CLASS.                                                                              #
+# MAIN WINDOW CLASSES.                                                                            #
 ###################################################################################################
 
-class PyMod_main_window(Toplevel):
+class PyMod_main_window_mixin:
+    """
+    A mixin class used to coordinate events of the PyMod main window.
+    """
+
+    dict_of_elements_widgets = {}
+    sequence_font_type = fixed_width_font
+    sequence_font_size = 12
+    sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 12".
+    bg_color = "black"
+
+    #################################################################
+    # Display widgets in the PyMod main window.                     #
+    #################################################################
+
+    def set_grid_index(self, pymod_element, grid_index):
+        pymod_element_widgets_pairs = self.dict_of_elements_widgets[pymod_element]
+        pymod_element_widgets_pairs.grid_index = grid_index
+
+
+    def show_widgets(self, pymod_element):
+        pymod_element_widgets_pairs = self.dict_of_elements_widgets[pymod_element]
+
+        #--------------------
+        # Shows the header. -
+        #--------------------
+        pymod_element_widgets_pairs.header_entry.grid(row = pymod_element_widgets_pairs.grid_index, sticky = 'nw')
+
+        #------------------------------------------
+        # Updates and shows the sequence widgets. -
+        #------------------------------------------
+        # Modifier that allows to display the symbol '|_' of a child sequence.
+        if pymod_element.is_child:
+            pymod_element_widgets_pairs.set_child_sign()
+            pymod_element_widgets_pairs.child_sign.grid(column = 0, row = pymod_element_widgets_pairs.grid_index, sticky='nw', padx=0, pady=0,ipadx=0,ipady=0)
+
+        # Adds buttons to clusters.
+        if pymod_element.is_cluster_element():
+            pymod_element_widgets_pairs.cluster_button.grid(column = 0, row = pymod_element_widgets_pairs.grid_index, sticky='nw', padx=5, pady=0,ipadx=3,ipady=0)
+
+        pymod_element_widgets_pairs.sequence_text.update_text()
+        pymod_element_widgets_pairs.sequence_text.grid(column=1,row = pymod_element_widgets_pairs.grid_index, sticky='nw')
+
+
+    def hide_widgets(self, pymod_element, target="all"):
+        pymod_element_widgets_pairs = self.dict_of_elements_widgets[pymod_element]
+        if target == "all":
+            pymod_element_widgets_pairs.header_entry.grid_forget()
+            if pymod_element.is_child:
+                pymod_element_widgets_pairs.child_sign.grid_forget()
+            if pymod_element.is_cluster_element():
+                pymod_element_widgets_pairs.cluster_button.grid_forget()
+            pymod_element_widgets_pairs.sequence_text.grid_forget()
+        elif target == "sequence":
+            # pymod_element_widgets_pairs.
+            pass
+
+
+    #################################################################
+    # Selection of elements in the PyMod main window.               #
+    #################################################################
+
+    def toggle_element(self, pymod_element):
+        """
+        Toggles elements selection state.
+        """
+        if pymod_element.is_mother:
+            self.toggle_mother_element(pymod_element)
+        elif pymod_element.is_child:
+            self.toggle_child_element(pymod_element)
+            # if self.is_lead_of_collapsed_cluster():
+            #     self.toggle_lead_element()
+            # else:
+            #     self.toggle_child_element()
+
+
+    def toggle_mother_element(self, pymod_element):
+        """
+        Toggle a mother element.
+        """
+        if pymod_element.selected: # Inactivate.
+            self.deselect_element(pymod_element)
+            if self.pymod_element.is_cluster_element(): # Inactivate also all the children.
+                [self.deselect_element(c) for c in pymod_element.list_of_children if c.selected]
+        else: # Activate.
+            self.select_element(pymod_element)
+            if self.pymod_element.is_cluster_element(): # Activate also all the children.
+                [self.select_element(c) for c in pymod_element.list_of_children if not c.selected]
+
+
+    def toggle_child_element(self, pymod_element):
+        """
+        Toggle a child element.
+        """
+        child = self.pymod_element
+        mother = self.pymod_element.mother
+        # Inactivate.
+        if child.selected:
+            # Modify the mother and the siblings according to what happens to the children.
+            if not mother.selected:
+                siblings = child.get_siblings()
+                # If it is not the last activated children in the cluster.
+                if True in [s.selected for s in siblings]:
+                    self.deselect_element(mother, is_in_cluster=True)
+                    self.deselect_element(child, is_in_cluster=True)
+                # If it is the last children to be inactivated.
+                else:
+                    self.deselect_element(mother)
+                    for s in siblings:
+                        self.deselect_element(s)
+                    self.deselect_element(child)
+            else:
+                self.deselect_element(child, is_in_cluster=True)
+                self.deselect_element(mother, is_in_cluster=True)
+        # Activate.
+        else:
+            self.select_element(child)
+            # If the mother is not selected and if by selecting this child, all the children
+            # are selected, also selects the mother.
+            if not mother.selected:
+                # If it is the last inactivated children in the cluster, then by selecting it all the
+                # elements in the cluster are selected and the mother is also selected.
+                siblings = child.get_siblings()
+                if not False in [c.selected for c in siblings]:
+                    self.select_element(mother)
+                else:
+                    # Used to make the mother "gray".
+                    self.deselect_element(mother, is_in_cluster=True)
+                    # Used to make the siblings "gray".
+                    for s in siblings:
+                        if not s.selected:
+                            self.deselect_element(s, is_in_cluster=True)
+
+
+    def select_element(self,pymod_element, is_in_cluster=False):
+        """
+        Selects an element.
+        """
+        pymod_element.selected = True
+        if not is_in_cluster:
+            self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'green'
+        else:
+            self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'green'
+
+
+    def deselect_element(self, pymod_element, is_in_cluster=False):
+        """
+        Deselects an element.
+        """
+        pymod_element.selected = False
+        if not is_in_cluster:
+            self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'red'
+        else:
+            self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'ghost white'
+
+
+    # def toggle_child_element_old(self):
+    #     """
+    #     Toggle a child element.
+    #     """
+    #     mother = pymod.get_mother(self)
+    #     # Inactivate.
+    #     if self.selected:
+    #         # Modify the mother and the siblings according to what happens to the children.
+    #         if not mother.selected:
+    #             siblings = pymod.get_siblings(self)
+    #             # If it is not the last activated children in the cluster.
+    #             if True in [s.selected for s in siblings]:
+    #                 mother.deselect_element(is_in_cluster=True)
+    #                 self.deselect_element(is_in_cluster=True)
+    #             # If it is the last children to be inactivated.
+    #             else:
+    #                 mother.deselect_element()
+    #                 for s in siblings:
+    #                     s.deselect_element()
+    #                 self.deselect_element()
+    #         else:
+    #             self.deselect_element(is_in_cluster=True)
+    #             mother.deselect_element(is_in_cluster=True)
+    #
+    #     # Activate.
+    #     else:
+    #         self.select_element()
+    #         # If the mother is not selected and if by selecting this child, all the children
+    #         # are selected, also selects the mother.
+    #         if not mother.selected:
+    #             # If it is the last inactivated children in the cluster, then by selecting it all the
+    #             # elements in the cluster are selected and the mother is also selected.
+    #             siblings = pymod.get_siblings(self)
+    #             if not False in [c.selected for c in siblings]:
+    #                 mother.select_element()
+    #             else:
+    #                 # Used to make the mother "gray".
+    #                 mother.deselect_element(is_in_cluster=True)
+    #                 # Used to make the siblings "gray".
+    #                 for s in siblings:
+    #                     if not s.selected:
+    #                         s.deselect_element(is_in_cluster=True)
+
+
+    # Toggle a lead element when a cluster is collapsed.
+    def toggle_lead_element(self):
+        if self.selected:
+            self.deselect_element()
+        else:
+            self.select_element()
+
+    # The two following methods are used only when the user clicks on the mother of a collapsed
+    # cluster. They will select/deselect its children, without changing their color.
+    def select_hidden_child(self):
+        self.selected = True
+
+    def deselect_hidden_child(self):
+        self.selected = False
+
+
+    '''
+    def toggle_element(self):
+        if self.pymod_element.selected:
+            self.deselect_element()
+        else:
+            self.select_element()
+
+    # !WORKING!
+    # Selects an element.
+    def select_element(self, is_in_cluster=False):
+        self.pymod_element.selected = True
+        self["disabledforeground"] = 'green'
+
+
+    # Deselects an element.
+    def deselect_element(self, is_in_cluster=False):
+        self.pymod_element.selected = False
+        self["disabledforeground"] = 'red'
+        # self.header_entry["disabledforeground"] = 'ghost white'
+    '''
+
+    # # Toggle a mother element.
+    # def toggle_mother_element(self):
+    #     # Inactivate.
+    #     if self.selected:
+    #         self.deselect_element()
+    #         # Deselects also all the children.
+    #         if self.is_cluster_element():
+    #             for c in pymod.get_children(self):
+    #                     if c.selected:
+    #                         c.deselect_element()
+    #     # Activate.
+    #     else:
+    #         self.select_element()
+    #         # Activate also all the children!
+    #         if self.is_cluster_element():
+    #             for c in pymod.get_children(self):
+    #                     if not c.selected:
+    #                         c.select_element()
+    #
+    # # Toggle a child element.
+    # def toggle_child_element(self):
+    #     mother = pymod.get_mother(self)
+    #     # Inactivate.
+    #     if self.selected:
+    #         # Modify the mother and the siblings according to what happens to the children.
+    #         if not mother.selected:
+    #             siblings = pymod.get_siblings(self)
+    #             # If it is not the last activated children in the cluster.
+    #             if True in [s.selected for s in siblings]:
+    #                 mother.deselect_element(is_in_cluster=True)
+    #                 self.deselect_element(is_in_cluster=True)
+    #             # If it is the last children to be inactivated.
+    #             else:
+    #                 mother.deselect_element()
+    #                 for s in siblings:
+    #                     s.deselect_element()
+    #                 self.deselect_element()
+    #         else:
+    #             self.deselect_element(is_in_cluster=True)
+    #             mother.deselect_element(is_in_cluster=True)
+    #
+    #     # Activate.
+    #     else:
+    #         self.select_element()
+    #         # If the mother is not selected and if by selecting this child, all the children
+    #         # are selected, also selects the mother.
+    #         if not mother.selected:
+    #             # If it is the last inactivated children in the cluster, then by selecting it all the
+    #             # elements in the cluster are selected and the mother is also selected.
+    #             siblings = pymod.get_siblings(self)
+    #             if not False in [c.selected for c in siblings]:
+    #                 mother.select_element()
+    #             else:
+    #                 # Used to make the mother "gray".
+    #                 mother.deselect_element(is_in_cluster=True)
+    #                 # Used to make the siblings "gray".
+    #                 for s in siblings:
+    #                     if not s.selected:
+    #                         s.deselect_element(is_in_cluster=True)
+    #
+    #
+    # # Toggle a lead element when a cluster is collapsed.
+    # def toggle_lead_element(self):
+    #     if self.selected:
+    #         self.deselect_element()
+    #     else:
+    #         self.select_element()
+    #
+    # # Selects an element.
+    # def select_element(self,is_in_cluster=False):
+    #     self.selected = True
+    #     if self.is_shown:
+    #         if not is_in_cluster:
+    #             self.header_entry["disabledforeground"] = 'green'
+    #         else:
+    #             self.header_entry["disabledforeground"] = 'green'
+    #
+    # # Deselects an element.
+    # def deselect_element(self, is_in_cluster=False):
+    #     self.selected = False
+    #     if self.is_shown:
+    #         if not is_in_cluster:
+    #             self.header_entry["disabledforeground"] = 'red'
+    #         else:
+    #             self.header_entry["disabledforeground"] = 'ghost white'
+    #
+    # # The two following methods are used only when the user clicks on the mother of a collapsed
+    # # cluster. They will select/deselect its children, without changing their color.
+    # def select_hidden_child(self):
+    #     self.selected = True
+    #
+    # def deselect_hidden_child(self):
+    #     self.selected = False
+
+
+class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
     """
     A class for the Tkinter PyMod main window.
     """
+
     def __init__(self, parent = None, pymod = None, **configs):
 
         Toplevel.__init__(self, parent, **configs)
@@ -164,8 +497,6 @@ class PyMod_main_window(Toplevel):
         self.pmw_dialog_val = None
 
         self.make_main_menu()
-
-        self.dict_of_elements_widgets = {}
 
 
     def create_main_window_panes(self):
@@ -370,6 +701,8 @@ class PyMod_main_window(Toplevel):
         #---------------
         self.help_menu = Menu(self.menubar, tearoff = 0)
         self.menubar.add_cascade(label = "Help", menu = self.help_menu)
+        # TODO: remove.
+        self.help_menu.add_command(label = "Print Selected", command = self.pymod.print_selected)
         self.help_menu.add_command(label = "Online Documentation", command = self.pymod.open_online_documentation)
         self.help_menu.add_command(label = "About", command = self.pymod.show_about_dialog)
         self.help_menu.add_separator()
@@ -483,64 +816,22 @@ class PyMod_main_window(Toplevel):
     def add_pymod_element_widgets(self, pymod_element):
         pewp = PyMod_element_widgets_pairs(left_pane=self.leftpan.interior(),
                                            right_pane=self.rightpan.interior(),
-                                           pymod_element=pymod_element,
-                                           expand_cluster_command=self.show_widgets,
-                                           collapse_cluster_command=self.hide_widgets)
+                                           pymod_element=pymod_element)
         self.dict_of_elements_widgets.update({pymod_element: pewp})
 
-
-    def show_widgets(self, pymod_element):
-        pymod_element_widgets_pairs = self.dict_of_elements_widgets[pymod_element]
-
-        #--------------------
-        # Shows the header. -
-        #--------------------
-        pymod_element_widgets_pairs.header_entry.grid(row = pymod_element_widgets_pairs.grid_index, sticky = 'nw')
-
-        #------------------------------------------
-        # Updates and shows the sequence widgets. -
-        #------------------------------------------
-        # Modifier that allows to display the symbol '|_' of a child sequence.
-        if pymod_element.is_child:
-            pymod_element_widgets_pairs.set_child_sign()
-            pymod_element_widgets_pairs.child_sign.grid(column = 0, row = pymod_element_widgets_pairs.grid_index, sticky='nw', padx=0, pady=0,ipadx=0,ipady=0)
-
-        # Adds buttons to clusters.
-        if pymod_element.is_cluster_element():
-            pymod_element_widgets_pairs.cluster_button.grid(column = 0, row = pymod_element_widgets_pairs.grid_index, sticky='nw', padx=5, pady=0,ipadx=3,ipady=0)
-
-        pymod_element_widgets_pairs.sequence_text.update_text()
-        pymod_element_widgets_pairs.sequence_text.grid(column=1,row = pymod_element_widgets_pairs.grid_index, sticky='nw')
-
-
-    def hide_widgets(self, pymod_element, target="all"):
-        pymod_element_widgets_pairs = self.dict_of_elements_widgets[pymod_element]
-        if target == "all":
-            pymod_element_widgets_pairs.header_entry.grid_forget()
-            if pymod_element.is_child:
-                pymod_element_widgets_pairs.child_sign.grid_forget()
-            if pymod_element.is_cluster_element():
-                pymod_element_widgets_pairs.cluster_button.grid_forget()
-            pymod_element_widgets_pairs.sequence_text.grid_forget()
-        elif target == "sequence":
-            # pymod_element_widgets_pairs.
-            pass
 
 
 ###################################################################################################
 # CLASSES FOR PYMOD MAIN WINDOW.                                                                  #
 ###################################################################################################
 
-class PyMod_element_widgets:
-    sequence_font_type = fixed_width_font
-    sequence_font_size = 12
-    sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 12".
-    bg_color = "black"
+#####################################################################
+# Class for coordinating the widgets belonging to a PyMod element.  #
+#####################################################################
 
+class PyMod_element_widgets_pairs(PyMod_main_window_mixin):
 
-class PyMod_element_widgets_pairs(PyMod_element_widgets):
-
-    def __init__(self, left_pane, right_pane, pymod_element, expand_cluster_command, collapse_cluster_command):
+    def __init__(self, left_pane, right_pane, pymod_element):
         self.pymod_element = pymod_element
         self.grid_index = 0
 
@@ -582,12 +873,6 @@ class PyMod_element_widgets_pairs(PyMod_element_widgets):
                      justify = CENTER, width = 1 )
         # Binds the mouse event to the cluster button.
         self.cluster_button.bind("<Button-1>", self.cluster_button_click)
-        self.expand_cluster_command = expand_cluster_command
-        self.collapse_cluster_command = collapse_cluster_command
-
-
-    def set_grid_index(self, grid_index):
-        self.grid_index = grid_index
 
 
     def set_child_sign(self):
@@ -604,13 +889,13 @@ class PyMod_element_widgets_pairs(PyMod_element_widgets):
         self.child_sign_var.set(child_sign)
 
 
-    #################################################################
-    # Cluster button events.                                        #
-    #################################################################
+    ##########################
+    # Cluster button events. #
+    ##########################
 
     def cluster_button_click(self, event):
         """
-        Creates the mouse event for the clicking the Button. It is used to toggle the children of
+        Creates the mouse event for clicking cluster buttons. It is used to toggle the children of
         the cluster.
         """
         if self.show_children:
@@ -624,7 +909,7 @@ class PyMod_element_widgets_pairs(PyMod_element_widgets):
         self.cluster_button["disabledbackground"] = "gray"
         self.show_children = True
         for child in self.pymod_element.list_of_children:
-            self.expand_cluster_command(child)
+            self.show_widgets(child)
 
 
     def collapse_cluster(self):
@@ -632,18 +917,18 @@ class PyMod_element_widgets_pairs(PyMod_element_widgets):
         self.cluster_button["disabledbackground"] = "red"
         self.show_children = False
         for child in self.pymod_element.list_of_children:
-            self.collapse_cluster_command(child)
+            self.hide_widgets(child)
 
 
-class PyMod_cluster_widgets_pairs(PyMod_element_widgets_pairs):
-    pass
+# class PyMod_cluster_widgets_pairs(PyMod_main_window_mixin):
+#     pass
 
 
 #####################################################################
 # Header entry.                                                     #
 #####################################################################
 
-class Header_entry(Entry, PyMod_element_widgets):
+class Header_entry(Entry, PyMod_main_window_mixin):
 
     def __init__(self, parent = None, pymod_element=None, **configs):
 
@@ -669,7 +954,6 @@ class Header_entry(Entry, PyMod_element_widgets):
             width = int(len(self.header_entry_var.get())),
             **configs)
 
-        # MAYBE THIS DOES NOT HAVE TO BE ASSIGNED EVERY TIME THE ENTRIES ARE DISPLAYED.
         # Left menu object building and binding of the mouse events to the entries.
         # self.build_left_popup_menu()
         self.bind_events_to_header_entry()
@@ -693,7 +977,7 @@ class Header_entry(Entry, PyMod_element_widgets):
         """
         Select/Unselect a sequence clicking on its name on the left pane.
         """
-        self.toggle_element()
+        self.toggle_element(self.pymod_element)
 
 
     # # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
@@ -728,139 +1012,11 @@ class Header_entry(Entry, PyMod_element_widgets):
     #     self.header_entry["disabledbackground"] = 'black'
 
 
-    ###################################
-    # Selection of elements.          #
-    ###################################
-
-    # # Toggles elements.
-    # def toggle_element(self):
-    #     if self.is_mother:
-    #         self.toggle_mother_element()
-    #     elif self.is_child:
-    #         if self.is_lead_of_collapsed_cluster():
-    #             self.toggle_lead_element()
-    #         else:
-    #             self.toggle_child_element()
-    #
-
-    def toggle_element(self):
-        if self.pymod_element.selected:
-            self.deselect_element()
-        else:
-            self.select_element()
-
-    # Selects an element.
-    def select_element(self, is_in_cluster=False):
-        self.pymod_element.selected = True
-        self["disabledforeground"] = 'green'
-
-    # Deselects an element.
-    def deselect_element(self, is_in_cluster=False):
-        self.pymod_element.selected = False
-        self["disabledforeground"] = 'red'
-        # self.header_entry["disabledforeground"] = 'ghost white'
-
-
-    # # Toggle a mother element.
-    # def toggle_mother_element(self):
-    #     # Inactivate.
-    #     if self.selected:
-    #         self.deselect_element()
-    #         # Deselects also all the children.
-    #         if self.is_cluster_element():
-    #             for c in pymod.get_children(self):
-    #                     if c.selected:
-    #                         c.deselect_element()
-    #     # Activate.
-    #     else:
-    #         self.select_element()
-    #         # Activate also all the children!
-    #         if self.is_cluster_element():
-    #             for c in pymod.get_children(self):
-    #                     if not c.selected:
-    #                         c.select_element()
-    #
-    # # Toggle a child element.
-    # def toggle_child_element(self):
-    #     mother = pymod.get_mother(self)
-    #     # Inactivate.
-    #     if self.selected:
-    #         # Modify the mother and the siblings according to what happens to the children.
-    #         if not mother.selected:
-    #             siblings = pymod.get_siblings(self)
-    #             # If it is not the last activated children in the cluster.
-    #             if True in [s.selected for s in siblings]:
-    #                 mother.deselect_element(is_in_cluster=True)
-    #                 self.deselect_element(is_in_cluster=True)
-    #             # If it is the last children to be inactivated.
-    #             else:
-    #                 mother.deselect_element()
-    #                 for s in siblings:
-    #                     s.deselect_element()
-    #                 self.deselect_element()
-    #         else:
-    #             self.deselect_element(is_in_cluster=True)
-    #             mother.deselect_element(is_in_cluster=True)
-    #
-    #     # Activate.
-    #     else:
-    #         self.select_element()
-    #         # If the mother is not selected and if by selecting this child, all the children
-    #         # are selected, also selects the mother.
-    #         if not mother.selected:
-    #             # If it is the last inactivated children in the cluster, then by selecting it all the
-    #             # elements in the cluster are selected and the mother is also selected.
-    #             siblings = pymod.get_siblings(self)
-    #             if not False in [c.selected for c in siblings]:
-    #                 mother.select_element()
-    #             else:
-    #                 # Used to make the mother "gray".
-    #                 mother.deselect_element(is_in_cluster=True)
-    #                 # Used to make the siblings "gray".
-    #                 for s in siblings:
-    #                     if not s.selected:
-    #                         s.deselect_element(is_in_cluster=True)
-    #
-    #
-    # # Toggle a lead element when a cluster is collapsed.
-    # def toggle_lead_element(self):
-    #     if self.selected:
-    #         self.deselect_element()
-    #     else:
-    #         self.select_element()
-    #
-    # # Selects an element.
-    # def select_element(self,is_in_cluster=False):
-    #     self.selected = True
-    #     if self.is_shown:
-    #         if not is_in_cluster:
-    #             self.header_entry["disabledforeground"] = 'green'
-    #         else:
-    #             self.header_entry["disabledforeground"] = 'green'
-    #
-    # # Deselects an element.
-    # def deselect_element(self, is_in_cluster=False):
-    #     self.selected = False
-    #     if self.is_shown:
-    #         if not is_in_cluster:
-    #             self.header_entry["disabledforeground"] = 'red'
-    #         else:
-    #             self.header_entry["disabledforeground"] = 'ghost white'
-    #
-    # # The two following methods are used only when the user clicks on the mother of a collapsed
-    # # cluster. They will select/deselect its children, without changing their color.
-    # def select_hidden_child(self):
-    #     self.selected = True
-    #
-    # def deselect_hidden_child(self):
-    #     self.selected = False
-
-
 #####################################################################
 # Sequence entry.                                                   #
 #####################################################################
 
-class Sequence_text(Text, PyMod_element_widgets):
+class Sequence_text(Text, PyMod_main_window_mixin):
 
     def __init__(self, parent = None, pymod_element=None, **configs):
         self.parent = parent
