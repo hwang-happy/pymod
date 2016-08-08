@@ -610,7 +610,8 @@ class PyMod:
 
         # Writes the directory.
         new_dir_name = self.new_dir_window_main_entry.get()
-        try:
+        # TODO: put back the try/except.
+        if 1: # try:
             pymod_projects_dir_path = os.path.join(self.pymod_plugin["pymod_dir_path"].get_value(), self.projects_directory_name)
             new_project_dir_path = os.path.join(pymod_projects_dir_path, new_dir_name)
             # If the projects directory is not present, built it.
@@ -638,7 +639,7 @@ class PyMod:
             else:
                 os.mkdir(new_project_dir_path)
                 self.initialize_session(new_dir_name)
-        except Exception, e:
+        else: # except Exception, e:
             message = "Unable to write directory '%s' because of the following error: %s." % (new_dir_name, e)
             self.show_error_message("Initialization error", message)
             return False
@@ -665,6 +666,7 @@ class PyMod:
         """
         self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
         self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
 
 
     def define_alignment_menu_structure(self):
@@ -1183,14 +1185,14 @@ class PyMod:
                 break
         return mother
 
-    # Returns the list of children of some mother.
-    # Or call it just get_children(). Use as an argument the mother object itself.
-    def get_children(self,mother): # get_mothers_children
-       children_list = []
-       for element in self.pymod_elements_list:
-           if element.is_child and element.mother_index == mother.mother_index:
-               children_list.append(element)
-       return children_list
+    # # Returns the list of children of some mother.
+    # # Or call it just get_children(). Use as an argument the mother object itself.
+    # def get_children(self,mother): # get_mothers_children
+    #    children_list = []
+    #    for element in self.pymod_elements_list:
+    #        if element.is_child and element.mother_index == mother.mother_index:
+    #            children_list.append(element)
+    #    return children_list
 
 
     def get_siblings(self,child):
@@ -1520,6 +1522,15 @@ class PyMod:
         return selected_elements
     '''
 
+
+    def get_children(self, mother):
+        """
+        Returns the list of children of some mother. Uses as an argument the mother object itself.
+        This is the same as 'mother.list_of_children'.
+        """
+        return mother.list_of_children
+
+
     def add_to_mother(self, mother, child_elements):
         """
         Appends elements to some cluster/mother.
@@ -1584,7 +1595,7 @@ class PyMod:
 
 
     #################################################################
-    # Opening sequence files.                                       #
+    # REFACTORING.                                                  #
     #################################################################
 
     def open_sequence_file(self, file_full_path, file_format="fasta"):
@@ -1596,12 +1607,14 @@ class PyMod:
         fn = open(file_full_path, "rU")
         # Parses a fasta file through Biopython. This will automatically crop headers that have " "
         # (space) characters.
+        new_pymod_elements = []
         for record in SeqIO.parse(fn, file_format):
-            # Then builds a PyMod_element object and add it to the pymod_elements_list.
+            # Then builds a PyMod_element object and add it to the 'pymod_elements_list'.
             c = self.build_pymod_element_from_seqrecord(record)
+            new_pymod_elements.append(c)
             self.add_element_to_pymod(c)
         fn.close()
-        # Shows the new element in PyMod main window.
+        # Shows the new elements in PyMod main window.
         self.gridder()
 
 
@@ -1626,18 +1639,54 @@ class PyMod:
         self.unique_index += 1
 
 
+    def build_cluster_from_alignment_file(self,alignment_file, extension="fasta"):
+        """
+        Creates a cluster with all the sequences contained in an alignment file.
+        """
+        # Gets the sequences using Biopython.
+        aligned_elements = []
+        fh = open(alignment_file, "rU")
+        records = SeqIO.parse(fh, extension)
+        for record in records:
+            aligned_elements.append(self.build_pymod_element_from_seqrecord(record))
+        fh.close()
+
+        self.build_new_cluster(aligned_elements, "imported")
+
+        self.gridder()
+
+
     def gridder(self):
         #@@@
-        terminal = False
+        terminal = 0
         if terminal:
             for element in self.pymod_elements_list:
                 print "---"
                 print element.my_header
                 print element.my_sequence
         #@@@
-        for grid_index,pymod_element in enumerate(self.pymod_elements_list):
-            self.main_window.dict_of_elements_widgets[pymod_element].show_widgets(grid_index)
+        # Assigns the grid indices.
+        grid_index = 0
+        for pymod_element in self.pymod_elements_list:
+            if pymod_element.is_mother:
+                self.main_window.dict_of_elements_widgets[pymod_element].set_grid_index(grid_index)
+                grid_index += 1
+                if pymod_element.is_cluster_element():
+                    for child_element in self.get_children(pymod_element):
+                        self.main_window.dict_of_elements_widgets[child_element].set_grid_index(grid_index)
+                        grid_index += 1
+        # Shows the widgets.
+        for pymod_element in self.pymod_elements_list:
+            if pymod_element.is_mother:
+                self.main_window.show_widgets(pymod_element)
+                if pymod_element.is_cluster_element():
+                    for child_element in self.get_children(pymod_element):
+                        self.main_window.show_widgets(child_element)
 
+
+    #################################################################
+    # Opening sequence files.                                       #
+    #################################################################
 
     def is_sequence_file(self, file_path, file_format, show_error=True):
         """
@@ -1795,23 +1844,7 @@ class PyMod:
             self.build_cluster_from_alignment_file(openfilename, extension)
 
 
-    def build_cluster_from_alignment_file(self,alignment_file, extension="fasta"):
-        """
-        Creates a cluster with all the sequences contained in an alignment file.
-        """
-        # Gets the sequences using Biopython.
-        aligned_elements = []
-        fh = open(alignment_file, "rU")
-        records = SeqIO.parse(fh, extension)
-        for record in records:
-            aligned_elements.append(self.build_pymod_element_from_seqrecord(record))
-        fh.close()
-
-        self.build_new_cluster(aligned_elements, "imported")
-
-        self.gridder()
-
-
+    # TODO: replace here 'def build_cluster_from_alignment_file'
     def build_new_cluster(self, child_elements, algorithm):
         # Creates an alignment element.
         self.alignment_count += 1
@@ -1819,52 +1852,20 @@ class PyMod:
         # Adds the sequences to the new alignment cluster.
         for element in child_elements:
             self.add_element_to_pymod(element)
-        imported_alignment_element = pmel.PyMod_cluster(
-                                                    sequence="...", # Sets a temporary sequence.
-                                                    header=alignment_name,
-                                                    full_original_header=None,
-                                                    color="white",
-                                                    algorithm=algorithm,
-                                                    cluster_id=self.alignment_count)
-                                                #    adjust_header=False) TODO: what to do here?
+        imported_alignment_element = pmel.PyMod_cluster(sequence="...", # Sets a temporary sequence.
+                                                        header=alignment_name,
+                                                        full_original_header=None,
+                                                        color="white",
+                                                        algorithm=algorithm,
+                                                        cluster_id=self.alignment_count)
+                                                        #    adjust_header=False) TODO: what to do here?
         self.add_element_to_pymod(imported_alignment_element)
         self.add_to_mother(imported_alignment_element, child_elements)
 
-        #
-        # # Computes the stars of the new alignment element.
-        # self.update_stars(imported_alignment_element)
-        #
-        # # Sets the initial number of sequences in the alignment.
-        # self.set_initial_ali_seq_number(imported_alignment_element)
-        #
+        # Computes the stars of the new alignment element.
+        self.update_stars(imported_alignment_element)
 
-
-    # def build_cluster_from_alignment_file(self,alignment_file, extension="fasta"):
-    #     """
-    #     Creates a cluster with all the sequences contained in an alignment file.
-    #     """
-    #     aligned_elements = []
-    #     fh = open(alignment_file, "rU")
-    #     records = SeqIO.parse(fh, extension)
-    #     for record in records:
-    #         e = self.build_pymod_element_from_seqrecord(record)
-    #         aligned_elements.append(e)
-    #     fh.close()
-    #     # Creates an alignment element.
-    #     self.alignment_count += 1
-    #     alignment_name = self.set_alignment_element_name("imported",self.alignment_count)
-    #     imported_alignment_element = PyMod_element("...", alignment_name,
-    #         element_type = "alignment",
-    #         alignment_object = Alignment("imported",self.alignment_count), adjust_header=False)
-    #     self.add_element_to_pymod(imported_alignment_element, "mother")
-    #     # Adds the sequences to the new alignment cluster.
-    #     for element in aligned_elements:
-    #         self.add_element_to_pymod(element, "child", mother_index=imported_alignment_element.mother_index)
-    #     # Computes the stars of the new alignment element.
-    #     self.update_stars(imported_alignment_element)
-    #     # Sets the initial number of sequences in the alignment.
-    #     self.set_initial_ali_seq_number(imported_alignment_element)
-    #     self.gridder()
+        return imported_alignment_element
 
 
     def transfer_alignment(self,alignment_element):
@@ -10810,7 +10811,6 @@ class PDB_residue:
 
     def __repr__(self):
         return self.symbol
-
 
 
 class Disulfide_bridge:

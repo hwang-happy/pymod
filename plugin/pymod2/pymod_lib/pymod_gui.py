@@ -481,30 +481,162 @@ class PyMod_main_window(Toplevel):
 
 
     def add_pymod_element_widgets(self, pymod_element):
-        pewp = PyMod_element_widgets_pairs(self, pymod_element)
+        pewp = PyMod_element_widgets_pairs(left_pane=self.leftpan.interior(),
+                                           right_pane=self.rightpan.interior(),
+                                           pymod_element=pymod_element,
+                                           expand_cluster_command=self.show_widgets,
+                                           collapse_cluster_command=self.hide_widgets)
         self.dict_of_elements_widgets.update({pymod_element: pewp})
 
+
+    def show_widgets(self, pymod_element):
+        pymod_element_widgets_pairs = self.dict_of_elements_widgets[pymod_element]
+
+        #--------------------
+        # Shows the header. -
+        #--------------------
+        pymod_element_widgets_pairs.header_entry.grid(row = pymod_element_widgets_pairs.grid_index, sticky = 'nw')
+
+        #------------------------------------------
+        # Updates and shows the sequence widgets. -
+        #------------------------------------------
+        # Modifier that allows to display the symbol '|_' of a child sequence.
+        if pymod_element.is_child:
+            pymod_element_widgets_pairs.set_child_sign()
+            pymod_element_widgets_pairs.child_sign.grid(column = 0, row = pymod_element_widgets_pairs.grid_index, sticky='nw', padx=0, pady=0,ipadx=0,ipady=0)
+
+        # Adds buttons to clusters.
+        if pymod_element.is_cluster_element():
+            pymod_element_widgets_pairs.cluster_button.grid(column = 0, row = pymod_element_widgets_pairs.grid_index, sticky='nw', padx=5, pady=0,ipadx=3,ipady=0)
+
+        pymod_element_widgets_pairs.sequence_text.update_text()
+        pymod_element_widgets_pairs.sequence_text.grid(column=1,row = pymod_element_widgets_pairs.grid_index, sticky='nw')
+
+
+    def hide_widgets(self, pymod_element, target="all"):
+        pymod_element_widgets_pairs = self.dict_of_elements_widgets[pymod_element]
+        if target == "all":
+            pymod_element_widgets_pairs.header_entry.grid_forget()
+            if pymod_element.is_child:
+                pymod_element_widgets_pairs.child_sign.grid_forget()
+            if pymod_element.is_cluster_element():
+                pymod_element_widgets_pairs.cluster_button.grid_forget()
+            pymod_element_widgets_pairs.sequence_text.grid_forget()
+        elif target == "sequence":
+            # pymod_element_widgets_pairs.
+            pass
 
 
 ###################################################################################################
 # CLASSES FOR PYMOD MAIN WINDOW.                                                                  #
 ###################################################################################################
 
-class PyMod_element_widgets_pairs:
-    def __init__(self, main_window, pymod_element):
-        self.header_entry = Header_entry(main_window.leftpan.interior(), pymod_element)
-        self.sequence_text = Sequence_text(main_window.rightpan.interior(), pymod_element)
-
-    def show_widgets(self, grid_index):
-        self.header_entry.grid(row = grid_index, sticky='nw')
-        self.sequence_text.grid(row = grid_index, sticky='nw')
-
-
 class PyMod_element_widgets:
     sequence_font_type = fixed_width_font
     sequence_font_size = 12
-    sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 14".
+    sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 12".
     bg_color = "black"
+
+
+class PyMod_element_widgets_pairs(PyMod_element_widgets):
+
+    def __init__(self, left_pane, right_pane, pymod_element, expand_cluster_command, collapse_cluster_command):
+        self.pymod_element = pymod_element
+        self.grid_index = 0
+
+        #----------------------------
+        # Builds the header widget. -
+        #----------------------------
+        self.header_frame = left_pane
+        self.header_entry = Header_entry(self.header_frame, pymod_element)
+
+        #--------------------------------
+        # Builds the sequences widgets. -
+        #--------------------------------
+        # Sequence text.
+        self.sequence_frame = right_pane
+        self.sequence_text = Sequence_text(self.sequence_frame, pymod_element)
+        # Cluster signs entry.
+        self.child_sign_var = StringVar()
+        self.set_child_sign()
+        self.child_sign=Entry(self.sequence_frame, font = self.sequence_font, cursor = "hand2",
+                       textvariable=self.child_sign_var, bd=0, state = DISABLED,
+                       disabledforeground = 'white', disabledbackground = self.bg_color,
+                       highlightbackground= self.bg_color, justify = LEFT, width = 2)
+
+        #----------------
+        # For clusters. -
+        #----------------
+        self.show_children = True
+        self.cluster_button_state = '-'
+        # Creates a button for displaying/hiding a cluster sequences. Actually, it's not a 'Button'
+        # widget, it's an 'Entry' widget (more customizable).
+        self.cluster_button_color = "gray"
+        self.cluster_button_text=StringVar()
+        self.cluster_button_text.set(self.cluster_button_state)
+        self.cluster_button=Entry(self.sequence_frame, font = self.sequence_font,
+                     cursor = "hand2", textvariable=self.cluster_button_text,
+                     relief="ridge", bd=0,
+                     state = DISABLED, disabledforeground = 'white',
+                     disabledbackground = self.cluster_button_color, highlightbackground='black',
+                     justify = CENTER, width = 1 )
+        # Binds the mouse event to the cluster button.
+        self.cluster_button.bind("<Button-1>", self.cluster_button_click)
+        self.expand_cluster_command = expand_cluster_command
+        self.collapse_cluster_command = collapse_cluster_command
+
+
+    def set_grid_index(self, grid_index):
+        self.grid_index = grid_index
+
+
+    def set_child_sign(self):
+        """
+        Creates an additional entry inside the right-frame for child elements.
+        """
+        child_sign = "|_"
+        if self.pymod_element.is_blast_query:
+            child_sign = "|q"
+        elif self.pymod_element.is_lead:
+            child_sign = "|l"
+        elif self.pymod_element.is_bridge:
+            child_sign = "|b"
+        self.child_sign_var.set(child_sign)
+
+
+    #################################################################
+    # Cluster button events.                                        #
+    #################################################################
+
+    def cluster_button_click(self, event):
+        """
+        Creates the mouse event for the clicking the Button. It is used to toggle the children of
+        the cluster.
+        """
+        if self.show_children:
+            self.collapse_cluster()
+        elif not self.show_children:
+            self.expand_cluster()
+
+
+    def expand_cluster(self):
+        self.cluster_button_text.set('-')
+        self.cluster_button["disabledbackground"] = "gray"
+        self.show_children = True
+        for child in self.pymod_element.list_of_children:
+            self.expand_cluster_command(child)
+
+
+    def collapse_cluster(self):
+        self.cluster_button_text.set('+')
+        self.cluster_button["disabledbackground"] = "red"
+        self.show_children = False
+        for child in self.pymod_element.list_of_children:
+            self.collapse_cluster_command(child)
+
+
+class PyMod_cluster_widgets_pairs(PyMod_element_widgets_pairs):
+    pass
 
 
 #####################################################################
@@ -544,6 +676,10 @@ class Header_entry(Entry, PyMod_element_widgets):
         # # Marks the element as being 'showed' in PyMod's main window.
         # self.is_shown = True
 
+
+    ##############################
+    # Bindings for mouse events. #
+    ##############################
 
     def bind_events_to_header_entry(self):
         self.bind("<Button-1>", self.on_header_left_click)
@@ -606,7 +742,7 @@ class Header_entry(Entry, PyMod_element_widgets):
     #         else:
     #             self.toggle_child_element()
     #
-    
+
     def toggle_element(self):
         if self.pymod_element.selected:
             self.deselect_element()
@@ -753,29 +889,6 @@ class Sequence_text(Text, PyMod_element_widgets):
         # current color scheme.
         self.build_text_to_display()
 
-        """
-        # Modifier that allows to display the symbol '|_' of a child sequence.
-        if self.is_child:
-            self.sonsign = StringVar()
-            self.sonsign.set("|_")
-            if self.is_blast_query:
-                self.sonsign.set("|q")
-            elif self.is_lead:
-                self.sonsign.set("|l")
-            elif self.is_bridge:
-                self.sonsign.set("|b")
-
-            # Creates a sequence entry inside the right-frame.
-            trattino=Entry(self.sequence_frame, font = self.sequence_font, cursor = "hand2",
-                           textvariable=self.sonsign, bd=0, state = DISABLED,
-                           disabledforeground = 'white', disabledbackground = self.bg_color,
-                           highlightbackground= self.bg_color, justify = LEFT, width = 2 )
-            trattino.grid(column =0, row = grid_position, sticky='nw', padx=0, pady=0,ipadx=0,ipady=0)
-
-        # Actually grids the sequence Text widget.
-        self.sequence_entry.grid(column = 2, row = grid_position, sticky='nw', padx=5)
-        """
-
         # Builds the sequence popup menu and binds events to it.
         # self.build_right_popup_menu()
         # self.bind_events_to_sequence_entry()
@@ -787,8 +900,20 @@ class Sequence_text(Text, PyMod_element_widgets):
         widget. It is called by "create_entry" method when "gridder" moethod of the PyMod class is
         called.
         """
-        self.tag_add("normal", "2.0")
+        if 1:
+            self.tag_add("normal", "2.0")
+            self.insert(END, self.pymod_element.my_sequence,"normal")
+            # self.color_element(on_grid=True,color_pdb=False)
+            self.config(state=DISABLED)
+        else: # TODO: to remove?
+            self.update_text()
+
+
+    def update_text(self):
+        self.config(state=NORMAL)
+        self.delete(1.0,END)
         self.insert(END, self.pymod_element.my_sequence,"normal")
+        self["width"] = len(self.pymod_element.my_sequence)
         # self.color_element(on_grid=True,color_pdb=False)
         self.config(state=DISABLED)
 
@@ -1153,7 +1278,7 @@ class Structure_frame:
         # This is needed to check what is the state of radiobutton for using hetres. If it is on,
         # then this value should be 1 (by default it is 1 because of the default state of the
         # radiobutton), when it is off, this vaule should be 0.
-        self.hetres_radiobutton_state = 1
+        self.hetres_radiocluster_button_state = 1
         self.pymod_object = pymod_object
 
 
@@ -1210,7 +1335,7 @@ class Structure_frame:
         """
         # This is all under the influence of the state of the "use hetatm" radiobutton in the
         # options page.
-        if self.hetres_radiobutton_state == 1:
+        if self.hetres_radiocluster_button_state == 1:
             # The template is "activated", and so also its checkbuttons are.
             if self.use_as_template_var.get() == 1:
                 self.activate_water_checkbutton()

@@ -5,6 +5,8 @@
 # Base class.
 class PyMod_element:
 
+    is_cluster = False
+
     def __init__(self,
                  sequence,
                  header,
@@ -28,6 +30,12 @@ class PyMod_element:
 
         # self.mother_index = None
         # self.child_index = None
+        self.is_child = False
+        self.is_mother = True
+
+        self.is_blast_query = False
+        self.is_lead = False
+        self.is_bridge = False
 
         # Forms the header name.
         # self.set_header_name(record_header, adjust_header)
@@ -59,10 +67,16 @@ class PyMod_element:
 
         # Name of the color of the sequence when its "color_by" attribute is set to "regular".
         self.my_color = color
+        
+
+    def is_cluster_element(self):
+        return self.is_cluster
 
 
 # Clusters.
 class PyMod_cluster(PyMod_element):
+
+    is_cluster = True
 
     def __init__(self, algorithm=None, cluster_id=None, **configs):
         PyMod_element.__init__(self, **configs)
@@ -72,8 +86,13 @@ class PyMod_cluster(PyMod_element):
         self.list_of_children = []
 
 
-    def add_children(self, *children):
+    def add_children(self, children):
+        if not hasattr(children,"__iter__"):
+            children = [children]
         self.list_of_children.extend(children)
+        for child in children:
+            child.is_child = True
+            child.is_mother = False
         if self.initial_number_of_sequences == None:
             self.initial_number_of_sequences = len(children)
 
