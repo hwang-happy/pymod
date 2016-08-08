@@ -1,3 +1,17 @@
+# Copyright 2016 by Giacomo Janson. All rights reserved.
+#
+# This code is part of the PyMod 2 PyMOL plugin and governed by the LGPL
+# license. Please see the pymod_main.py file that should have been included
+# as part of this package.
+
+"""
+Bio.SeqIO support for the "ace" file format.
+
+You are expected to use this module via the Bio.SeqIO functions.
+See also the Bio.Sequencing.Ace module which offers more than just accessing
+the contig consensus sequences in an ACE file as SeqRecord objects.
+"""
+
 # GUI.
 import tkMessageBox
 

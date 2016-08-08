@@ -4,7 +4,9 @@
 
 # Base class.
 class PyMod_element:
-
+    """
+    A base that stores all the informations of a sequence or sequence cluster.
+    """
     is_cluster = False
 
     def __init__(self,
@@ -68,6 +70,24 @@ class PyMod_element:
         # Name of the color of the sequence when its "color_by" attribute is set to "regular".
         self.my_color = color
 
+        #########
+        # TEMP. #
+        #########
+        self.dope_items = []
+
+
+    def has_structure(self):
+        return False
+
+    def has_predicted_secondary_structure(self):
+        return False
+
+    def has_campo_scores(self):
+        return False
+
+    def pdb_is_fetchable(self):
+        return False
+
 
     def is_cluster_element(self):
         return self.is_cluster
@@ -102,10 +122,37 @@ class PyMod_cluster(PyMod_element):
             child.mother = self
         if self.initial_number_of_sequences == None:
             self.initial_number_of_sequences = len(children)
+# TODO: remove.
+# class Alignment:
+#     """
+#     Class for alignments.
+#     """
+#     def __init__(self, alignment_algorithm, alignment_id, initial_number_of_sequence=None):
+#         """
+#         alignment_algorithm: the algorithm used to perform the alignment
+#         alignment_id: an int value that identifies the alignmente object
+#         """
+#         self.algorithm = alignment_algorithm
+#         self.id = alignment_id
+#         self.initial_number_of_sequence = initial_number_of_sequence
+#         self.rmsd_list = None
+#
+#     def set_dnd_file_path(self, dnd_file_path):
+#         self.dnd_file_path = dnd_file_path
+#
+#     def get_dnd_file_path(self):
+#         return self.dnd_file_path
+#
+#     def set_rmsd_list(self, rmsd_list):
+#         self.rmsd_list = rmsd_list
 
 
 # Sequences.
 class PyMod_sequence(PyMod_element):
+    """
+    The objects of this class are the sequences (both from sequences and structure files) that
+    appear on the left column or alignments elements.
+    """
     pass
 
 class PyMod_polypeptide(PyMod_sequence):

@@ -8,6 +8,7 @@ import sys
 
 # Provides functionalities to some widgets.
 import pymod_sequence_manipulation as pmsm
+import pymod_vars as pmdt
 
 ###################################################################################################
 # GENERAL STYLES.                                                                                 #
@@ -204,9 +205,8 @@ class PyMod_main_window_mixin:
                     self.deselect_element(child, is_in_cluster=True)
                 # If it is the last children to be inactivated.
                 else:
+                    [self.deselect_element(s) for s in siblings]
                     self.deselect_element(mother)
-                    for s in siblings:
-                        self.deselect_element(s)
                     self.deselect_element(child)
             else:
                 self.deselect_element(child, is_in_cluster=True)
@@ -223,12 +223,9 @@ class PyMod_main_window_mixin:
                 if not False in [c.selected for c in siblings]:
                     self.select_element(mother)
                 else:
-                    # Used to make the mother "gray".
+                    # Used to make the mother and the siblings "gray".
                     self.deselect_element(mother, is_in_cluster=True)
-                    # Used to make the siblings "gray".
-                    for s in siblings:
-                        if not s.selected:
-                            self.deselect_element(s, is_in_cluster=True)
+                    [self.deselect_element(s, is_in_cluster=True) for s in siblings if not s.selected]
 
 
     def select_element(self,pymod_element, is_in_cluster=False):
@@ -253,180 +250,14 @@ class PyMod_main_window_mixin:
             self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'ghost white'
 
 
-    # def toggle_child_element_old(self):
-    #     """
-    #     Toggle a child element.
-    #     """
-    #     mother = pymod.get_mother(self)
-    #     # Inactivate.
-    #     if self.selected:
-    #         # Modify the mother and the siblings according to what happens to the children.
-    #         if not mother.selected:
-    #             siblings = pymod.get_siblings(self)
-    #             # If it is not the last activated children in the cluster.
-    #             if True in [s.selected for s in siblings]:
-    #                 mother.deselect_element(is_in_cluster=True)
-    #                 self.deselect_element(is_in_cluster=True)
-    #             # If it is the last children to be inactivated.
-    #             else:
-    #                 mother.deselect_element()
-    #                 for s in siblings:
-    #                     s.deselect_element()
-    #                 self.deselect_element()
-    #         else:
-    #             self.deselect_element(is_in_cluster=True)
-    #             mother.deselect_element(is_in_cluster=True)
-    #
-    #     # Activate.
-    #     else:
-    #         self.select_element()
-    #         # If the mother is not selected and if by selecting this child, all the children
-    #         # are selected, also selects the mother.
-    #         if not mother.selected:
-    #             # If it is the last inactivated children in the cluster, then by selecting it all the
-    #             # elements in the cluster are selected and the mother is also selected.
-    #             siblings = pymod.get_siblings(self)
-    #             if not False in [c.selected for c in siblings]:
-    #                 mother.select_element()
-    #             else:
-    #                 # Used to make the mother "gray".
-    #                 mother.deselect_element(is_in_cluster=True)
-    #                 # Used to make the siblings "gray".
-    #                 for s in siblings:
-    #                     if not s.selected:
-    #                         s.deselect_element(is_in_cluster=True)
-
-
-    # Toggle a lead element when a cluster is collapsed.
-    def toggle_lead_element(self):
-        if self.selected:
-            self.deselect_element()
-        else:
-            self.select_element()
-
-    # The two following methods are used only when the user clicks on the mother of a collapsed
-    # cluster. They will select/deselect its children, without changing their color.
-    def select_hidden_child(self):
-        self.selected = True
-
-    def deselect_hidden_child(self):
-        self.selected = False
-
-
-    '''
-    def toggle_element(self):
-        if self.pymod_element.selected:
-            self.deselect_element()
-        else:
-            self.select_element()
-
-    # !WORKING!
-    # Selects an element.
-    def select_element(self, is_in_cluster=False):
-        self.pymod_element.selected = True
-        self["disabledforeground"] = 'green'
-
-
-    # Deselects an element.
-    def deselect_element(self, is_in_cluster=False):
-        self.pymod_element.selected = False
-        self["disabledforeground"] = 'red'
-        # self.header_entry["disabledforeground"] = 'ghost white'
-    '''
-
-    # # Toggle a mother element.
-    # def toggle_mother_element(self):
-    #     # Inactivate.
-    #     if self.selected:
-    #         self.deselect_element()
-    #         # Deselects also all the children.
-    #         if self.is_cluster_element():
-    #             for c in pymod.get_children(self):
-    #                     if c.selected:
-    #                         c.deselect_element()
-    #     # Activate.
-    #     else:
-    #         self.select_element()
-    #         # Activate also all the children!
-    #         if self.is_cluster_element():
-    #             for c in pymod.get_children(self):
-    #                     if not c.selected:
-    #                         c.select_element()
-    #
-    # # Toggle a child element.
-    # def toggle_child_element(self):
-    #     mother = pymod.get_mother(self)
-    #     # Inactivate.
-    #     if self.selected:
-    #         # Modify the mother and the siblings according to what happens to the children.
-    #         if not mother.selected:
-    #             siblings = pymod.get_siblings(self)
-    #             # If it is not the last activated children in the cluster.
-    #             if True in [s.selected for s in siblings]:
-    #                 mother.deselect_element(is_in_cluster=True)
-    #                 self.deselect_element(is_in_cluster=True)
-    #             # If it is the last children to be inactivated.
-    #             else:
-    #                 mother.deselect_element()
-    #                 for s in siblings:
-    #                     s.deselect_element()
-    #                 self.deselect_element()
-    #         else:
-    #             self.deselect_element(is_in_cluster=True)
-    #             mother.deselect_element(is_in_cluster=True)
-    #
-    #     # Activate.
-    #     else:
-    #         self.select_element()
-    #         # If the mother is not selected and if by selecting this child, all the children
-    #         # are selected, also selects the mother.
-    #         if not mother.selected:
-    #             # If it is the last inactivated children in the cluster, then by selecting it all the
-    #             # elements in the cluster are selected and the mother is also selected.
-    #             siblings = pymod.get_siblings(self)
-    #             if not False in [c.selected for c in siblings]:
-    #                 mother.select_element()
-    #             else:
-    #                 # Used to make the mother "gray".
-    #                 mother.deselect_element(is_in_cluster=True)
-    #                 # Used to make the siblings "gray".
-    #                 for s in siblings:
-    #                     if not s.selected:
-    #                         s.deselect_element(is_in_cluster=True)
-    #
-    #
-    # # Toggle a lead element when a cluster is collapsed.
     # def toggle_lead_element(self):
+    #     """
+    #     Toggle a lead element when a cluster is collapsed.
+    #     """
     #     if self.selected:
     #         self.deselect_element()
     #     else:
     #         self.select_element()
-    #
-    # # Selects an element.
-    # def select_element(self,is_in_cluster=False):
-    #     self.selected = True
-    #     if self.is_shown:
-    #         if not is_in_cluster:
-    #             self.header_entry["disabledforeground"] = 'green'
-    #         else:
-    #             self.header_entry["disabledforeground"] = 'green'
-    #
-    # # Deselects an element.
-    # def deselect_element(self, is_in_cluster=False):
-    #     self.selected = False
-    #     if self.is_shown:
-    #         if not is_in_cluster:
-    #             self.header_entry["disabledforeground"] = 'red'
-    #         else:
-    #             self.header_entry["disabledforeground"] = 'ghost white'
-    #
-    # # The two following methods are used only when the user clicks on the mother of a collapsed
-    # # cluster. They will select/deselect its children, without changing their color.
-    # def select_hidden_child(self):
-    #     self.selected = True
-    #
-    # def deselect_hidden_child(self):
-    #     self.selected = False
 
 
 class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
@@ -814,7 +645,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
 
 
     def add_pymod_element_widgets(self, pymod_element):
-        pewp = PyMod_element_widgets_pairs(left_pane=self.leftpan.interior(),
+        pewp = PyMod_element_widgets_group(left_pane=self.leftpan.interior(),
                                            right_pane=self.rightpan.interior(),
                                            pymod_element=pymod_element)
         self.dict_of_elements_widgets.update({pymod_element: pewp})
@@ -829,8 +660,10 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
 # Class for coordinating the widgets belonging to a PyMod element.  #
 #####################################################################
 
-class PyMod_element_widgets_pairs(PyMod_main_window_mixin):
-
+class PyMod_element_widgets_group(PyMod_main_window_mixin):
+    """
+    Represent a group of widgets belonging to a PyMod element.
+    """
     def __init__(self, left_pane, right_pane, pymod_element):
         self.pymod_element = pymod_element
         self.grid_index = 0
@@ -924,9 +757,9 @@ class PyMod_element_widgets_pairs(PyMod_main_window_mixin):
 #     pass
 
 
-#####################################################################
-# Header entry.                                                     #
-#####################################################################
+###################################################################################################
+# HEADER ENTRY.                                                                                   #
+###################################################################################################
 
 class Header_entry(Entry, PyMod_main_window_mixin):
 
@@ -955,22 +788,22 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             **configs)
 
         # Left menu object building and binding of the mouse events to the entries.
-        # self.build_left_popup_menu()
+        self.build_header_popup_menu()
         self.bind_events_to_header_entry()
         # # Marks the element as being 'showed' in PyMod's main window.
         # self.is_shown = True
 
 
-    ##############################
-    # Bindings for mouse events. #
-    ##############################
+    #################################################################
+    # Bindings for mouse events.                                    #
+    #################################################################
 
     def bind_events_to_header_entry(self):
         self.bind("<Button-1>", self.on_header_left_click)
         # self.bind("<Motion>", self.display_protname)
-        # if self.has_structure():
+        # if self.pymod_element.has_structure():
         #     self.bind("<Button-2>", self.click_structure_with_middle_button)
-        # self.bind("<ButtonRelease-3>", self.on_header_right_click)
+        self.bind("<ButtonRelease-3>", self.on_header_right_click)
 
 
     def on_header_left_click(self, event):
@@ -978,7 +811,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Select/Unselect a sequence clicking on its name on the left pane.
         """
         self.toggle_element(self.pymod_element)
-
 
     # # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
     # def display_protname(self,event):
@@ -1000,21 +832,489 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     #         # If the sequence is not selected in Pymod, hide it in PyMOL.
     #         else:
     #             self.hide_chain_in_pymol()
-    #
-    # # A popup menu in the left frame to interact with the sequence
-    # def on_header_right_click(self,event):
-    #     try:
-    #         self.header_entry["disabledbackground"] = 'grey'
-    #         self.popup_menu_left.tk_popup(event.x_root, event.y_root, 0)
-    #     except:
-    #         pass
-    #     #popup_menu.grab_release()
-    #     self.header_entry["disabledbackground"] = 'black'
+
+    def on_header_right_click(self,event):
+        """
+        Builds a popup menu in the left frame to interact with the sequence.
+        """
+        try:
+            self.header_popup_menu.tk_popup(event.x_root, event.y_root, 0)
+        except:
+            pass
+        # popup_menu.grab_release()
+        self["disabledbackground"] = 'black'
 
 
-#####################################################################
-# Sequence entry.                                                   #
-#####################################################################
+    #################################################################
+    # Builds the header popup menu.                                 #
+    #################################################################
+
+    ##########################
+    # Single elements menus. #
+    ##########################
+
+    def build_header_popup_menu(self):
+        """
+        Builds the popup menu that appears when users left-clicks with on the sequence header in
+        the main window left pan.
+        """
+        self.header_popup_menu = Menu(self.parent, tearoff=0, bg='white', activebackground='black', activeforeground='white', postcommand=self.update_left_popup_menu)
+
+        # Builds a popup menu for sequence elements.
+        if not self.pymod_element.is_cluster_element():
+            self.build_sequence_left_popup_menu()
+        # For cluster elements ("alignment" or "blast-search" elements).
+        else:
+            self.build_cluster_popup_menu(self.header_popup_menu, mode="cluster", extra_spacer=True)
+
+        # Selection menu. It will be activated only when there is more than one seleceted
+        # sequence and the user clicks on some element with the mouse left-button.
+        self.selection_menu = Menu(self.header_popup_menu, tearoff=0, bg='white',
+            activebackground='black', activeforeground='white')
+        self.header_popup_menu.add_cascade(menu=self.selection_menu, label="Selection", state=DISABLED)
+
+
+    def update_left_popup_menu(self):
+        """
+        Activates the "Selection" item when at least two elements are selected.
+        In order to make this work the "Selection" item always has to be in the last position in all
+        kind of menus.
+        """
+        # selected_sequences = pymod.get_selected_sequences()
+        # if len(selected_sequences) > 1: # and not self.is_cluster_element():
+        #     self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=NORMAL)
+        #     self.build_selection_menu()
+        # elif not self.is_cluster_element():
+        #     self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=DISABLED)
+        pass
+
+
+    def build_sequence_left_popup_menu(self):
+
+        # # If the sequence is a lead of a cluster, build the "Cluster" menu, to manage the cluster.
+        # if self.is_lead_of_collapsed_cluster():
+        #     self.cluster_lead_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        #     self.build_cluster_popup_menu(self.cluster_lead_menu, mode="lead")
+        #     self.header_popup_menu.add_cascade(menu=self.cluster_lead_menu, label="Cluster")
+        #     self.header_popup_menu.add_separator()
+
+        # Build the "Sequence" menu.
+        self.build_sequence_menu()
+        self.header_popup_menu.add_separator()
+
+        # Build the "Color" menu.
+        self.build_color_menu()
+        self.header_popup_menu.add_separator()
+
+        # Build the "Structure" menu.
+        self.build_structure_menu()
+        self.header_popup_menu.add_separator()
+
+        # Build the "Cluster Options" menu.
+        if self.pymod_element.is_child:
+            self.build_cluster_options_menu()
+            self.header_popup_menu.add_separator()
+
+
+    def build_cluster_popup_menu(self, target_menu, mode="cluster", extra_spacer=False):
+        self.build_cluster_edit_menu(target_menu)
+        target_menu.add_separator()
+        self.build_cluster_color_menu(target_menu)
+        if extra_spacer:
+            target_menu.add_separator()
+
+
+
+    def build_sequence_menu(self):
+        """
+        Submenu with options for manipulating a sequence loaded in PyMod.
+        """
+        self.sequence_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.sequence_menu.add_command(label="Save Sequence to File", command=self.save_sequence_from_left_pane)
+        self.sequence_menu.add_command(label="Copy Sequence to Clipboard", command=self.copy_sequence_to_clipboard)
+        self.sequence_menu.add_separator()
+        edit_command = None
+        if not self.pymod_element.has_structure():
+            edit_command = self.edit_sequence
+        else:
+            edit_command = self.edit_structure
+        if not self.pymod_element.has_structure():
+            self.sequence_menu.add_command(label="Edit Sequence", command=edit_command)
+            self.sequence_menu.add_separator()
+        self.sequence_menu.add_command(label="Duplicate Sequence",command=self.duplicate_sequence_from_the_left_pane)
+        self.sequence_menu.add_command(label="Delete Sequence", command=self.delete_sequence_from_the_left_pane)
+        self.header_popup_menu.add_cascade(menu=self.sequence_menu, label="Sequence")
+
+
+    def build_color_menu(self):
+        """
+        Color submenu containing all the option to color for a single sequence.
+        """
+        self.color_menu = Menu(self.header_popup_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+
+        # A submenu to choose a single color used to color all the residues of a sequence.
+        self.regular_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        for color in pmdt.regular_colours:
+            self.regular_colors_menu.add_command(label=color, command = lambda c=color: pymod.color_selection("single",self,"regular",c))
+        self.color_menu.add_cascade(menu=self.regular_colors_menu, label="Color whole Sequence by")
+        self.color_menu.add_separator()
+
+        # Colors each kind of residue in a sequence in a different way.
+        self.residues_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.residues_colors_menu.add_command(label="Polarity",command=lambda: pymod.color_selection("single", self, "residue"))
+        self.color_menu.add_cascade(menu=self.residues_colors_menu, label="By residue properties")
+
+        # Secondary structure colors.
+        if self.can_be_colored_by_secondary_structure():
+            self.color_menu.add_separator()
+            self.sec_str_color_menu = Menu(self.color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            if self.pymod_element.has_structure():
+                self.sec_str_color_menu.add_command(label="Observed", command=lambda: pymod.color_selection("single", self, "secondary-observed"))
+            if self.pymod_element.has_predicted_secondary_structure():
+                self.sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection("single", self, "secondary-predicted"))
+            self.color_menu.add_cascade(menu=self.sec_str_color_menu, label="By Secondary Structure")
+
+        # Conservation colors.
+        if self.can_be_colored_by_conservation():
+            self.color_menu.add_separator()
+            self.conservation_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            self.conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: pymod.color_selection("single", self, "campo-scores"))
+            self.color_menu.add_cascade(menu=self.conservation_colors_menu, label="By Convservation")
+
+        # Energy colors.
+        if self.can_be_colored_by_energy():
+            self.color_menu.add_separator()
+            self.energy_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            self.energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection("single", self, "dope"))
+            self.color_menu.add_cascade(menu=self.energy_colors_menu, label="By Energy")
+
+        self.header_popup_menu.add_cascade(menu=self.color_menu, label="Color")
+
+
+    def can_be_colored_by_secondary_structure(self):
+        """
+        Returns True if the element has an associated structure or has a secondary structure
+        prediction.
+        """
+        if self.pymod_element.has_structure() or self.pymod_element.has_predicted_secondary_structure():
+            return True
+        else:
+            return False
+
+    def can_be_colored_by_conservation(self):
+        if self.pymod_element.has_campo_scores():
+            return True
+        else:
+            return False
+
+    def can_be_colored_by_energy(self):
+        if self.pymod_element.dope_items != []:
+            return True
+        else:
+            return False
+
+
+    def build_structure_menu(self):
+        """
+        Submenu for elements that have a structure loaded in PyMOL.
+        """
+        self.structure_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        if self.pymod_element.has_structure():
+            self.structure_menu.add_command(label="Center Chain in PyMOL", command=self.center_chain_in_pymol)
+            # A switch could be nice.
+            self.structure_menu.add_command(label="Show Chain in PyMOL", command=self.show_chain_in_pymol)
+            self.structure_menu.add_command(label="Hide Chain in PyMOL", command=self.hide_chain_in_pymol)
+            self.structure_menu.add_separator()
+            self.structure_menu.add_command(label="PDB Chain Information", command=pymod.show_pdb_info)
+        else:
+            if self.pymod_element.pdb_is_fetchable():
+                self.structure_menu.add_command(label="Fetch PDB File", command = lambda: pymod.fetch_pdb_files("single", self))
+                self.structure_menu.add_separator()
+            self.structure_menu.add_command(label="Associate 3D Structure", command=lambda: pymod.associate_structure_from_popup_menu(self))
+        self.header_popup_menu.add_cascade(menu=self.structure_menu, label="Structure")
+
+
+    def build_cluster_options_menu(self):
+        """
+        Submenu with options to manage a sequence within its cluster.
+        """
+        self.cluster_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.cluster_menu.add_command(label="Extract Sequence from Cluster", command=self.extract_from_cluster)
+        if not self.is_lead:
+            self.cluster_menu.add_separator()
+            self.cluster_menu.add_command(label="Make Cluster Lead", command=self.make_lead_from_left_menu)
+        self.header_popup_menu.add_cascade(menu=self.cluster_menu, label="Cluster Options")
+
+
+    # -----
+    # Selection menu.
+    # -----
+    def build_selection_menu(self):
+        """
+        Submenu with optios for managing a selection.
+        """
+        # Refreshes the menu each time the user clicks with the left mouse button on some sequence.
+        self.selection_menu.delete(0,500)
+
+        # Build the "Sequence" menu.
+        self.build_selection_sequence_menu()
+        self.selection_menu.add_separator()
+
+        # Build the "Color" menu.
+        self.build_selection_color_menu()
+
+        # Build the "Structure" menu.
+        if pymod.all_sequences_have_structure() or pymod.all_selected_elements_have_fetchable_pdbs():
+            self.selection_menu.add_separator()
+            self.build_selection_structure_menu()
+
+        # Build the "Cluster" menu.
+        if pymod.all_sequences_are_children():
+            self.selection_menu.add_separator()
+            self.build_selection_cluster_menu()
+
+
+    def build_selection_sequence_menu(self):
+        self.selection_sequence_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.selection_sequence_menu.add_command(label="Save Selection to File", command=self.save_selection_from_left_pane)
+        self.selection_sequence_menu.add_command(label="Copy Selection to Clipboard", command=self.copy_selection)
+        self.selection_sequence_menu.add_separator()
+        self.selection_sequence_menu.add_command(label="Duplicate Selection",command=self.duplicate_selection)
+        self.selection_sequence_menu.add_command(label="Delete Selection", command=self.delete_many_sequences)
+        self.selection_menu.add_cascade(menu=self.selection_sequence_menu, label="Sequences")
+
+
+    def build_selection_color_menu(self):
+        self.selection_color_menu = self.build_multiple_color_menu(mode="selection")
+        self.selection_menu.add_cascade(menu=self.selection_color_menu, label="Color")
+
+
+    def build_multiple_color_menu(self, mode, cluster_target_menu=None):
+        """
+        Used to build the color menu of both Selection and cluster elements popup menus.
+        """
+        return False
+        target_menu = None
+        color_selection_mode = None
+        color_selection_target = None
+        sequences_list = None
+        color_target_label = None
+
+        if mode == "selection":
+            target_menu = self.selection_menu
+            color_selection_mode = "selection"
+            color_selection_target = None
+            sequences_list = pymod.get_selected_sequences()
+            color_target_label = "Selection"
+        elif mode == "cluster":
+            target_menu = cluster_target_menu
+            color_selection_mode = "multiple"
+            color_selection_target = pymod.get_children(self.get_cluster())
+            sequences_list = pymod.get_children(self.get_cluster())
+            color_target_label = "Cluster"
+
+        multiple_color_menu = Menu(target_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+
+        # A submenu to choose a single color used to color all the residues of a sequence.
+        multiple_regular_colors_menu = Menu(multiple_color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        for color in pmdt.regular_colours:
+            multiple_regular_colors_menu.add_command(label=color, command = lambda c=color: pymod.color_selection(color_selection_mode, color_selection_target, "regular",c))
+        multiple_color_menu.add_cascade(menu=multiple_regular_colors_menu, label="Color whole %s by" % (color_target_label))
+        multiple_color_menu.add_separator()
+
+        # Colors each kind of residue in a sequence in a different way.
+        multiple_residues_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        multiple_residues_colors_menu.add_command(label="Polarity",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "residue"))
+        multiple_color_menu.add_cascade(menu=multiple_residues_colors_menu, label="By residue properties")
+
+        # Secondary structure colors.
+        n_selected_seqs = len(sequences_list)
+        n_structures = len([e for e in sequences_list if e.pymod_element.has_structure()])
+        n_seq_with_predicted_sec_str = len([e for e in sequences_list if e.pymod_element.has_predicted_secondary_structure()])
+
+        if n_structures > 0 or n_seq_with_predicted_sec_str > 0:
+            multiple_color_menu.add_separator()
+            multiple_sec_str_color_menu = Menu(multiple_color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            # Available when all the selected sequences have a 3D structure.
+            if n_structures == n_selected_seqs:
+                multiple_sec_str_color_menu.add_command(label="Observed", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-observed"))
+            # Available only if all the sequences have a predicted secondary structure.
+            if n_seq_with_predicted_sec_str == n_selected_seqs:
+                multiple_sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-predicted"))
+            # Available if there is at least one element with a 3D structure or a secondary
+            # structure prediction.
+            if not n_structures == n_selected_seqs:
+                multiple_sec_str_color_menu.add_command(label="Auto (Observer + Predicted)", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-auto"))
+            multiple_color_menu.add_cascade(menu=multiple_sec_str_color_menu, label="By Secondary Structure")
+
+        # Conservation colors.
+        if not False in [e.can_be_colored_by_conservation() for e in sequences_list]:
+            multiple_color_menu.add_separator()
+            multiple_conservation_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            multiple_conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "campo-scores"))
+            multiple_color_menu.add_cascade(menu=multiple_conservation_colors_menu, label="By Convservation")
+
+        # Energy colors.
+        if not False in [e.can_be_colored_by_energy() for e in sequences_list]:
+            multiple_color_menu.add_separator()
+            multiple_energy_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            multiple_energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "dope"))
+            multiple_color_menu.add_cascade(menu=multiple_energy_colors_menu, label="By Energy")
+
+        return multiple_color_menu
+
+
+    def build_selection_structure_menu(self):
+        self.selection_structure_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        if pymod.all_sequences_have_structure():
+            self.selection_structure_menu.add_command(label="Show chains in PyMOL", command=self.show_selected_chains_in_pymol)
+            self.selection_structure_menu.add_command(label="Hide chains in PyMOL", command=self.hide_selected_chains_in_pymol)
+            self.selection_structure_menu.add_separator()
+            self.selection_structure_menu.add_command(label="Remove 3D Structures")
+        elif pymod.all_selected_elements_have_fetchable_pdbs():
+            self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: pymod.fetch_pdb_files("selection", None))
+        self.selection_menu.add_cascade(menu=self.selection_structure_menu, label="Structures")
+
+
+    def build_selection_cluster_menu(self):
+        self.selection_cluster_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.selection_cluster_menu.add_command(label="Extract Sequences from their Clusters", command=self.extract_selection_from_cluster)
+        selected_sequences = pymod.get_selected_sequences()
+        mother_indices_set = set([e.mother_index for e in selected_sequences])
+        if len(mother_indices_set) == 1:
+            mother = pymod.get_mother_by_index(list(mother_indices_set)[0])
+            children = pymod.get_children(mother)
+            if len(selected_sequences) < len(children):
+                self.selection_cluster_menu.add_command(label="Extract Sequences to New Cluster", command=self.extract_selection_to_new_cluster_from_left_menu)
+        self.selection_menu.add_cascade(menu=self.selection_cluster_menu, label="Cluster Options")
+
+
+    # -----
+    # Menu for cluster elements (alignments and similarity searches clusters).
+    # -----
+    def build_cluster_edit_menu(self, target_menu):
+        self.cluster_edit_menu = Menu(target_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.cluster_edit_menu.add_command(label="Save Alignment To File", command=self.save_alignment_from_the_left_pan)
+        self.cluster_edit_menu.add_separator()
+        self.cluster_edit_menu.add_command(label="Transfer Alignment", command=self.transfer_alignment_from_the_left_pane)
+        self.cluster_edit_menu.add_separator()
+        self.cluster_edit_menu.add_command(label="Delete Cluster", command=self.delete_alignment_from_the_left_pane)
+        target_menu.add_cascade(menu=self.cluster_edit_menu, label="Edit Cluster")
+
+
+    def build_cluster_color_menu(self, target_menu):
+        self.cluster_color_menu = self.build_multiple_color_menu(mode="cluster", cluster_target_menu = target_menu)
+        target_menu.add_cascade(menu=self.cluster_color_menu, label="Color Cluster")
+
+
+    ###################################
+    # Sequence manipulation.          #
+    ###################################
+
+    # Extracts an element from an alignment.
+    def extract_from_cluster(self):
+        pymod.extract_child(self)
+        pymod.gridder()
+
+    def extract_selection_from_cluster(self):
+        for e in pymod.get_selected_sequences():
+            pymod.extract_child(e)
+        pymod.gridder()
+
+    def extract_selection_to_new_cluster_from_left_menu(self):
+        pymod.extract_selection_to_new_cluster()
+
+    def make_lead_from_left_menu(self):
+        pymod.mark_as_lead(self)
+        pymod.gridder()
+
+    def save_sequence_from_left_pane(self):
+        """
+        Save option in the popup menu, it saves a single sequence.
+        """
+        pymod.sequence_save(self)
+
+    def save_selection_from_left_pane(self):
+        pymod.save_selection()
+
+    # Copy option in the popup menu, copies a single sequence.
+    def copy_sequence_to_clipboard(self):
+        pymod.parent.clipboard_clear()
+        pymod.parent.clipboard_append(self.my_sequence)# self.entry.get("1.0", END))
+
+    # Copy selection
+    def copy_selection(self):
+        pymod.parent.clipboard_clear()
+        text_to_copy = ""
+        for element in pymod.pymod_elements_list:
+            if element.selected and not element.is_cluster_element():
+                # Adapt it for WINDOWS.
+                text_to_copy += element.my_sequence + "\n"
+        pymod.parent.clipboard_append(text_to_copy)
+
+
+    # TODO: Include a label with the sequence title and also an entry that displayes the index of
+    #       the residue where the position of the editor currently is.
+    #       Right now it does not check if incorrect character are supplied.
+    def edit_sequence(self):
+        pass
+
+
+    def edit_structure(self):
+        pass
+
+
+    # Duplicates a single sequence.
+    def duplicate_sequence_from_the_left_pane(self):
+        pymod.duplicate_sequence(self)
+        pymod.gridder()
+
+    # Duplicate selection
+    def duplicate_selection(self):
+        for e in pymod.get_selected_sequences():
+            pymod.duplicate_sequence(e)
+        pymod.gridder()
+
+
+    # Delete option in the popup menu. When multiple sequences have to be deleted the parameter
+    # multiple is se to True.
+    def delete_sequence_from_the_left_pane(self):
+        pymod.delete_element(self)
+        pymod.gridder()
+
+    # Deletes many sequences.
+    def delete_many_sequences(self):
+        # First delete clusters that were entirely selected.
+        to_delete_list = [e for e in pymod.pymod_elements_list if e.selected and e.is_cluster_element()]
+        for element in to_delete_list:
+            pymod.delete_whole_cluster(element)
+        to_delete_list = [e for e in pymod.pymod_elements_list if e.selected]
+        # Then delete other selected elements.
+        for element in to_delete_list:
+            pymod.delete_element(element)
+        pymod.gridder()
+
+
+    def save_alignment_from_the_left_pan(self):
+        pymod.alignment_save(self.get_cluster())
+
+
+    def delete_alignment_from_the_left_pane(self):
+        title = "Delete Cluster?"
+        message = "Are you sure you want to delete %s?" % (self.get_cluster().my_header)
+        choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
+        if choice:
+            pymod.delete_alignment(self.get_cluster())
+        pymod.gridder()
+
+
+    def transfer_alignment_from_the_left_pane(self):
+        pymod.transfer_alignment(self.get_cluster())
+
+
+###################################################################################################
+# SEQUENCE ENTRY.                                                                                 #
+###################################################################################################
 
 class Sequence_text(Text, PyMod_main_window_mixin):
 
@@ -1680,7 +1980,7 @@ class Disulfides_frame:
         """
         self.templates_with_dsb = False
         for mc in self.pymod_object.modeling_clusters_list:
-            if mc.has_structures_with_disulfides():
+            if mc.pymod_element.has_structures_with_disulfides():
                 self.templates_with_dsb = True
                 break
         return self.templates_with_dsb
@@ -1770,7 +2070,7 @@ class Disulfides_frame:
         # Frame for template disulfides.
         self.template_disulfides_frame = Frame(self.template_dsb_frame, background='black', bd=1, relief = GROOVE, padx = 15, pady = 10)
         # Build a frame for every modeling cluster which have templates with disulfides.
-        for mci,mc in enumerate(filter(lambda x:x.has_structures_with_disulfides(),self.pymod_object.modeling_clusters_list)):
+        for mci,mc in enumerate(filter(lambda x:x.pymod_element.has_structures_with_disulfides(),self.pymod_object.modeling_clusters_list)):
             # A counter to iterate through all the template structures.
             frame_for_cluster_templates_dsb = Frame(self.template_disulfides_frame, background='black')
             frame_for_cluster_templates_dsb.grid(row=mci, column=0,sticky = "w", pady=(0,10))

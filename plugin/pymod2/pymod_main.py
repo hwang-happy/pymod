@@ -10901,37 +10901,59 @@ class Full_model:
         self.model_profile = None
         self.assessment_data = None
 
+# TODO: remove this section.
+####################################################################################################
+# OTHER.                                                                                           #
+####################################################################################################
+# TODO: Include a label with the sequence title and also an entry that displayes the index of
+#       the residue where the position of the editor currently is.
+#       Right now it does not check if incorrect character are supplied.
+def edit_sequence(self):
+    self.child=Toplevel(pymod.main_window)
+    self.child.resizable(0,0)
+    #  self.child.geometry('400x500-10+40')
+    self.child.title("<< Edit Sequence >>")
+    self.child.config()
+    try:
+        self.child.grab_set()
+    except:
+        pass
+    self.ch_main = Frame(self.child, background='black')
+    self.ch_main.pack(expand = YES, fill = BOTH)
 
-# TODO: remove.
-# class Alignment:
-#     """
-#     Class for alignments.
-#     """
-#     def __init__(self, alignment_algorithm, alignment_id, initial_number_of_sequence=None):
-#         """
-#         alignment_algorithm: the algorithm used to perform the alignment
-#         alignment_id: an int value that identifies the alignmente object
-#         """
-#         self.algorithm = alignment_algorithm
-#         self.id = alignment_id
-#         self.initial_number_of_sequence = initial_number_of_sequence
-#         self.rmsd_list = None
-#
-#     def set_dnd_file_path(self, dnd_file_path):
-#         self.dnd_file_path = dnd_file_path
-#
-#     def get_dnd_file_path(self):
-#         return self.dnd_file_path
-#
-#     def set_rmsd_list(self, rmsd_list):
-#         self.rmsd_list = rmsd_list
+    self.midframe = Frame(self.ch_main, background='black')
+    self.midframe.pack(side = TOP, fill = BOTH, anchor="n",
+                          ipadx = 5, ipady = 5)
 
+    self.lowerframe = Frame(self.ch_main, background='black')
+    self.lowerframe.pack(side = BOTTOM, expand = NO, fill = Y, anchor="center",
+                          ipadx = 5, ipady = 5)
 
-###################################################################################################
-# PyMod_element class.                                                                            #
-###################################################################################################
+    L1 = Label(self.midframe,font = "comic 12", text="", bg="black", fg= "red")
+    L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
 
-pass
+    scrollbar = Scrollbar(self.midframe)
+    scrollbar.grid(row=1, column=2, sticky="ns")
+
+    textarea=Text(self.midframe, yscrollcommand=scrollbar.set, font = "comic 12",
+                  height=10, bd=0, foreground = 'black', background = 'white',
+                  selectbackground='black', selectforeground='white', width = 60 )
+    textarea.config(state=NORMAL)
+    textarea.tag_config("normal", foreground="black")
+    textarea.insert(END, self.sequence_entry.get("1.0", END))
+    textarea.grid( row=1, column=1, sticky="nw", padx=0)
+
+    scrollbar.config(command=textarea.yview)
+
+    def submit():
+        edited_sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
+        self.update_element(new_sequence=edited_sequence)
+        pymod.gridder()
+        self.child.destroy()
+
+    sub_button=Button(self.lowerframe, text="SUBMIT", command=submit,
+                                    relief="raised", borderwidth="3", bg="black", fg="white")
+    sub_button.pack()
 
 
 ####################################################################################################
@@ -10947,10 +10969,12 @@ class PyModInvalidFile(Exception):
 # !WORKING!
 # - implementazione delle nuove classi per le sequenze
 #     - reimplementare la GUI della main window:
-#         - selection
 #         - popup menus
 #         - other events
-#         - edit sequences
+#         - drag sequences
+#         - cluster leader system (movimento delle sequenze su' e giu')
+#     - sistema per i nomi
+#     - organizza bene i moduli per la GUI.
 # TODO: implementazione delle nuove classi per le strutture.
 # TODO: implementa l'apertura di file dei sequenza con entry multiple.
 # TODO: cerca sempre i TODO nel testo.
