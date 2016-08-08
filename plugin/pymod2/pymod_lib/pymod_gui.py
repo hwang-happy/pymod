@@ -103,6 +103,7 @@ class PyMod_main_window_mixin:
     A mixin class used to coordinate events of the PyMod main window.
     """
 
+    pymod = []
     dict_of_elements_widgets = {}
     sequence_font_type = fixed_width_font
     sequence_font_size = 12
@@ -269,7 +270,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
 
         Toplevel.__init__(self, parent, **configs)
 
-        self.pymod = pymod
+        PyMod_main_window_mixin.pymod = pymod
 
         self.title(self.pymod.pymod_plugin_name)
         self.resizable(1,1)
@@ -668,6 +669,9 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
         self.pymod_element = pymod_element
         self.grid_index = 0
 
+        print "Skin tight pagnotta"
+        print self.pymod
+
         #----------------------------
         # Builds the header widget. -
         #----------------------------
@@ -790,8 +794,9 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         # Left menu object building and binding of the mouse events to the entries.
         self.build_header_popup_menu()
         self.bind_events_to_header_entry()
+
         # # Marks the element as being 'showed' in PyMod's main window.
-        # self.is_shown = True
+        # self.is_shown = True # TODO: remove.
 
 
     #################################################################
@@ -811,6 +816,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Select/Unselect a sequence clicking on its name on the left pane.
         """
         self.toggle_element(self.pymod_element)
+
 
     # # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
     # def display_protname(self,event):
@@ -855,10 +861,11 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def build_header_popup_menu(self):
         """
-        Builds the popup menu that appears when users left-clicks with on the sequence header in
-        the main window left pan.
+        Builds the popup menu that appears when users left-clicks with on the sequence header in the
+        main window left pan.
         """
-        self.header_popup_menu = Menu(self.parent, tearoff=0, bg='white', activebackground='black', activeforeground='white', postcommand=self.update_left_popup_menu)
+        self.header_popup_menu = Menu(self.parent, tearoff=0, bg='white',
+            activebackground='black', activeforeground='white', postcommand=self.update_left_popup_menu)
 
         # Builds a popup menu for sequence elements.
         if not self.pymod_element.is_cluster_element():
@@ -880,13 +887,11 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         In order to make this work the "Selection" item always has to be in the last position in all
         kind of menus.
         """
-        # selected_sequences = pymod.get_selected_sequences()
-        # if len(selected_sequences) > 1: # and not self.is_cluster_element():
-        #     self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=NORMAL)
-        #     self.build_selection_menu()
-        # elif not self.is_cluster_element():
-        #     self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=DISABLED)
-        pass
+        if len(self.pymod.get_selected_sequences()) > 1: # and not self.is_cluster_element():
+            self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=NORMAL)
+            self.build_selection_menu()
+        elif not self.is_cluster_element():
+            self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=DISABLED)
 
 
     def build_sequence_left_popup_menu(self):
