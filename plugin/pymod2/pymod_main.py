@@ -1003,524 +1003,6 @@ class PyMod:
     ###############################################################################################
     # METHODS TO MANIPULATE THE ELEMENTS: POD (PyMod object model).                               #
     ###############################################################################################
-    '''
-    def get_mother_count(self):
-        """
-        Returns the total number of "mother" elements (both childess and with children) loaded in
-        the pymod_elements_list.
-        """
-        count = 0
-        for e in self.pymod_elements_list:
-            if e.is_mother:
-                count += 1
-        return count
-
-    def set_as_mother(self,element):
-        element.is_mother = True
-        element.show_children = True
-        element.is_child = False
-        element.child_index = 0
-
-    def set_as_children(self,element):
-        element.is_mother = False
-        element.show_children = None
-        element.is_child = True
-
-    def add_element_to_pymod(self,element,level,mother_index=None,child_index=None,grid=False, color=None):
-        """
-        Used to add elements to the pymod_elements_list. Once an element is added to pymod_elements_list by
-        this method, it will be displayed in the PyMod main window.
-            element: the element object
-            level: "mother" or "child"
-            mother_index: if not provided it will be the last mother of the element list.
-            child_index: if not provided it will be the last element of the cluster.
-        """
-        # Add a new mother.
-        if level == "mother":
-            self.set_as_mother(element)
-            # Check that a child index is not be provided.
-            if child_index != None:
-                raise Exception("When adding a mother a child_index can't be provided.")
-            # Append the new mother to the bottom of the mother list.
-            if mother_index == None:
-                element.mother_index = self.get_mother_count()
-            # Insert the new mother somewhere in the list.
-            # MAYBE REMOVE THIS AND USE ONLY move_mother TO PLACE IT INSIDE THE LIST LATER.
-            else:
-                # Checks that the index is correct. It works because the element has not been
-                # appended to self.pymod_elements_list yet.
-                self.check_mother_index(mother_index,adding_element_to_list=True)
-                # This works just like the "insert_mother()" method.
-                for e in self.pymod_elements_list:
-                    if e.mother_index >= mother_index:
-                        e.mother_index += 1
-                element.mother_index = mother_index
-
-        # Add a new chidren.
-        elif level == "child":
-            if mother_index == None:
-                raise Exception("When adding a child element the index of its mother must be specified.")
-
-            self.set_as_children(element)
-
-            mother = self.get_mother_by_index(mother_index)
-            last_child_index = len(self.get_children(mother)) + 1 # Get the last index of the mother.
-
-            if child_index == None:
-                element.mother_index = mother.mother_index
-                element.child_index = last_child_index
-            else:
-                element.mother_index = mother.mother_index
-                element.child_index = child_index
-
-        # Assigns default colors for structures.
-        if element.has_structure() and not element.is_model and color == None:
-            color = self.color_struct()
-        # Assigns white as color if the 'color' argument is not specified.
-        else:
-            if color == None:
-                color = "white"
-        element.my_color = color
-
-        self.pymod_elements_list.append(element) # Adds the element to the pymod_elements_list.
-        element.unique_index = self.unique_index
-        self.unique_index += 1
-
-        if grid:
-            self.gridder()
-
-
-    def check_mother_index(self, mother_index,adding_element_to_list=False):
-        correct_index = False
-        # print "result:",mother_index,self.get_mother_count()
-        if mother_index > self.get_mother_count()-1 or mother_index < -1:
-             if adding_element_to_list==False:
-                 raise Exception("The mother index is out of limits.")
-             elif adding_element_to_list==True:
-                 raise Exception("The specified mother index must be lower than the current mother count. "+
-                                  "If you want to give to this element the highest mother index possible "+
-                                  "do not provide it with a mother_index when calling add_element_to_list.")
-        else:
-            correct_index = True
-        return correct_index
-
-    # Also make an insert_cluster(target_mother_index,cluster_mother_index) method.
-    # This should be used only inside move_mother.
-    def insert_mother(self,mother,new_mother_index):
-        # Checks if the new_mother_index is ok.
-        # self.check_mother_index(new_mother_index)
-        for e in self.pymod_elements_list:
-            if e != mother:
-                if e.mother_index >= new_mother_index:
-                    e.mother_index += 1
-        mother.mother_index = new_mother_index
-
-    # This should be used only inside move_mother and add_to_mother.
-    def pop_mother(self,mother):
-        for e in self.pymod_elements_list:
-            if e != mother:
-                if e.mother_index > mother.mother_index:
-                    e.mother_index -= 1
-
-    def move_mother(self,mother,new_mother_index):
-        # If the mother has some children also move them.
-
-        # Checks if the new_mother_index is ok.
-        self.check_mother_index(new_mother_index)
-        self.pop_mother(mother)
-        self.insert_mother(mother,new_mother_index)
-
-
-    def check_child_index(self, child,child_index,adding_element_to_list=False):
-        correct_index = False
-        mother = self.get_mother(child)
-        if child_index > len(self.get_children(mother)) or child_index < -1 or child_index == 0:
-                 raise Exception("The child index is out of limits.")
-        else:
-            correct_index = True
-        return correct_index
-
-    # This should be used only inside move_child.
-    def insert_child(self,child,new_child_index):
-        # Checks if the new_mother_index is ok.
-        # self.check_child_index(new_child_index)
-        for e in self.pymod_elements_list:
-            if e.mother_index == child.mother_index and e.is_child and e != child:
-                if e.child_index >= new_child_index:
-                    e.child_index += 1
-        child.child_index = new_child_index
-
-    # This should be used only inside move_child.
-    def pop_child(self,child):
-        for e in self.pymod_elements_list:
-            if e.mother_index == child.mother_index and e.is_child and e != child:
-                if e.child_index > child.child_index:
-                    e.child_index -= 1
-
-    def move_child(self,child,new_child_index):
-        # Checks if the new_mother_index is ok.
-        self.check_child_index(child, new_child_index)
-        self.pop_child(child)
-        self.insert_child(child, new_child_index)
-
-
-    # Returns the mother with that index.
-    def get_mother_by_index(self, mother_index):
-        self.check_mother_index(mother_index)
-        e = None
-        for element in self.pymod_elements_list:
-            if element.is_mother and element.mother_index == mother_index:
-                e = element
-                break
-        if e == None:
-            raise Exception("Mother with mother_index " + str(mother_index) + "not found")
-        else:
-            return e
-
-    def get_mother(self,child):
-        mother = None
-        for e in self.pymod_elements_list:
-            if e.is_mother and e.mother_index == child.mother_index:
-                mother = e
-                break
-        return mother
-
-    # # Returns the list of children of some mother.
-    # # Or call it just get_children(). Use as an argument the mother object itself.
-    # def get_children(self,mother): # get_mothers_children
-    #    children_list = []
-    #    for element in self.pymod_elements_list:
-    #        if element.is_child and element.mother_index == mother.mother_index:
-    #            children_list.append(element)
-    #    return children_list
-
-
-    def get_siblings(self,child):
-        siblings_list = []
-        for element in self.pymod_elements_list:
-           if element.is_child and element.mother_index == child.mother_index and not element == child:
-               siblings_list.append(element)
-        return siblings_list
-
-
-    def get_cluster_lead(self, cluster):
-        lead = None
-        for child in self.get_children(cluster):
-            if child.is_lead:
-                lead = child
-                break
-        return lead
-
-    def cancel_memory(self,element):
-        element.is_blast_query = False
-        element.is_bridge = False
-        element.is_lead = False
-
-    # # Appends an element to some cluster/mother.
-    # # Arguments (elements): mother, children
-    # def add_to_mother(self, mother, element, child_index=None):
-    #
-    #     # Checks that the element to add is actually in the self.pymod_elements_list.
-    #     # ...
-    #     if mother.mother_index == element.mother_index:
-    #         raise Exception("You can't add an element to some mother with the same index.")
-    #
-    #     last_child_index = None
-    #     # For mothers.
-    #     if element.is_mother:
-    #         self.pop_mother(element)
-    #         self.set_as_children(element)
-    #     elif element.is_child:
-    #         self.pop_child(element)
-    #         self.cancel_memory(element)
-    #         # element.child_index = len(self.get_children(mother)) + 1
-    #         pass
-    #
-    #     # Get the last index of the mother.
-    #     last_child_index = len(self.get_children(mother)) + 1
-    #     if child_index != None:
-    #         # Check if the child index is correct...
-    #         # ...
-    #         element.child_index = child_index
-    #     else:
-    #         element.mother_index = mother.mother_index
-    #         element.child_index = last_child_index
-
-
-    def extract_child(self,child):
-        # This should check that the element is a child.
-        self.pop_child(child)
-        self.cancel_memory(child)
-        self.set_as_mother(child)
-        self.insert_mother(child, child.mother_index + 1)
-
-
-    def extract_selection_to_new_cluster(self):
-        selected_sequences = self.get_selected_sequences()
-        self.new_clusters_counter += 1
-        # A new 'PyMod_element' object to represent the new cluster.
-        new_cluster_element = PyMod_element(
-                "...", "New cluster %s" % (self.new_clusters_counter),
-                element_type = "alignment", adjust_header=False,
-                alignment_object = Alignment("new-cluster", self.new_clusters_counter))
-        # Giving it the same mother index the original cluster, will place it above it in PyMod's
-        # main window.
-        self.add_element_to_pymod(
-            new_cluster_element, level="mother",
-            mother_index=selected_sequences[0].mother_index)
-        # Adds the selected sequences to the new cluster.
-        for seq in selected_sequences:
-            self.add_to_mother(new_cluster_element, seq)
-        self.set_initial_ali_seq_number(new_cluster_element)
-        self.gridder()
-
-
-    def mark_as_lead(self, new_lead):
-        for child in self.get_siblings(new_lead):
-            if child.is_lead:
-                child.is_lead = False
-        new_lead.is_lead = True
-
-
-    def mark_as_query(self, query):
-        query.is_blast_query = True
-        self.mark_as_lead(query)
-
-
-    def delete_element(self,element):
-        if element.has_structure():
-            self.delete_pdb_file(element)
-
-        if element.is_mother:
-            self.pop_mother(element)
-            self.pymod_elements_list.remove(element)
-        elif element.is_child:
-            self.pop_child(element)
-            self.pymod_elements_list.remove(element)
-
-
-    def delete_pdb_file(self,element):
-        # If the sequence has a PDB file loaded inside PyMOL, then delete it.
-        try:
-            cmd.delete(element.build_chain_selector_for_pymol())
-        except:
-            pass
-
-
-    # Delete a whole cluster.
-    def delete_whole_cluster(self,mother):
-        # First delete the children.
-        for c in self.get_children(mother):
-            self.delete_element(c)
-        # Then delete the mother.
-        self.delete_element(mother)
-
-
-    # Deletes alignments elements and extracts their children.
-    def delete_alignment(self,alignment_element):
-        children = reversed(sorted(self.get_children(alignment_element), key=lambda child:child.child_index))
-        for child in children:
-            self.extract_child(child)
-        self.delete_element(alignment_element)
-
-
-    def delete_clusters_with_one_child(self):
-        """
-        Finds cluster that have only one child and deletes them.
-        """
-        for e in self.pymod_elements_list:
-            if e.is_mother and e.is_cluster_element():
-                if len(self.get_children(e)) < 2:
-                    self.delete_alignment(e)
-
-
-    def duplicate_sequence(self, element_to_duplicate):
-        if element_to_duplicate.has_structure():
-            new_file_shortcut = os.path.join(self.structures_directory, element_to_duplicate.structure.original_pdb_file_name)
-            target_chain_id = element_to_duplicate.structure.pdb_chain_id
-            # Builds a 'Parsed_pdb_file' object.
-            pdb_file = Parsed_pdb_file(os.path.abspath(new_file_shortcut))
-            # Start parsing the PDB file.
-            pdb_file.parse_pdb_file()
-            # Builds 'Pymod_elements' objects for each chain present in the PDB file and adds the PDB
-            # file to the record of PDB files loaded in PyMod.
-            pdb_file.build_structure_objects(add_to_pymod_pdb_list = False)
-            # Builds an element and load a structure only for target elements.
-            for chain_id in pdb_file.get_chains_ids():
-                if chain_id == target_chain_id:
-                    new_element = pdb_file.get_chain_pymod_element(chain_id)
-                    self.add_element_to_pymod(new_element, "mother")
-                    self.load_element_in_pymol(new_element)
-        else:
-            c = PyMod_element(
-                str(element_to_duplicate.my_sequence).replace("-",""), element_to_duplicate.my_header_fix,
-                full_original_header= "Copy of " + element_to_duplicate.full_original_header,
-                element_type="sequence")
-            self.add_element_to_pymod(c,"mother")
-
-
-    # Parses the clusterseq list and returns the element that has the unique_index of the argument.
-    def get_element_by_unique_index(self, index):
-        element = None
-        for e in self.pymod_elements_list:
-            if e.unique_index == index:
-                element = e
-                break
-        return element
-
-
-    def all_sequences_are_children(self, selection=None):
-        """
-        Returns True if all the elements selected by the user are children. A list of PyMod elements
-        is not specified in the 'selection' argument, the target selection will be the list of
-        sequences currently selected in the GUI.
-        """
-        if selection == None:
-            selection = self.get_selected_sequences()
-        if False in [e.is_child for e in selection]:
-            return False
-        else:
-            return True
-
-    def all_selected_elements_have_fetchable_pdbs(self, selection=None):
-        """
-        Returns True if all the elements selected by the user can be used to download a PDB file.
-        """
-        if selection == None:
-            selection = self.get_selected_sequences()
-        if False in [e.pdb_is_fetchable() for e in selection]:
-            return False
-        else:
-            return True
-
-    def all_sequences_have_structure(self, selection=None):
-        """
-        Returns True if all the elements selected by the user have structure loaded into PyMOL.
-        """
-        if selection == None:
-            selection = self.get_selected_sequences()
-        if False in [e.has_structure() for e in selection]:
-            return False
-        else:
-            return True
-
-
-    def gridder(self,clear_selection = True,rebuild_submenus=True):
-        """
-        Displays the PyMod elements currently loaded in the plugin main window.
-        """
-        # This will automatically delete all the cluster elements (alignments and blast-searches)
-        # that have only one child.
-        self.delete_clusters_with_one_child()
-        # Updates the sequences of all the clusters.
-        for c in self.get_cluster_elements():
-            self.update_cluster_sequences(c)
-
-        # Sorts the pymod_elements_list so that its elements will be displayed according to their
-        # mother and child indices.
-        self.pymod_elements_list.sort(key=lambda e: (e.mother_index,e.child_index))
-        for element in self.pymod_elements_list:
-            element.is_shown = False
-
-        display_on_pymod_window = True
-
-        if display_on_pymod_window:
-            #| Destroy the RIGHT and LEFT panes (containing the displayed sequences)
-            self.rightpan.destroy()
-            self.leftpan.destroy()
-            #| Creates 2 new RIGTH and LEFT panes
-            self.create_main_window_panes()
-            # Use the "create_entry()" method on the elemets to display them on the window to
-            # display sequences.
-            grid_index = 0
-            current_font_size = self.menu_sequence_font_size.get()
-            for (k,element) in enumerate(self.pymod_elements_list):
-                # For mothers.
-                if element.is_mother:
-                    element.create_entry(grid_position = grid_index, font_size=current_font_size)
-                    grid_index += 1
-                # For children. Hide children in collapsed clusters.
-                elif element.is_child and self.get_mother(element).show_children:
-                    element.create_entry(grid_position = grid_index, font_size=current_font_size)
-                    grid_index += 1
-
-        if rebuild_submenus:
-            self.build_alignment_submenu()
-            self.build_models_submenu()
-
-        if clear_selection:
-            self.deselect_all_elements()
-
-
-    def color_selection(self, mode, target_selection, color_scheme, regular_color=None):
-        """
-        Used to color a single sequence (and its structure) when "mode" is set to "single", to color
-        mulitple sequences when "mode" is et to "multiple" or to color the list of the currently
-        selected elements in the GUI if the mode is set to "selection".
-        """
-        # Builds a list of elements to be colored.
-        elements_to_color = []
-        if mode == "single":
-            elements_to_color.append(target_selection)
-        elif mode == "multiple":
-            elements_to_color.extend(target_selection)
-        elif mode == "selection":
-            elements_to_color.extend(self.get_selected_sequences())
-        elif mode == "all":
-            elements_to_color.extend(self.get_all_sequences())
-
-        # Actually proceeds to color the elements.
-        for seq in elements_to_color:
-            if color_scheme == "regular":
-                seq.color_element_by_regular_color(regular_color)
-            elif color_scheme == "residue":
-                seq.color_element_by_residue()
-            elif color_scheme == "secondary-observed":
-                seq.color_element_by_obs_sec_str()
-            elif color_scheme == "secondary-predicted":
-                seq.color_element_by_pred_sec_str()
-            # Colors elements with 3D structure according to the observed II str, elements with
-            # predicted II str according to the prediction, and leaves the other elements unaltered.
-            elif color_scheme == "secondary-auto":
-                if seq.has_structure():
-                    seq.color_element_by_obs_sec_str()
-                elif seq.has_predicted_secondary_structure():
-                    seq.color_element_by_pred_sec_str()
-            elif color_scheme == "campo-scores":
-                seq.color_element_by_campo_scores()
-            elif color_scheme == "dope":
-                seq.color_element_by_dope()
-
-
-    def deselect_all_elements(self):
-        for e in self.pymod_elements_list:
-            e.selected = False
-
-    def get_all_sequences(self):
-        all_elements = [e for e in self.pymod_elements_list if not e.is_cluster_element()]
-        return all_elements
-
-    def get_selected_elements(self, include_hidden_children=False):
-        """
-        Returns a list of all the elements (both sequences and clusters) selected by the user.
-        """
-        selected_elements = []
-        if not include_hidden_children:
-            selected_elements = [e for e in self.pymod_elements_list if e.selected]
-        else:
-            for e in self.pymod_elements_list:
-                if e.selected:
-                    selected_elements.append(e)
-                    if e.is_lead_of_collapsed_cluster():
-                        mother = self.get_mother(e)
-                        selected_elements.append(mother)
-                        for s in self.get_siblings(e):
-                            selected_elements.append(s)
-            for e in selected_elements:
-                e.selected = True
-
-        return selected_elements
-    '''
 
 
     def get_children(self, mother):
@@ -1537,6 +1019,10 @@ class PyMod:
         """
         mother.add_children(child_elements)
 
+
+    #################################################################
+    # Get and check selections.                                     #
+    #################################################################
 
     def get_selected_sequences(self):
         """
@@ -1561,6 +1047,54 @@ class PyMod:
                 elif cluster_type == "blast-search" and element.element_type == "blast-search":
                     cluster_elements.append(element)
         return cluster_elements
+
+
+    def build_sequence_selection(self, selection):
+        """
+        If the 'selection' argument was not specified, it returns a list with the currently selected
+        sequences.
+        """
+        if selection == None:
+            selection = self.get_selected_sequences()
+        return selection
+
+    def check_all_elements_in_selection(self, selection, method_name):
+        # Calling methods using 'getattr()' is slower than directly calling them.
+        if False in [getattr(e,method_name)() for e in selection]:
+            return False
+        else:
+            return True
+
+
+    def all_sequences_are_children(self, selection=None):
+        """
+        Returns True if all the elements selected by the user are children. A list of PyMod elements
+        is not specified in the 'selection' argument, the target selection will be the list of
+        sequences currently selected in the GUI.
+        """
+        selection = self.build_sequence_selection(selection)
+        if False in [e.is_child for e in selection]:
+            return False
+        else:
+            return True
+
+    def all_sequences_have_structure(self, selection=None):
+        """
+        Returns 'True' if all the elements in the selection have structure loaded into PyMOL.
+        """
+        selection = self.build_sequence_selection(selection)
+        # if False in [e.has_structure() for e in selection]:
+        #     return False
+        # else:
+        #     return True
+        return self.check_all_elements_in_selection(selection, "has_structure")
+
+    def all_sequences_have_fetchable_pdbs(self, selection=None):
+        """
+        Returns 'True' if all the elements in the selection can be used to download a PDB file.
+        """
+        selection = self.build_sequence_selection(selection)
+        return self.check_all_elements_in_selection(selection, "pdb_is_fetchable")
 
 
     ###############################################################################################
@@ -10969,12 +10503,15 @@ class PyModInvalidFile(Exception):
 # !WORKING!
 # - implementazione delle nuove classi per le sequenze
 #     - reimplementare la GUI della main window:
-#         - popup menus
 #         - other events
 #         - drag sequences
 #         - cluster leader system (movimento delle sequenze su' e giu')
 #     - sistema per i nomi
 #     - organizza bene i moduli per la GUI.
+# TODO: colorazione.
+# TODO: popup menus con eventi.
+# TODO: comandi dal menu principale.
 # TODO: implementazione delle nuove classi per le strutture.
+# TODO: ripristina tutte le funzionalita' del programma.
 # TODO: implementa l'apertura di file dei sequenza con entry multiple.
 # TODO: cerca sempre i TODO nel testo.

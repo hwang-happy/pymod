@@ -669,9 +669,6 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
         self.pymod_element = pymod_element
         self.grid_index = 0
 
-        print "Skin tight pagnotta"
-        print self.pymod
-
         #----------------------------
         # Builds the header widget. -
         #----------------------------
@@ -869,7 +866,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         # Builds a popup menu for sequence elements.
         if not self.pymod_element.is_cluster_element():
-            self.build_sequence_left_popup_menu()
+            self.build_single_sequence_header_popup_menu()
         # For cluster elements ("alignment" or "blast-search" elements).
         else:
             self.build_cluster_popup_menu(self.header_popup_menu, mode="cluster", extra_spacer=True)
@@ -890,12 +887,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         if len(self.pymod.get_selected_sequences()) > 1: # and not self.is_cluster_element():
             self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=NORMAL)
             self.build_selection_menu()
-        elif not self.is_cluster_element():
+        elif not self.pymod_element.is_cluster_element():
             self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=DISABLED)
 
 
-    def build_sequence_left_popup_menu(self):
+    def build_single_sequence_header_popup_menu(self):
 
+        # TODO: implement again.
         # # If the sequence is a lead of a cluster, build the "Cluster" menu, to manage the cluster.
         # if self.is_lead_of_collapsed_cluster():
         #     self.cluster_lead_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
@@ -927,7 +925,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.build_cluster_color_menu(target_menu)
         if extra_spacer:
             target_menu.add_separator()
-
 
 
     def build_sequence_menu(self):
@@ -995,7 +992,9 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         self.header_popup_menu.add_cascade(menu=self.color_menu, label="Color")
 
-
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     def can_be_colored_by_secondary_structure(self):
         """
         Returns True if the element has an associated structure or has a secondary structure
@@ -1017,7 +1016,9 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             return True
         else:
             return False
-
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     def build_structure_menu(self):
         """
@@ -1051,9 +1052,10 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.header_popup_menu.add_cascade(menu=self.cluster_menu, label="Cluster Options")
 
 
-    # -----
-    # Selection menu.
-    # -----
+    #######################################
+    # Multiple elements (selection) menu. #
+    #######################################
+
     def build_selection_menu(self):
         """
         Submenu with optios for managing a selection.
@@ -1069,12 +1071,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.build_selection_color_menu()
 
         # Build the "Structure" menu.
-        if pymod.all_sequences_have_structure() or pymod.all_selected_elements_have_fetchable_pdbs():
+        if self.pymod.all_sequences_have_structure() or self.pymod.all_sequences_have_fetchable_pdbs():
             self.selection_menu.add_separator()
             self.build_selection_structure_menu()
 
         # Build the "Cluster" menu.
-        if pymod.all_sequences_are_children():
+        if self.pymod.all_sequences_are_children():
             self.selection_menu.add_separator()
             self.build_selection_cluster_menu()
 
@@ -1098,7 +1100,10 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         Used to build the color menu of both Selection and cluster elements popup menus.
         """
+
+        # TODO: adjust.
         return False
+
         target_menu = None
         color_selection_mode = None
         color_selection_target = None
@@ -1171,12 +1176,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def build_selection_structure_menu(self):
         self.selection_structure_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        if pymod.all_sequences_have_structure():
+        if self.pymod.all_sequences_have_structure():
             self.selection_structure_menu.add_command(label="Show chains in PyMOL", command=self.show_selected_chains_in_pymol)
             self.selection_structure_menu.add_command(label="Hide chains in PyMOL", command=self.hide_selected_chains_in_pymol)
             self.selection_structure_menu.add_separator()
             self.selection_structure_menu.add_command(label="Remove 3D Structures")
-        elif pymod.all_selected_elements_have_fetchable_pdbs():
+        elif self.pymod.all_sequences_have_fetchable_pdbs():
             self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: pymod.fetch_pdb_files("selection", None))
         self.selection_menu.add_cascade(menu=self.selection_structure_menu, label="Structures")
 
@@ -1184,19 +1189,21 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     def build_selection_cluster_menu(self):
         self.selection_cluster_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         self.selection_cluster_menu.add_command(label="Extract Sequences from their Clusters", command=self.extract_selection_from_cluster)
-        selected_sequences = pymod.get_selected_sequences()
-        mother_indices_set = set([e.mother_index for e in selected_sequences])
-        if len(mother_indices_set) == 1:
-            mother = pymod.get_mother_by_index(list(mother_indices_set)[0])
-            children = pymod.get_children(mother)
-            if len(selected_sequences) < len(children):
-                self.selection_cluster_menu.add_command(label="Extract Sequences to New Cluster", command=self.extract_selection_to_new_cluster_from_left_menu)
+        selected_sequences = self.pymod.get_selected_sequences()
+        # TODO: implement again.
+        # mother_indices_set = set([e.mother_index for e in selected_sequences])
+        # if len(mother_indices_set) == 1:
+        #     mother = pymod.get_mother_by_index(list(mother_indices_set)[0])
+        #     children = pymod.get_children(mother)
+        #     if len(selected_sequences) < len(children):
+        #         self.selection_cluster_menu.add_command(label="Extract Sequences to New Cluster", command=self.extract_selection_to_new_cluster_from_left_menu)
         self.selection_menu.add_cascade(menu=self.selection_cluster_menu, label="Cluster Options")
 
 
-    # -----
-    # Menu for cluster elements (alignments and similarity searches clusters).
-    # -----
+    ############################################################################
+    # Menu for cluster elements (alignments and similarity searches clusters). #
+    ############################################################################
+
     def build_cluster_edit_menu(self, target_menu):
         self.cluster_edit_menu = Menu(target_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         self.cluster_edit_menu.add_command(label="Save Alignment To File", command=self.save_alignment_from_the_left_pan)
@@ -1258,9 +1265,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         pymod.parent.clipboard_append(text_to_copy)
 
 
-    # TODO: Include a label with the sequence title and also an entry that displayes the index of
-    #       the residue where the position of the editor currently is.
-    #       Right now it does not check if incorrect character are supplied.
     def edit_sequence(self):
         pass
 
