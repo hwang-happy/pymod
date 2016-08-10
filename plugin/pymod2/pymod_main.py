@@ -84,6 +84,7 @@ except:
 from pymod_lib import pymod_campo as campo # Python implementation of the CAMPO algorithm.
 from pymod_lib import pymod_os_specific as pmos # Different OS compatibility-related code.
 from pymod_lib import pymod_sequence_manipulation as pmsm # General biological sequence manipulation.
+from pymod_lib import pymod_main_window as pmmw # Plugin main window and its behaviour.
 from pymod_lib import pymod_gui as pmgi # Part of the graphical user interface of PyMod.
 from pymod_lib import pymod_vars as pmdt # PyMod data used throughout the plugin.
 from pymod_lib import pymod_tool as pm_tool # Classes to represent tools used within PyMod.
@@ -479,7 +480,7 @@ class PyMod:
             os.mkdir(new_pymod_directory_path)
             os.mkdir(os.path.join(new_pymod_directory_path, self.projects_directory_name))
 
-            # Chekc ff the Installer Bundle install_all.py script was run. If so, a
+            # Check if the Installer Bundle install_all.py script was run. If so, a
             # 'pymod_temp_directory' with external tools and data files has been built.
             pymod_first_run = False
             if self.check_installer_script_temp_directory() and self.check_empty_configuration_file():
@@ -565,7 +566,7 @@ class PyMod:
         """
         Builds the structure of the PyMod main window.
         """
-        self.main_window = pmgi.PyMod_main_window(app.root, self)
+        self.main_window = pmmw.PyMod_main_window(app.root, self)
 
 
     def show_new_job_window(self):
@@ -664,9 +665,10 @@ class PyMod:
         For development only. A the 'open_sequence_file', 'open_structure_file' and
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
-        self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
-        self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
-        # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        self.open_structure_file("/home/giacomo/Desktop/sequences/2DFK.pdb", grid=True)
+        # self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta", grid=True)
+        # self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
+        # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
 
 
     def define_alignment_menu_structure(self):
@@ -1114,7 +1116,7 @@ class PyMod:
         for single_file_path in pmos.get_askopenfilename_tuple(file_paths):
             extension = os.path.splitext(single_file_path)[1].replace(".","").lower()
             try:
-                if extension == "fasta":
+                if extension in ("fasta", "fa"):
                     self.open_sequence_file(single_file_path, "fasta")
                 elif extension == "gp":
                     self.open_sequence_file(single_file_path, "genbank")
@@ -1126,13 +1128,14 @@ class PyMod:
                 title = "File Type Error"
                 message = "The selected File is not a valid %s." % (lf_vars.supported_sequence_file_types[extension])
                 self.show_error_message(title, message)
+        self.gridder()
 
 
     #################################################################
     # REFACTORING.                                                  #
     #################################################################
 
-    def open_sequence_file(self, file_full_path, file_format="fasta"):
+    def open_sequence_file(self, file_full_path, file_format="fasta", grid=False):
         """
         Method for loading in PyMod new sequences parsed from sequence files.
         """
@@ -1149,7 +1152,8 @@ class PyMod:
             self.add_element_to_pymod(c)
         fn.close()
         # Shows the new elements in PyMod main window.
-        self.gridder()
+        if grid:
+            self.gridder()
 
 
     def build_pymod_element_from_seqrecord(self, seqrecord):
@@ -1173,7 +1177,7 @@ class PyMod:
         self.unique_index += 1
 
 
-    def build_cluster_from_alignment_file(self,alignment_file, extension="fasta"):
+    def build_cluster_from_alignment_file(self,alignment_file, extension="fasta", grid=False):
         """
         Creates a cluster with all the sequences contained in an alignment file.
         """
@@ -1185,19 +1189,11 @@ class PyMod:
             aligned_elements.append(self.build_pymod_element_from_seqrecord(record))
         fh.close()
         self.build_new_cluster(aligned_elements, "imported")
-        self.gridder()
+        if grid:
+            self.gridder()
 
 
     def gridder(self):
-        #@@@
-        terminal = 0
-        if terminal:
-            for element in self.pymod_elements_list:
-                print "---"
-                print element.my_header
-                print element.my_sequence
-        #@@@
-
         #----------------------------
         # Assigns the grid indices. -
         #----------------------------
@@ -1259,83 +1255,73 @@ class PyMod:
         """
         Launched when the user wants to add a new sequence by directly typing it into a Text entry.
         """
-        def show_menu(e):
-            w = e.widget
-            the_menu.entryconfigure("Paste",
-            command=lambda: w.event_generate("<<Paste>>"))
-            the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
-
-        # This is called when the SUBMIT button packed below is pressed.
-        def submit():
-            def special_match(strg, search=re.compile(r'[^A-Z-]').search):
-                return not bool(search(strg))
-            def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
-                return not bool(search2(strg))
-            sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
-            if special_match(sequence) and len(sequence):
-                if len(seq_name.get()) and name_match(seq_name.get()):
-                    c = PyMod_element(sequence, seq_name.get(),
-                        element_type="sequence")
-                    self.add_element_to_pymod(c,"mother")
-                    self.raw_seq_window.destroy()
-                    self.gridder()
-                else:
-                    title = 'Name Error'
-                    message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
-                    self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-            else:
-                title = 'Sequence Error'
-                message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
-                self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-
-        self.raw_seq_window = pmgi.PyMod_tool_window(self.main_window,
-            title = "Add Raw Sequence",
-            upper_frame_title = "Type or Paste your Sequence",
-            submit_command = submit)
-
-        L1 = Label(self.raw_seq_window.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
-        L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
-
-        # Creates an Entry for the name of the new sequence.
-        seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
-                    selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.fixed_width_font)
-        seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
-        seq_name.focus_set()
-        seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
-
-        L2 = Label(self.raw_seq_window.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
-        L2.grid( row=1, column=0, sticky="ne", ipadx=0, padx=5)
-
-        scrollbar = Scrollbar(self.raw_seq_window.midframe)
-        scrollbar.grid(row=1, column=2, sticky="ns")
-
-        # Creates an Entry widget for the sequence.
-        textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
-                      font = "%s 12" % pmgi.fixed_width_font, height=10,
-                      bd=0, foreground = 'black',
-                      background = 'white', selectbackground='black',
-                      selectforeground='white', width = 60)
-        textarea.config(state=NORMAL)
-        textarea.tag_config("normal", foreground="black")
-        textarea.grid( row=1, column=1, sticky="nw", padx=0)
-        textarea.bind("<Button-3><ButtonRelease-3>", show_menu)
-        scrollbar.config(command=textarea.yview)
-
-        the_menu = Menu(seq_name, tearoff=0)
-        the_menu.add_command(label="Paste")
+        pass
+        # def show_menu(e):
+        #     w = e.widget
+        #     the_menu.entryconfigure("Paste",
+        #     command=lambda: w.event_generate("<<Paste>>"))
+        #     the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
+        #
+        # # This is called when the SUBMIT button packed below is pressed.
+        # def submit():
+        #     def special_match(strg, search=re.compile(r'[^A-Z-]').search):
+        #         return not bool(search(strg))
+        #     def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
+        #         return not bool(search2(strg))
+        #     sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
+        #     if special_match(sequence) and len(sequence):
+        #         if len(seq_name.get()) and name_match(seq_name.get()):
+        #             c = PyMod_element(sequence, seq_name.get(),
+        #                 element_type="sequence")
+        #             self.add_element_to_pymod(c,"mother")
+        #             self.raw_seq_window.destroy()
+        #             self.gridder()
+        #         else:
+        #             title = 'Name Error'
+        #             message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
+        #             self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
+        #     else:
+        #         title = 'Sequence Error'
+        #         message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
+        #         self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
+        #
+        # self.raw_seq_window = pmgi.PyMod_tool_window(self.main_window,
+        #     title = "Add Raw Sequence",
+        #     upper_frame_title = "Type or Paste your Sequence",
+        #     submit_command = submit)
+        #
+        # L1 = Label(self.raw_seq_window.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
+        # L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
+        #
+        # # Creates an Entry for the name of the new sequence.
+        # seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
+        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.fixed_width_font)
+        # seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
+        # seq_name.focus_set()
+        # seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
+        #
+        # L2 = Label(self.raw_seq_window.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
+        # L2.grid( row=1, column=0, sticky="ne", ipadx=0, padx=5)
+        #
+        # scrollbar = Scrollbar(self.raw_seq_window.midframe)
+        # scrollbar.grid(row=1, column=2, sticky="ns")
+        #
+        # # Creates an Entry widget for the sequence.
+        # textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
+        #               font = "%s 12" % pmgi.fixed_width_font, height=10,
+        #               bd=0, foreground = 'black',
+        #               background = 'white', selectbackground='black',
+        #               selectforeground='white', width = 60)
+        # textarea.config(state=NORMAL)
+        # textarea.tag_config("normal", foreground="black")
+        # textarea.grid( row=1, column=1, sticky="nw", padx=0)
+        # textarea.bind("<Button-3><ButtonRelease-3>", show_menu)
+        # scrollbar.config(command=textarea.yview)
+        #
+        # the_menu = Menu(seq_name, tearoff=0)
+        # the_menu.add_command(label="Paste")
 
     '''
-    def build_pymod_element_from_seqrecord(self, seqrecord):
-        """
-        Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
-        to the it.
-        """
-        new_element = PyMod_element(str(seqrecord.seq), seqrecord.id,
-                full_original_header=seqrecord.description,
-                element_type="sequence")
-        return new_element
-
-
     def build_pymod_element_from_hsp(self, hsp):
         """
         Gets a hsp dictionary containing a Biopython 'HSP' class object and returns a
@@ -1386,9 +1372,9 @@ class PyMod:
         openfilename, extension = self.choose_alignment_file()
         if not None in (openfilename, extension):
             self.build_cluster_from_alignment_file(openfilename, extension)
+        self.gridder()
 
 
-    # TODO: replace here 'def build_cluster_from_alignment_file'
     def build_new_cluster(self, child_elements, algorithm):
         # Creates an alignment element.
         self.alignment_count += 1
@@ -1419,56 +1405,57 @@ class PyMod:
         containing the same sequences aligned in a different way. Right now it supports transfer
         only for sequences having the exactly same sequences in PyMod and in the external alignment.
         """
-        # Let users choose the external alignment file.
-        openfilename, extension = self.choose_alignment_file()
-        if None in (openfilename, extension):
-            return False
-
-        # Sequences in the aligment currently loaded into PyMod.
-        aligned_elements = self.get_children(alignment_element)
-
-        # Sequences in the alignment files.
-        fh = open(openfilename, "rU")
-        external_records = list(SeqIO.parse(fh, extension))
-        fh.close()
-
-        if len(external_records) < len(aligned_elements):
-            title = "Transfer error"
-            message = "'%s' has more sequences (%s) than the alignment in '%s' (%s) and the 'Transfer Alignment' function can't be used in this situation." % (alignment_element.my_header, len(aligned_elements), openfilename, len(external_records))
-            self.show_error_message(title,message)
-            return False
-
-        correspondance_list = []
-        # First try to find sequences that are identical (same sequence and same lenght) in both
-        # alignments.
-        for element in aligned_elements[:]:
-            identity_matches = []
-            for record in external_records:
-                if str(element.my_sequence).replace("-","") == str(record.seq).replace("-",""):
-                    match_dict = {"target-seq":element, "external-seq": record, "identity": True}
-                    identity_matches.append(match_dict)
-            if len(identity_matches) > 0:
-                correspondance_list.append(identity_matches[0])
-                aligned_elements.remove(identity_matches[0]["target-seq"])
-                external_records.remove(identity_matches[0]["external-seq"])
-
-        # Then try to find similar sequences among the two alignments. Right now this is not
-        # implemented.
-        # ...
-
-        if not len(aligned_elements) == 0:
-            title = "Transfer error"
-            message = "Not every sequence in the target alignment has a corresponding sequence in the external alignment."
-            self.show_error_message(title,message)
-            return False
-
-        # Finally transfer the sequences.
-        for match in correspondance_list[:]:
-            if match["identity"]:
-                match["target-seq"].my_sequence = str(match["external-seq"].seq)
-                correspondance_list.remove(match)
-
-        self.gridder()
+        pass
+        # # Let users choose the external alignment file.
+        # openfilename, extension = self.choose_alignment_file()
+        # if None in (openfilename, extension):
+        #     return False
+        #
+        # # Sequences in the aligment currently loaded into PyMod.
+        # aligned_elements = self.get_children(alignment_element)
+        #
+        # # Sequences in the alignment files.
+        # fh = open(openfilename, "rU")
+        # external_records = list(SeqIO.parse(fh, extension))
+        # fh.close()
+        #
+        # if len(external_records) < len(aligned_elements):
+        #     title = "Transfer error"
+        #     message = "'%s' has more sequences (%s) than the alignment in '%s' (%s) and the 'Transfer Alignment' function can't be used in this situation." % (alignment_element.my_header, len(aligned_elements), openfilename, len(external_records))
+        #     self.show_error_message(title,message)
+        #     return False
+        #
+        # correspondance_list = []
+        # # First try to find sequences that are identical (same sequence and same lenght) in both
+        # # alignments.
+        # for element in aligned_elements[:]:
+        #     identity_matches = []
+        #     for record in external_records:
+        #         if str(element.my_sequence).replace("-","") == str(record.seq).replace("-",""):
+        #             match_dict = {"target-seq":element, "external-seq": record, "identity": True}
+        #             identity_matches.append(match_dict)
+        #     if len(identity_matches) > 0:
+        #         correspondance_list.append(identity_matches[0])
+        #         aligned_elements.remove(identity_matches[0]["target-seq"])
+        #         external_records.remove(identity_matches[0]["external-seq"])
+        #
+        # # Then try to find similar sequences among the two alignments. Right now this is not
+        # # implemented.
+        # # ...
+        #
+        # if not len(aligned_elements) == 0:
+        #     title = "Transfer error"
+        #     message = "Not every sequence in the target alignment has a corresponding sequence in the external alignment."
+        #     self.show_error_message(title,message)
+        #     return False
+        #
+        # # Finally transfer the sequences.
+        # for match in correspondance_list[:]:
+        #     if match["identity"]:
+        #         match["target-seq"].my_sequence = str(match["external-seq"].seq)
+        #         correspondance_list.remove(match)
+        #
+        # self.gridder()
 
 
     #################################################################
@@ -1507,7 +1494,7 @@ class PyMod:
         return valid_pdb
 
 
-    def open_structure_file(self,pdb_file_full_path, file_format="pdb", grid=True):
+    def open_structure_file(self,pdb_file_full_path, file_format="pdb", grid=False):
         """
         Opens a PDB file (specified in 'pdb_file_full_path'), reads its content and imports in PyMod
         the sequences of the polypeptide chains and loads in PyMOL their 3D structures.
@@ -10439,10 +10426,11 @@ class Full_model:
 ####################################################################################################
 # OTHER.                                                                                           #
 ####################################################################################################
-# TODO: Include a label with the sequence title and also an entry that displayes the index of
-#       the residue where the position of the editor currently is.
-#       Right now it does not check if incorrect character are supplied.
+
 def edit_sequence(self):
+    # TODO: Include a label with the sequence title and also an entry that displayes the index of
+    #       the residue where the position of the editor currently is.
+    #       Right now it does not check if incorrect character are supplied.
     self.child=Toplevel(pymod.main_window)
     self.child.resizable(0,0)
     #  self.child.geometry('400x500-10+40')
@@ -10490,9 +10478,9 @@ def edit_sequence(self):
     sub_button.pack()
 
 
-####################################################################################################
-# EXCEPTIONS.                                                                                      #
-####################################################################################################
+###################################################################################################
+# EXCEPTIONS.                                                                                     #
+###################################################################################################
 
 class PyModInvalidFile(Exception):
     """
@@ -10500,9 +10488,16 @@ class PyModInvalidFile(Exception):
     """
     pass
 
+
+###################################################################################################
+# APPUNTI.                                                                                        #
+###################################################################################################
+
 # !WORKING!
-# - implementazione delle nuove classi per le sequenze
-#     - reimplementare la GUI della main window:
+# - implementazione delle nuove classi per le strutture.
+# - implementazione delle nuove classi per le sequenze.
+
+# TODO: reimplementare la GUI della main window:
 #         - other events
 #         - drag sequences
 #         - cluster leader system (movimento delle sequenze su' e giu')
@@ -10511,7 +10506,6 @@ class PyModInvalidFile(Exception):
 # TODO: colorazione.
 # TODO: popup menus con eventi.
 # TODO: comandi dal menu principale.
-# TODO: implementazione delle nuove classi per le strutture.
 # TODO: ripristina tutte le funzionalita' del programma.
 # TODO: implementa l'apertura di file dei sequenza con entry multiple.
 # TODO: cerca sempre i TODO nel testo.
