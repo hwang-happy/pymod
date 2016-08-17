@@ -1,6 +1,8 @@
 import Bio
 from Bio.pairwise2 import format_alignment
 
+import pymod_vars as pmdt
+
 ###################################################################################################
 # Some useful global functions used by all classes.                                               #
 ###################################################################################################
@@ -170,6 +172,39 @@ def get_limit_residues_ids(seq1, seq2):
         if p2 != "-":
             c2 += 1
     return {"s1a": s1a, "e1a": e1a,"s2a": s2a, "e2a": e2a}
+
+
+###################################################################################################
+# Classes for standard bioinformatics operations.                                                 #
+###################################################################################################
+
+def one2three(letter):
+    """
+    Returns a three letter code for a residue corresponding to a one letter symbol.
+    """
+    if pmdt.prot_one_to_three_code.has_key(letter):
+        return pmdt.prot_one_to_three_code[letter]
+    else:
+        return "???"
+
+def three2one(res, force_standard_parent=False):
+    """
+    Returns a one letter symbol corresponding to a three letter code for a residue. If
+    'force_standard_parent' is set to 'True', if the three letter code of a modified residue
+    is supplied, the method will attempt to return the code of the corresponding unmodified
+    residue.
+    """
+    # Try to set modified residues of the protein with the letter belonging to the unmodified
+    # residue
+    if not force_standard_parent:
+        # If it is any kind of known modified amminoacid set it as its original non
+        # modified amminoacid
+        if pmdt.code_standard.has_key(res):
+            return pmdt.code_standard[res]
+        else:
+            return "X"
+    else:
+        pass
 
 ###################################################################################################
 # Classes needed to join alignments and to perform a center star alignment.                       #

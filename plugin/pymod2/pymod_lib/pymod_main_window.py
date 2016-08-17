@@ -452,6 +452,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.help_menu = Menu(self.menubar, tearoff = 0)
         self.menubar.add_cascade(label = "Help", menu = self.help_menu)
         # TODO: remove.
+        self.help_menu.add_command(label = "Test", command = self.pymod.launch_default)
         self.help_menu.add_command(label = "Print Selected", command = self.pymod.print_selected)
         self.help_menu.add_command(label = "Online Documentation", command = self.pymod.open_online_documentation)
         self.help_menu.add_command(label = "About", command = self.pymod.show_about_dialog)
