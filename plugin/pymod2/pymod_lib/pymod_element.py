@@ -12,8 +12,9 @@ class PyMod_element:
     def __init__(self,
                  sequence,
                  header,
-                 full_original_header=None,
-                 color="white"):
+                 full_original_header = None,
+                 color = "white",
+                 structure = None):
         # SeqRecord(seq=Seq('MDDDIAALVVDNGSGMCKAGFAGDDAPRAVFPSIVGRPRHQGVMVGMGQKDSYV...KCF', IUPACProtein()),
         #             id='NP_001092.1',
         #             name='NP_001092',
@@ -56,6 +57,11 @@ class PyMod_element:
 
         self.annotations = {}
 
+        #--------------------------
+        # Structural information. -
+        #--------------------------
+        self.structure = structure
+
         #----------------------------------------------
         # Appearance and intercations with the users. -
         #----------------------------------------------
@@ -77,13 +83,19 @@ class PyMod_element:
 
 
     def has_structure(self):
-        return False
+        if self.structure != None:
+            return True
+        else:
+            return False
+
 
     def has_predicted_secondary_structure(self):
         return False
 
+
     def has_campo_scores(self):
         return False
+
 
     def pdb_is_fetchable(self):
         return False
@@ -91,6 +103,7 @@ class PyMod_element:
 
     def is_cluster_element(self):
         return self.is_cluster
+
 
     def get_siblings(self):
         if not self.mother:
@@ -159,12 +172,4 @@ class PyMod_polypeptide(PyMod_sequence):
     pass
 
 class PyMod_nucleic_acid(PyMod_sequence):
-    pass
-
-
-# Structures.
-class PyMod_residue:
-    pass
-
-class PyMod_structure:
     pass

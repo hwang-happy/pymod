@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import warnings
 import pymol
 from pymol import cmd
@@ -42,17 +43,28 @@ class Parsed_pdb_file:
 
     counter = 0
 
-    def __init__(self, pdb_file_path, output_directory=""):
+    def __init__(self, pdb_file_path, output_directory="", copy_original_file=True):
 
         st1 = time.time()
 
-        self.original_pdb_file_path = pdb_file_path
         self.output_directory = output_directory
-        self.original_base_name = os.path.splitext(os.path.basename(pdb_file_path))[0]
+        self.original_pdb_file_path = pdb_file_path
+        self.original_base_name = os.path.splitext(os.path.basename(self.original_pdb_file_path))[0]
 
-        #-----------------------------
-        # Parse the header manually. -
-        #-----------------------------
+        self.list_of_pymod_elements = []
+        self.list_of_structure_objects = []
+
+        #-------------------------------------------------------------
+        # Copies the orginal structure file in the output directory. -
+        #-------------------------------------------------------------
+        if copy_original_file:
+            copied_file_path = os.path.join(self.output_directory, os.path.basename(self.original_pdb_file_path))
+            if not os.path.isfile(copied_file_path):
+                shutil.copy(self.original_pdb_file_path, copied_file_path)
+
+        #------------------------------
+        # Parses the header manually. -
+        #------------------------------
         pass
 
         #--------------------------------------------
@@ -89,14 +101,14 @@ class Parsed_pdb_file:
         #--------------------------------------------------
         # Get the sequences and residues using Biopython. -
         #--------------------------------------------------
-        self.list_of_pymod_elements = []
-        self.list_of_structure_objects = []
 
-        warnings.simplefilter("ignore")
         # Creates a biopython pdb object and starts to take informations from it.
+        warnings.simplefilter("ignore")
         for chain_file in chain_files:
+
             fh = open(chain_file["file_path"], "rU")
             parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure("some_code", fh) # TODO: insert a code.
+
             # Starts to iterate through the models in the biopython object.
             for model in parsed_biopython_structure.get_list():
                 for chain in model.get_list():
@@ -151,23 +163,21 @@ class Parsed_pdb_file:
                             parsed_chain["sequence"] += one_letter_symbol
 
                 # Stops after having parsed the first "model" in the biopython "structure".
-                # This is needed to import only the first model of NMR PDB files, which have multiple
+                # This is needed to import only the first model of NMR files, which have multiple
                 # models.
                 break
 
-            # ppb = PPBuilder()
-            # seq = ""
-            # for pp in ppb.build_peptides(parsed_biopython_structure, aa_only=False):
-            #     seq += str(pp.get_sequence())
+            # Builds the new 'PyMod_structure'.
+            new_structure = PyMod_structure(chain_file["file_path"])
 
-            # # Using CA-CA
-            # ppb = CaPPBuilder()
-            # for pp in ppb.build_peptides(structure):
-            #     print(pp.get_sequence())
-            new_element = pmel.PyMod_element(parsed_chain["sequence"], chain_file["chain_name"])#, full_original_header=seqrecord.description)
+            # Builds the new 'PyMod_element'.
+            new_element = pmel.PyMod_element(parsed_chain["sequence"], chain_file["chain_name"], structure = new_structure)#, full_original_header=seqrecord.description)
             self.list_of_pymod_elements.append(new_element)
-            warnings.simplefilter("always")
+            self.list_of_structure_objects.append(new_structure)
+
             fh.close()
+
+        warnings.simplefilter("always")
 
         #-----------------------------------------------
         # Finds the modified residues and the ligands. -
@@ -178,7 +188,7 @@ class Parsed_pdb_file:
         # Finds the disulfide bridges. -
         #-------------------------------
         pass
-        
+
         st2 = time.time()
 
         print "# Structure loaded in PyMod in %ss." % (st2-st1)
@@ -254,3 +264,41 @@ def get_modeller_sequence(pdb_file_path, output_directory=""):
     aln = alignment(env)
     aln.append_model(mdl, align_codes=code)
     aln.write(file=os.path.join(output_directory,"test_modeller_"+code+'_aln.chn'))
+
+
+# Structures.
+class PyMod_residue:
+    def __init__(self):
+        pass
+
+
+class PyMod_structure:
+
+    def __init__(self, chain_file_path):
+        self.original_chain_file_path = chain_file_path
+
+
+    def get_file(self):
+        return self.original_chain_file_path
+
+    def get_pymol_object_name(self):
+        return os.path.splitext(os.path.basename(self.original_chain_file_path))[0]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pass

@@ -251,7 +251,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
 
     def create_main_window_panes(self):
         """
-        This method allows to create the panes containing the names and sequences to display.
+        Create the panes containing the sequences to display in the main window.
         """
         # Creates a scrolled frame inside the RIGHT pane of the paned frame
         self.rightpan = Pmw.ScrolledFrame(self.panes.pane('right'),
@@ -451,9 +451,8 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         #---------------
         self.help_menu = Menu(self.menubar, tearoff = 0)
         self.menubar.add_cascade(label = "Help", menu = self.help_menu)
-        # TODO: remove.
-        self.help_menu.add_command(label = "Test", command = self.pymod.launch_default)
-        self.help_menu.add_command(label = "Print Selected", command = self.pymod.print_selected)
+        self.help_menu.add_command(label = "Test", command = self.pymod.launch_default) # TODO: remove.
+        self.help_menu.add_command(label = "Print Selected", command = self.pymod.print_selected) # TODO: remove.
         self.help_menu.add_command(label = "Online Documentation", command = self.pymod.open_online_documentation)
         self.help_menu.add_command(label = "About", command = self.pymod.show_about_dialog)
         self.help_menu.add_separator()
@@ -568,7 +567,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         pewp = PyMod_element_widgets_group(left_pane=self.leftpan.interior(),
                                            right_pane=self.rightpan.interior(),
                                            pymod_element=pymod_element)
-        self.dict_of_elements_widgets.update({pymod_element: pewp})
+        PyMod_main_window_mixin.dict_of_elements_widgets.update({pymod_element: pewp})
 
 
 
@@ -682,7 +681,10 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
 ###################################################################################################
 
 class Header_entry(Entry, PyMod_main_window_mixin):
-
+    """
+    A custom Tkinter Entry used to represent the headers of PyMod elements appearing in the main
+    window left pane.
+    """
     def __init__(self, parent = None, pymod_element=None, **configs):
 
         self.parent = parent
@@ -943,6 +945,8 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         Submenu for elements that have a structure loaded in PyMOL.
         """
+        # TODO: complete this menu.
+        return None
         self.structure_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         if self.pymod_element.has_structure():
             self.structure_menu.add_command(label="Center Chain in PyMOL", command=self.center_chain_in_pymol)
@@ -1245,7 +1249,10 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 ###################################################################################################
 
 class Sequence_text(Text, PyMod_main_window_mixin):
-
+    """
+    A custom Tkinter Text used to represent the sequences of PyMod elements appearing in the main
+    window right pane.
+    """
     def __init__(self, parent = None, pymod_element=None, **configs):
         self.parent = parent
         self.pymod_element = pymod_element
@@ -1275,9 +1282,12 @@ class Sequence_text(Text, PyMod_main_window_mixin):
 
         # Builds the sequence popup menu and binds events to it.
         # self.build_right_popup_menu()
-        # self.bind_events_to_sequence_entry()
+        self.bind_events_to_sequence_entry()
 
 
+    #################################################################
+    # Display the text.                                             #
+    #################################################################
     def build_text_to_display(self):
         """
         This method displayes the sequence of an element by inserting it the ".sequence_entry" Text
@@ -1300,3 +1310,340 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         self["width"] = len(self.pymod_element.my_sequence)
         # self.color_element(on_grid=True,color_pdb=False)
         self.config(state=DISABLED)
+
+
+    #################################################################
+    # Binding for mouse events.                                     #
+    #################################################################
+
+    #################################################################
+    # Mouse events and their bindings for the sequence Entry.       #
+    #################################################################
+
+    def bind_events_to_sequence_entry(self):
+        self.bind("<Leave>", self.leave_entry)
+        self.bind("<Motion>", self.set_messagebar_info)
+        # self.sequence_entry.bind("<Button-1>", self.on_sequence_left_click)
+        # self.sequence_entry.bind("<ButtonRelease-1>", self.on_sequence_left_release)
+        # self.sequence_entry.bind("<Enter>", self.enter_entry)
+        # # Centers and selects the residue in PyMOL by clicking on it with the middle mouse button.
+        # if self.has_structure():
+        #     self.sequence_entry.bind("<Button-2>", self.click_residue_with_middle_button)
+        # self.sequence_entry.bind("<ButtonRelease-3>", self.on_sequence_right_click)
+
+
+    def leave_entry(self,event):
+        self.unbind("<B1-Motion>")
+
+
+    def get_highlighted_residue_position(self, res_alignment_id=False, pdb_position=False):
+        """
+        Returns the position of the residue currently highlighted with the mouse in the PyMod main
+        window. If 'res_alignment_id' is set to 'True' it will return the id of that residue in the
+        aligned sequence. If 'pdb_position' is 'True', it will return the id of that residue in
+        the PDB file.
+        """
+        # if res_alignment_id == True and pdb_position == True:
+        #     raise Exception("This is not correct...")
+        # pos = int(self.sequence_entry.index(CURRENT).split(".")[1]) + 1
+        # if not res_alignment_id:
+        #     number_gaps = self.sequence_entry.get("1.0", CURRENT).count('-')
+        #     pos -= number_gaps
+        # if pdb_position:
+        #     pos = self.structure.pdb_chain_sequence[pos -1].pdb_position
+        # return pos
+        return (self.index(CURRENT), int(self.index(CURRENT).split(".")[1]) + 1)
+
+
+    def set_messagebar_info(self, event):
+        """
+        Allows to show the protein name and the position of the residues in message bars at the
+        bottom of PyMod main window.
+        """
+        print self.get_highlighted_residue_position()
+        if 0:
+            # Residues position (id +1) in the sequence.
+            sequence_position = self.get_highlighted_residue_position()
+            current_residue = self.sequence_entry.get(CURRENT)
+            is_residue = None
+            if current_residue in pmdt.protein_residues_set:
+                is_residue = True
+            else:
+                is_residue = False
+
+            # Include the position in sequences (and the PDB position for structures).
+            position_text = ""
+            if is_residue:
+                if self.has_structure():
+                    sequence_index = self.get_highlighted_residue_position()
+                    residue_identifier = self.structure.pdb_chain_sequence[sequence_index-1].three_letter_code
+                    pdb_index = self.get_highlighted_residue_position(pdb_position=True)
+                    position_text = residue_identifier + " " + str(pdb_index) # + " (" + str(sequence_position) + ")"
+                else:
+                    residue_identifier = pymod.one2three(current_residue)
+                    position_text = residue_identifier + " " + str(sequence_position)
+
+            # Also include the position for alignments.
+            if self.is_child:
+                if is_residue:
+                    position_text += " - "
+                position_text += ("Alignment: " + str(self.get_highlighted_residue_position(res_alignment_id=True)) )
+
+            # Get additional information (depending on the sequence current color scheme) to show in the
+            # message bar.
+            if is_residue:
+                if self.color_by == "campo-scores":
+                    score = self.campo_scores[sequence_position - 1]["campo-score"]
+                    position_text += " - CAMPO score: %s" % (score)
+                elif self.color_by == "secondary-predicted":
+                    prediction = self.psipred_elements_list[sequence_position - 1]
+                    pred_text = str(prediction["confidence"]) + " " +pmdt.psipred_element_dict[prediction["sec-str-element"]]
+                    position_text += " - PSIPRED confidence: %s" % (pred_text)
+                elif self.color_by == "dope":
+                    score = self.dope_items[sequence_position - 1]["dope-score"]
+                    position_text += " - DOPE score: %s" % (score)
+
+            pymod.residue_bar.helpmessage(position_text)
+
+            # Sequence name bar.
+            protein_name = self.full_original_header # self.header_entry.get()
+            pymod.sequence_name_bar.helpmessage(protein_name)
+
+
+    # #######################################
+    # # Methods needed to drag sequences    #
+    # # and to add/remove gaps to them.     #
+    # #######################################
+    #
+    # # Stores the X position of an aa when click (useful to calculate the shifting of a sequence
+    # # when dragging).
+    # def on_sequence_left_click(self,event):
+    #     self.mypos=self.sequence_entry.index("@%d,%d" % (event.x, event.y))
+    #     self.sequence_entry.config(state=NORMAL)
+    #     # Sets state to 'NORMAL', so that the sequences can be modified with indels.
+    #     if self.is_child and not self.is_lead_of_collapsed_cluster():
+    #         for sibling in pymod.get_siblings(self):
+    #             sibling.sequence_entry.config(state=NORMAL)
+    #
+    # def on_sequence_left_release(self,event):
+    #     # Sets state to 'DISABLED', so that the sequences can't be modified with keyborad input
+    #     # from the user.
+    #     self.sequence_entry.config(state=DISABLED)
+    #     if self.is_child and not self.is_lead_of_collapsed_cluster():
+    #         for sibling in pymod.get_siblings(self):
+    #             sibling.sequence_entry.config(state=DISABLED)
+    #
+    # def enter_entry(self,event):
+    #     if not self.is_cluster_element():
+    #         self.sequence_entry.bind("<B1-Motion>", self.on_motion)
+    #
+    # # Allows to insert/remove gaps '-' dragging the mouse
+    # def on_motion(self,event):
+    #
+    #     # self.sequence_entry.config(state=NORMAL)
+    #
+    #     drag = None
+    #
+    #     # If dragging to the right insert an indel '-'.
+    #     if int(self.sequence_entry.index("@%d,%d" % (event.x, event.y)).split(".")[1]) > int(self.mypos.split(".")[1]):
+    #         # Change the sequence itself.
+    #         self.sequence_entry.insert(self.mypos, "-",("normal"))
+    #         self.mypos=self.sequence_entry.index("@%d,%d" % (event.x, event.y))
+    #         # Updates the sequence with new indels.
+    #         # self.sequence_entry.config(width=int(self.sequence_entry['width'])+1)
+    #         # self.my_sequence = self.sequence_entry.get("1.0", "%s-1c" % END) # This fixes a bug on Ubuntu 14.04.
+    #         self.update_sequence_from_entry()
+    #         drag = "right"
+    #
+    #     # If dragging to the left remove the gap '-' (if it exists).
+    #     if int(self.sequence_entry.index("@%d,%d" % (event.x, event.y)).split(".")[1]) < int(self.mypos.split(".")[1]) :
+    #         if self.sequence_entry.get(self.sequence_entry.index("@%d,%d" % (event.x, event.y))) == "-":
+    #             self.sequence_entry.delete("%s" % ("@%d,%d" % (event.x, event.y)))
+    #             self.mypos=self.sequence_entry.index("@%d,%d" % (event.x, event.y))
+    #             self.update_sequence_from_entry()
+    #             drag = "left"
+    #
+    #     # self.sequence_entry.config(state=DISABLED)
+    #
+    #     # If the sequence is a child, the length of its siblings has to be adjusted and the sequence
+    #     # update the of the mother has to be adjusted.
+    #     if self.is_child and not self.is_lead_of_collapsed_cluster() and drag != None:
+    #
+    #         #######################################################################################
+    #         # NOTE:The optimal way to do this would be to rstrip all the sequences, then to ljust #
+    #         # them to the lenght of the "longest" one. However Tkinter is too slow to do this, it #
+    #         # takes too much time to update all the sequences in big clusters at the same time,   #
+    #         # so as long as Tkinter is used the following code has to be applied. This code       #
+    #         # prevents every sequence of a cluster from being updated every time an indel is      #
+    #         # added, and it tries to update only the necessary sequences.                         #
+    #         #######################################################################################
+    #
+    #         # Gets the other elements in the cluster.
+    #         mother = pymod.get_mother(self)
+    #         children = pymod.get_children(mother)
+    #         siblings = pymod.get_siblings(self)
+    #
+    #         if drag == "right":
+    #             # Removes extra gaps from the sequence being modified.
+    #             self.rstrip_entry()
+    #             rstripped_length = self.get_sequence_entry_length()
+    #             maxlength = self.get_cluster_max_length(children)
+    #
+    #             # If after dragging it the rstripped sequence is shorter than the others, adds extra
+    #             # indels to it.
+    #             if rstripped_length < maxlength:
+    #                 self.ljust_entry(maxlength)
+    #             # If the rstripped sequence is longer, adds extra gaps to other sequences to adjust
+    #             # them to the same length.
+    #             else:
+    #                 for s in siblings:
+    #                      s.ljust_entry(rstripped_length)
+    #
+    #         elif drag == "left":
+    #             # Removes extra gaps from the sequence being modified.
+    #             self.rstrip_entry()
+    #             rstripped_length = self.get_sequence_entry_length()
+    #             maxlength = self.get_cluster_max_length(children)
+    #
+    #             # This happens when, after removing an indel, the rstripped sequence is shorter than
+    #             # the other sequences by just one character. For example
+    #             #
+    #             # before dragging:
+    #             # -AAA-
+    #             # -CCCC <- sequence being dragged
+    #             # -DDD-
+    #             #
+    #             # after dragging:
+    #             # -AAA-
+    #             # CCCC  <- now it's shorter than one character from the maxlength of the cluster
+    #             # -DDD-
+    #             if rstripped_length + 1 == maxlength:
+    #                 # If there are only indels as the last characters in other sequences of the
+    #                 # cluster (such as in the example above) remove them.
+    #                 only_indels = True
+    #                 for s in siblings:
+    #                     if s.get_sequence_entry_last_character() != "-":
+    #                         only_indels = False
+    #                         break
+    #                 if only_indels:
+    #                     for s in siblings:
+    #                         if s.get_sequence_entry_last_character() == "-":
+    #                             s.remove_sequence_entry_last_character()
+    #
+    #                 # Adjust the dragged sequence with indels if necessary.
+    #                 maxlength = self.get_cluster_max_length(children)
+    #                 if rstripped_length != maxlength:
+    #                     self.ljust_entry(maxlength)
+    #
+    #             # Adjust the dragged sequence with indels.
+    #             else:
+    #                 self.ljust_entry(maxlength)
+    #
+    #         # Then updates the mother.
+    #         mother.sequence_entry.config(state=NORMAL)
+    #         pymod.update_stars(mother)
+    #         mother.sequence_entry.delete(1.0,END)
+    #         mother.sequence_entry.insert(1.0, mother.my_sequence,("normal"))
+    #         mother.sequence_entry.config(width=maxlength)
+    #         mother.sequence_entry.config(state=DISABLED)
+    #
+    #
+    # # Takes as input a list of children elements and returns as an int the length of the one with
+    # # the longest entry.
+    # def get_cluster_max_length(self, children):
+    #     return max([c.get_sequence_entry_length() for c in children])
+    #
+    #
+    # def update_sequence_from_entry(self):
+    #     self.my_sequence = self.sequence_entry.get("1.0", "%s-1c" % END)
+    #     length = self.get_sequence_entry_length()
+    #     self.sequence_entry.config(width=int(length))
+    #
+    # def get_sequence_entry_length(self):
+    #     return len(self.sequence_entry.get("1.0", "%s-1c" % END))
+    #     # return int(self.sequence_entry['width'])
+    #
+    # def get_sequence_entry_last_character(self):
+    #     return self.sequence_entry.get("%s-2c" % END)
+    #
+    # def remove_sequence_entry_last_character(self, update=True):
+    #     self.sequence_entry.delete("%s-2c" % END)
+    #     if update:
+    #         self.update_sequence_from_entry()
+    #
+    # def rstrip_entry(self,maxlength=None,update=True):
+    #     # c.my_sequence = c.my_sequence.rstrip("-")
+    #     found_residue = False
+    #     while not found_residue:
+    #         if maxlength != None and self.get_sequence_entry_length() <= maxlength:
+    #             break
+    #         if self.get_sequence_entry_last_character() == "-":
+    #             self.remove_sequence_entry_last_character(update)
+    #         else:
+    #             found_residue = True
+    #
+    # def ljust_entry(self,maxlength,update=True):
+    #     seql = self.get_sequence_entry_length()
+    #     self.sequence_entry.insert("%s-1c" % END,"-"*(maxlength-seql))
+    #     if update:
+    #         self.update_sequence_from_entry()
+    #
+    #
+    # #######################################
+    # # Other methods needed to interact    #
+    # # with the sequences loaded into the  #
+    # # main window.                        #
+    # #######################################
+    #
+    # def click_residue_with_middle_button(self,event):
+    #     if not self.is_current_position_indel():
+    #         self.center_residue_in_pymol()
+    #         self.select_residue_in_pymol()
+    #
+    # # A popup menu in the right frame to interact with the sequence
+    # def on_sequence_right_click(self,event):
+    #     if not self.is_current_position_indel():
+    #         try:
+    #             self.popup_menu_right.tk_popup(event.x_root, event.y_root, 0)
+    #         except:
+    #             pass
+    #         #popup_menu2.grab_release()
+    #
+    # ######################################
+    # # Some methods called in the above   #
+    # # events.                            #
+    # ######################################
+    #
+    # def is_current_position_indel(self):
+    #     """
+    #     Check if the current hilighted residue is an indel.
+    #     """
+    #     if self.sequence_entry.get(CURRENT) == "-":
+    #         return True
+    #     else:
+    #         return False
+
+    # TODO: place here the 'get_highlighted_residue_position'.
+
+    # def get_pdb_index(self, position_index):
+    #     number_gaps = self.my_sequence[0:position_index].count('-')
+    #     position_index -= number_gaps
+    #     return self.structure.pdb_chain_sequence[position_index].pdb_position
+    #
+    #
+    # #################################################################
+    # # Structure of the right pane popup menu.                       #
+    # #################################################################
+    #
+    # def build_right_popup_menu(self):
+    #     """
+    #     Builds the popup menu that appears when the user clicks with the left button on the
+    #     sequence in the right pan.
+    #     """
+    #     # Right menu object.
+    #     self.popup_menu_right = Menu(pymod.parent, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+    #     if self.element_type == "primary":
+    #         pass
+    #     elif self.element_type == "structure" or self.element_type == "model":
+    #         self.popup_menu_right.add_command(label="Select Residue in PyMOL", command=self.select_residue_in_pymol)
+    #         self.popup_menu_right.add_command(label="Center Residue in PyMOL", command=self.center_residue_in_pymol)

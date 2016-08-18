@@ -1177,6 +1177,33 @@ class PyMod:
         self.main_window.add_pymod_element_widgets(element)
         element.unique_index = self.unique_index
         self.unique_index += 1
+        if load_in_pymol:
+            self.load_element_in_pymol(element)
+
+
+    def load_element_in_pymol(self, element, mode = None):
+        """
+        Loads the PDB structure of the chain into PyMol.
+        """
+        file_to_load = element.structure.get_file()
+        pymol_object_name = element.structure.get_pymol_object_name()
+        cmd.load(file_to_load, pymol_object_name)
+
+        if 0:
+            chain_root_name = element.build_chain_selector_for_pymol()
+            file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
+            cmd.load(file_name_to_load)
+            cmd.select("last_prot", chain_root_name)
+            cmd.hide("everything", "last_prot")
+            cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
+            if mode == "model":
+                cmd.color("white", "last_prot")
+            else:
+                cmd.color(element.my_color, "last_prot")
+            cmd.util.cnc("last_prot") # Colors by atom.
+            cmd.center('last_prot')
+            cmd.zoom('last_prot')
+            cmd.delete("last_prot")
 
 
     def build_cluster_from_alignment_file(self,alignment_file, extension="fasta", grid=False):
@@ -1544,25 +1571,6 @@ class PyMod:
         if grid:
             self.gridder()
         '''
-
-    def load_element_in_pymol(self, element, mode = None):
-        """
-        Loads the PDB structure of the chain into PyMol.
-        """
-        chain_root_name = element.build_chain_selector_for_pymol()
-        file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
-        cmd.load(file_name_to_load)
-        cmd.select("last_prot", chain_root_name)
-        cmd.hide("everything", "last_prot")
-        cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
-        if mode == "model":
-            cmd.color("white", "last_prot")
-        else:
-            cmd.color(element.my_color, "last_prot")
-        cmd.util.cnc("last_prot") # Colors by atom.
-        cmd.center('last_prot')
-        cmd.zoom('last_prot')
-        cmd.delete("last_prot")
 
 
     def fetch_pdb_files(self, mode, target_selection):
@@ -8815,22 +8823,18 @@ class PyModInvalidFile(Exception):
 # APPUNTI.                                                                                        #
 ###################################################################################################
 
+# - controlla "elaion".
 # !WORKING!
-# - implementazione delle nuove classi per le strutture.
-#   - controlla "elaion".
-# - implementazione delle nuove classi per le sequenze.
-
-# TODO: reimplementare la GUI della main window:
-#         - other events
-#         - drag sequences
-#         - cluster leader system (movimento delle sequenze su' e giu')
-#     - sistema per i nomi
-#     - organizza bene i moduli per la GUI.
-# TODO: colorazione.
-# TODO: popup menus con eventi.
-# TODO: comandi dal menu principale.
+# - eventi di interazione con le sequenze.
+# - nomi delle sequenze e delle strutture.
+# - colorazione.
+# - BLAST
+# - allineamenti
+# - DOPE
+# - MODELLER
+# TODO: implementazione delle nuove classi per le strutture.
+# TODO: implementazione delle nuove classi per le sequenze.
 # TODO: ripristina tutte le funzionalita' del programma.
-# TODO: implementa l'apertura di file di sequenza con entry multiple.
 # TODO: cerca sempre i TODO nel testo.
 # TODO: nuova interfaccia.
 # TODO: nuove funzioni CAMPO.
