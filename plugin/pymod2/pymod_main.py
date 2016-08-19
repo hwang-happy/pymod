@@ -669,8 +669,9 @@ class PyMod:
         self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/5jdp.pdb")
         self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
 
+        self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+
         # self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta", grid=True)
-        # self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
         # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
         self.gridder()
 
@@ -1021,16 +1022,21 @@ class PyMod:
     #################################################################
     # Get and check selections.                                     #
     #################################################################
+    def get_all_sequences(self):
+        """
+        Returns a list of all the sequences currently loaded in PyMod.
+        """
+        return [e for e in self.pymod_elements_list if not e.is_cluster_element()]
+
 
     def get_selected_sequences(self):
         """
         Returns a list of all the sequences selected by the user.
         """
-        selected_sequences = [e for e in self.pymod_elements_list if e.selected and not e.is_cluster_element()]
-        return selected_sequences
+        return [e for e in self.pymod_elements_list if e.selected and not e.is_cluster_element()]
 
 
-    def get_cluster_elements(self,cluster_type = "all"):
+    def get_cluster_elements(self, cluster_type = "all"):
         """
         Returns only those elements in pymod_elements_list with cluster_type = "alignment" or
         "blast-search".
@@ -1223,7 +1229,7 @@ class PyMod:
             self.add_element_to_pymod(new_child_element)
             aligned_elements.append(new_child_element)
         fh.close()
-        self.add_new_cluster_to_pymod(child_elements=aligned_elements, algorithm="imported")
+        self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
         if grid:
             self.gridder()
 
@@ -1255,6 +1261,7 @@ class PyMod:
         elif algorithm == None:
             algorithm = "?"
 
+        # TODO: reimplement this.
         # Sets the leader of the cluster.
         # if cluster_type == "blast-cluster" and query != None:
         #     self.mark_as_query(query)
@@ -1550,7 +1557,7 @@ class PyMod:
         Opens a PDB file (specified in 'pdb_file_full_path'), reads its content and imports in PyMod
         the sequences of the polypeptide chains and loads in PyMOL their 3D structures.
         """
-        reload(pmstr)
+        reload(pmstr) # TODO: to remove.
         if not self.is_valid_structure_file(pdb_file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
         p = self.build_parsed_pdb_file(pdb_file_full_path)
@@ -1564,34 +1571,6 @@ class PyMod:
 
     def build_parsed_pdb_file(self, pdb_file_full_path):
         return pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
-
-
-    def open_structure_file_old(self, pdb_file_full_path, file_format="pdb", grid=False):
-        """
-        Opens a PDB file (specified in 'pdb_file_full_path'), reads its content and imports in PyMod
-        the sequences of the polypeptide chains and loads in PyMOL their 3D structures.
-        """
-        if not self.is_valid_structure_file(pdb_file_full_path, file_format):
-            raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
-        '''
-        # Builds a 'Parsed_pdb_file' object.
-        pdb_file = pmstr.Parsed_pdb_file(pdb_file_full_path)
-        # Copies the original PDB file to the Structures directory in the current project folder.
-        pdb_file.copy_to_structures_directory()
-        # Start parsing the PDB file.
-        pdb_file.parse_pdb_file()
-        # Builds 'Pymod_elements' objects for each chain present in the PDB file and adds the PDB
-        # file to the record of PDB files loaded in PyMod.
-        pdb_file.build_structure_objects(add_to_pymod_pdb_list = True)
-        # Actually adds as mothers the PyMod elements to the 'pymod_elements_list'.
-        for chain_element in pdb_file.get_chains_pymod_elements():
-            new_element = chain_element
-            self.add_element_to_pymod(new_element, "mother")
-            self.load_element_in_pymol(new_element)
-        # Displays the sequences of the PDB chains when all of them are loaded into Pymod.
-        if grid:
-            self.gridder()
-        '''
 
 
     def fetch_pdb_files(self, mode, target_selection):
@@ -2064,45 +2043,53 @@ class PyMod:
     ###############################################################################################
     # SELECTION MENU COMMANDS.                                                                    #
     ###############################################################################################
+
     def select_all_from_main_menu(self):
         for element in self.get_all_sequences():
             if not element.selected:
-                element.toggle_element()
+                self.main_window.toggle_element(element)
+
 
     def deselect_all_from_main_menu(self):
+        self.deselect_all()
+
+    def deselect_all(self):
         for element in self.get_all_sequences():
             if element.selected:
-                element.toggle_element()
+                self.main_window.toggle_element(element)
 
 
     def show_all_structures_from_main_menu(self):
-        for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-            element.show_chain_in_pymol()
-
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     element.show_chain_in_pymol()
+        pass
+        
     def hide_all_structures_from_main_menu(self):
-        for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-            element.hide_chain_in_pymol()
-
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     element.hide_chain_in_pymol()
+        pass
 
     def select_all_structures_from_main_menu(self):
-        for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-            if not element.selected:
-                element.toggle_element()
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     if not element.selected:
+        #         element.toggle_element()
+        pass
 
     def deselect_all_structures_from_main_menu(self):
-        for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-            if element.selected:
-                element.toggle_element()
-
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     if element.selected:
+        #         element.toggle_element()
+        pass
 
     def expand_all_clusters_from_main_menu(self):
-        for element in self.get_cluster_elements():
-            element.expand_cluster()
+        # for element in self.get_cluster_elements():
+        #     element.expand_cluster()
+        pass
 
     def collapse_all_clusters_from_main_menu(self):
-        for element in self.get_cluster_elements():
-            element.collapse_cluster()
-
+        # for element in self.get_cluster_elements():
+        #     element.collapse_cluster()
+        pass
 
     ###############################################################################################
     # ALIGNMENT MENU AND ITS BEHAVIOUR.                                                           #
@@ -3510,6 +3497,7 @@ class PyMod:
         """
         Builds a cluster with the query sequence as a mother and retrieved hits as children.
         """
+        # TODO: reimplement the cluster extension?
 
         # The list of elements whose sequences will be updated according to the star alignment.
         elements_to_update = [self.blast_query_element]
@@ -8838,9 +8826,10 @@ class PyModInvalidFile(Exception):
 # - quando si chiama gridder, deselezionare tutte le sequenze, o fare un metodo per deselezionare
 #   senza chiamare gridder.
 # - nomi, annotazioni e strutture; nomi delle sequenze e delle strutture.
+# - cluster leaders.
 # - ordinare il codice di pymod_main.
 # - eventi di interazione con le sequenze.
-#   - drag con update dei sibling solo su 'on-release'.
+#       - drag con update dei sibling solo su 'on-release'.
 # - colorazione.
 # - allineamenti
 # - DOPE

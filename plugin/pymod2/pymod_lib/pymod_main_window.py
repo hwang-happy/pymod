@@ -99,11 +99,11 @@ class PyMod_main_window_mixin:
         """
         if pymod_element.selected: # Inactivate.
             self.deselect_element(pymod_element)
-            if self.pymod_element.is_cluster_element(): # Inactivate also all the children.
+            if pymod_element.is_cluster_element(): # Inactivate also all the children.
                 [self.deselect_element(c) for c in pymod_element.list_of_children if c.selected]
         else: # Activate.
             self.select_element(pymod_element)
-            if self.pymod_element.is_cluster_element(): # Activate also all the children.
+            if pymod_element.is_cluster_element(): # Activate also all the children.
                 [self.select_element(c) for c in pymod_element.list_of_children if not c.selected]
 
 
@@ -111,8 +111,8 @@ class PyMod_main_window_mixin:
         """
         Toggle a child element.
         """
-        child = self.pymod_element
-        mother = self.pymod_element.mother
+        child = pymod_element
+        mother = pymod_element.mother
         # Inactivate.
         if child.selected:
             # Modify the mother and the siblings according to what happens to the children.
@@ -245,6 +245,9 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         # Variables needed to make Pmw dialogs work on Ubuntu 14.04+.
         self.pmw_dialog_wait = True
         self.pmw_dialog_val = None
+
+        # Bindings.
+        self.bind("<Escape>", self.deselect_all_binding)
 
         self.make_main_menu()
 
@@ -398,7 +401,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.menubar.add_cascade(label = "Selection", menu = self.main_selection_menu)
         # When the plugin is started there are no models.
         self.main_selection_menu.add_command(label = "Select All", command=self.pymod.select_all_from_main_menu)
-        self.main_selection_menu.add_command(label = "Deselect All", command=self.pymod.deselect_all_from_main_menu)
+        self.main_selection_menu.add_command(label = "Deselect All [Esc]", command=self.pymod.deselect_all_from_main_menu)
         # Structures selection submenu.
         self.selection_structures_menu = Menu(self.main_selection_menu,tearoff=0)
         self.selection_structures_menu.add_command(label="Show All in PyMOL",command=self.pymod.show_all_structures_from_main_menu)
@@ -563,6 +566,18 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
             self.models_menu.add_command(label = "There aren't any models")
 
 
+    #################################################################
+    # Bindings.                                                     #
+    #################################################################
+
+    def deselect_all_binding(self, event):
+        self.pymod.deselect_all()
+
+
+    #################################################################
+    # Handle PyMod data.                                            #
+    #################################################################
+
     def add_pymod_element_widgets(self, pymod_element):
         pewp = PyMod_element_widgets_group(left_pane=self.leftpan.interior(),
                                            right_pane=self.rightpan.interior(),
@@ -722,10 +737,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def bind_events_to_header_entry(self):
         self.bind("<Button-1>", self.on_header_left_click)
-        # self.bind("<Motion>", self.display_protname)
-        # if self.pymod_element.has_structure():
-        #     self.bind("<Button-2>", self.click_structure_with_middle_button)
-        self.bind("<ButtonRelease-3>", self.on_header_right_click)
+        self.bind("<B1-Motion>", self.on_header_left_drag)
+
+        if 0:
+            if self.pymod_element.has_structure():
+                self.bind("<Button-2>", self.click_structure_with_middle_button)
+            self.bind("<ButtonRelease-3>", self.on_header_right_click)
 
 
     def on_header_left_click(self, event):
@@ -733,6 +750,38 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Select/Unselect a sequence clicking on its name on the left pane.
         """
         self.toggle_element(self.pymod_element)
+
+
+    def on_header_left_drag(self, event):
+        """
+        Select/Unselect sequences hovering on their headers while the mouse left button is pressed.
+        """
+        # It generates an exception if hovering on menus of the PyMod main window.
+        try:
+            highlighted_widget = self.parent.winfo_containing(event.x_root, event.y_root)
+            # If the widget hovered with the mouse belongs to the 'Header_entry' class and is not
+            # the entry originally clicked.
+            if isinstance(highlighted_widget, Header_entry) and highlighted_widget != self:
+                starting_element_state = self.pymod_element.selected
+                if starting_element_state and not highlighted_widget.pymod_element.selected:
+                    self.toggle_element(highlighted_widget.pymod_element)
+                elif not starting_element_state and highlighted_widget.pymod_element.selected:
+                    self.toggle_element(highlighted_widget.pymod_element)
+        except:
+            pass
+
+
+    # def header_enter(self, event):
+    #     # print "Entrying:", PyMod_main_window_mixin.left_button_is_pressed
+    #     # print self.pymod_element.my_header
+    #     # if 0:
+    #     #     if PyMod_main_window_mixin.left_button_is_pressed:
+    #     #         # self.toggle_element(self.pymod_element)
+    #     #         print "Selecting!"
+    #     pass
+    # def header_leave(self, event):
+    #     print "Leaving:", PyMod_main_window_mixin.left_button_is_pressed
+    #     self.unbind(self.on_header_left_click)
 
 
     # # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
