@@ -15,6 +15,7 @@ blast_algorithms_dictionary = {
     "blast": "NCBI BLAST",
     "psi-blast": "PSI-BLAST"
 }
+
 alignment_programs_full_names_dictionary = {
     "clustalw": "ClustalW",
     "clustalo": "Clustal Omega",

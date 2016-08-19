@@ -111,6 +111,9 @@ class PyMod_element:
         else:
             return filter(lambda c: c != self, self.mother.list_of_children)
 
+    def get_compact_header(self):
+        return self.my_header
+
 
 # Clusters.
 class PyMod_cluster(PyMod_element):
@@ -124,7 +127,6 @@ class PyMod_cluster(PyMod_element):
         self.initial_number_of_sequences = None
         self.list_of_children = []
 
-
     def add_children(self, children):
         if not hasattr(children,"__iter__"):
             children = [children]
@@ -135,6 +137,7 @@ class PyMod_cluster(PyMod_element):
             child.mother = self
         if self.initial_number_of_sequences == None:
             self.initial_number_of_sequences = len(children)
+
 # TODO: remove.
 # class Alignment:
 #     """

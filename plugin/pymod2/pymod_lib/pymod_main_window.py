@@ -21,7 +21,7 @@ class PyMod_main_window_mixin:
     A mixin class used to coordinate events of the PyMod main window.
     """
 
-    pymod = []
+    pymod = None
     dict_of_elements_widgets = {}
     sequence_font_type = pmgi.fixed_width_font
     sequence_font_size = 12
@@ -606,7 +606,6 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
                        textvariable=self.child_sign_var, bd=0, state = DISABLED,
                        disabledforeground = 'white', disabledbackground = self.bg_color,
                        highlightbackground= self.bg_color, justify = LEFT, width = 2)
-
         #----------------
         # For clusters. -
         #----------------
@@ -1335,7 +1334,7 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     def leave_entry(self,event):
         self.unbind("<B1-Motion>")
 
-
+    ###############################################################################################
     def get_highlighted_residue_position(self, res_alignment_id=False, pdb_position=False):
         """
         Returns the position of the residue currently highlighted with the mouse in the PyMod main
@@ -1352,7 +1351,12 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         # if pdb_position:
         #     pos = self.structure.pdb_chain_sequence[pos -1].pdb_position
         # return pos
-        return (self.index(CURRENT), int(self.index(CURRENT).split(".")[1]) + 1)
+        return self.get_highlighted_residue_index() # int(self.index(CURRENT).split(".")[1]) + 1)
+
+
+    def get_highlighted_residue_index(self):
+        return int(self.index(CURRENT).split(".")[1])
+    ###############################################################################################
 
 
     def set_messagebar_info(self, event):
@@ -1360,7 +1364,10 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         Allows to show the protein name and the position of the residues in message bars at the
         bottom of PyMod main window.
         """
-        print self.get_highlighted_residue_position()
+        position_text = self.get_highlighted_residue_position()
+        position_text = str(position_text)
+        self.pymod.main_window.residue_bar.helpmessage(position_text)
+
         if 0:
             # Residues position (id +1) in the sequence.
             sequence_position = self.get_highlighted_residue_position()

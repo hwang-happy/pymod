@@ -665,8 +665,9 @@ class PyMod:
         """
         print "###"
         print "# Loading default."
-        self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/3oe0.pdb", grid=True)
-        self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/5jdp.pdb", grid=True)
+        self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/3oe0.pdb")
+        self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/5jdp.pdb")
+        self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
 
         # self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta", grid=True)
         # self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
@@ -1017,13 +1018,6 @@ class PyMod:
         return mother.list_of_children
 
 
-    def add_to_mother(self, mother, child_elements):
-        """
-        Appends elements to some cluster/mother.
-        """
-        mother.add_children(child_elements)
-
-
     #################################################################
     # Get and check selections.                                     #
     #################################################################
@@ -1163,9 +1157,21 @@ class PyMod:
         Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
         to the it.
         """
-        new_element = pmel.PyMod_element(str(seqrecord.seq), seqrecord.id,
-                full_original_header=seqrecord.description)
+        new_element = pmel.PyMod_element(str(seqrecord.seq), seqrecord.id, full_original_header=seqrecord.description)
         return new_element
+
+
+    def build_pymod_element_from_hsp(self, hsp):
+        """
+        Gets a hsp dictionary containing a Biopython 'HSP' class object and returns a
+        'PyMod_element' object corresponding to the subject in the HSP.
+        """
+        # Gives them the query mother_index, to make them its children.
+        # record_header = self.correct_name(hsp["title"])
+        record_header = hsp["title"]
+        # TODO: use only Biopython objects.
+        cs = pmel.PyMod_element(str(hsp["hsp"].sbjct), record_header, full_original_header=hsp["title"])
+        return cs
 
 
     def add_element_to_pymod(self, element, load_in_pymol=False, color=None):
@@ -1188,25 +1194,23 @@ class PyMod:
         file_to_load = element.structure.get_file()
         pymol_object_name = element.structure.get_pymol_object_name()
         cmd.load(file_to_load, pymol_object_name)
-
-        if 0:
-            chain_root_name = element.build_chain_selector_for_pymol()
-            file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
-            cmd.load(file_name_to_load)
-            cmd.select("last_prot", chain_root_name)
-            cmd.hide("everything", "last_prot")
-            cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
-            if mode == "model":
-                cmd.color("white", "last_prot")
-            else:
-                cmd.color(element.my_color, "last_prot")
-            cmd.util.cnc("last_prot") # Colors by atom.
-            cmd.center('last_prot')
-            cmd.zoom('last_prot')
-            cmd.delete("last_prot")
+        # chain_root_name = element.build_chain_selector_for_pymol()
+        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
+        # cmd.load(file_name_to_load)
+        # cmd.select("last_prot", chain_root_name)
+        # cmd.hide("everything", "last_prot")
+        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
+        # if mode == "model":
+        #     cmd.color("white", "last_prot")
+        # else:
+        #     cmd.color(element.my_color, "last_prot")
+        # cmd.util.cnc("last_prot") # Colors by atom.
+        # cmd.center('last_prot')
+        # cmd.zoom('last_prot')
+        # cmd.delete("last_prot")
 
 
-    def build_cluster_from_alignment_file(self,alignment_file, extension="fasta", grid=False):
+    def build_cluster_from_alignment_file(self, alignment_file, extension="fasta", grid=False):
         """
         Creates a cluster with all the sequences contained in an alignment file.
         """
@@ -1215,11 +1219,67 @@ class PyMod:
         fh = open(alignment_file, "rU")
         records = SeqIO.parse(fh, extension)
         for record in records:
-            aligned_elements.append(self.build_pymod_element_from_seqrecord(record))
+            new_child_element = self.build_pymod_element_from_seqrecord(record)
+            self.add_element_to_pymod(new_child_element)
+            aligned_elements.append(new_child_element)
         fh.close()
-        self.build_new_cluster(aligned_elements, "imported")
+        self.add_new_cluster_to_pymod(child_elements=aligned_elements, algorithm="imported")
         if grid:
             self.gridder()
+
+
+    def add_new_cluster_to_pymod(self, cluster_type="generic", query=None, cluster_name=None, child_elements=[], algorithm=None, update_stars=True):
+
+        # # Adds the query to the new "BLAST cluster".
+        # self.add_to_mother(blast_cluster_element, self.blast_query_element)
+        # self.mark_as_query(self.blast_query_element)
+        if not cluster_type in ("alignment", "blast-cluster", "generic"):
+            raise Exception("Invalid cluster type.")
+
+        # Increase the global count of clusters of the type provided in the 'cluster_type' argument.
+        if cluster_type == "alignment":
+            self.alignment_count += 1
+        elif cluster_type == "blast-cluster":
+            self.blast_cluster_counter += 1
+
+        # Sets the name of the cluster.
+        if cluster_name == None:
+            if cluster_type == "alignment":
+                cluster_name = self.set_alignment_element_name(algorithm, self.alignment_count)
+            elif cluster_type == "blast-cluster":
+                cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.get_compact_header())
+
+        # Sets the algorithm.
+        if cluster_type == "blast-cluster":
+            algorithm = "blast-pseudo-alignment"
+        elif algorithm == None:
+            algorithm = "?"
+
+        # Sets the leader of the cluster.
+        # if cluster_type == "blast-cluster" and query != None:
+        #     self.mark_as_query(query)
+
+        # Creates a cluster element.
+        # Adds the sequences to the new alignment cluster.
+        cluster_element = pmel.PyMod_cluster(sequence="...", # Sets a temporary sequence.
+                                             header=cluster_name,
+                                             full_original_header=None,
+                                             color="white",
+                                             algorithm=algorithm,
+                                             cluster_id=self.alignment_count)
+                                             #    adjust_header=False) TODO: what to do here?
+
+        # Add the new cluster element to PyMod.
+        self.add_element_to_pymod(cluster_element)
+
+        # Add the children, if some were supplied in the argument.
+        if child_elements != []:
+            cluster_element.add_children(child_elements)
+            # Computes the stars of the new alignment element.
+            if update_stars:
+                self.update_stars(cluster_element)
+
+        return cluster_element
 
 
     def gridder(self):
@@ -1350,21 +1410,6 @@ class PyMod:
         # the_menu = Menu(seq_name, tearoff=0)
         # the_menu.add_command(label="Paste")
 
-    '''
-    def build_pymod_element_from_hsp(self, hsp):
-        """
-        Gets a hsp dictionary containing a Biopython 'HSP' class object and returns a
-        'PyMod_element' object corresponding to the subject in the HSP.
-        """
-        # Gives them the query mother_index, to make them its children.
-        record_header = self.correct_name(hsp["title"])
-        cs = PyMod_element(
-            str(hsp["hsp"].sbjct),
-            record_header,
-            full_original_header=hsp["title"],
-            element_type="sequence")
-        return cs
-    '''
 
     #################################################################
     # Opening alignment files.                                      #
@@ -1402,30 +1447,6 @@ class PyMod:
         if not None in (openfilename, extension):
             self.build_cluster_from_alignment_file(openfilename, extension)
         self.gridder()
-
-
-    def build_new_cluster(self, child_elements, algorithm):
-        # Creates an alignment element.
-        self.alignment_count += 1
-        alignment_name = self.set_alignment_element_name(algorithm, self.alignment_count)
-        # Adds the sequences to the new alignment cluster.
-        # TODO: can it be placed later?
-        for element in child_elements:
-            self.add_element_to_pymod(element)
-        imported_alignment_element = pmel.PyMod_cluster(sequence="...", # Sets a temporary sequence.
-                                                        header=alignment_name,
-                                                        full_original_header=None,
-                                                        color="white",
-                                                        algorithm=algorithm,
-                                                        cluster_id=self.alignment_count)
-                                                        #    adjust_header=False) TODO: what to do here?
-        self.add_element_to_pymod(imported_alignment_element)
-        self.add_to_mother(imported_alignment_element, child_elements)
-
-        # Computes the stars of the new alignment element.
-        self.update_stars(imported_alignment_element)
-
-        return imported_alignment_element
 
 
     def transfer_alignment(self,alignment_element):
@@ -2917,9 +2938,46 @@ class PyMod:
     # SIMILARITY SEARCHES.                                                                        #
     ###############################################################################################
 
+
+    ###############################################################################################
+    # BLAST.                                                                                      #
+    ###############################################################################################
+
     #################################################################
-    # Common methods for BLAST and PSI-BLAST.                       #
+    # Initialize the launching of BLAST programs.                   #
     #################################################################
+
+    def launch_ncbiblast(self):
+        """
+        Called when BLAST is launched from the main menu.
+        """
+        self.blast_version = "blast"
+        self.launch_blast()
+
+
+    def launch_psiblast(self):
+        """
+        Called when PSI-BLAST is called from the main menu.
+        """
+        self.blast_version = "psi-blast"
+        self.launch_blast()
+
+
+    def launch_blast(self):
+        # Check if a correct selection is provided.
+        if not self.check_blast_search_selection():
+            title = "Selection Error"
+            message = "Please select one sequence to perform a %s search" % (pmdt.blast_algorithms_dictionary[self.blast_version])
+            self.show_error_message(title, message)
+            return None
+
+        # If performing a PSI-BLAST search, check if PSI-BLAST is installed.
+        if self.blast_version == "psi-blast" and not self.blast_plus["exe_dir_path"].path_exists(): # TODO: make a 'check_tool' method.
+            self.blast_plus.exe_not_found()
+            return None
+
+        self.build_blast_window()
+
 
     def check_blast_search_selection(self):
         """
@@ -2935,32 +2993,41 @@ class PyMod:
             # Let users decide how to import new sequences when the query is a child element (that
             # is, it is already present in a cluster).
             if self.blast_query_element.is_child:
-                new_cluster_text = 'Build a new cluster'
-                old_cluster_text = 'Expand old cluster'
-                self.blast_search_choices = {new_cluster_text: "extract", old_cluster_text: "expand"}
-                self.blast_dialog = Pmw.MessageDialog(self.main_window,
-                    title = 'Import new sequences options',
-                    message_text = (
-                    "Please select how to import in PyMod the new sequences identified in the search:\n\n"+
-                    "- Extract the query sequence from its cluster and build a new cluster with\n"+
-                    "  the new hit sequences.\n\n"+
-                    "- Expand the already existing cluster by appending to it the new hit sequences." ),
-                    buttons = (new_cluster_text, old_cluster_text))
-                self.blast_dialog.component("message").configure(justify="left")
-                self.blast_dialog.configure(command=self.blast_dialog_state)
-            else:
-                if self.blast_version == "blast":
-                    self.blast_state()
-                elif self.blast_version == "psi-blast":
-                    self.psiblast_state()
+                # TODO: use a custom window.
+                pass
+                # new_cluster_text = 'Build a new cluster'
+                # old_cluster_text = 'Expand old cluster'
+                # self.blast_search_choices = {new_cluster_text: "extract", old_cluster_text: "expand"}
+                # self.blast_dialog = Pmw.MessageDialog(self.main_window,
+                #     title = 'Import new sequences options',
+                #     message_text = (
+                #     "Please select how to import in PyMod the new sequences identified in the search:\n\n"+
+                #     "- Extract the query sequence from its cluster and build a new cluster with\n"+
+                #     "  the new hit sequences.\n\n"+
+                #     "- Expand the already existing cluster by appending to it the new hit sequences." ),
+                #     buttons = (new_cluster_text, old_cluster_text))
+                # self.blast_dialog.component("message").configure(justify="left")
+                # self.blast_dialog.configure(command=self.blast_dialog_state)
         else:
-            title = "Selection Error"
-            message = "Please select one sequence to perform a PSI-BLAST search"
-            self.show_error_message(title, message)
             correct_selection = False
 
         return correct_selection
 
+
+    def blast_dialog_state(self, dialog_choice):
+        self.blast_dialog.withdraw()
+        if not dialog_choice:
+            return None
+        self.new_sequences_import_mode = self.blast_search_choices[dialog_choice]
+        if self.blast_version == "blast":
+            self.blast_state()
+        elif self.blast_version == "psi-blast":
+            self.psiblast_state()
+
+
+    #################################################################
+    # BLAST programs options window.                                #
+    #################################################################
 
     def build_blast_window(self):
         """
@@ -2977,9 +3044,9 @@ class PyMod:
             with_frame=True)
         self.blast_window.geometry("550x600")
 
-        # ---
-        # Simple options.
-        # ---
+        # -----------------
+        # Simple options. -
+        # -----------------
 
         # Makes the user chose the folder where the BLAST database files are stored locally.
         if self.blast_version == "psi-blast":
@@ -3038,9 +3105,9 @@ class PyMod:
         self.blast_window.add_widget_to_align(self.max_hits_enf)
         self.blast_window.add_widget_to_validate(self.max_hits_enf)
 
-        # ---
-        # Advanced options.
-        # ---
+        # -------------------
+        # Advanced options. -
+        # -------------------
         self.blast_window.show_advanced_button()
 
         # Minimum id% on with query.
@@ -3091,9 +3158,13 @@ class PyMod:
         self.blast_window.align_widgets(input_widget_width=10)
 
 
+    #################################################################
+    # Actually Run BLAST programs.                                  #
+    #################################################################
+
     def blast_window_state(self):
         """
-        This function is called when the 'SUBMIT' button in some BLAST main window is pressed.
+        This function is called when the 'SUBMIT' button in the BLAST options window is pressed.
         """
         # Do not proceed if users have not provided a correct set of input parameters through
         # the GUI.
@@ -3108,14 +3179,13 @@ class PyMod:
             blast_status = self.run_psiblast()
 
         # Displays the window with results.
+        self.blast_window.destroy()
         if blast_status and self.check_blast_results():
-            self.blast_window.destroy()
             self.show_blast_output_window()
-        else:
-            self.blast_window.destroy()
 
         # Removes temp files at the end of the whole process, both if hits were found or not.
         self.remove_blast_temp_files()
+
 
     def check_blast_input_parameters(self):
         """
@@ -3168,7 +3238,8 @@ class PyMod:
 
         # Exit the whole process if no hits were found.
         if len(self.blast_record.alignments) == 0:
-            self.show_warning_message("PSI-BLAST Message", "No hits weew found for PSI-BLAST for %s." % (self.blast_query_element.my_header))
+            blast_version = pmdt.blast_algorithms_dictionary[self.blast_version]
+            self.show_warning_message("%s Message", "No hits weew found for %s for %s." % (blast_version, blast_version, self.blast_query_element.get_compact_header()))
             return False
 
         # Returns 'True' if some hits were found.
@@ -3215,6 +3286,11 @@ class PyMod:
             map(lambda f: os.remove(os.path.join(self.similarity_searches_directory,f)), files_to_remove)
         except:
             pass
+
+
+    #################################################################
+    # Show BLAST programs output.                                   #
+    #################################################################
 
     def show_blast_output_window(self):
         """
@@ -3274,7 +3350,7 @@ class PyMod:
         self.blast_submitframe = Frame(self.blast_results_main, background='black', height=20)
         self.blast_submitframe.pack(side = BOTTOM, expand = NO, fill = Y, anchor="center", ipadx = 5, ipady = 5)
         self.blast_submit_button=Button(self.blast_submitframe, text="SUBMIT",
-            command=self.import_sequences_from_blast, **pmgi.button_style_1)
+            command=self.blast_results_state, **pmgi.button_style_1)
         self.blast_submit_button.pack(side = BOTTOM, fill=BOTH, anchor=CENTER, pady=10)
 
         self.display_blast_hits()
@@ -3365,7 +3441,11 @@ class PyMod:
                 self.blast_states.append(blast_var)
 
 
-    def import_sequences_from_blast(self):
+    #################################################################
+    # Import BLAST results in PyMod.                                #
+    #################################################################
+
+    def blast_results_state(self):
         """
         Called when the 'SUBMIT' button is pressed on some BLAST results window.
         """
@@ -3376,7 +3456,9 @@ class PyMod:
         if len(self.my_blast_map) > 0:
             self.build_hits_to_import_list()
             # This will actually import the sequences inside Pymod.
-            self.build_blast_cluster()
+            self.import_results_in_pymod()
+        else:
+            pass
 
         self.blast_output_window.destroy()
 
@@ -3424,106 +3506,47 @@ class PyMod:
         return [e.my_sequence for e in aligned_elements]
 
 
-    def build_blast_cluster(self):
+    def import_results_in_pymod(self):
         """
         Builds a cluster with the query sequence as a mother and retrieved hits as children.
         """
 
-        self.blast_cluster_counter += 1
-        # A new 'PyMod_element' object to represent the new BLAST cluster.
-        blast_cluster_element = None
-        # This will contain a 'Star_alignment'.
-        ba = None
-
-        if self.blast_query_element.is_child:
-            if self.new_sequences_import_mode == "extract":
-                self.blast_query_element.remove_indels()
-                self.extract_child(self.blast_query_element)
-
-            elif self.new_sequences_import_mode == "expand":
-                # Updates the cluster element to a new "BLAST search" element.
-                blast_cluster_name = "%s cluster %s (query: %s)" % (pmdt.blast_algorithms_dictionary[self.blast_version], self.blast_cluster_counter, self.blast_query_element.get_compact_header())
-                blast_cluster_element = self.get_mother(self.blast_query_element)
-                blast_cluster_element.my_header = blast_cluster_name
-                blast_cluster_element.element_type = "blast-search"
-                blast_cluster_element.alignment_object = Alignment("blast-pseudo-alignment", self.blast_cluster_counter)
-                self.mark_as_query(self.blast_query_element)
-                # Builds a star alignment.
-                ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
-                # Preapare the 'Star_alignment' object with sequence already present in the cluster.
-                siblings = self.get_siblings(self.blast_query_element)
-                list_of_aligned_sequences = self.get_list_of_aligned_sequences(siblings)
-                ba.extend_with_aligned_sequences(list_of_aligned_sequences)
-                # Adds new hit sequences to the cluster and generate the alignment.
-                ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
-                ba.generate_blast_pseudo_alignment()
-
-        # If the query sequence is a mother, or was a child that was extracted from its cluster.
-        if self.blast_query_element.is_mother:
-            # Builds the "BLAST search" element. It has the same mother_index of the query.
-            blast_cluster_name = "%s cluster %s (query: %s)" % (pmdt.blast_algorithms_dictionary[self.blast_version], self.blast_cluster_counter, self.blast_query_element.get_compact_header())
-            blast_cluster_element = PyMod_element(
-                "...", blast_cluster_name,
-                element_type = "blast-search", adjust_header=False,
-                alignment_object = Alignment("blast-pseudo-alignment", self.blast_cluster_counter))
-            self.add_element_to_pymod(
-                blast_cluster_element, level="mother",
-                mother_index=self.blast_query_element.mother_index)
-            # Adds the query to the new "BLAST cluster".
-            self.add_to_mother(blast_cluster_element, self.blast_query_element)
-            self.mark_as_query(self.blast_query_element)
-
-            # Builds a star alignment.
-            ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
-            ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
-            ba.generate_blast_pseudo_alignment()
-
-
         # The list of elements whose sequences will be updated according to the star alignment.
-        elements_to_update = []
-        # Begins with the query element.
-        elements_to_update.append(self.blast_query_element)
-        if self.blast_query_element.is_child:
-            elements_to_update.extend(self.get_siblings(self.blast_query_element))
-        # Then creates PyMod elements for all the imported hits and add them to the cluster.
+        elements_to_update = [self.blast_query_element]
+        # if self.blast_query_element.is_child:
+        #     elements_to_update.extend(self.get_siblings(self.blast_query_element))
+
+        # Creates PyMod elements for all the imported hits and add them to the cluster.
         for h in self.hsp_imported_from_blast:
             # Gives them the query mother_index, to make them its children.
             cs = self.build_pymod_element_from_hsp(h)
-            self.add_element_to_pymod(cs, level="child", mother_index=blast_cluster_element.mother_index)
+            self.add_element_to_pymod(cs)
             elements_to_update.append(cs)
+
+        # Builds the "BLAST search" element.
+        # TODO: It has the same mother_index of the query.
+        new_blast_cluster = self.add_new_cluster_to_pymod(cluster_type="blast-cluster",
+            query=self.blast_query_element,
+            child_elements=elements_to_update,
+            algorithm=pmdt.blast_algorithms_dictionary[self.blast_version],
+            update_stars=False)
+
+        # Builds a star alignment.
+        ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
+        ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
+        ba.generate_blast_pseudo_alignment()
         # Updates the sequences according to the BLAST pseudo alignment.
         ba.update_pymod_elements(elements_to_update)
-
-        self.set_initial_ali_seq_number(blast_cluster_element)
+        self.update_stars(new_blast_cluster) # TODO: or call it in 'gridder'?
 
         self.gridder()
 
-    def blast_dialog_state(self, dialog_choice):
-        self.blast_dialog.withdraw()
-        if not dialog_choice:
-            return None
-        self.new_sequences_import_mode = self.blast_search_choices[dialog_choice]
-        if self.blast_version == "blast":
-            self.blast_state()
-        elif self.blast_version == "psi-blast":
-            self.psiblast_state()
+        return False
 
 
     #################################################################
     # Regular BLAST.                                                #
     #################################################################
-
-    def launch_ncbiblast(self):
-        """
-        Called when BLAST is launched from the main menu.
-        """
-        self.blast_version = "blast"
-        self.check_blast_search_selection()
-
-
-    def blast_state(self):
-        self.build_blast_window()
-
 
     def run_ncbiblast(self):
         """
@@ -3567,21 +3590,6 @@ class PyMod:
     #################################################################
     # PSI-BLAST.                                                    #
     #################################################################
-
-    def launch_psiblast(self):
-        """
-        Called when PSI-BLAST is called from the main menu.
-        """
-        self.blast_version = "psi-blast"
-        self.check_blast_search_selection()
-
-
-    def psiblast_state(self):
-        if not self.blast_plus["exe_dir_path"].path_exists():
-            self.blast_plus.exe_not_found()
-            return False
-        self.build_blast_window()
-
 
     def run_psiblast(self):
         """
@@ -8825,10 +8833,15 @@ class PyModInvalidFile(Exception):
 
 # - controlla "elaion".
 # !WORKING!
+# - strutture e interazione con PyMOL!
+# - selezioni e movimento.
+# - quando si chiama gridder, deselezionare tutte le sequenze, o fare un metodo per deselezionare
+#   senza chiamare gridder.
+# - nomi, annotazioni e strutture; nomi delle sequenze e delle strutture.
+# - ordinare il codice di pymod_main.
 # - eventi di interazione con le sequenze.
-# - nomi delle sequenze e delle strutture.
+#   - drag con update dei sibling solo su 'on-release'.
 # - colorazione.
-# - BLAST
 # - allineamenti
 # - DOPE
 # - MODELLER
