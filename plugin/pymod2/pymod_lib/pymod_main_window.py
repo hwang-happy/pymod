@@ -247,7 +247,9 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.pmw_dialog_val = None
 
         # Bindings.
-        self.bind("<Escape>", self.deselect_all_binding)
+        self.bind("<Escape>", self.deselect_all_sequences_binding)
+        self.bind("<Up>", self.press_up_key)
+        self.bind("<Down>", self.press_down_key)
 
         self.make_main_menu()
 
@@ -464,6 +466,10 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.config(menu = self.menubar)
 
 
+    #################################################################
+    # Build submenus.                                               #
+    #################################################################
+
     def build_alignment_submenu(self):
         """
         Build an "Alignment N" voice in the "Alignments" submenu when alignment N is performed.
@@ -570,8 +576,22 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
     # Bindings.                                                     #
     #################################################################
 
-    def deselect_all_binding(self, event):
+    def deselect_all_sequences_binding(self, event):
         self.pymod.deselect_all()
+
+
+    def press_up_key(self, event):
+        if 0:
+            print "Up"
+            print "\n".join([str((e.my_header, PyMod_main_window_mixin.dict_of_elements_widgets[e].grid_index)) \
+                             for e in self.pymod.pymod_elements_list])
+        self.move_elements_from_key_press("up")
+
+    def press_down_key(self, event):
+        self.move_elements_from_key_press("down")
+
+    def move_elements_from_key_press(self, direction):
+        self.pymod.move_elements(direction)
 
 
     #################################################################
@@ -769,19 +789,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
                     self.toggle_element(highlighted_widget.pymod_element)
         except:
             pass
-
-
-    # def header_enter(self, event):
-    #     # print "Entrying:", PyMod_main_window_mixin.left_button_is_pressed
-    #     # print self.pymod_element.my_header
-    #     # if 0:
-    #     #     if PyMod_main_window_mixin.left_button_is_pressed:
-    #     #         # self.toggle_element(self.pymod_element)
-    #     #         print "Selecting!"
-    #     pass
-    # def header_leave(self, event):
-    #     print "Leaving:", PyMod_main_window_mixin.left_button_is_pressed
-    #     self.unbind(self.on_header_left_click)
 
 
     # # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'

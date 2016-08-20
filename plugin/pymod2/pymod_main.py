@@ -128,6 +128,10 @@ class PyMod:
         self.pymod_version = pymod_version
         self.pymod_revision = pymod_revision
 
+        #------------------------------------------------------------------------------
+        # Attributes storing information on sequences and structures loaded in PyMod. -
+        #------------------------------------------------------------------------------
+
         # This is the list where are going to be stored all the sequences displayed in the main
         # window represented as objects of the "PyMod_element" class.
         self.pymod_elements_list = []
@@ -289,10 +293,9 @@ class PyMod:
             cmd.set_color(pmdt.pymol_polarity_color_name + c, pmdt.polarity_color_dictionary[c])
 
         #--------------------------------------
-        # Builds the menu of the main window. -
+        # Builds the plugin the main window. -
         #--------------------------------------
 
-        # Builds the plugin main window.
         self.build_pymod_main_window(app)
 
         #-----------------------
@@ -669,8 +672,8 @@ class PyMod:
         self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/5jdp.pdb")
         self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
 
-        self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
-
+        # self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
         # self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta", grid=True)
         # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
         self.gridder()
@@ -1022,6 +1025,14 @@ class PyMod:
     #################################################################
     # Get and check selections.                                     #
     #################################################################
+
+    def get_selected_elements(self):
+        """
+        Returns a list with all the selected elements.
+        """
+        return [e for e in self.pymod_elements_list if e.selected]
+
+
     def get_all_sequences(self):
         """
         Returns a list of all the sequences currently loaded in PyMod.
@@ -1290,28 +1301,90 @@ class PyMod:
 
 
     def gridder(self):
-        #----------------------------
-        # Assigns the grid indices. -
-        #----------------------------
+        """
+        Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
+        """
+        self.order_pymod_elements_list()
+
+        #-------------------------------------------------------------------------
+        # Assigns the grid indices and grids the widgets with their new indices. -
+        #-------------------------------------------------------------------------
         grid_index = 0
         for pymod_element in self.pymod_elements_list:
             if pymod_element.is_mother:
                 self.main_window.set_grid_index(pymod_element, grid_index)
                 grid_index += 1
+                self.main_window.show_widgets(pymod_element)
                 if pymod_element.is_cluster_element():
                     for child_element in self.get_children(pymod_element):
                         self.main_window.set_grid_index(child_element, grid_index)
                         grid_index += 1
-
-        #--------------------------------------------
-        # Grids the widgets with their new indices. -
-        #--------------------------------------------
-        for pymod_element in self.pymod_elements_list:
-            if pymod_element.is_mother:
-                self.main_window.show_widgets(pymod_element)
-                if pymod_element.is_cluster_element():
-                    for child_element in self.get_children(pymod_element):
                         self.main_window.show_widgets(child_element)
+
+        print "###"
+        print "\n".join(["- "+e.my_header for e in self.pymod_elements_list])
+
+
+    ############################################################
+    def order_pymod_elements_list(self):
+        """
+        Modifies the 'pymod_elements_list' so that its elements will be ordered in a way in which
+        they can be displayed correctly in PyMod main window.
+        """
+        list_index = 0
+        for element in self.pymod_elements_list[:]:
+            if element.is_mother:
+                self.change_list_index(element, self.pymod_elements_list, list_index)
+                list_index += 1
+                if element.is_cluster_element():
+                    for child_element in self.get_children(element)[:]:
+                        self.change_list_index(child_element, self.pymod_elements_list, list_index)
+                        list_index += 1
+
+
+    def change_list_index(self, element, container_list, new_index):
+        old_index = container_list.index(element)
+        container_list.insert(new_index, container_list.pop(old_index))
+
+
+    ###################################################################
+    # Move elements up and down by one position in PyMod main window. #
+    ###################################################################
+
+    def move_elements(self, direction, elements_to_move=None):
+        """
+        Move 'up' or 'down' by a single position a series of elements in PyMod main window.
+        """
+        if elements_to_move == None:
+            elements_to_move = self.get_selected_elements()
+        if direction == "down":
+            elements_to_move.reverse()
+        for element in elements_to_move:
+            container_list = None
+            if element.is_mother:
+                container_list = self.pymod_elements_list
+                self.move_single_element(direction, element, container_list)
+        self.gridder()
+
+
+    def move_single_element(self, direction, element, container_list):
+        """
+        Move 'up' or 'down' by a single position a single element in a list.
+        """
+        change_index = 0
+        old_index = container_list.index(element)
+        if direction == "up":
+            # Prevents the item to be moved to the bottom of the list.
+            if old_index == 0:
+                return None
+            change_index -= 1
+        elif direction == "down":
+            # if old_index == len(container_list) - 1:
+            #     return None
+            change_index += 1
+        self.change_list_index(element, container_list, old_index + change_index)
+
+    ############################################################
 
 
     def print_selected(self):
@@ -2063,7 +2136,7 @@ class PyMod:
         # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
         #     element.show_chain_in_pymol()
         pass
-        
+
     def hide_all_structures_from_main_menu(self):
         # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
         #     element.hide_chain_in_pymol()
@@ -8819,21 +8892,37 @@ class PyModInvalidFile(Exception):
 # APPUNTI.                                                                                        #
 ###################################################################################################
 
-# - controlla "elaion".
+
 # !WORKING!
 # - strutture e interazione con PyMOL!
+# - controlla "elaion".
+
 # - selezioni e movimento.
+# - cluster leaders.
 # - quando si chiama gridder, deselezionare tutte le sequenze, o fare un metodo per deselezionare
 #   senza chiamare gridder.
+
 # - nomi, annotazioni e strutture; nomi delle sequenze e delle strutture.
-# - cluster leaders.
+
 # - ordinare il codice di pymod_main.
+
 # - eventi di interazione con le sequenze.
 #       - drag con update dei sibling solo su 'on-release'.
+
 # - colorazione.
+
+# - processi asincroni
+
+# - BLAST fatto bene (con download database?)
+
 # - allineamenti
+
 # - DOPE
+
 # - MODELLER
+
+# - reimplementare il resto.
+
 # TODO: implementazione delle nuove classi per le strutture.
 # TODO: implementazione delle nuove classi per le sequenze.
 # TODO: ripristina tutte le funzionalita' del programma.

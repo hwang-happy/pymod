@@ -127,6 +127,7 @@ class PyMod_cluster(PyMod_element):
         self.initial_number_of_sequences = None
         self.list_of_children = []
 
+
     def add_children(self, children):
         if not hasattr(children,"__iter__"):
             children = [children]
@@ -138,6 +139,7 @@ class PyMod_cluster(PyMod_element):
         if self.initial_number_of_sequences == None:
             self.initial_number_of_sequences = len(children)
 
+            
 # TODO: remove.
 # class Alignment:
 #     """
