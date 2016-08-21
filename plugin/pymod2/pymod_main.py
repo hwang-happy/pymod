@@ -135,6 +135,8 @@ class PyMod:
         # This is the list where are going to be stored all the sequences displayed in the main
         # window represented as objects of the "PyMod_element" class.
         self.pymod_elements_list = []
+        self.root_element = pmel.PyMod_root_cluster(sequence="...", header="PyMod root")
+
         # An index that increases by one every time an element is added to the above list by using
         # the .add_element_to_pymod() method.
         self.unique_index = 0
@@ -672,11 +674,20 @@ class PyMod:
         self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/5jdp.pdb")
         self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
 
-        # self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
-        self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        t = 1
+        self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        if t:
+            self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
         # self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta", grid=True)
         # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
+
+        c1 = self.root_element.list_of_children[-2]
+        if t:
+            c2 = self.root_element.list_of_children[-1]
+            c1.add_children(c2)
+
         self.gridder()
+
 
     def define_alignment_menu_structure(self):
         """
@@ -1196,7 +1207,7 @@ class PyMod:
         Used to add elements to the pymod_elements_list. Once an element is added to
         'pymod_elements_list' by this method, it will be displayed in the PyMod main window.
         """
-        self.pymod_elements_list.append(element) # Adds the element to the pymod_elements_list.
+        self.root_element.add_children(element) # Adds the element to the root_element.
         self.main_window.add_pymod_element_widgets(element)
         element.unique_index = self.unique_index
         self.unique_index += 1
@@ -1304,43 +1315,36 @@ class PyMod:
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
         """
-        self.order_pymod_elements_list()
-
         #-------------------------------------------------------------------------
         # Assigns the grid indices and grids the widgets with their new indices. -
         #-------------------------------------------------------------------------
-        grid_index = 0
-        for pymod_element in self.pymod_elements_list:
-            if pymod_element.is_mother:
-                self.main_window.set_grid_index(pymod_element, grid_index)
-                grid_index += 1
-                self.main_window.show_widgets(pymod_element)
-                if pymod_element.is_cluster_element():
-                    for child_element in self.get_children(pymod_element):
-                        self.main_window.set_grid_index(child_element, grid_index)
-                        grid_index += 1
-                        self.main_window.show_widgets(child_element)
-
+        self.grid_row_index = 0
+        self.grid_column_index = 0
+        for pymod_element in self.root_element.get_children():
+            self.grid_descendance(pymod_element)
+            self.grid_row_index += 1
         print "###"
-        print "\n".join(["- "+e.my_header for e in self.pymod_elements_list])
+        print "\n".join(["- "+e.my_header for e in self.root_element.get_children()])
+
+
+    def grid_descendance(self, pymod_element):
+        if pymod_element.is_mother():
+            self.grid_column_index += 1
+            self.grid_element(pymod_element)
+            for child_element in self.get_children(pymod_element):
+                self.grid_descendance(child_element)
+            self.grid_column_index -= 1
+        else:
+            self.grid_element(pymod_element)
+
+    def grid_element(self, pymod_element):
+        self.main_window.set_grid_row_index(pymod_element, self.grid_row_index)
+        self.main_window.set_grid_column_index(pymod_element, self.grid_column_index)
+        self.grid_row_index += 1
+        self.main_window.show_widgets(pymod_element)
 
 
     ############################################################
-    def order_pymod_elements_list(self):
-        """
-        Modifies the 'pymod_elements_list' so that its elements will be ordered in a way in which
-        they can be displayed correctly in PyMod main window.
-        """
-        list_index = 0
-        for element in self.pymod_elements_list[:]:
-            if element.is_mother:
-                self.change_list_index(element, self.pymod_elements_list, list_index)
-                list_index += 1
-                if element.is_cluster_element():
-                    for child_element in self.get_children(element)[:]:
-                        self.change_list_index(child_element, self.pymod_elements_list, list_index)
-                        list_index += 1
-
 
     def change_list_index(self, element, container_list, new_index):
         old_index = container_list.index(element)
@@ -1359,11 +1363,17 @@ class PyMod:
             elements_to_move = self.get_selected_elements()
         if direction == "down":
             elements_to_move.reverse()
-        for element in elements_to_move:
-            container_list = None
-            if element.is_mother:
-                container_list = self.pymod_elements_list
-                self.move_single_element(direction, element, container_list)
+        self.pymod_elements_list.append(None)
+        self.pymod_elements_list.insert(0,None)
+        try:
+            for element in elements_to_move:
+                container_list = None
+                if element.is_mother:
+                    container_list = self.pymod_elements_list
+                    self.move_single_element(direction, element, container_list)
+        except:
+            pass # TODO: make an exception.
+        self.pymod_elements_list = filter(lambda e: e != None, self.pymod_elements_list)
         self.gridder()
 
 

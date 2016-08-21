@@ -31,10 +31,8 @@ class PyMod_element:
         # of PyMod element objects by the '.add_element_to_pymod' method of the PyMod class.
         self.unique_index = None
 
-        # self.mother_index = None
-        # self.child_index = None
-        self.is_child = False
-        self.is_mother = True
+        self.mother = None
+        self.list_of_children = []
 
         self.is_blast_query = False
         self.is_lead = False
@@ -105,11 +103,33 @@ class PyMod_element:
         return self.is_cluster
 
 
+    #################################################################
+    # Methods for managing PyMod clusters.                          #
+    #################################################################
+
+    def is_mother(self):
+        if self.is_cluster and self.list_of_children != []:
+            return True
+        else:
+            return False
+
+
+    def is_child(self, exclude_root_element=True):
+        if self.mother:
+            if exclude_root_element and isinstance(self.mother, PyMod_root_cluster):
+                return False
+            else:
+                return True
+        else:
+            return False
+
+
     def get_siblings(self):
         if not self.mother:
             return []
         else:
             return filter(lambda c: c != self, self.mother.list_of_children)
+
 
     def get_compact_header(self):
         return self.my_header
@@ -125,21 +145,31 @@ class PyMod_cluster(PyMod_element):
         self.algorithm = algorithm
         self.cluster_id = cluster_id
         self.initial_number_of_sequences = None
-        self.list_of_children = []
 
 
     def add_children(self, children):
         if not hasattr(children,"__iter__"):
             children = [children]
-        self.list_of_children.extend(children)
         for child in children:
-            child.is_child = True
-            child.is_mother = False
+            # Remove from the old mother.
+            if child.is_child(exclude_root_element=False):
+                old_mother = child.mother
+                old_mother.list_of_children.remove(child)
+            # Add to new mother.
             child.mother = self
+            self.list_of_children.append(child)
         if self.initial_number_of_sequences == None:
             self.initial_number_of_sequences = len(children)
 
-            
+
+    def get_children(self):
+        return self.list_of_children
+
+
+class PyMod_root_cluster(PyMod_cluster):
+    pass
+
+
 # TODO: remove.
 # class Alignment:
 #     """
