@@ -99,13 +99,13 @@ class PyMod_element:
         return False
 
 
-    def is_cluster_element(self):
-        return self.is_cluster
-
-
     #################################################################
     # Methods for managing PyMod clusters.                          #
     #################################################################
+
+    def is_cluster_element(self):
+        return self.is_cluster
+
 
     def is_mother(self):
         if self.is_cluster and self.list_of_children != []:
@@ -116,12 +116,38 @@ class PyMod_element:
 
     def is_child(self, exclude_root_element=True):
         if self.mother:
-            if exclude_root_element and isinstance(self.mother, PyMod_root_cluster):
+            if exclude_root_element and self.is_root_child():
                 return False
             else:
                 return True
         else:
             return False
+
+
+    def is_root_child(self):
+        return isinstance(self.mother, PyMod_root_cluster)
+
+
+    def is_root_sequence(self):
+        return self.is_root_child() and not self.is_cluster_element()
+
+
+    def get_ancestor(self, exclude_root_element=True):
+        if self.is_child(exclude_root_element):
+            if self.mother.get_ancestor(exclude_root_element):
+                return self.mother.get_ancestor(exclude_root_element)
+            else:
+                return self.mother
+        return None
+
+
+    def get_descendants(self):
+        descendants = []
+        for d in self.get_children():
+            descendants.append(d)
+            if d.is_mother():
+                descendants.extend(d.get_descendants())
+        return descendants
 
 
     def get_siblings(self):
@@ -130,6 +156,10 @@ class PyMod_element:
         else:
             return filter(lambda c: c != self, self.mother.list_of_children)
 
+
+    #################################################################
+    # Headers formatting.                                           #
+    #################################################################
 
     def get_compact_header(self):
         return self.my_header

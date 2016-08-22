@@ -103,6 +103,9 @@ except:
     else:
        ce_alignment_mode = None
 
+global DEBUG
+DEBUG = True
+
 # Function that launches PyMod from the plugin menu of PyMOL.
 def pymod_launcher(app, pymod_plugin_name, pymod_version, pymod_revision):
     global pymod
@@ -316,16 +319,24 @@ class PyMod:
         # The configuration file is found.
         else:
             try:
-                # Check if there is 'pymod_temp_directory' left by the PyMod installer script.
+                #-------------------------------------------------------------------------------
+                # Check if there is 'pymod_temp_directory' left by the PyMod installer script. -
+                #-------------------------------------------------------------------------------
+
+                # Start an usual PyMod session. Get values options for each PyMod tool and start a
+                # new PyMod job.
                 if not self.check_installer_script_temp_directory():
-                    # Get values options for each PyMod tool and start a new PyMod job.
                     self.get_parameters_from_configuration_file()
                     self.check_pymod_directory()
-                    self.show_new_job_window()
+                    if not DEBUG:
+                        self.show_new_job_window()
+                    else:
+                        self.new_job_state(DEBUG)
+
                 # If there is 'pymod_temp_directory'.
                 else:
                     # The installer script was run before configuring PyMod for the first time (it
-                    # left an empty configuratio file).
+                    # left an empty configuration file).
                     if self.check_empty_configuration_file():
                         self.show_first_time_usage_message()
                         self.show_pymod_directory_selection_window()
@@ -595,7 +606,7 @@ class PyMod:
         self.new_dir_window_main_submit.pack(pady=10)
 
 
-    def new_job_state(self):
+    def new_job_state(self, test=False):
         """
         This is called when the SUBMIT button on the "New Job" window is pressed.
         """
@@ -606,6 +617,15 @@ class PyMod:
                 return False
             else:
                 return not bool(search(strg))
+
+        ###################################################
+        # TODO: remove.
+        if test:
+            class t:
+                def get(self): return "new_pymod_project"
+            self.new_dir_window_main_entry = t()
+        ###################################################
+
         if not special_match(self.new_dir_window_main_entry.get()) == True:
             title = 'Name Error'
             message = 'Only a-z, 0-9, "-" and "_" are allowed in the project name.'
@@ -614,8 +634,7 @@ class PyMod:
 
         # Writes the directory.
         new_dir_name = self.new_dir_window_main_entry.get()
-        # TODO: put back the try/except.
-        if 1: # try:
+        try:
             pymod_projects_dir_path = os.path.join(self.pymod_plugin["pymod_dir_path"].get_value(), self.projects_directory_name)
             new_project_dir_path = os.path.join(pymod_projects_dir_path, new_dir_name)
             # If the projects directory is not present, built it.
@@ -628,7 +647,10 @@ class PyMod:
             if os.path.isdir(new_project_dir_path):
                 title = 'Name Error'
                 message = "A directory with the name '%s' already exists in PyMod projects folder.\nDo you want to overwrite it?" % new_dir_name
-                overwrite = tkMessageBox.askyesno(title, message, parent=self.new_dir_window)
+                if not DEBUG:
+                    overwrite = tkMessageBox.askyesno(title, message, parent=self.new_dir_window)
+                else:
+                    overwrite = True
                 if overwrite:
                     if os.path.isdir(new_project_dir_path):
                         # Remove all the files in the previously used directory.
@@ -643,7 +665,7 @@ class PyMod:
             else:
                 os.mkdir(new_project_dir_path)
                 self.initialize_session(new_dir_name)
-        else: # except Exception, e:
+        except Exception, e:
             message = "Unable to write directory '%s' because of the following error: %s." % (new_dir_name, e)
             self.show_error_message("Initialization error", message)
             return False
@@ -653,7 +675,8 @@ class PyMod:
         """
         Initializes a session and shows the main window, which was previously hidden.
         """
-        self.new_dir_window.destroy()
+        if not DEBUG:
+            self.new_dir_window.destroy()
         self.current_pymod_directory = self.pymod_plugin["pymod_dir_path"].get_value()
         self.current_project_name = new_project_directory
         self.current_project_directory_full_path = os.path.join(self.pymod_plugin["pymod_dir_path"].get_value(), self.projects_directory_name, new_project_directory)
@@ -1041,21 +1064,21 @@ class PyMod:
         """
         Returns a list with all the selected elements.
         """
-        return [e for e in self.pymod_elements_list if e.selected]
+        return [e for e in self.root_element.get_descendants() if e.selected]
 
 
     def get_all_sequences(self):
         """
         Returns a list of all the sequences currently loaded in PyMod.
         """
-        return [e for e in self.pymod_elements_list if not e.is_cluster_element()]
+        return [e for e in self.root_element.get_descendants() if not e.is_cluster_element()]
 
 
     def get_selected_sequences(self):
         """
         Returns a list of all the sequences selected by the user.
         """
-        return [e for e in self.pymod_elements_list if e.selected and not e.is_cluster_element()]
+        return [e for e in self.root_element.get_descendants() if e.selected and not e.is_cluster_element()]
 
 
     def get_cluster_elements(self, cluster_type = "all"):
@@ -1064,7 +1087,7 @@ class PyMod:
         "blast-search".
         """
         cluster_elements = []
-        for element in self.pymod_elements_list:
+        for element in self.root_element.get_descendants():
             if element.is_cluster_element():
                 if cluster_type == "all":
                     cluster_elements.append(element)
@@ -1321,34 +1344,33 @@ class PyMod:
         self.grid_row_index = 0
         self.grid_column_index = 0
         for pymod_element in self.root_element.get_children():
-            self.grid_descendance(pymod_element)
+            self.grid_descendants(pymod_element)
             self.grid_row_index += 1
-        print "###"
-        print "\n".join(["- "+e.my_header for e in self.root_element.get_children()])
 
 
-    def grid_descendance(self, pymod_element):
+    def grid_descendants(self, pymod_element):
+        """
+        Grid a single element and all its descendants.
+        """
         if pymod_element.is_mother():
             self.grid_column_index += 1
             self.grid_element(pymod_element)
-            for child_element in self.get_children(pymod_element):
-                self.grid_descendance(child_element)
+            if self.main_window.dict_of_elements_widgets[pymod_element].show_children:
+                for child_element in self.get_children(pymod_element):
+                    self.grid_descendants(child_element)
             self.grid_column_index -= 1
         else:
             self.grid_element(pymod_element)
 
+
     def grid_element(self, pymod_element):
+        """
+        Grids a single element.
+        """
         self.main_window.set_grid_row_index(pymod_element, self.grid_row_index)
         self.main_window.set_grid_column_index(pymod_element, self.grid_column_index)
         self.grid_row_index += 1
         self.main_window.show_widgets(pymod_element)
-
-
-    ############################################################
-
-    def change_list_index(self, element, container_list, new_index):
-        old_index = container_list.index(element)
-        container_list.insert(new_index, container_list.pop(old_index))
 
 
     ###################################################################
@@ -1363,18 +1385,20 @@ class PyMod:
             elements_to_move = self.get_selected_elements()
         if direction == "down":
             elements_to_move.reverse()
-        self.pymod_elements_list.append(None)
-        self.pymod_elements_list.insert(0,None)
-        try:
-            for element in elements_to_move:
-                container_list = None
-                if element.is_mother:
-                    container_list = self.pymod_elements_list
-                    self.move_single_element(direction, element, container_list)
-        except:
-            pass # TODO: make an exception.
-        self.pymod_elements_list = filter(lambda e: e != None, self.pymod_elements_list)
-        self.gridder()
+        # self.pymod_elements_list.append(None)
+        # self.pymod_elements_list.insert(0,None)
+        # try:
+        for element in elements_to_move:
+            container_list = None
+            container_list = element.mother.get_children() # list_of_children
+            self.move_single_element(direction, element, container_list)
+        print "###"
+        print "\n".join(["- "+e.my_header for e in self.root_element.get_descendants()])
+        # except:
+        #     pass # TODO: make an exception.
+        # self.pymod_elements_list = filter(lambda e: e != None, self.pymod_elements_list)
+        if elements_to_move != []:
+            self.gridder()
 
 
     def move_single_element(self, direction, element, container_list):
@@ -1394,7 +1418,10 @@ class PyMod:
             change_index += 1
         self.change_list_index(element, container_list, old_index + change_index)
 
-    ############################################################
+
+    def change_list_index(self, element, container_list, new_index):
+        old_index = container_list.index(element)
+        container_list.insert(new_index, container_list.pop(old_index))
 
 
     def print_selected(self):
