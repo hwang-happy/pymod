@@ -171,7 +171,7 @@ class Parsed_pdb_file:
             new_structure = PyMod_structure(chain_file["file_path"])
 
             # Builds the new 'PyMod_element'.
-            new_element = pmel.PyMod_element(parsed_chain["sequence"], chain_file["chain_name"], structure = new_structure)#, full_original_header=seqrecord.description)
+            new_element = pmel.PyMod_sequence(parsed_chain["sequence"], chain_file["chain_name"], structure = new_structure)#, full_original_header=seqrecord.description)
             self.list_of_pymod_elements.append(new_element)
             self.list_of_structure_objects.append(new_structure)
 

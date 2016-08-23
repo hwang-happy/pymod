@@ -94,30 +94,51 @@ class PyMod_main_window_mixin:
     # Expand and collapse clusters.                                 #
     #################################################################
 
-    def expand_cluster(self, pymod_element):
-        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
-        pymod_element_widgets_group.cluster_button_text.set('-')
-        pymod_element_widgets_group.cluster_button["disabledbackground"] = "gray"
-        pymod_element_widgets_group.show_children = True
-        # self.expand_recursively(pymod_element)
+    def expand_cluster(self, pymod_cluster):
+        pymod_cluster_widgets_group = self.dict_of_elements_widgets[pymod_cluster]
+        if pymod_cluster.get_lead():
+            self.change_to_cluster_information(pymod_cluster)
+        pymod_cluster_widgets_group.cluster_button_text.set('-')
+        pymod_cluster_widgets_group.cluster_button["disabledbackground"] = "gray"
+        pymod_cluster_widgets_group.show_children = True
         self.pymod.gridder()
 
-    def expand_recursively(self, pymod_element):
-        self.show_widgets(pymod_element)
-        for child in pymod_element.get_children():
-            if child.is_mother() and self.dict_of_elements_widgets[child].show_children:
-                self.expand_recursively(child)
-            else:
-                self.show_widgets(child)
-
-
-    def collapse_cluster(self, pymod_element):
-        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
-        pymod_element_widgets_group.cluster_button_text.set('+')
-        pymod_element_widgets_group.cluster_button["disabledbackground"] = "red"
-        pymod_element_widgets_group.show_children = False
-        for child in pymod_element.get_descendants():
+    def collapse_cluster(self, pymod_cluster):
+        pymod_cluster_widgets_group = self.dict_of_elements_widgets[pymod_cluster]
+        if pymod_cluster.get_lead():
+            self.change_to_lead_information(pymod_cluster)
+        pymod_cluster_widgets_group.cluster_button_text.set('+')
+        pymod_cluster_widgets_group.cluster_button["disabledbackground"] = "red"
+        pymod_cluster_widgets_group.show_children = False
+        for child in pymod_cluster.get_descendants():
             self.hide_widgets(child)
+
+
+    def change_to_lead_information(self, pymod_cluster):
+        """
+        Show the lead element header and sequence when a cluster containing a lead element is
+        collapsed.
+        """
+        cluster_lead = pymod_cluster.get_lead()
+        cluster_element_widgets_group = self.dict_of_elements_widgets[pymod_cluster]
+        # Change header information.
+        cluster_element_widgets_group.header_entry.header_entry_var.set(cluster_lead.my_header)
+        # Change sequence information.
+        cluster_element_widgets_group.sequence_text.pymod_element = cluster_lead
+        cluster_element_widgets_group.sequence_text.update_text()
+
+
+    def change_to_cluster_information(self, pymod_cluster):
+        """
+        Show the cluster element header and sequence when a cluster containing a lead element is
+        expanded.
+        """
+        cluster_element_widgets_group = self.dict_of_elements_widgets[pymod_cluster]
+        # Change header information.
+        cluster_element_widgets_group.header_entry.header_entry_var.set(pymod_cluster.my_header)
+        # Change sequence information.
+        cluster_element_widgets_group.sequence_text.pymod_element = cluster_element_widgets_group.sequence_text.original_pymod_element
+        cluster_element_widgets_group.sequence_text.update_text()
 
 
     #################################################################
@@ -659,7 +680,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         PyMod_main_window_mixin.dict_of_elements_widgets.update({pymod_element: pewp})
 
 
-
 ###################################################################################################
 # CLASSES FOR PYMOD MAIN WINDOW.                                                                  #
 ###################################################################################################
@@ -722,11 +742,11 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
         Creates an additional entry inside the right-frame for child elements.
         """
         child_sign = "|_"
-        if self.pymod_element.is_blast_query:
+        if self.pymod_element.is_blast_query():
             child_sign = "|q"
-        elif self.pymod_element.is_lead:
+        elif self.pymod_element.is_lead():
             child_sign = "|l"
-        elif self.pymod_element.is_bridge:
+        elif self.pymod_element.is_bridge():
             child_sign = "|b"
         self.child_sign_var.set(child_sign)
 
@@ -759,6 +779,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         self.parent = parent
         self.pymod_element = pymod_element
+        self.original_pymod_element = pymod_element
 
         # This is used only here to set the textvarialble of the entry as the header of the sequence.
         self.header_entry_var = StringVar()
@@ -1061,7 +1082,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         return None # TODO.
         self.cluster_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         self.cluster_menu.add_command(label="Extract Sequence from Cluster", command=self.extract_from_cluster)
-        if not self.is_lead:
+        if not self.is_lead():
             self.cluster_menu.add_separator()
             self.cluster_menu.add_command(label="Make Cluster Lead", command=self.make_lead_from_left_menu)
         self.header_popup_menu.add_cascade(menu=self.cluster_menu, label="Cluster Options")
@@ -1348,6 +1369,7 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     def __init__(self, parent = None, pymod_element=None, **configs):
         self.parent = parent
         self.pymod_element = pymod_element
+        self.original_pymod_element = pymod_element
 
         Text.__init__(self, self.parent, font = self.sequence_font,
             cursor = "hand2",

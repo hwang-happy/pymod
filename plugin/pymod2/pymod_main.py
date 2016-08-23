@@ -697,19 +697,30 @@ class PyMod:
         self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/5jdp.pdb")
         self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
 
-        t = 1
+
+        # t = 1
+        # self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        # if t:
+        #     self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        # c1 = self.root_element.list_of_children[-2]
+        # if t:
+        #     c2 = self.root_element.list_of_children[-1]
+        #     c1.add_children(c2)
         self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
-        if t:
-            self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+        l = self.root_element.list_of_children[-1].list_of_children[0]
+        self.make_cluster_lead(l)
+
         # self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta", grid=True)
         # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
-
-        c1 = self.root_element.list_of_children[-2]
-        if t:
-            c2 = self.root_element.list_of_children[-1]
-            c1.add_children(c2)
-
         self.gridder()
+
+
+    def make_cluster_lead(self, new_element, grid=False):
+        for sibling in new_element.get_siblings():
+            sibling.remove_lead()
+        new_element.set_as_lead()
+        if grid:
+            self.gridder()
 
 
     def define_alignment_menu_structure(self):
@@ -1208,7 +1219,7 @@ class PyMod:
         Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
         to the it.
         """
-        new_element = pmel.PyMod_element(str(seqrecord.seq), seqrecord.id, full_original_header=seqrecord.description)
+        new_element = pmel.PyMod_sequence(str(seqrecord.seq), seqrecord.id, full_original_header=seqrecord.description)
         return new_element
 
 
@@ -1221,7 +1232,7 @@ class PyMod:
         # record_header = self.correct_name(hsp["title"])
         record_header = hsp["title"]
         # TODO: use only Biopython objects.
-        cs = pmel.PyMod_element(str(hsp["hsp"].sbjct), record_header, full_original_header=hsp["title"])
+        cs = pmel.PyMod_sequence(str(hsp["hsp"].sbjct), record_header, full_original_header=hsp["title"])
         return cs
 
 
@@ -1381,7 +1392,7 @@ class PyMod:
         print "###"
         print "# Selected list:"
         print "\n".join([s.my_header for s in self.get_selected_sequences()])
-        
+
 
     ###################################################################
     # Move elements up and down by one position in PyMod main window. #
@@ -3097,7 +3108,7 @@ class PyMod:
             correct_selection = True
             # Let users decide how to import new sequences when the query is a child element (that
             # is, it is already present in a cluster).
-            if self.blast_query_element.is_child:
+            if self.blast_query_element.is_child():
                 # TODO: use a custom window.
                 pass
                 # new_cluster_text = 'Build a new cluster'
@@ -3120,6 +3131,7 @@ class PyMod:
 
 
     def blast_dialog_state(self, dialog_choice):
+        # TODO: Reimplement in a new window.
         self.blast_dialog.withdraw()
         if not dialog_choice:
             return None
@@ -3562,8 +3574,6 @@ class PyMod:
             self.build_hits_to_import_list()
             # This will actually import the sequences inside Pymod.
             self.import_results_in_pymod()
-        else:
-            pass
 
         self.blast_output_window.destroy()
 
@@ -3646,8 +3656,6 @@ class PyMod:
         self.update_stars(new_blast_cluster) # TODO: or call it in 'gridder'?
 
         self.gridder()
-
-        return False
 
 
     #################################################################
@@ -4906,8 +4914,8 @@ class PyMod:
             # Marks the bridges so that they are displayed with a "b" in their cluster.
             if self.alignment_mode == "alignment-joining":
                 for b in bridges_list:
-                    b.is_bridge = True
-
+                    # b.is_bridge = True
+                    b.bridge = True
         self.set_initial_ali_seq_number(self.alignment_element)
 
     def set_initial_ali_seq_number(self, cluster_element):

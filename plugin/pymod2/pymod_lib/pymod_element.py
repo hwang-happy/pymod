@@ -34,9 +34,9 @@ class PyMod_element:
         self.mother = None
         self.list_of_children = []
 
-        self.is_blast_query = False
-        self.is_lead = False
-        self.is_bridge = False
+        self.blast_query = False
+        self.lead = False
+        self.bridge = False
 
         # Forms the header name.
         # self.set_header_name(record_header, adjust_header)
@@ -155,6 +155,32 @@ class PyMod_element:
             return []
         else:
             return filter(lambda c: c != self, self.mother.list_of_children)
+
+    ##################
+    # Cluster leads. #
+    ##################
+
+    def set_as_lead(self):
+        self.lead = True
+
+    def remove_lead(self):
+        self.lead = False
+
+
+    def is_blast_query(self):
+        return self.blast_query
+
+    def is_lead(self):
+        return self.lead
+
+    def is_bridge(self):
+        return self.bridge
+
+    def get_lead(self):
+        for child in self.get_children():
+            if child.is_lead():
+                return child
+        return None
 
 
     #################################################################
