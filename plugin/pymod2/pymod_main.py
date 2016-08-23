@@ -1334,6 +1334,10 @@ class PyMod:
         return cluster_element
 
 
+    #################################################################
+    # Show sequences and clusters in PyMod main window.             #
+    #################################################################
+
     def gridder(self):
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
@@ -1373,6 +1377,12 @@ class PyMod:
         self.main_window.show_widgets(pymod_element)
 
 
+    def print_selected(self):
+        print "###"
+        print "# Selected list:"
+        print "\n".join([s.my_header for s in self.get_selected_sequences()])
+        
+
     ###################################################################
     # Move elements up and down by one position in PyMod main window. #
     ###################################################################
@@ -1381,22 +1391,26 @@ class PyMod:
         """
         Move 'up' or 'down' by a single position a series of elements in PyMod main window.
         """
+        # Gets the elements to move.
         if elements_to_move == None:
             elements_to_move = self.get_selected_elements()
+        # Allow to move elements on the bottom of the list.
         if direction == "down":
             elements_to_move.reverse()
-        # self.pymod_elements_list.append(None)
-        # self.pymod_elements_list.insert(0,None)
-        # try:
+        # Temporarily adds 'None' elements to the list, so that multiple elements at the top or
+        # bottom of container lists can be moved correctly.
+        containers_set = set([e.mother for e in elements_to_move if not e.mother.selected]) # in elements_to_move
+        for container in containers_set:
+            container.list_of_children.append(None)
+            container.list_of_children.insert(0, None)
+        # Actually move the elements in their container lists.
         for element in elements_to_move:
-            container_list = None
-            container_list = element.mother.get_children() # list_of_children
-            self.move_single_element(direction, element, container_list)
-        print "###"
-        print "\n".join(["- "+e.my_header for e in self.root_element.get_descendants()])
-        # except:
-        #     pass # TODO: make an exception.
-        # self.pymod_elements_list = filter(lambda e: e != None, self.pymod_elements_list)
+            if not element.mother.selected:
+                self.move_single_element(direction, element, element.mother.get_children())
+        # Remove the 'None' values added before.
+        for container in containers_set:
+            container.list_of_children = filter(lambda e: e != None, container.list_of_children)
+        # Shows the the elements in the new order.
         if elements_to_move != []:
             self.gridder()
 
@@ -1422,12 +1436,6 @@ class PyMod:
     def change_list_index(self, element, container_list, new_index):
         old_index = container_list.index(element)
         container_list.insert(new_index, container_list.pop(old_index))
-
-
-    def print_selected(self):
-        print "###"
-        print "# Selected list:"
-        print "\n".join([s.my_header for s in self.get_selected_sequences()])
 
 
     #################################################################
@@ -8934,19 +8942,20 @@ class PyModInvalidFile(Exception):
 # - strutture e interazione con PyMOL!
 # - controlla "elaion".
 
-# - selezioni e movimento.
 # - cluster leaders.
 # - quando si chiama gridder, deselezionare tutte le sequenze, o fare un metodo per deselezionare
 #   senza chiamare gridder.
 
 # - nomi, annotazioni e strutture; nomi delle sequenze e delle strutture.
 
+# - strutture e interazione con PyMOL
+
+# - colorazione.
+
 # - ordinare il codice di pymod_main.
 
 # - eventi di interazione con le sequenze.
 #       - drag con update dei sibling solo su 'on-release'.
-
-# - colorazione.
 
 # - processi asincroni
 
