@@ -693,10 +693,11 @@ class PyMod:
         """
         print "###"
         print "# Loading default."
-        self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/3oe0.pdb")
-        self.open_structure_file("/home/giacomo/Desktop/test_structure/structures/5jdp.pdb")
-        self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta")
 
+        seqs_dir = "/home/giacomo/Desktop/sequences"
+        self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/5jdp.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
 
         # t = 1
         # self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
@@ -706,21 +707,14 @@ class PyMod:
         # if t:
         #     c2 = self.root_element.list_of_children[-1]
         #     c1.add_children(c2)
-        self.build_cluster_from_alignment_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta")
+
+        self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
         l = self.root_element.list_of_children[-1].list_of_children[0]
         self.make_cluster_lead(l)
 
         # self.open_sequence_file("/home/giacomo/pymod_project/projects/seqs/gcr.fasta", "fasta", grid=True)
         # self.open_sequence_file("/home/giacomo/Desktop/sequences/ig_pfam.fasta", "fasta", grid=True)
         self.gridder()
-
-
-    def make_cluster_lead(self, new_element, grid=False):
-        for sibling in new_element.get_siblings():
-            sibling.remove_lead()
-        new_element.set_as_lead()
-        if grid:
-            self.gridder()
 
 
     def define_alignment_menu_structure(self):
@@ -1067,6 +1061,14 @@ class PyMod:
         return mother.list_of_children
 
 
+    def make_cluster_lead(self, new_element, grid=False):
+        for sibling in new_element.get_siblings():
+            sibling.remove_lead()
+        new_element.set_as_lead()
+        if grid:
+            self.gridder()
+
+
     #################################################################
     # Get and check selections.                                     #
     #################################################################
@@ -1162,7 +1164,7 @@ class PyMod:
     ###############################################################################################
 
     #################################################################
-    # Open files from PyMod main menu.                              #
+    # Open files from PyMod.                                        #
     #################################################################
 
     def open_file_from_the_main_menu(self):
@@ -1188,368 +1190,6 @@ class PyMod:
                 self.show_error_message(title, message)
         self.gridder()
 
-
-    #################################################################
-    # REFACTORING.                                                  #
-    #################################################################
-
-    def open_sequence_file(self, file_full_path, file_format="fasta", grid=False):
-        """
-        Method for loading in PyMod new sequences parsed from sequence files.
-        """
-        if not self.is_sequence_file(file_full_path, file_format):
-            raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
-        fn = open(file_full_path, "rU")
-        # Parses a fasta file through Biopython. This will automatically crop headers that have " "
-        # (space) characters.
-        new_pymod_elements = []
-        for record in SeqIO.parse(fn, file_format):
-            # Then builds a PyMod_element object and add it to the 'pymod_elements_list'.
-            c = self.build_pymod_element_from_seqrecord(record)
-            new_pymod_elements.append(c)
-            self.add_element_to_pymod(c)
-        fn.close()
-        # Shows the new elements in PyMod main window.
-        if grid:
-            self.gridder()
-
-
-    def build_pymod_element_from_seqrecord(self, seqrecord):
-        """
-        Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
-        to the it.
-        """
-        new_element = pmel.PyMod_sequence(str(seqrecord.seq), seqrecord.id, full_original_header=seqrecord.description)
-        return new_element
-
-
-    def build_pymod_element_from_hsp(self, hsp):
-        """
-        Gets a hsp dictionary containing a Biopython 'HSP' class object and returns a
-        'PyMod_element' object corresponding to the subject in the HSP.
-        """
-        # Gives them the query mother_index, to make them its children.
-        # record_header = self.correct_name(hsp["title"])
-        record_header = hsp["title"]
-        # TODO: use only Biopython objects.
-        cs = pmel.PyMod_sequence(str(hsp["hsp"].sbjct), record_header, full_original_header=hsp["title"])
-        return cs
-
-
-    def add_element_to_pymod(self, element, load_in_pymol=False, color=None):
-        """
-        Used to add elements to the pymod_elements_list. Once an element is added to
-        'pymod_elements_list' by this method, it will be displayed in the PyMod main window.
-        """
-        self.root_element.add_children(element) # Adds the element to the root_element.
-        self.main_window.add_pymod_element_widgets(element)
-        element.unique_index = self.unique_index
-        self.unique_index += 1
-        if load_in_pymol:
-            self.load_element_in_pymol(element)
-
-
-    def load_element_in_pymol(self, element, mode = None):
-        """
-        Loads the PDB structure of the chain into PyMol.
-        """
-        file_to_load = element.structure.get_file()
-        pymol_object_name = element.structure.get_pymol_object_name()
-        cmd.load(file_to_load, pymol_object_name)
-        # chain_root_name = element.build_chain_selector_for_pymol()
-        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
-        # cmd.load(file_name_to_load)
-        # cmd.select("last_prot", chain_root_name)
-        # cmd.hide("everything", "last_prot")
-        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
-        # if mode == "model":
-        #     cmd.color("white", "last_prot")
-        # else:
-        #     cmd.color(element.my_color, "last_prot")
-        # cmd.util.cnc("last_prot") # Colors by atom.
-        # cmd.center('last_prot')
-        # cmd.zoom('last_prot')
-        # cmd.delete("last_prot")
-
-
-    def build_cluster_from_alignment_file(self, alignment_file, extension="fasta", grid=False):
-        """
-        Creates a cluster with all the sequences contained in an alignment file.
-        """
-        # Gets the sequences using Biopython.
-        aligned_elements = []
-        fh = open(alignment_file, "rU")
-        records = SeqIO.parse(fh, extension)
-        for record in records:
-            new_child_element = self.build_pymod_element_from_seqrecord(record)
-            self.add_element_to_pymod(new_child_element)
-            aligned_elements.append(new_child_element)
-        fh.close()
-        self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
-        if grid:
-            self.gridder()
-
-
-    def add_new_cluster_to_pymod(self, cluster_type="generic", query=None, cluster_name=None, child_elements=[], algorithm=None, update_stars=True):
-
-        # # Adds the query to the new "BLAST cluster".
-        # self.add_to_mother(blast_cluster_element, self.blast_query_element)
-        # self.mark_as_query(self.blast_query_element)
-        if not cluster_type in ("alignment", "blast-cluster", "generic"):
-            raise Exception("Invalid cluster type.")
-
-        # Increase the global count of clusters of the type provided in the 'cluster_type' argument.
-        if cluster_type == "alignment":
-            self.alignment_count += 1
-        elif cluster_type == "blast-cluster":
-            self.blast_cluster_counter += 1
-
-        # Sets the name of the cluster.
-        if cluster_name == None:
-            if cluster_type == "alignment":
-                cluster_name = self.set_alignment_element_name(algorithm, self.alignment_count)
-            elif cluster_type == "blast-cluster":
-                cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.get_compact_header())
-
-        # Sets the algorithm.
-        if cluster_type == "blast-cluster":
-            algorithm = "blast-pseudo-alignment"
-        elif algorithm == None:
-            algorithm = "?"
-
-        # TODO: reimplement this.
-        # Sets the leader of the cluster.
-        # if cluster_type == "blast-cluster" and query != None:
-        #     self.mark_as_query(query)
-
-        # Creates a cluster element.
-        # Adds the sequences to the new alignment cluster.
-        cluster_element = pmel.PyMod_cluster(sequence="...", # Sets a temporary sequence.
-                                             header=cluster_name,
-                                             full_original_header=None,
-                                             color="white",
-                                             algorithm=algorithm,
-                                             cluster_id=self.alignment_count)
-                                             #    adjust_header=False) TODO: what to do here?
-
-        # Add the new cluster element to PyMod.
-        self.add_element_to_pymod(cluster_element)
-
-        # Add the children, if some were supplied in the argument.
-        if child_elements != []:
-            cluster_element.add_children(child_elements)
-            # Computes the stars of the new alignment element.
-            if update_stars:
-                self.update_stars(cluster_element)
-
-        return cluster_element
-
-
-    #################################################################
-    # Show sequences and clusters in PyMod main window.             #
-    #################################################################
-
-    def gridder(self):
-        """
-        Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
-        """
-        #-------------------------------------------------------------------------
-        # Assigns the grid indices and grids the widgets with their new indices. -
-        #-------------------------------------------------------------------------
-        self.grid_row_index = 0
-        self.grid_column_index = 0
-        for pymod_element in self.root_element.get_children():
-            self.grid_descendants(pymod_element)
-            self.grid_row_index += 1
-
-
-    def grid_descendants(self, pymod_element):
-        """
-        Grid a single element and all its descendants.
-        """
-        if pymod_element.is_mother():
-            self.grid_column_index += 1
-            self.grid_element(pymod_element)
-            if self.main_window.dict_of_elements_widgets[pymod_element].show_children:
-                for child_element in self.get_children(pymod_element):
-                    self.grid_descendants(child_element)
-            self.grid_column_index -= 1
-        else:
-            self.grid_element(pymod_element)
-
-
-    def grid_element(self, pymod_element):
-        """
-        Grids a single element.
-        """
-        self.main_window.set_grid_row_index(pymod_element, self.grid_row_index)
-        self.main_window.set_grid_column_index(pymod_element, self.grid_column_index)
-        self.grid_row_index += 1
-        self.main_window.show_widgets(pymod_element)
-
-
-    def print_selected(self):
-        print "###"
-        print "# Selected list:"
-        print "\n".join([s.my_header for s in self.get_selected_sequences()])
-
-
-    ###################################################################
-    # Move elements up and down by one position in PyMod main window. #
-    ###################################################################
-
-    def move_elements(self, direction, elements_to_move=None):
-        """
-        Move 'up' or 'down' by a single position a series of elements in PyMod main window.
-        """
-        # Gets the elements to move.
-        if elements_to_move == None:
-            elements_to_move = self.get_selected_elements()
-        # Allow to move elements on the bottom of the list.
-        if direction == "down":
-            elements_to_move.reverse()
-        # Temporarily adds 'None' elements to the list, so that multiple elements at the top or
-        # bottom of container lists can be moved correctly.
-        containers_set = set([e.mother for e in elements_to_move if not e.mother.selected]) # in elements_to_move
-        for container in containers_set:
-            container.list_of_children.append(None)
-            container.list_of_children.insert(0, None)
-        # Actually move the elements in their container lists.
-        for element in elements_to_move:
-            if not element.mother.selected:
-                self.move_single_element(direction, element, element.mother.get_children())
-        # Remove the 'None' values added before.
-        for container in containers_set:
-            container.list_of_children = filter(lambda e: e != None, container.list_of_children)
-        # Shows the the elements in the new order.
-        if elements_to_move != []:
-            self.gridder()
-
-
-    def move_single_element(self, direction, element, container_list):
-        """
-        Move 'up' or 'down' by a single position a single element in a list.
-        """
-        change_index = 0
-        old_index = container_list.index(element)
-        if direction == "up":
-            # Prevents the item to be moved to the bottom of the list.
-            if old_index == 0:
-                return None
-            change_index -= 1
-        elif direction == "down":
-            # if old_index == len(container_list) - 1:
-            #     return None
-            change_index += 1
-        self.change_list_index(element, container_list, old_index + change_index)
-
-
-    def change_list_index(self, element, container_list, new_index):
-        old_index = container_list.index(element)
-        container_list.insert(new_index, container_list.pop(old_index))
-
-
-    #################################################################
-    # Opening sequence files.                                       #
-    #################################################################
-
-    def is_sequence_file(self, file_path, file_format, show_error=True):
-        """
-        Try to open a sequence file using Biopython. Returns 'True' if the file is a valid file of
-        the format specified in the 'file_format' argument.
-        """
-        valid_file = False
-        file_handler = None
-        try:
-            file_handler = open(file_path,"r")
-            r = list(Bio.SeqIO.parse(file_handler, file_format))
-            if len(r) > 0:
-                valid_file = True
-        except:
-            valid_file = False
-        if file_handler != None:
-            file_handler.close()
-        return valid_file
-
-
-    #################################################################
-    # Add new sequences.                                            #
-    #################################################################
-
-    def raw_seq_input(self):
-        """
-        Launched when the user wants to add a new sequence by directly typing it into a Text entry.
-        """
-        pass
-        # def show_menu(e):
-        #     w = e.widget
-        #     the_menu.entryconfigure("Paste",
-        #     command=lambda: w.event_generate("<<Paste>>"))
-        #     the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
-        #
-        # # This is called when the SUBMIT button packed below is pressed.
-        # def submit():
-        #     def special_match(strg, search=re.compile(r'[^A-Z-]').search):
-        #         return not bool(search(strg))
-        #     def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
-        #         return not bool(search2(strg))
-        #     sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
-        #     if special_match(sequence) and len(sequence):
-        #         if len(seq_name.get()) and name_match(seq_name.get()):
-        #             c = PyMod_element(sequence, seq_name.get(),
-        #                 element_type="sequence")
-        #             self.add_element_to_pymod(c,"mother")
-        #             self.raw_seq_window.destroy()
-        #             self.gridder()
-        #         else:
-        #             title = 'Name Error'
-        #             message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
-        #             self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-        #     else:
-        #         title = 'Sequence Error'
-        #         message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
-        #         self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-        #
-        # self.raw_seq_window = pmgi.PyMod_tool_window(self.main_window,
-        #     title = "Add Raw Sequence",
-        #     upper_frame_title = "Type or Paste your Sequence",
-        #     submit_command = submit)
-        #
-        # L1 = Label(self.raw_seq_window.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
-        # L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
-        #
-        # # Creates an Entry for the name of the new sequence.
-        # seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
-        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.fixed_width_font)
-        # seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
-        # seq_name.focus_set()
-        # seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
-        #
-        # L2 = Label(self.raw_seq_window.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
-        # L2.grid( row=1, column=0, sticky="ne", ipadx=0, padx=5)
-        #
-        # scrollbar = Scrollbar(self.raw_seq_window.midframe)
-        # scrollbar.grid(row=1, column=2, sticky="ns")
-        #
-        # # Creates an Entry widget for the sequence.
-        # textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
-        #               font = "%s 12" % pmgi.fixed_width_font, height=10,
-        #               bd=0, foreground = 'black',
-        #               background = 'white', selectbackground='black',
-        #               selectforeground='white', width = 60)
-        # textarea.config(state=NORMAL)
-        # textarea.tag_config("normal", foreground="black")
-        # textarea.grid( row=1, column=1, sticky="nw", padx=0)
-        # textarea.bind("<Button-3><ButtonRelease-3>", show_menu)
-        # scrollbar.config(command=textarea.yview)
-        #
-        # the_menu = Menu(seq_name, tearoff=0)
-        # the_menu.add_command(label="Paste")
-
-
-    #################################################################
-    # Opening alignment files.                                      #
-    #################################################################
 
     def choose_alignment_file(self):
         """
@@ -1585,70 +1225,6 @@ class PyMod:
         self.gridder()
 
 
-    def transfer_alignment(self,alignment_element):
-        """
-        Changes the sequences of the elements contained in a PyMod cluster according to the
-        information presente in an externally supplied file (chosen by users through a file diaolog)
-        containing the same sequences aligned in a different way. Right now it supports transfer
-        only for sequences having the exactly same sequences in PyMod and in the external alignment.
-        """
-        pass
-        # # Let users choose the external alignment file.
-        # openfilename, extension = self.choose_alignment_file()
-        # if None in (openfilename, extension):
-        #     return False
-        #
-        # # Sequences in the aligment currently loaded into PyMod.
-        # aligned_elements = self.get_children(alignment_element)
-        #
-        # # Sequences in the alignment files.
-        # fh = open(openfilename, "rU")
-        # external_records = list(SeqIO.parse(fh, extension))
-        # fh.close()
-        #
-        # if len(external_records) < len(aligned_elements):
-        #     title = "Transfer error"
-        #     message = "'%s' has more sequences (%s) than the alignment in '%s' (%s) and the 'Transfer Alignment' function can't be used in this situation." % (alignment_element.my_header, len(aligned_elements), openfilename, len(external_records))
-        #     self.show_error_message(title,message)
-        #     return False
-        #
-        # correspondance_list = []
-        # # First try to find sequences that are identical (same sequence and same lenght) in both
-        # # alignments.
-        # for element in aligned_elements[:]:
-        #     identity_matches = []
-        #     for record in external_records:
-        #         if str(element.my_sequence).replace("-","") == str(record.seq).replace("-",""):
-        #             match_dict = {"target-seq":element, "external-seq": record, "identity": True}
-        #             identity_matches.append(match_dict)
-        #     if len(identity_matches) > 0:
-        #         correspondance_list.append(identity_matches[0])
-        #         aligned_elements.remove(identity_matches[0]["target-seq"])
-        #         external_records.remove(identity_matches[0]["external-seq"])
-        #
-        # # Then try to find similar sequences among the two alignments. Right now this is not
-        # # implemented.
-        # # ...
-        #
-        # if not len(aligned_elements) == 0:
-        #     title = "Transfer error"
-        #     message = "Not every sequence in the target alignment has a corresponding sequence in the external alignment."
-        #     self.show_error_message(title,message)
-        #     return False
-        #
-        # # Finally transfer the sequences.
-        # for match in correspondance_list[:]:
-        #     if match["identity"]:
-        #         match["target-seq"].my_sequence = str(match["external-seq"].seq)
-        #         correspondance_list.remove(match)
-        #
-        # self.gridder()
-
-
-    #################################################################
-    # Opening PDB files.                                            #
-    #################################################################
-
     def choose_structure_file(self):
         """
         Lets users choose a strcture file.
@@ -1660,6 +1236,29 @@ class PyMod:
         # Finds the right extension.
         extension = os.path.splitext(os.path.basename(openfilename))[1].replace(".","")
         return openfilename, extension
+
+
+    #################################################################
+    # Check correct files formats.                                  #
+    #################################################################
+
+    def is_sequence_file(self, file_path, file_format, show_error=True):
+        """
+        Try to open a sequence file using Biopython. Returns 'True' if the file is a valid file of
+        the format specified in the 'file_format' argument.
+        """
+        valid_file = False
+        file_handler = None
+        try:
+            file_handler = open(file_path,"r")
+            r = list(Bio.SeqIO.parse(file_handler, file_format))
+            if len(r) > 0:
+                valid_file = True
+        except:
+            valid_file = False
+        if file_handler != None:
+            file_handler.close()
+        return valid_file
 
 
     def is_valid_structure_file(self,file_name, format="pdb", show_error=True):
@@ -1680,6 +1279,53 @@ class PyMod:
             self.show_error_message(title,message)
         return valid_pdb
 
+    #################################################################
+    # Load sequence files.                                          #
+    #################################################################
+
+    def open_sequence_file(self, file_full_path, file_format="fasta", grid=False):
+        """
+        Method for loading in PyMod new sequences parsed from sequence files.
+        """
+        if not self.is_sequence_file(file_full_path, file_format):
+            raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
+        fn = open(file_full_path, "rU")
+        # Parses a fasta file through Biopython. This will automatically crop headers that have " "
+        # (space) characters.
+        new_pymod_elements = []
+        for record in SeqIO.parse(fn, file_format):
+            # Then builds a PyMod_element object and add it to the 'pymod_elements_list'.
+            c = self.build_pymod_element_from_seqrecord(record)
+            new_pymod_elements.append(c)
+            self.add_element_to_pymod(c)
+        fn.close()
+        # Shows the new elements in PyMod main window.
+        if grid:
+            self.gridder()
+
+
+    def build_cluster_from_alignment_file(self, alignment_file, extension="fasta", grid=False):
+        """
+        Creates a cluster with all the sequences contained in an alignment file.
+        """
+        # Gets the sequences using Biopython.
+        aligned_elements = []
+        fh = open(alignment_file, "rU")
+        records = SeqIO.parse(fh, extension)
+        for record in records:
+            new_child_element = self.build_pymod_element_from_seqrecord(record)
+            self.add_element_to_pymod(new_child_element)
+            aligned_elements.append(new_child_element)
+        fh.close()
+        self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
+        if grid:
+            self.gridder()
+
+
+
+    #################################################################
+    # Opening PDB files.                                            #
+    #################################################################
 
     def open_structure_file(self,pdb_file_full_path, file_format="pdb", grid=False):
         """
@@ -1728,7 +1374,7 @@ class PyMod:
         self.fetch_pdb_dialog.component("message").configure(justify="left")
         self.fetch_pdb_dialog.configure(command=self.fetch_pdb_files_state)
 
-    # elaion!
+    # TODO!
     def fetch_pdb_files_state(self, dialog_choice):
         self.fetch_pdb_dialog.withdraw()
         # Interrupt the process if users close the dialog window.
@@ -1846,7 +1492,7 @@ class PyMod:
         self.associate_structure_window.align_widgets(15)
 
 
-    # elaion!
+    # TODO!!
     def associate_structure_state(self):
         # Checks if a correct structure file has been provided as input.
         if not self.select_associate_chain:
@@ -1897,7 +1543,7 @@ class PyMod:
         message = "The amminoacid sequences of the target chain and the chain in the PDB structure do not match."
         self.show_error_message(title, message, parent_window = parent_window)
 
-    # elaion!
+    # TODO!!
     def associate_structure(self, parsed_pdb_file, chain_id, pymod_element):
         """
         Gets a 'Parsed_pdb_file' object and a 'PyMod_element' object as arguments, and associates
@@ -1984,6 +1630,124 @@ class PyMod:
 
     def show_pdb_info(self):
         self.work_in_progress()
+
+
+    #################################################################
+    # Build PyMod elements.                                         #
+    #################################################################
+
+    def build_pymod_element_from_seqrecord(self, seqrecord):
+        """
+        Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
+        to the it.
+        """
+        new_element = pmel.PyMod_sequence(str(seqrecord.seq), seqrecord.id, full_original_header=seqrecord.description)
+        return new_element
+
+
+    def build_pymod_element_from_hsp(self, hsp):
+        """
+        Gets a hsp dictionary containing a Biopython 'HSP' class object and returns a
+        'PyMod_element' object corresponding to the subject in the HSP.
+        """
+        # Gives them the query mother_index, to make them its children.
+        # record_header = self.correct_name(hsp["title"])
+        record_header = hsp["title"]
+        # TODO: use only Biopython objects.
+        cs = pmel.PyMod_sequence(str(hsp["hsp"].sbjct), record_header, full_original_header=hsp["title"])
+        return cs
+
+
+    def add_element_to_pymod(self, element, load_in_pymol=False, color=None):
+        """
+        Used to add elements to the pymod_elements_list. Once an element is added to
+        'pymod_elements_list' by this method, it will be displayed in the PyMod main window.
+        """
+        self.root_element.add_children(element) # Adds the element to the root_element.
+        self.main_window.add_pymod_element_widgets(element)
+        element.unique_index = self.unique_index
+        self.unique_index += 1
+        if load_in_pymol:
+            self.load_element_in_pymol(element)
+
+
+    def load_element_in_pymol(self, element, mode = None):
+        """
+        Loads the PDB structure of the chain into PyMol.
+        """
+        file_to_load = element.structure.get_file()
+        pymol_object_name = element.structure.get_pymol_object_name()
+        cmd.load(file_to_load, pymol_object_name)
+        # chain_root_name = element.build_chain_selector_for_pymol()
+        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
+        # cmd.load(file_name_to_load)
+        # cmd.select("last_prot", chain_root_name)
+        # cmd.hide("everything", "last_prot")
+        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
+        # if mode == "model":
+        #     cmd.color("white", "last_prot")
+        # else:
+        #     cmd.color(element.my_color, "last_prot")
+        # cmd.util.cnc("last_prot") # Colors by atom.
+        # cmd.center('last_prot')
+        # cmd.zoom('last_prot')
+        # cmd.delete("last_prot")
+
+
+    def add_new_cluster_to_pymod(self, cluster_type="generic", query=None, cluster_name=None, child_elements=[], algorithm=None, update_stars=True):
+
+        # # Adds the query to the new "BLAST cluster".
+        # self.add_to_mother(blast_cluster_element, self.blast_query_element)
+        # self.mark_as_query(self.blast_query_element)
+        if not cluster_type in ("alignment", "blast-cluster", "generic"):
+            raise Exception("Invalid cluster type.")
+
+        # Increase the global count of clusters of the type provided in the 'cluster_type' argument.
+        if cluster_type == "alignment":
+            self.alignment_count += 1
+        elif cluster_type == "blast-cluster":
+            self.blast_cluster_counter += 1
+
+        # Sets the name of the cluster.
+        if cluster_name == None:
+            if cluster_type == "alignment":
+                cluster_name = self.set_alignment_element_name(algorithm, self.alignment_count)
+            elif cluster_type == "blast-cluster":
+                cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.get_compact_header())
+
+        # Sets the algorithm.
+        if cluster_type == "blast-cluster":
+            algorithm = "blast-pseudo-alignment"
+        elif algorithm == None:
+            algorithm = "?"
+
+        # TODO: reimplement this.
+        # Sets the leader of the cluster.
+        # if cluster_type == "blast-cluster" and query != None:
+        #     self.mark_as_query(query)
+
+        # Creates a cluster element.
+        # Adds the sequences to the new alignment cluster.
+        cluster_element = pmel.PyMod_cluster(sequence="...", # Sets a temporary sequence.
+                                             header=cluster_name,
+                                             full_original_header=None,
+                                             color="white",
+                                             algorithm=algorithm,
+                                             cluster_id=self.alignment_count)
+                                             #    adjust_header=False) TODO: what to do here?
+
+        # Add the new cluster element to PyMod.
+        self.add_element_to_pymod(cluster_element)
+
+        # Add the children, if some were supplied in the argument.
+        if child_elements != []:
+            cluster_element.add_children(child_elements)
+            # Computes the stars of the new alignment element.
+            if update_stars:
+                self.update_stars(cluster_element)
+
+        return cluster_element
+
 
     #################################################################
     # Saving files.                                                 #
@@ -2081,6 +1845,252 @@ class PyMod:
         "aligned_elements".
         """
         self.build_sequences_file(aligned_elements, file_name, file_format="fasta", remove_indels=False,first_element=first_element)
+
+    ###############################################################################################
+    # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
+    ###############################################################################################
+
+    def gridder(self):
+        """
+        Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
+        """
+        #-------------------------------------------------------------------------
+        # Assigns the grid indices and grids the widgets with their new indices. -
+        #-------------------------------------------------------------------------
+        self.grid_row_index = 0
+        self.grid_column_index = 0
+        for pymod_element in self.root_element.get_children():
+            self.grid_descendants(pymod_element)
+            self.grid_row_index += 1
+
+
+    def grid_descendants(self, pymod_element):
+        """
+        Grid a single element and all its descendants.
+        """
+        if pymod_element.is_mother():
+            self.grid_column_index += 1
+            self.grid_element(pymod_element)
+            if self.main_window.dict_of_elements_widgets[pymod_element].show_children:
+                for child_element in self.get_children(pymod_element):
+                    self.grid_descendants(child_element)
+            self.grid_column_index -= 1
+        else:
+            self.grid_element(pymod_element)
+
+
+    def grid_element(self, pymod_element):
+        """
+        Grids a single element.
+        """
+        self.main_window.set_grid_row_index(pymod_element, self.grid_row_index)
+        self.main_window.set_grid_column_index(pymod_element, self.grid_column_index)
+        self.grid_row_index += 1
+        self.main_window.show_widgets(pymod_element)
+
+
+    def print_selected(self):
+        print "###"
+        print "# Selected list:"
+        print "\n".join([s.my_header for s in self.get_selected_sequences()])
+
+
+    ###################################################################
+    # Move elements up and down by one position in PyMod main window. #
+    ###################################################################
+
+    def move_elements(self, direction, elements_to_move=None):
+        """
+        Move 'up' or 'down' by a single position a series of elements in PyMod main window.
+        """
+        # Gets the elements to move.
+        if elements_to_move == None:
+            elements_to_move = self.get_selected_elements()
+        # Allow to move elements on the bottom of the list.
+        if direction == "down":
+            elements_to_move.reverse()
+        # Temporarily adds 'None' elements to the list, so that multiple elements at the top or
+        # bottom of container lists can be moved correctly.
+        containers_set = set([e.mother for e in elements_to_move if not e.mother.selected]) # in elements_to_move
+        for container in containers_set:
+            container.list_of_children.append(None)
+            container.list_of_children.insert(0, None)
+        # Actually move the elements in their container lists.
+        for element in elements_to_move:
+            if not element.mother.selected:
+                self.move_single_element(direction, element, element.mother.get_children())
+        # Remove the 'None' values added before.
+        for container in containers_set:
+            container.list_of_children = filter(lambda e: e != None, container.list_of_children)
+        # Shows the the elements in the new order.
+        if elements_to_move != []:
+            self.gridder()
+
+
+    def move_single_element(self, direction, element, container_list):
+        """
+        Move 'up' or 'down' by a single position a single element in a list.
+        """
+        change_index = 0
+        old_index = container_list.index(element)
+        if direction == "up":
+            # Prevents the item to be moved to the bottom of the list.
+            if old_index == 0:
+                return None
+            change_index -= 1
+        elif direction == "down":
+            # if old_index == len(container_list) - 1:
+            #     return None
+            change_index += 1
+        self.change_list_index(element, container_list, old_index + change_index)
+
+
+    def change_list_index(self, element, container_list, new_index):
+        old_index = container_list.index(element)
+        container_list.insert(new_index, container_list.pop(old_index))
+
+
+    ###############################################################################################
+    # OTHER.                                                                                      #
+    ###############################################################################################
+
+    #################################################################
+    # Add new sequences.                                            #
+    #################################################################
+
+    def raw_seq_input(self):
+        """
+        Launched when the user wants to add a new sequence by directly typing it into a Text entry.
+        """
+        pass
+        # def show_menu(e):
+        #     w = e.widget
+        #     the_menu.entryconfigure("Paste",
+        #     command=lambda: w.event_generate("<<Paste>>"))
+        #     the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
+        #
+        # # This is called when the SUBMIT button packed below is pressed.
+        # def submit():
+        #     def special_match(strg, search=re.compile(r'[^A-Z-]').search):
+        #         return not bool(search(strg))
+        #     def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
+        #         return not bool(search2(strg))
+        #     sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
+        #     if special_match(sequence) and len(sequence):
+        #         if len(seq_name.get()) and name_match(seq_name.get()):
+        #             c = PyMod_element(sequence, seq_name.get(),
+        #                 element_type="sequence")
+        #             self.add_element_to_pymod(c,"mother")
+        #             self.raw_seq_window.destroy()
+        #             self.gridder()
+        #         else:
+        #             title = 'Name Error'
+        #             message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
+        #             self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
+        #     else:
+        #         title = 'Sequence Error'
+        #         message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
+        #         self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
+        #
+        # self.raw_seq_window = pmgi.PyMod_tool_window(self.main_window,
+        #     title = "Add Raw Sequence",
+        #     upper_frame_title = "Type or Paste your Sequence",
+        #     submit_command = submit)
+        #
+        # L1 = Label(self.raw_seq_window.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
+        # L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
+        #
+        # # Creates an Entry for the name of the new sequence.
+        # seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
+        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.fixed_width_font)
+        # seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
+        # seq_name.focus_set()
+        # seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
+        #
+        # L2 = Label(self.raw_seq_window.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
+        # L2.grid( row=1, column=0, sticky="ne", ipadx=0, padx=5)
+        #
+        # scrollbar = Scrollbar(self.raw_seq_window.midframe)
+        # scrollbar.grid(row=1, column=2, sticky="ns")
+        #
+        # # Creates an Entry widget for the sequence.
+        # textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
+        #               font = "%s 12" % pmgi.fixed_width_font, height=10,
+        #               bd=0, foreground = 'black',
+        #               background = 'white', selectbackground='black',
+        #               selectforeground='white', width = 60)
+        # textarea.config(state=NORMAL)
+        # textarea.tag_config("normal", foreground="black")
+        # textarea.grid( row=1, column=1, sticky="nw", padx=0)
+        # textarea.bind("<Button-3><ButtonRelease-3>", show_menu)
+        # scrollbar.config(command=textarea.yview)
+        #
+        # the_menu = Menu(seq_name, tearoff=0)
+        # the_menu.add_command(label="Paste")
+
+
+    #################################################################
+    # Transfer alignment files.                                      #
+    #################################################################
+
+    def transfer_alignment(self,alignment_element):
+        """
+        Changes the sequences of the elements contained in a PyMod cluster according to the
+        information presente in an externally supplied file (chosen by users through a file diaolog)
+        containing the same sequences aligned in a different way. Right now it supports transfer
+        only for sequences having the exactly same sequences in PyMod and in the external alignment.
+        """
+        pass
+        # # Let users choose the external alignment file.
+        # openfilename, extension = self.choose_alignment_file()
+        # if None in (openfilename, extension):
+        #     return False
+        #
+        # # Sequences in the aligment currently loaded into PyMod.
+        # aligned_elements = self.get_children(alignment_element)
+        #
+        # # Sequences in the alignment files.
+        # fh = open(openfilename, "rU")
+        # external_records = list(SeqIO.parse(fh, extension))
+        # fh.close()
+        #
+        # if len(external_records) < len(aligned_elements):
+        #     title = "Transfer error"
+        #     message = "'%s' has more sequences (%s) than the alignment in '%s' (%s) and the 'Transfer Alignment' function can't be used in this situation." % (alignment_element.my_header, len(aligned_elements), openfilename, len(external_records))
+        #     self.show_error_message(title,message)
+        #     return False
+        #
+        # correspondance_list = []
+        # # First try to find sequences that are identical (same sequence and same lenght) in both
+        # # alignments.
+        # for element in aligned_elements[:]:
+        #     identity_matches = []
+        #     for record in external_records:
+        #         if str(element.my_sequence).replace("-","") == str(record.seq).replace("-",""):
+        #             match_dict = {"target-seq":element, "external-seq": record, "identity": True}
+        #             identity_matches.append(match_dict)
+        #     if len(identity_matches) > 0:
+        #         correspondance_list.append(identity_matches[0])
+        #         aligned_elements.remove(identity_matches[0]["target-seq"])
+        #         external_records.remove(identity_matches[0]["external-seq"])
+        #
+        # # Then try to find similar sequences among the two alignments. Right now this is not
+        # # implemented.
+        # # ...
+        #
+        # if not len(aligned_elements) == 0:
+        #     title = "Transfer error"
+        #     message = "Not every sequence in the target alignment has a corresponding sequence in the external alignment."
+        #     self.show_error_message(title,message)
+        #     return False
+        #
+        # # Finally transfer the sequences.
+        # for match in correspondance_list[:]:
+        #     if match["identity"]:
+        #         match["target-seq"].my_sequence = str(match["external-seq"].seq)
+        #         correspondance_list.remove(match)
+        #
+        # self.gridder()
 
 
     ###############################################################################################
@@ -8528,7 +8538,7 @@ class PyMod:
             model_name = str(self.get_model_number()+1)+"_"+self.modeller_target_name
             self.models_file_name_dictionary.update({model['name'] : model_name})
             # Parses tge PDB fiel fo the model.
-            # elaion!
+            # TODO!!
             model_pdb_file = Parsed_pdb_file(model_file_shortcut)
             model_pdb_file.copy_to_structures_directory()
             model_pdb_file.parse_pdb_file()
@@ -8939,48 +8949,3 @@ class PyModInvalidFile(Exception):
     Used when a sequence or structure file containing some error is opened.
     """
     pass
-
-
-###################################################################################################
-# APPUNTI.                                                                                        #
-###################################################################################################
-
-
-# !WORKING!
-# - strutture e interazione con PyMOL!
-# - controlla "elaion".
-
-# - cluster leaders.
-# - quando si chiama gridder, deselezionare tutte le sequenze, o fare un metodo per deselezionare
-#   senza chiamare gridder.
-
-# - nomi, annotazioni e strutture; nomi delle sequenze e delle strutture.
-
-# - strutture e interazione con PyMOL
-
-# - colorazione.
-
-# - ordinare il codice di pymod_main.
-
-# - eventi di interazione con le sequenze.
-#       - drag con update dei sibling solo su 'on-release'.
-
-# - processi asincroni
-
-# - BLAST fatto bene (con download database?)
-
-# - allineamenti
-
-# - DOPE
-
-# - MODELLER
-
-# - reimplementare il resto.
-
-# TODO: implementazione delle nuove classi per le strutture.
-# TODO: implementazione delle nuove classi per le sequenze.
-# TODO: ripristina tutte le funzionalita' del programma.
-# TODO: cerca sempre i TODO nel testo.
-# TODO: nuova interfaccia.
-# TODO: nuove funzioni CAMPO.
-# TODO: nuove funzioni di MODELLER.
