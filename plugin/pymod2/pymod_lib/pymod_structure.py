@@ -224,7 +224,6 @@ class PyMod_structure:
     def __init__(self, chain_file_path):
         self.original_chain_file_path = chain_file_path
 
-
     def get_file(self):
         return self.original_chain_file_path
 

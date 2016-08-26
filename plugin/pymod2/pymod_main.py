@@ -699,6 +699,7 @@ class PyMod:
         self.open_structure_file(os.path.join(seqs_dir,"structures/5jdp.pdb"))
         self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
         self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
+        self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"), "fasta")
 
         # t = 1
         # self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
@@ -1703,8 +1704,8 @@ class PyMod:
         """
         Loads the PDB structure of the chain into PyMol.
         """
-        file_to_load = element.structure.get_file()
-        pymol_object_name = element.structure.get_pymol_object_name()
+        file_to_load = element.get_structure_file()
+        pymol_object_name = element.get_pymol_object_name()
         cmd.load(file_to_load, pymol_object_name)
         # chain_root_name = element.build_chain_selector_for_pymol()
         # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")

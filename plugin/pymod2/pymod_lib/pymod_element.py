@@ -139,9 +139,20 @@ class PyMod_element:
             return filter(lambda c: c != self, self.mother.list_of_children)
 
 
-    ##################
-    # Cluster leads. #
-    ##################
+    #################################################################
+    # Check element properties.                                     #
+    #################################################################
+
+    def has_structure(self):
+        """
+        This will be overridden in 'PyMod_sequence_element' classes.
+        """
+        return False
+
+
+    #################################################################
+    # Cluster leads.                                                #
+    #################################################################
 
     def set_as_lead(self):
         self.lead = True
@@ -295,6 +306,7 @@ class PyMod_sequence_element(PyMod_element):
             res.index = i
             if res.db_index == None:
                 res.db_index = i + 1
+            res.pymod_element = self
 
 
     def get_residue_by_index(self, index, aligned_sequence_index=False):
@@ -302,6 +314,25 @@ class PyMod_sequence_element(PyMod_element):
             index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
         return self.residues[index]
 
+
+    ###############################################################################################
+    # Interactions with PyMOL.                                                                    #
+    ###############################################################################################
+
+    def check_structure(method):
+        def checker(self):
+            if not self.has_structure():
+                raise PyModMissingStructure("The element does not have a structure.")
+            return method(self)
+        return checker
+
+    @check_structure
+    def get_structure_file(self):
+        return self.structure.get_file()
+
+    @check_structure
+    def get_pymol_object_name(self):
+        return self.structure.get_pymol_object_name()
 
     ################################
     # def set_sequence(self, sequence, adjust_sequence=True):
@@ -367,6 +398,8 @@ class PyMod_residue:
         self.index = index
         self.db_index = db_index # index+1
 
+        self.pymod_element = None
+
         ##########################
         # # Gets the 3 letter name of the current residue.
         # resname = residue.get_resname()
@@ -378,11 +411,33 @@ class PyMod_residue:
         # pdb_position = residue_id[1]
         ##########################
 
-    def is_residue(self):
+    def is_residue(self): # TODO: rename this to something more clear.
         """
         Check if the residue is part of a polymer chain, or a ligand molecule/atom.
         """
         return True
+
+
+    def check_structure(method):
+        """
+        Check if the corresponding PyMod element has a structure associated in PyMOL.
+        """
+        def checker(self):
+            if not self.pymod_element.has_structure():
+                raise PyModMissingStructure("The element to which the residue belongs does not have a structure.")
+            return method(self)
+        return checker
+
+
+    @check_structure
+    def get_pymol_selector(self):
+        """
+        Gets the correspondig selector in PyMOL.
+        """
+        # Selectors that work:
+        #     #     /1UBI_Chain_A//A/LEU`43/CA
+        #     #     1UBI_Chain_A and resi 43
+        return "%s and resi %s" % (self.pymod_element.get_pymol_object_name(), self.db_index)
 
 
 class PyMod_heteroresidue(PyMod_residue):
@@ -443,3 +498,11 @@ class PyMod_heteroresidue(PyMod_residue):
 #
 #     def __repr__(self):
 #         return self.symbol
+
+
+###################################################################################################
+# EXCEPTIONS.                                                                                     #
+###################################################################################################
+
+class PyModMissingStructure(Exception):
+    pass

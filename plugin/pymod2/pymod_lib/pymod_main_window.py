@@ -8,9 +8,10 @@ import Pmw
 import os
 import sys
 
+import pymol
+from pymol import cmd
+
 import pymod_gui as pmgi
-# Provides functionalities to some widgets.
-import pymod_sequence_manipulation as pmsm
 import pymod_vars as pmdt
 
 import time
@@ -831,10 +832,8 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.bind("<Button-1>", self.on_header_left_click)
         self.bind("<B1-Motion>", self.on_header_left_drag)
         self.bind("<Motion>", self.show_sequence_message_bar_text)
-
+        self.bind("<Button-2>", self.click_structure_with_middle_button)
         if 0:
-            if self.pymod_element.has_structure():
-                self.bind("<Button-2>", self.click_structure_with_middle_button)
             self.bind("<ButtonRelease-3>", self.on_header_right_click)
 
 
@@ -864,21 +863,23 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             pass
 
 
-    # def click_structure_with_middle_button(self,event=None):
-    #         # Shows the structure and centers if the sequence is selected in Pymod.
-    #         if self.selected:
-    #             """
-    #             active_in_pymol = True
-    #             if active_in_pymol:
-    #                 # Centers the structure.
-    #                 self.center_chain_in_pymol()
-    #                 else:
-    #             """
-    #             self.show_chain_in_pymol()
-    #             self.center_chain_in_pymol()
-    #         # If the sequence is not selected in Pymod, hide it in PyMOL.
-    #         else:
-    #             self.hide_chain_in_pymol()
+    def click_structure_with_middle_button(self,event=None):
+        if self.pymod_element.has_structure():
+            # Shows the structure and centers if the sequence is selected in Pymod.
+            if self.pymod_element.selected:
+                """
+                active_in_pymol = True
+                if active_in_pymol:
+                    # Centers the structure.
+                    self.center_chain_in_pymol()
+                    else:
+                """
+                self.show_chain_in_pymol_from_header_entry()
+                self.center_chain_in_pymol_from_header_entry()
+            # If the sequence is not selected in Pymod, hide it in PyMOL.
+            else:
+                self.hide_chain_in_pymol_from_header_entry()
+
 
     def on_header_right_click(self,event):
         """
@@ -891,6 +892,25 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         # popup_menu.grab_release()
         self["disabledbackground"] = 'black'
 
+
+    #################################################################
+    # Interact with the chain in PyMOL.                             #
+    #################################################################
+
+    # def select_chain_in_pymol(self,selection_name="pymod_selection"):
+    #     sel = self.build_chain_selector_for_pymol(None)
+    #     cmd.select(selection, sel)
+
+    def center_chain_in_pymol_from_header_entry(self):
+        cmd.center(self.pymod_element.get_pymol_object_name())
+
+    def hide_chain_in_pymol_from_header_entry(self):
+        # Use enable or disable?
+        cmd.disable(self.pymod_element.get_pymol_object_name())
+
+    def show_chain_in_pymol_from_header_entry(self):
+        cmd.enable(self.pymod_element.get_pymol_object_name())
+        
 
     #################################################################
     # Builds the header popup menu.                                 #
@@ -1413,6 +1433,7 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     ###############################################################################################
     # Display the text.                                                                           #
     ###############################################################################################
+
     def build_text_to_display(self):
         """
         This method displayes the sequence of an element by inserting it the ".sequence_entry" Text
@@ -1452,16 +1473,20 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         # self.sequence_entry.bind("<ButtonRelease-1>", self.on_sequence_left_release)
         # self.sequence_entry.bind("<Enter>", self.enter_entry)
         # # Centers and selects the residue in PyMOL by clicking on it with the middle mouse button.
-        # if self.has_structure():
-        #     self.sequence_entry.bind("<Button-2>", self.click_residue_with_middle_button)
+        self.bind("<Button-2>", self.click_residue_with_middle_button)
         # self.sequence_entry.bind("<ButtonRelease-3>", self.on_sequence_right_click)
 
 
     def leave_entry(self,event):
         self.unbind("<B1-Motion>")
 
-    ###############################################################################################
-    def get_highlighted_residue_position(self, res_alignment_id=False, pdb_position=False):
+
+    #################################################################
+    # Get information about the currently position of the sequence  #
+    # currently highlighted with the mouse.                         #
+    #################################################################
+
+    def get_highlighted_residue_position(self): # TODO: necessary? -> res_alignment_id=False, pdb_position=False):
         """
         Returns the position of the residue currently highlighted with the mouse in the PyMod main
         window. If 'res_alignment_id' is set to 'True' it will return the id of that residue in the
@@ -1483,8 +1508,10 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     def get_highlighted_residue_index(self):
         return int(self.index(CURRENT).split(".")[1])
 
+
     def get_highlighted_residue_letter(self):
         return self.get(CURRENT)
+
 
     def get_highlighted_residue(self):
         """
@@ -1494,8 +1521,21 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         # print ri, len(self.pymod_element.residues)
         # return self.pymod_element.get_residue_by_index(ri)
         return self.pymod_element.get_residue_by_index(self.get_highlighted_residue_index(), aligned_sequence_index=True)
-    ###############################################################################################
 
+
+    def is_current_position_indel(self):
+        """
+        Check if the current hilighted residue is an indel.
+        """
+        if self.get_highlighted_residue_letter() == "-":
+            return True
+        else:
+            return False
+
+
+    #################################################################
+    # Set the message bars text.                                    #
+    #################################################################
 
     def set_messagebar_info(self, event):
         """
@@ -1702,19 +1742,19 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     #     self.sequence_entry.insert("%s-1c" % END,"-"*(maxlength-seql))
     #     if update:
     #         self.update_sequence_from_entry()
-    #
-    #
-    # #######################################
-    # # Other methods needed to interact    #
-    # # with the sequences loaded into the  #
-    # # main window.                        #
-    # #######################################
-    #
-    # def click_residue_with_middle_button(self,event):
-    #     if not self.is_current_position_indel():
-    #         self.center_residue_in_pymol()
-    #         self.select_residue_in_pymol()
-    #
+
+
+    #################################################################
+    # Other methods needed to interact with the sequences loaded    #
+    # into the main window.                                         #
+    #################################################################
+
+    def click_residue_with_middle_button(self, event):
+        if self.pymod_element.has_structure() and not self.is_current_position_indel():
+            self.select_residue_in_pymol_from_sequence_text()
+            self.center_residue_in_pymol_from_sequence_text()
+
+
     # # A popup menu in the right frame to interact with the sequence
     # def on_sequence_right_click(self,event):
     #     if not self.is_current_position_indel():
@@ -1723,29 +1763,24 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     #         except:
     #             pass
     #         #popup_menu2.grab_release()
-    #
-    # ######################################
-    # # Some methods called in the above   #
-    # # events.                            #
-    # ######################################
-    #
-    # def is_current_position_indel(self):
-    #     """
-    #     Check if the current hilighted residue is an indel.
-    #     """
-    #     if self.sequence_entry.get(CURRENT) == "-":
-    #         return True
-    #     else:
-    #         return False
 
-    # TODO: place here the 'get_highlighted_residue_position'.
 
-    # def get_pdb_index(self, position_index):
-    #     number_gaps = self.my_sequence[0:position_index].count('-')
-    #     position_index -= number_gaps
-    #     return self.structure.pdb_chain_sequence[position_index].pdb_position
-    #
-    #
+    ########################################
+    # Interact with the residues in PyMOL. #
+    ########################################
+
+    # TODO! Make a method that checks for errors in PyMOL, when selecting a residue.
+    #       Make a pymod_pymol_interactions module?
+    def select_residue_in_pymol_from_sequence_text(self):
+        res = self.get_highlighted_residue()
+        cmd.select("pymod_selection", res.get_pymol_selector())
+        # cmd.indicate("pymod_selection")
+
+    def center_residue_in_pymol_from_sequence_text(self,event=None):
+        res = self.get_highlighted_residue()
+        cmd.center(res.get_pymol_selector())
+
+
     # #################################################################
     # # Structure of the right pane popup menu.                       #
     # #################################################################
