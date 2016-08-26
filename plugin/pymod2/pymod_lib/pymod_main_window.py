@@ -1,3 +1,5 @@
+# TODO: order the methods among the classes and the main mixin.
+
 from Tkinter import *
 from tkFileDialog import *
 import tkMessageBox
@@ -57,7 +59,7 @@ class PyMod_main_window_mixin:
         # Updates and shows the sequence widgets. -
         #------------------------------------------
         # Adds buttons to clusters.
-        if pymod_element.is_cluster_element():
+        if pymod_element.is_cluster():
             pymod_element_widgets_group.cluster_button.grid(column = pymod_element_widgets_group.grid_column_index,
                                                             row = pymod_element_widgets_group.grid_row_index,
                                                             sticky='nw', padx=5, pady=0,ipadx=3,ipady=0)
@@ -82,7 +84,7 @@ class PyMod_main_window_mixin:
             pymod_element_widgets_group.header_entry.grid_forget()
             if pymod_element.is_child:
                 pymod_element_widgets_group.child_sign.grid_forget()
-            if pymod_element.is_cluster_element():
+            if pymod_element.is_cluster():
                 pymod_element_widgets_group.cluster_button.grid_forget()
             pymod_element_widgets_group.sequence_text.grid_forget()
         elif target == "sequence":
@@ -255,6 +257,18 @@ class PyMod_main_window_mixin:
     # #         self.deselect_element()
     # #     else:
     # #         self.select_element()
+
+
+    #################################################################
+    # Other events.                                                 #
+    #################################################################
+
+    def show_sequence_message_bar_text(self, event=None):
+        """
+        Allows to show the protein 'Sequence' message bar.
+        """
+        message_bar_text = "%s: %s" % (self.pymod_element.my_header, self.pymod_element.description)
+        self.pymod.main_window.sequence_name_bar.helpmessage(message_bar_text)
 
 
 class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
@@ -751,9 +765,9 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
         self.child_sign_var.set(child_sign)
 
 
-    ##########################
-    # Cluster button events. #
-    ##########################
+    #################################################################
+    # Cluster button events.                                        #
+    #################################################################
 
     def cluster_button_click(self, event):
         """
@@ -764,6 +778,7 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
             self.collapse_cluster(self.pymod_element)
         elif not self.show_children:
             self.expand_cluster(self.pymod_element)
+
 
 
 ###################################################################################################
@@ -815,6 +830,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     def bind_events_to_header_entry(self):
         self.bind("<Button-1>", self.on_header_left_click)
         self.bind("<B1-Motion>", self.on_header_left_drag)
+        self.bind("<Motion>", self.show_sequence_message_bar_text)
 
         if 0:
             if self.pymod_element.has_structure():
@@ -848,11 +864,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             pass
 
 
-    # # Allows to show the protein name in the bottom frame 'pymod.sequence_name_bar'
-    # def display_protname(self,event):
-    #         protein_name = self.full_original_header # self.header_entry.get()
-    #         pymod.sequence_name_bar.helpmessage(protein_name)
-    #
     # def click_structure_with_middle_button(self,event=None):
     #         # Shows the structure and centers if the sequence is selected in Pymod.
     #         if self.selected:
@@ -898,7 +909,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             activebackground='black', activeforeground='white', postcommand=self.update_left_popup_menu)
 
         # Builds a popup menu for sequence elements.
-        if not self.pymod_element.is_cluster_element():
+        if not self.pymod_element.is_cluster():
             self.build_single_sequence_header_popup_menu()
         # For cluster elements ("alignment" or "blast-search" elements).
         else:
@@ -917,10 +928,10 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         In order to make this work the "Selection" item always has to be in the last position in all
         kind of menus.
         """
-        if len(self.pymod.get_selected_sequences()) > 1: # and not self.is_cluster_element():
+        if len(self.pymod.get_selected_sequences()) > 1: # and not self.is_cluster():
             self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=NORMAL)
             self.build_selection_menu()
-        elif not self.pymod_element.is_cluster_element():
+        elif not self.pymod_element.is_cluster():
             self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=DISABLED)
 
 
@@ -1295,7 +1306,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         pymod.parent.clipboard_clear()
         text_to_copy = ""
         for element in pymod.pymod_elements_list:
-            if element.selected and not element.is_cluster_element():
+            if element.selected and not element.is_cluster():
                 # Adapt it for WINDOWS.
                 text_to_copy += element.my_sequence + "\n"
         pymod.parent.clipboard_append(text_to_copy)
@@ -1330,7 +1341,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     # Deletes many sequences.
     def delete_many_sequences(self):
         # First delete clusters that were entirely selected.
-        to_delete_list = [e for e in pymod.pymod_elements_list if e.selected and e.is_cluster_element()]
+        to_delete_list = [e for e in pymod.pymod_elements_list if e.selected and e.is_cluster()]
         for element in to_delete_list:
             pymod.delete_whole_cluster(element)
         to_delete_list = [e for e in pymod.pymod_elements_list if e.selected]
@@ -1399,9 +1410,9 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         self.bind_events_to_sequence_entry()
 
 
-    #################################################################
-    # Display the text.                                             #
-    #################################################################
+    ###############################################################################################
+    # Display the text.                                                                           #
+    ###############################################################################################
     def build_text_to_display(self):
         """
         This method displayes the sequence of an element by inserting it the ".sequence_entry" Text
@@ -1426,9 +1437,9 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         self.config(state=DISABLED)
 
 
-    #################################################################
-    # Binding for mouse events.                                     #
-    #################################################################
+    ###############################################################################################
+    # Binding for mouse events.                                                                   #
+    ###############################################################################################
 
     #################################################################
     # Mouse events and their bindings for the sequence Entry.       #
@@ -1471,6 +1482,18 @@ class Sequence_text(Text, PyMod_main_window_mixin):
 
     def get_highlighted_residue_index(self):
         return int(self.index(CURRENT).split(".")[1])
+
+    def get_highlighted_residue_letter(self):
+        return self.get(CURRENT)
+
+    def get_highlighted_residue(self):
+        """
+        Gets the id of the highlighted residue in the aligned sequence and returns the id of the
+        residue in the gapless sequence.
+        """
+        # print ri, len(self.pymod_element.residues)
+        # return self.pymod_element.get_residue_by_index(ri)
+        return self.pymod_element.get_residue_by_index(self.get_highlighted_residue_index(), aligned_sequence_index=True)
     ###############################################################################################
 
 
@@ -1479,57 +1502,27 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         Allows to show the protein name and the position of the residues in message bars at the
         bottom of PyMod main window.
         """
-        position_text = self.get_highlighted_residue_position()
-        position_text = str(position_text)
-        self.pymod.main_window.residue_bar.helpmessage(position_text)
 
-        if 0:
-            # Residues position (id +1) in the sequence.
-            sequence_position = self.get_highlighted_residue_position()
-            current_residue = self.sequence_entry.get(CURRENT)
-            is_residue = None
-            if current_residue in pmdt.protein_residues_set:
-                is_residue = True
-            else:
-                is_residue = False
+        #-------------------------------------------
+        # Updates the 'Position' message bar text. -
+        #-------------------------------------------
 
-            # Include the position in sequences (and the PDB position for structures).
-            position_text = ""
-            if is_residue:
-                if self.has_structure():
-                    sequence_index = self.get_highlighted_residue_position()
-                    residue_identifier = self.structure.pdb_chain_sequence[sequence_index-1].three_letter_code
-                    pdb_index = self.get_highlighted_residue_position(pdb_position=True)
-                    position_text = residue_identifier + " " + str(pdb_index) # + " (" + str(sequence_position) + ")"
-                else:
-                    residue_identifier = pymod.one2three(current_residue)
-                    position_text = residue_identifier + " " + str(sequence_position)
+        residue_messagebar_text = ""
+        if not self.pymod_element.is_cluster():
+            highlighted_residue = self.get_highlighted_residue()
+            three_letter_code = highlighted_residue.three_letter_code
+            residue_position = highlighted_residue.db_index
+            # if self.pymod_element.is_child():
+            #     self.pymod.main_window.residue_bar.helpmessage("%s:%s" % (self.get_highlighted_residue_index(), self.get_highlighted_residue_letter()))
+            # else:
+            #     self.pymod.main_window.residue_bar.helpmessage("%s:%s" % (self.get_highlighted_residue_index(), self.get_highlighted_residue_letter()))
+            residue_messagebar_text = "%s %s" % (three_letter_code, residue_position)
+        self.pymod.main_window.residue_bar.helpmessage(residue_messagebar_text)
 
-            # Also include the position for alignments.
-            if self.is_child:
-                if is_residue:
-                    position_text += " - "
-                position_text += ("Alignment: " + str(self.get_highlighted_residue_position(res_alignment_id=True)) )
-
-            # Get additional information (depending on the sequence current color scheme) to show in the
-            # message bar.
-            if is_residue:
-                if self.color_by == "campo-scores":
-                    score = self.campo_scores[sequence_position - 1]["campo-score"]
-                    position_text += " - CAMPO score: %s" % (score)
-                elif self.color_by == "secondary-predicted":
-                    prediction = self.psipred_elements_list[sequence_position - 1]
-                    pred_text = str(prediction["confidence"]) + " " +pmdt.psipred_element_dict[prediction["sec-str-element"]]
-                    position_text += " - PSIPRED confidence: %s" % (pred_text)
-                elif self.color_by == "dope":
-                    score = self.dope_items[sequence_position - 1]["dope-score"]
-                    position_text += " - DOPE score: %s" % (score)
-
-            pymod.residue_bar.helpmessage(position_text)
-
-            # Sequence name bar.
-            protein_name = self.full_original_header # self.header_entry.get()
-            pymod.sequence_name_bar.helpmessage(protein_name)
+        #-------------------------------------------
+        # Updates the 'Sequence' message bar text. -
+        #-------------------------------------------
+        self.show_sequence_message_bar_text()
 
 
     # #######################################
@@ -1556,7 +1549,7 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     #             sibling.sequence_entry.config(state=DISABLED)
     #
     # def enter_entry(self,event):
-    #     if not self.is_cluster_element():
+    #     if not self.is_cluster():
     #         self.sequence_entry.bind("<B1-Motion>", self.on_motion)
     #
     # # Allows to insert/remove gaps '-' dragging the mouse

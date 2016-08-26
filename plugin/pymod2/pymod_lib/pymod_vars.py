@@ -7,16 +7,12 @@ sequence_alignment_tools = ("clustalw", "clustalo", "muscle","salign-seq")
 # And structural alignments.
 structural_alignment_tools = ("ce", "salign-str")
 
-# Alignment programs and their full names.
-alignment_programs_full_names = {}
-
 # Dictionaries for algorithms names.
-blast_algorithms_dictionary = {
+algorithms_full_names_dict = {
+    # Similarity searches.
     "blast": "NCBI BLAST",
-    "psi-blast": "PSI-BLAST"
-}
-
-alignment_programs_full_names_dictionary = {
+    "psi-blast": "PSI-BLAST",
+    # Alignments.
     "clustalw": "ClustalW",
     "clustalo": "Clustal Omega",
     "muscle": "MUSCLE",
@@ -25,27 +21,59 @@ alignment_programs_full_names_dictionary = {
     "ce": "CE-alignment"
 }
 
-psipred_output_extensions = (".ss2",".horiz")
 
+#-----------------------------------
+# File formats supported in PyMod. -
+#-----------------------------------
 
-# Sequence file types.
-supported_sequence_file_types = {"fasta":"FASTA", "genbank": "GenPept"}
-sequence_file_types = [("FASTA","*.fasta"), ("GenPept","*.gp")]
-all_sequence_file_types = sequence_file_types[:]
-all_sequence_file_types.insert(0, ("All Formats",tuple([f[1:] for f in sequence_file_types])))
+class File_type:
+    def __init__(self, format_id, full_name, extensions, data_types):
+        self.id = format_id
+        self.full_name = full_name
+        self.extensions = extensions
+        self.data_types = data_types
+
+def build_askopenfilename_tuples_list(file_types):
+    """
+    Builds a list of tuples which can be used by askopenfilename of Tkinter. Returns something like:
+    [("FASTA","*.fasta"), ("Clustal","*.aln")].
+    """
+    tuples_list = []
+    for ft in file_types:
+        for ext in ft.extensions:
+            tuples_list.append((ft.full_name, "*.%s" % ext))
+    return tuples_list
+
+def add_all_askopenfilename_tuple(askopenfilename_tuples_list):
+    new_askopenfilename_tuples_list = askopenfilename_tuples_list[:]
+    new_askopenfilename_tuples_list.insert(0, ("All Formats",tuple([f[1:] for f in askopenfilename_tuples_list])))
+    return new_askopenfilename_tuples_list
+
+supported_file_types = [
+    # Sequence.
+    File_type(format_id = "fasta", full_name = "FASTA", extensions = ["fasta","fa"], data_types = ["sequence","alignment"]),
+    File_type("genbank","GenPept",["gp"],["sequence"]),
+    # Alignment.
+    File_type("clustal","Clustal",["aln","clu"],["alignment"]),
+    File_type("stockholm","Stockholm",["sto","sth"],["alignment"]),
+    # Structure.
+    File_type("pdb","PDB",["pdb","ent"],["structure"]),
+]
+
+# Sequences.
+sequence_file_types_atl = build_askopenfilename_tuples_list(filter(lambda ft: "sequence" in ft.data_types, supported_file_types))
+all_sequence_file_types_atl = add_all_askopenfilename_tuple(sequence_file_types_atl)
 # Structure file types.
-structure_file_types = [("PDB","*.pdb"), ("ent","*.ent")]
-all_structure_file_types = structure_file_types[:]
-all_structure_file_types.insert(0, ("All Formats",tuple([f[1:] for f in structure_file_types])))
+structure_file_types_atl = build_askopenfilename_tuples_list(filter(lambda ft: "structure" in ft.data_types, supported_file_types))
+all_structure_file_types_atl = add_all_askopenfilename_tuple(structure_file_types_atl)
 # All formats currently supported by PyMod and which can be opened in the 'Open from File'.
-supported_file_types = []
-supported_file_types.extend(sequence_file_types)
-supported_file_types.extend(structure_file_types)
-supported_file_types.insert(0, ("All Formats",tuple([f[1:] for f in supported_file_types])))
+all_file_types_atl = []
+all_file_types_atl.extend(sequence_file_types_atl)
+all_file_types_atl.extend(structure_file_types_atl)
+all_file_types_atl = add_all_askopenfilename_tuple(all_file_types_atl)
 # Alignment file formats.
-alignment_file_formats = [("FASTA","*.fasta"), ("Clustal","*.aln")]
-all_alignment_file_formats = alignment_file_formats[:]
-all_alignment_file_formats.insert(0, ("All Formats",tuple([f[1:] for f in alignment_file_formats])))
+alignment_file_formats_atl = build_askopenfilename_tuples_list(filter(lambda ft: "alignment" in ft.data_types, supported_file_types))
+all_alignment_file_formats_atl = add_all_askopenfilename_tuple(alignment_file_formats_atl)
 
 # The keys are the name of the alignment file format and values are the extension for those
 # alignment file.
@@ -55,13 +83,21 @@ alignment_extensions_dictionary = {
     "clustal": "aln",
     "pymod":   "txt"}
 
-# Use to interact with the GUI.
+#------------
+# GUI data. -
+#------------
 yesno_dict = {"Yes":True, "No":False}
 
+#----------------------
+# Tool specific data. -
+#----------------------
+
+# PSIPRED.
+psipred_output_extensions = (".ss2",".horiz")
 psipred_element_dict = {"H": "alpha helix", "E": "beta sheet", "C": "aperiodic"}
-
+# Tree building.
 tree_building_alg_dict = {"Neighbor Joining": "nj", "UPGMA": "upgma"}
-
+# BLAST.
 ncbi_databases = [("Nr", "nr"), ("Pdb", "pdb"), ("SwissProt", "swissprot"),
                        ("Yeast", "yeast"), ("E. coli", "E. coli"), ("Patents", "patents"),
                        ("Month", "month"), ("Kabat", "kabat"), ("Alu", "alu")]
@@ -295,3 +331,52 @@ nucleic_acids_dictionary = {
     '  A':'a','  U':'u','  G':'g','  C':'c'
     }
 code_standard.update(nucleic_acids_dictionary)
+
+
+##################################################
+# Updated data dictionaries for the new version. #
+##################################################
+
+#------------
+# Proteins. -
+#------------
+
+# One letter.
+prot_standard_one_letter = ("A","C","D","E","F","G","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y")
+prot_standard_one_letter_set = set(prot_standard_one_letter)
+prot_standard_and_x_one_letter = ("A","C","D","E","F","G","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y","X")
+prot_standard_and_x_one_letter_set = set(prot_standard_and_x_one_letter)
+
+# Three letters.
+prot_standard_three_letters = ("ALA","CYS","ASP","GLU","PHE","GLY","HIS","ILE","LYS","LEU","MET","ASN","PRO","GLN","ARG","SER","THR","VAL","TRP","TYR")
+prot_standard_three_letters_set = set(prot_standard_three_letters)
+prot_standard_and_x_three_letters = ("ALA","CYS","ASP","GLU","PHE","GLY","HIS","ILE","LYS","LEU","MET","ASN","PRO","GLN","ARG","SER","THR","VAL","TRP","TYR","XXX")
+prot_standard_and_x_three_letters_set = set(prot_standard_and_x_three_letters)
+
+# Dictionaries.
+prot_standard_one_to_three_dict = {
+    "G": "GLY", "A": "ALA", "L": "LEU", "I": "ILE", "R": "ARG", "K": "LYS", "M": "MET", "C": "CYS",
+    "Y": "TYR", "T": "THR", "P": "PRO", "S": "SER", "W": "TRP", "D": "ASP", "E": "GLU", "N": "ASN",
+    "Q": "GLN", "F": "PHE", "H": "HIS", "V": "VAL"
+}
+prot_standard_and_x_one_to_three_dict = {
+    "G": "GLY", "A": "ALA", "L": "LEU", "I": "ILE", "R": "ARG", "K": "LYS", "M": "MET", "C": "CYS",
+    "Y": "TYR", "T": "THR", "P": "PRO", "S": "SER", "W": "TRP", "D": "ASP", "E": "GLU", "N": "ASN",
+    "Q": "GLN", "F": "PHE", "H": "HIS", "V": "VAL", "X": "XXX"
+}
+prot_standard_three_to_one_dict = {
+    'ALA': 'A', 'VAL': 'V', 'PHE': 'F', 'PRO': 'P', 'MET': 'M', 'ILE': 'I', 'LEU': 'L', 'ASP': 'D',
+    'GLU': 'E', 'LYS': 'K', 'ARG': 'R', 'SER': 'S', 'THR': 'T', 'TYR': 'Y', 'HIS': 'H', 'CYS': 'C',
+    'ASN': 'N', 'GLN': 'Q', 'TRP': 'W', 'GLY': 'G'
+}
+prot_standard_and_x_three_to_one_dict = {
+    'ALA': 'A', 'VAL': 'V', 'PHE': 'F', 'PRO': 'P', 'MET': 'M', 'ILE': 'I', 'LEU': 'L', 'ASP': 'D',
+    'GLU': 'E', 'LYS': 'K', 'ARG': 'R', 'SER': 'S', 'THR': 'T', 'TYR': 'Y', 'HIS': 'H', 'CYS': 'C',
+    'ASN': 'N', 'GLN': 'Q', 'TRP': 'W', 'GLY': 'G', 'XXX': 'X'
+}
+
+def get_prot_one_to_three(one_letter_code):
+    return prot_standard_and_x_one_to_three_dict[one_letter_code]
+
+def get_prot_three_to_one(three_letter_code):
+    return prot_standard_and_x_three_to_one_dict[one_letter_code]

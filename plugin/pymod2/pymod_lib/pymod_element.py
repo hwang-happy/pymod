@@ -1,20 +1,16 @@
-###################################################################################################
-# PyMod_element class.                                                                            #
-###################################################################################################
+import pymod_vars as pmdt
+import pymod_sequence_manipulation as pmsm
 
-# Base class.
 class PyMod_element:
     """
     A base that stores all the informations of a sequence or sequence cluster.
     """
-    is_cluster = False
+    cluster = False
 
     def __init__(self,
-                 sequence,
-                 header,
-                 full_original_header = None,
-                 color = "white",
-                 structure = None):
+                 header=None,
+                 description = None,
+                 color = "white"):
         # SeqRecord(seq=Seq('MDDDIAALVVDNGSGMCKAGFAGDDAPRAVFPSIVGRPRHQGVMVGMGQKDSYV...KCF', IUPACProtein()),
         #             id='NP_001092.1',
         #             name='NP_001092',
@@ -22,13 +18,13 @@ class PyMod_element:
         #             dbxrefs=[])
         # pass
 
-        #---------------------------------
-        # Sequence, headers and indices. -
-        #---------------------------------
+        #----------------------------------------
+        # Indices and PyMod_element properties. -
+        #----------------------------------------
 
         # It is a unique id to identify each element. It is given by the "unique_index" of the
-        # "pymod" object. This values will be assigned when the element is added to the list
-        # of PyMod element objects by the '.add_element_to_pymod' method of the PyMod class.
+        # "pymod" object. This values will be assigned when the element is added to the list of
+        # PyMod_element objects by the '.add_element_to_pymod' method of the PyMod class.
         self.unique_index = None
 
         self.mother = None
@@ -38,27 +34,32 @@ class PyMod_element:
         self.lead = False
         self.bridge = False
 
-        # Forms the header name.
-        # self.set_header_name(record_header, adjust_header)
-        self.my_sequence = sequence
-        self.my_header = header
+        #--------------------------
+        # Sequences and residues. -
+        #--------------------------
+        self.my_sequence = None
 
+        #--------------------------------------------------------------------------------
+        # Headers (name of the sequences and clusters displayed throughout the plugin). -
+        #--------------------------------------------------------------------------------
         # The full original header.
-        if full_original_header != None:
-            self.full_original_header = full_original_header
-        else:
-            self.full_original_header = header
+        self.original_header = header
+
+        self.my_header = header
+        self.my_header_root = header
+
+        self.compact_header = header
+        self.compact_header_root = header
 
         # Sets the 'my_sequence' attribute. The primary sequence of an element. If the sequence is
         # changed or aligned by the user, it will be modified to include indels.
         # self.set_sequence(record_seq, adjust_sequence)
 
+        #--------------------------------
+        # Descriptions and annotations. -
+        #--------------------------------
+        self.description = description
         self.annotations = {}
-
-        #--------------------------
-        # Structural information. -
-        #--------------------------
-        self.structure = structure
 
         #----------------------------------------------
         # Appearance and intercations with the users. -
@@ -80,35 +81,16 @@ class PyMod_element:
         self.dope_items = []
 
 
-    def has_structure(self):
-        if self.structure != None:
-            return True
-        else:
-            return False
-
-
-    def has_predicted_secondary_structure(self):
-        return False
-
-
-    def has_campo_scores(self):
-        return False
-
-
-    def pdb_is_fetchable(self):
-        return False
-
-
     #################################################################
     # Methods for managing PyMod clusters.                          #
     #################################################################
 
-    def is_cluster_element(self):
-        return self.is_cluster
+    def is_cluster(self):
+        return self.cluster
 
 
     def is_mother(self):
-        if self.is_cluster and self.list_of_children != []:
+        if self.is_cluster() and self.list_of_children != []:
             return True
         else:
             return False
@@ -125,11 +107,11 @@ class PyMod_element:
 
 
     def is_root_child(self):
-        return isinstance(self.mother, PyMod_root_cluster)
+        return isinstance(self.mother, PyMod_root_element)
 
 
     def is_root_sequence(self):
-        return self.is_root_child() and not self.is_cluster_element()
+        return self.is_root_child() and not self.is_cluster()
 
 
     def get_ancestor(self, exclude_root_element=True):
@@ -155,6 +137,7 @@ class PyMod_element:
             return []
         else:
             return filter(lambda c: c != self, self.mother.list_of_children)
+
 
     ##################
     # Cluster leads. #
@@ -191,16 +174,19 @@ class PyMod_element:
         return self.my_header
 
 
-# Clusters.
-class PyMod_cluster(PyMod_element):
+###################################################################################################
+# CLUSTERS.                                                                                       #
+###################################################################################################
+class PyMod_cluster_element(PyMod_element):
 
-    is_cluster = True
+    cluster = True
 
-    def __init__(self, algorithm=None, cluster_id=None, **configs):
-        PyMod_element.__init__(self, **configs)
+    def __init__(self, sequence=None, header=None, algorithm=None, cluster_id=None, **configs):
+        PyMod_element.__init__(self, header, **configs)
         self.algorithm = algorithm
         self.cluster_id = cluster_id
         self.initial_number_of_sequences = None
+        self.my_sequence = sequence
 
 
     def add_children(self, children):
@@ -222,7 +208,7 @@ class PyMod_cluster(PyMod_element):
         return self.list_of_children
 
 
-class PyMod_root_cluster(PyMod_cluster):
+class PyMod_root_element(PyMod_cluster_element):
     pass
 
 
@@ -251,16 +237,209 @@ class PyMod_root_cluster(PyMod_cluster):
 #         self.rmsd_list = rmsd_list
 
 
-# Sequences.
-class PyMod_sequence(PyMod_element):
+###################################################################################################
+# SEQUENCES.                                                                                      #
+###################################################################################################
+
+class PyMod_sequence_element(PyMod_element):
     """
     The objects of this class are the sequences (both from sequences and structure files) that
     appear on the left column or alignments elements.
     """
+
+    def __init__(self, sequence=None, header="", residues=None, structure = None, **configs):
+        PyMod_element.__init__(self, header, **configs)
+
+        # TODO: cleans up the sequence.
+        pass
+
+        #--------------------------
+        # Structural information. -
+        #--------------------------
+        self.structure = structure
+
+        #----------------------------------------
+        # Builds the residues and the sequence. -
+        #----------------------------------------
+        self.my_sequence = sequence
+        self.residues = residues
+
+        # If the residues list is not provided, build it through the sequence provided in the
+        # constructor.
+        if self.residues == None and self.my_sequence == None:
+            raise Exception("Either a sequence or a residues list must be provided.")
+        elif self.residues != None and self.my_sequence != None:
+            raise Exception("Can not accept both a sequence and a residues list.")
+        elif self.residues == None and self.my_sequence != None:
+            self.residues = []
+            for letter in self.my_sequence:
+                self.residues.append(PyMod_residue(one_letter_code = letter,
+                                                   three_letter_code = pmdt.get_prot_one_to_three(letter)))
+        elif self.residues != None and self.my_sequence == None:
+            self.set_sequence_from_residues()
+
+        # Update residues information with indices.
+        self.update_residues_information()
+
+
+    def set_sequence_from_residues(self):
+        my_sequence = ""
+        for res in self.residues:
+            if res.is_residue():
+                my_sequence += res.one_letter_code
+        self.my_sequence = my_sequence
+
+
+    def update_residues_information(self):
+        for i,res in enumerate(self.residues):
+            res.index = i
+            if res.db_index == None:
+                res.db_index = i + 1
+
+
+    def get_residue_by_index(self, index, aligned_sequence_index=False):
+        if aligned_sequence_index:
+            index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
+        return self.residues[index]
+
+
+    ################################
+    # def set_sequence(self, sequence, adjust_sequence=True):
+    #     if adjust_sequence:
+    #         self.my_sequence = pymod.correct_sequence(sequence)
+    #     else:
+    #         self.my_sequence = sequence
+    #
+    # def set_header_name(self, header, adjust_header=True):
+    #     if adjust_header:
+    #         self.my_header_fix = pymod.build_header_string(header)
+    #         # Just the header. This will be displayed in PyMod main window.
+    #         self.my_header = pymod.correct_name(self.my_header_fix)
+    #     else:
+    #         self.my_header_fix = header
+    #         self.my_header = header
+    #     # A compact header.
+    #     self.compact_header = self.get_compact_header(self.my_header)
+    ################################
+
+
+    #################################################################
+    # Structure related.                                            #
+    #################################################################
+
+    def has_structure(self):
+        if self.structure != None:
+            return True
+        else:
+            return False
+
+
+    def has_predicted_secondary_structure(self):
+        return False
+
+
+    def has_campo_scores(self):
+        return False
+
+
+    def pdb_is_fetchable(self):
+        return False
+
+
+class PyMod_polypeptide_element(PyMod_sequence_element):
     pass
 
-class PyMod_polypeptide(PyMod_sequence):
+class PyMod_nucleic_acid_element(PyMod_sequence_element):
     pass
 
-class PyMod_nucleic_acid(PyMod_sequence):
+
+###################################################################################################
+# SEQUENCES AND RESIDUES.                                                                         #
+###################################################################################################
+
+class PyMod_residue:
+    def __init__(self, three_letter_code, one_letter_code, index=None, db_index=None):
+
+        self.three_letter_code = three_letter_code
+        self.one_letter_code = one_letter_code
+        self.full_name = three_letter_code
+
+        self.index = index
+        self.db_index = db_index # index+1
+
+        ##########################
+        # # Gets the 3 letter name of the current residue.
+        # resname = residue.get_resname()
+        # # get_id() returns something like: ('H_SCN', 1101, ' ').
+        # residue_id = residue.get_id()
+        # # Hetfield. Example: 'H_SCN' for an HETRES, while ' ' for a normal residue.
+        # hetfield = residue_id[0]
+        # # Number of the residue according to the PDB file.
+        # pdb_position = residue_id[1]
+        ##########################
+
+    def is_residue(self):
+        """
+        Check if the residue is part of a polymer chain, or a ligand molecule/atom.
+        """
+        return True
+
+
+class PyMod_heteroresidue(PyMod_residue):
     pass
+
+
+# class PDB_residue:
+#     """
+#     A class to represent the residues of a PDB chain.
+#     """
+#     def __init__(self,symbol,three_letter_code, id_position,pdb_position,residue_type="standard",chain_id=None):
+#         # Single letter identifier. Example: "Y" for tyrosine.
+#         self.symbol = symbol
+#         # Three letter identifier. Example: "TYR" for tyrosine. This is usefule for identifying
+#         # hetero-atomic residues. For example for a N-acetylglucosamine residue its value is: "NAG".
+#         self.three_letter_code = three_letter_code
+#         # Id of the residue. Goes from 0 up to the last residue. Also indels have an id.
+#         self.id = id_position
+#         # Number of the residue in the PDB file.
+#         self.pdb_position = pdb_position
+#         # If the electron density map is interpretable.
+#         self.pdb_present = True # False is missing
+#
+#         # Not really necessary.
+#         # Id of the residue's chain in the PDB file.
+#         self.chain_id = chain_id
+#         # Can either be 'standart', 'het', 'water'.
+#         self.residue_type = residue_type
+#
+#         # ---
+#         # Attributes for hetres.
+#         # ---
+#         # The attribute 'type' can either be "modified-residue" (like a phosphorylated
+#         # serine or threonine, or any non standard or covalalently modified residue) or
+#         # "ligand" [any metal ion, molecule or other stuff that is made of HETATMs (except water)
+#         # which is not covalentely bound to the protein].
+#         self.hetres_type = None
+#         # This info can only be extracted from the orgininal PDB file.
+#         self.hetres_full_name = None # It needs a method
+#
+#         # ---
+#         # For disulfides.
+#         # ---
+#         self.disulfide_bridge = None
+#
+#     def set_hetres_type(self,hetres_type):
+#         self.hetres_type = hetres_type
+#
+#     def set_hetres_full_name(self):
+#         self.full_name = "complete name"
+#         # They can have really long names like:
+#         # HET    GD9  A2058      35
+#         # HETNAM     GD9 2-(1H-INDAZOL-4-YL)-6-{[4-(METHYLSULFONYL)PIPERAZIN-1-
+#         # HETNAM   2 GD9  YL]METHYL}-4-MORPHOLIN-4-YL-THIENO[3,2-D]PYRIMIDINE
+#
+#     def set_disulfide_bridge(self,dsb):
+#         self.disulfide_bridge = dsb
+#
+#     def __repr__(self):
+#         return self.symbol
