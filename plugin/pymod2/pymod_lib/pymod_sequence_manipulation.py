@@ -190,7 +190,7 @@ def correct_sequence(sequence):
 
 
 ###################################################################################################
-# Headers manipulation.                                                                           #
+# HEADERS MANIPULATION.                                                                           #
 ###################################################################################################
 
 def get_header_string(header_str):
@@ -244,6 +244,10 @@ def get_compact_header_string(header_str):
 def crop_header(h):
     reduced_length =  21 # Old PyMod: 11.
     return h[0:reduced_length]
+
+
+def is_uniprotkb_fasta_header(self, header):
+    pass
 
 
 # def build_header_string(self, unformatted_header):

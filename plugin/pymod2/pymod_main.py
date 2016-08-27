@@ -1665,9 +1665,9 @@ class PyMod:
         'PyMod_element' object corresponding to the subject in the HSP.
         """
         # Gives them the query mother_index, to make them its children.
-        record_header = hsp["title"] # record_header = self.correct_name(hsp["title"])
         # TODO: use only Biopython objects.
-        cs = pmel.PyMod_sequence_element(str(hsp["hsp"].sbjct), record_header, description=hsp["title"])
+        hsp_header = hsp["title"] # record_header = self.correct_name(hsp["title"])
+        cs = pmel.PyMod_sequence_element(str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
         return cs
 
 

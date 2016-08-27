@@ -277,7 +277,10 @@ class PyMod_main_window_mixin:
         """
         Allows to show the protein 'Sequence' message bar.
         """
-        message_bar_text = "%s: %s" % (self.pymod_element.my_header, self.pymod_element.description)
+        if self.pymod_element.description:
+            message_bar_text = self.pymod_element.description
+        else:
+            message_bar_text = self.pymod_element.my_header
         self.sequence_name_bar.helpmessage(message_bar_text)
 
 
