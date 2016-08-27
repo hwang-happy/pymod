@@ -11,10 +11,12 @@ import sys
 import pymol
 from pymol import cmd
 
+import pymod_sequence_manipulation as pmsm
 import pymod_gui as pmgi
 import pymod_vars as pmdt
 
 import time
+import random
 
 
 ###################################################################################################
@@ -33,6 +35,13 @@ class PyMod_main_window_mixin:
     sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 12".
     bg_color = "black"
     unselected_color_dict = {True:"ghost white", False:"red"}
+
+    #-----------------------------------------------------------------------------------------
+    # Components of PyMod main window which can be accessed from object of children classes. -
+    #-----------------------------------------------------------------------------------------
+    sequence_name_bar = None
+    residue_bar = None
+
 
     #################################################################
     # Display widgets in the PyMod main window.                     #
@@ -269,7 +278,7 @@ class PyMod_main_window_mixin:
         Allows to show the protein 'Sequence' message bar.
         """
         message_bar_text = "%s: %s" % (self.pymod_element.my_header, self.pymod_element.description)
-        self.pymod.main_window.sequence_name_bar.helpmessage(message_bar_text)
+        self.sequence_name_bar.helpmessage(message_bar_text)
 
 
 class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
@@ -311,29 +320,9 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.panes.add('right', size = 0.8)
         self.panes.pack(fill = 'both', expand = 1)
 
-        # This method is defined later
+        # Adds other components of PyMod main window.
         self.create_main_window_panes()
-
-        # Creates the bottom frame that display the name of the sequence
-        self.sequence_name_bar = Pmw.MessageBar(self,
-            entry_width = 10,
-            entry_relief='groove',
-            entry_bg = 'black',
-            labelpos = 'w',
-            label_text = 'Sequence:',
-            label_fg = 'white',
-            label_background='black')
-        self.sequence_name_bar.pack(side=LEFT, fill = 'x', expand = 1)
-
-        # Creates the bottom frame that display the number and the name of the residue
-        self.residue_bar = Pmw.MessageBar(self,
-                entry_width = 50, # This could be modified.
-                entry_relief='groove',
-                labelpos = 'w',
-                label_text = 'Position:',
-                label_fg = 'white',
-                label_background='black')
-        self.residue_bar.pack(side=RIGHT)
+        self.create_main_window_message_bars()
 
         # Variables needed to make Pmw dialogs work on Ubuntu 14.04+.
         self.pmw_dialog_wait = True
@@ -369,6 +358,29 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
             self.leftpan.yview(*args)
 
         self.rightpan.configure(vertscrollbar_command = vertview)
+
+
+    def create_main_window_message_bars(self):
+        # Creates the bottom frame that display the name of the sequence
+        PyMod_main_window_mixin.sequence_name_bar = Pmw.MessageBar(self,
+            entry_width = 10,
+            entry_relief='groove',
+            entry_bg = 'black',
+            labelpos = 'w',
+            label_text = 'Sequence:',
+            label_fg = 'white',
+            label_background='black')
+        self.sequence_name_bar.pack(side=LEFT, fill = 'x', expand = 1)
+
+        # Creates the bottom frame that display the number and the name of the residue
+        PyMod_main_window_mixin.residue_bar = Pmw.MessageBar(self,
+                entry_width = 50, # This could be modified.
+                entry_relief='groove',
+                labelpos = 'w',
+                label_text = 'Position:',
+                label_fg = 'white',
+                label_background='black')
+        self.residue_bar.pack(side=RIGHT)
 
 
     def make_main_menu(self):
@@ -910,7 +922,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def show_chain_in_pymol_from_header_entry(self):
         cmd.enable(self.pymod_element.get_pymol_object_name())
-        
+
 
     #################################################################
     # Builds the header popup menu.                                 #
@@ -1486,48 +1498,33 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     # currently highlighted with the mouse.                         #
     #################################################################
 
-    def get_highlighted_residue_position(self): # TODO: necessary? -> res_alignment_id=False, pdb_position=False):
+    def get_highlighted_position_index(self):
         """
-        Returns the position of the residue currently highlighted with the mouse in the PyMod main
-        window. If 'res_alignment_id' is set to 'True' it will return the id of that residue in the
-        aligned sequence. If 'pdb_position' is 'True', it will return the id of that residue in
-        the PDB file.
+        Returns the index of the position currently highlighted with the mouse in the PyMod main
+        window.
         """
-        # if res_alignment_id == True and pdb_position == True:
-        #     raise Exception("This is not correct...")
-        # pos = int(self.sequence_entry.index(CURRENT).split(".")[1]) + 1
-        # if not res_alignment_id:
-        #     number_gaps = self.sequence_entry.get("1.0", CURRENT).count('-')
-        #     pos -= number_gaps
-        # if pdb_position:
-        #     pos = self.structure.pdb_chain_sequence[pos -1].pdb_position
-        # return pos
-        return self.get_highlighted_residue_index() # int(self.index(CURRENT).split(".")[1]) + 1)
-
-
-    def get_highlighted_residue_index(self):
         return int(self.index(CURRENT).split(".")[1])
 
 
-    def get_highlighted_residue_letter(self):
+    def get_highlighted_position_letter(self):
         return self.get(CURRENT)
 
 
     def get_highlighted_residue(self):
         """
-        Gets the id of the highlighted residue in the aligned sequence and returns the id of the
-        residue in the gapless sequence.
+        Gets the highlighted position in the aligned sequence.
         """
         # print ri, len(self.pymod_element.residues)
         # return self.pymod_element.get_residue_by_index(ri)
-        return self.pymod_element.get_residue_by_index(self.get_highlighted_residue_index(), aligned_sequence_index=True)
+        print self.get_highlighted_position_index(), len(self.pymod_element.my_sequence), pmsm.get_residue_id_in_gapless_sequence(self.pymod_element.my_sequence, self.get_highlighted_position_index()), len(self.pymod_element.residues)
+        return self.pymod_element.get_residue_by_index(self.get_highlighted_position_index(), aligned_sequence_index=True)
 
 
     def is_current_position_indel(self):
         """
         Check if the current hilighted residue is an indel.
         """
-        if self.get_highlighted_residue_letter() == "-":
+        if self.get_highlighted_position_letter() == "-":
             return True
         else:
             return False
@@ -1548,21 +1545,31 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         #-------------------------------------------
 
         residue_messagebar_text = ""
+        # For sequences.
         if not self.pymod_element.is_cluster():
-            highlighted_residue = self.get_highlighted_residue()
-            three_letter_code = highlighted_residue.three_letter_code
-            residue_position = highlighted_residue.db_index
-            # if self.pymod_element.is_child():
-            #     self.pymod.main_window.residue_bar.helpmessage("%s:%s" % (self.get_highlighted_residue_index(), self.get_highlighted_residue_letter()))
-            # else:
-            #     self.pymod.main_window.residue_bar.helpmessage("%s:%s" % (self.get_highlighted_residue_index(), self.get_highlighted_residue_letter()))
-            residue_messagebar_text = "%s %s" % (three_letter_code, residue_position)
-        self.pymod.main_window.residue_bar.helpmessage(residue_messagebar_text)
+            # For residues.
+            if not self.is_current_position_indel():
+                highlighted_residue = self.get_highlighted_residue()
+                residue_messagebar_text = "%s %s" % (highlighted_residue.three_letter_code, highlighted_residue.db_index)
+                if self.pymod_element.is_child():
+                    residue_messagebar_text += " - %s" % self.get_alignment_position_text()
+            # For indels.
+            else:
+                residue_messagebar_text = self.get_alignment_position_text()
+        # For clusters.
+        else:
+            residue_messagebar_text = self.get_alignment_position_text()
+
+        self.residue_bar.helpmessage(residue_messagebar_text)
 
         #-------------------------------------------
         # Updates the 'Sequence' message bar text. -
         #-------------------------------------------
         self.show_sequence_message_bar_text()
+
+
+    def get_alignment_position_text(self):
+        return "Alignment: %s" % (self.get_highlighted_position_index() + 1)
 
 
     # #######################################

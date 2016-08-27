@@ -275,23 +275,27 @@ class PyMod_sequence_element(PyMod_element):
         self.my_sequence = sequence
         self.residues = residues
 
-        # If the residues list is not provided, build it through the sequence provided in the
-        # constructor.
         if self.residues == None and self.my_sequence == None:
             raise Exception("Either a sequence or a residues list must be provided.")
         elif self.residues != None and self.my_sequence != None:
             raise Exception("Can not accept both a sequence and a residues list.")
+        # If the residues list is not provided, build it through the sequence provided in the
+        # constructor.
         elif self.residues == None and self.my_sequence != None:
-            self.residues = []
-            for letter in self.my_sequence:
-                self.residues.append(PyMod_residue(one_letter_code = letter,
-                                                   three_letter_code = pmdt.get_prot_one_to_three(letter)))
+            self.set_residues_from_sequence()
         elif self.residues != None and self.my_sequence == None:
             self.set_sequence_from_residues()
 
         # Update residues information with indices.
         self.update_residues_information()
 
+
+    def set_residues_from_sequence(self):
+        self.residues = []
+        for letter in self.my_sequence:
+            if letter != "-":
+                self.residues.append(PyMod_residue(one_letter_code = letter,
+                                               three_letter_code = pmdt.get_prot_one_to_three(letter)))
 
     def set_sequence_from_residues(self):
         my_sequence = ""
@@ -312,7 +316,7 @@ class PyMod_sequence_element(PyMod_element):
     def get_residue_by_index(self, index, aligned_sequence_index=False):
         if aligned_sequence_index:
             index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
-        return self.residues[index]
+        return self.residues[index] # self.residues[index]
 
 
     ###############################################################################################

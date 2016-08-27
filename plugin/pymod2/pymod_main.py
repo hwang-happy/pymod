@@ -794,12 +794,10 @@ class PyMod:
             self.show_error_message("Update Failed", update_results[1])
 
 
-    def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True):
+    def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True, grid=False):
         """
         Displays error or warning messages and refreshes the sequence window.
         """
-        # show_error_message
-        # show_warning_message
         if parent_window == None:
             parent_window = self.main_window
 
@@ -811,6 +809,8 @@ class PyMod:
             tkMessageBox.showwarning(title_to_show, message_to_show, parent=parent_window)
 
         if refresh:
+            self.deselect_all_sequences()
+        if grid:
             self.gridder()
 
 
@@ -1756,8 +1756,8 @@ class PyMod:
         #     self.mark_as_query(query)
 
         # Creates a cluster element.
-        # Adds the sequences to the new alignment cluster.
-        cluster_element = pmel.PyMod_cluster_element(header=cluster_name,
+        cluster_element = pmel.PyMod_cluster_element(sequence="...",
+                                             header=cluster_name,
                                              description=None,
                                              color="white",
                                              algorithm=algorithm,
@@ -1879,7 +1879,7 @@ class PyMod:
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False):
+    def gridder(self, set_grid_index_only=False, clear_selection=False):
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
         """
@@ -1891,6 +1891,8 @@ class PyMod:
         for pymod_element in self.root_element.get_children():
             self.grid_descendants(pymod_element, set_grid_index_only)
             self.grid_row_index += 1
+        if clear_selection:
+            self.deselect_all_sequences()
 
 
     def grid_descendants(self, pymod_element, set_grid_index_only=False):
@@ -2231,9 +2233,9 @@ class PyMod:
 
 
     def deselect_all_from_main_menu(self):
-        self.deselect_all()
+        self.deselect_all_sequences()
 
-    def deselect_all(self):
+    def deselect_all_sequences(self):
         for element in self.get_all_sequences():
             if element.selected:
                 self.main_window.toggle_element(element)
@@ -3706,7 +3708,7 @@ class PyMod:
         ba.update_pymod_elements(elements_to_update)
         self.update_stars(new_blast_cluster) # TODO: or call it in 'gridder'?
 
-        self.gridder()
+        self.gridder(clear_selection=True)
 
 
     #################################################################
