@@ -696,25 +696,24 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Desktop/sequences"
         self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/5jdp.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"structures/5jdp.pdb")) # NMR.
         self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
         self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
         self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"), "fasta")
 
-        # t = 1
-        # self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
-        # if t:
-        #     self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
-        # c1 = self.root_element.list_of_children[-2]
-        # if t:
-        #     c2 = self.root_element.list_of_children[-1]
-        #     c1.add_children(c2)
+        if 0:
+            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
+            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
+            c1 = self.root_element.list_of_children[-2]
+            c2 = self.root_element.list_of_children[-1]
+            c1.add_children(c2)
 
         if 0:
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
             l = self.root_element.list_of_children[-1].list_of_children[0]
             self.make_cluster_lead(l)
 
+        if 0:
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/stockolm/gi.sto"), "stockholm")
 
             self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/custom1.fasta"), "fasta")
@@ -1062,10 +1061,17 @@ class PyMod:
     # METHODS TO MANIPULATE THE ELEMENTS: POD (PyMod object model).                               #
     ###############################################################################################
 
-    def make_cluster_lead(self, new_element, grid=False):
-        for sibling in new_element.get_siblings():
-            sibling.remove_lead()
-        new_element.set_as_lead()
+    def make_cluster_lead(self, new_lead, grid=False):
+        for sibling in new_lead.get_siblings():
+            sibling.remove_all_lead_statuses()
+        new_lead.set_as_lead()
+        if grid:
+            self.gridder()
+
+    def make_cluster_query(self, new_lead, grid=False):
+        for sibling in new_lead.get_siblings():
+            sibling.remove_all_lead_statuses()
+        new_lead.set_as_blast_query()
         if grid:
             self.gridder()
 
@@ -1715,10 +1721,6 @@ class PyMod:
 
 
     def add_new_cluster_to_pymod(self, cluster_type="generic", query=None, cluster_name=None, child_elements=[], algorithm=None, update_stars=True):
-        # TODO: add a query for BLAST clusters.
-        # # Adds the query to the new "BLAST cluster".
-        # self.add_to_mother(blast_cluster_element, self.blast_query_element)
-        # self.mark_as_query(self.blast_query_element)
         if not cluster_type in ("alignment", "blast-cluster", "generic"):
             raise Exception("Invalid cluster type.")
 
@@ -1741,19 +1743,10 @@ class PyMod:
         elif algorithm == None:
             algorithm = "?"
 
-        # TODO: reimplement this.
-        # Sets the leader of the cluster.
-        # if cluster_type == "blast-cluster" and query != None:
-        #     self.mark_as_query(query)
-
         # Creates a cluster element.
-        cluster_element = pmel.PyMod_cluster_element(sequence="...",
-                                             header=cluster_name,
-                                             description=None,
-                                             color="white",
-                                             algorithm=algorithm,
-                                             cluster_id=self.alignment_count)
-                                             #    adjust_header=False) TODO: what to do here?
+        cluster_element = pmel.PyMod_cluster_element(sequence="...", header=cluster_name,
+                                             description=None, color="white",
+                                             algorithm=algorithm, cluster_id=self.alignment_count)
 
         # Add the new cluster element to PyMod.
         self.add_element_to_pymod(cluster_element)
@@ -1765,7 +1758,25 @@ class PyMod:
             if update_stars:
                 self.update_stars(cluster_element)
 
+        # Sets the leader of the cluster.
+        if cluster_type == "blast-cluster" and query != None:
+            self.make_cluster_query(query)
+
         return cluster_element
+
+
+    def set_alignment_element_name(self, alignment_description, alignment_id="?"):
+        """
+        Builds the name of a new alignment element. This name will be displayed on PyMod main
+        window.
+        """
+        alignment_name = "Alignment " + str(alignment_id) + " (%s)" % (alignment_description)
+        return alignment_name
+
+
+    def updates_blast_search_element_name(self, old_cluster_name, alignment_program, alignment_id="?"):
+        new_name = old_cluster_name # old_cluster_name.rpartition("with")[0] + "with %s)" % (alignment_program)
+        return new_name
 
 
     #################################################################
@@ -3787,7 +3798,6 @@ class PyMod:
         """
         Builds a cluster with the query sequence as a mother and retrieved hits as children.
         """
-
         # The list of elements whose sequences will be updated according to the star alignment.
         elements_to_update = [self.blast_query_element]
         # if self.blast_query_element.is_child:
@@ -5087,20 +5097,6 @@ class PyMod:
 #     def set_initial_ali_seq_number(self, cluster_element):
 #         number_of_seqs = len(self.get_children(cluster_element))
 #         cluster_element.alignment.initial_number_of_sequence = number_of_seqs
-#
-#
-#     def set_alignment_element_name(self, alignment_description, alignment_id="?"):
-#         """
-#         Builds the name of a new alignment element. This name will be displayed on PyMod main
-#         window.
-#         """
-#         alignment_name = "Alignment " + str(alignment_id) + " (%s)" % (alignment_description)
-#         return alignment_name
-#
-#
-#     def updates_blast_search_element_name(self, old_cluster_name, alignment_program, alignment_id="?"):
-#         new_name = old_cluster_name # old_cluster_name.rpartition("with")[0] + "with %s)" % (alignment_program)
-#         return new_name
 #
 #
 #     def build_alignment_object(self,alignment_program, alignment_id="?"):

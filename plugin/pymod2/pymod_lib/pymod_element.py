@@ -155,17 +155,23 @@ class PyMod_element:
     #################################################################
 
     def set_as_lead(self):
+        self.remove_all_lead_statuses()
         self.lead = True
 
-    def remove_lead(self):
-        self.lead = False
+    def set_as_blast_query(self):
+        self.remove_all_lead_statuses()
+        self.blast_query = True
+
+    def remove_all_lead_statuses(self):
+        self.lead = False # remove_lead
+        self.blast_query = False # remove_blast_query_status
 
 
     def is_blast_query(self):
         return self.blast_query
 
     def is_lead(self):
-        return self.lead
+        return self.lead or self.blast_query
 
     def is_bridge(self):
         return self.bridge
