@@ -1962,12 +1962,19 @@ class PyMod:
             # if old_index == len(container_list) - 1:
             #     return None
             change_index += 1
-        self.change_list_index(element, container_list, old_index + change_index)
+        self.change_pymod_element_list_index(element, old_index + change_index)
 
 
-    def change_list_index(self, element, container_list, new_index):
+    def change_element_list_index(self, element, container_list, new_index):
         old_index = container_list.index(element)
         container_list.insert(new_index, container_list.pop(old_index))
+
+    def change_pymod_element_list_index(self, pymod_element, new_index):
+        self.change_element_list_index(pymod_element, pymod_element.mother.list_of_children, new_index)
+
+    def get_pymod_element_index_in_container(self, pymod_element):
+        mother = pymod_element.mother
+        return mother.list_of_children.index(pymod_element)
 
 
     ###############################################################################################
@@ -3724,8 +3731,8 @@ class PyMod:
         # For each hsp takes the state of its tkinter checkbutton.
         self.my_blast_map = map((lambda var: var.get()), self.blast_states)
 
-        # If the user selected some hsp.
-        if len(self.my_blast_map) > 0:
+        # If the user selected at least one HSP.
+        if 1 in self.my_blast_map:
             self.build_hits_to_import_list()
             # This will actually import the sequences inside Pymod.
             self.import_results_in_pymod()
@@ -3780,12 +3787,14 @@ class PyMod:
         """
         Builds a cluster with the query sequence as a mother and retrieved hits as children.
         """
-        # TODO: reimplement the cluster extension?
 
         # The list of elements whose sequences will be updated according to the star alignment.
         elements_to_update = [self.blast_query_element]
         # if self.blast_query_element.is_child:
         #     elements_to_update.extend(self.get_siblings(self.blast_query_element))
+
+        # Gets the original index of the query element in its container.
+        query_original_index = self.get_pymod_element_index_in_container(self.blast_query_element)
 
         # Creates PyMod elements for all the imported hits and add them to the cluster.
         for h in self.hsp_imported_from_blast:
@@ -3795,12 +3804,14 @@ class PyMod:
             elements_to_update.append(cs)
 
         # Builds the "BLAST search" element.
-        # TODO: It has the same mother_index of the query.
         new_blast_cluster = self.add_new_cluster_to_pymod(cluster_type="blast-cluster",
             query=self.blast_query_element,
             child_elements=elements_to_update,
             algorithm=pmdt.algorithms_full_names_dict[self.blast_version],
             update_stars=False)
+        # Move the new cluster to the same position of the original query element in PyMod main
+        # window.
+        self.change_pymod_element_list_index(new_blast_cluster, query_original_index)
 
         # Builds a star alignment.
         ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
