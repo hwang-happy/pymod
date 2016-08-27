@@ -397,10 +397,10 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.sequence_menu = Menu(self.filemenu, tearoff = 0)
         self.filemenu.add_cascade(label = "Sequences", menu = self.sequence_menu)
         self.sequence_menu.add_command(label = "Open from File", command = self.pymod.open_file_from_the_main_menu)
-        self.sequence_menu.add_command(label = "Add Raw Sequence", command = self.pymod.raw_seq_input)
-        self.sequence_menu.add_command(label = "Import PyMOL Objects", command = self.pymod.import_selections)
-        self.sequence_menu.add_separator()
-        self.sequence_menu.add_command(label = "Save All", command = self.pymod.save_all_files_from_main_menu)
+        # self.sequence_menu.add_command(label = "Add Raw Sequence", command = self.pymod.raw_seq_input)
+        # self.sequence_menu.add_command(label = "Import PyMOL Objects", command = self.pymod.import_selections)
+        # self.sequence_menu.add_separator()
+        # self.sequence_menu.add_command(label = "Save All", command = self.pymod.save_all_files_from_main_menu)
         self.filemenu.add_separator()
 
         # Workspace submenu.
@@ -425,36 +425,36 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         #----------------
         self.tools_menu = Menu(self.menubar, tearoff = 0)
 
-        # Sequence alignment tools.
-        self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
-        self.sequence_alignment_menu.add_command(label = "ClustalW",
-            command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        self.sequence_alignment_menu.add_command(label = "Clustal Omega",
-            command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        self.sequence_alignment_menu.add_command(label = "MUSCLE",
-            command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
-            command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-
-        # Profile alignment tools.
-        self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
-        self.profile_alignment_menu.add_command(label = "ClustalW",
-            command = lambda program="clustalw": self.pymod.launch_profile_alignment_from_the_main_menu(program))
-        self.profile_alignment_menu.add_command(label = "Clustal Omega",
-            command = lambda program="clustalo": self.pymod.launch_profile_alignment_from_the_main_menu(program))
-        self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
-            command = lambda program="salign-seq": self.pymod.launch_profile_alignment_from_the_main_menu(program))
-
-        # Structural alignment tools.
-        self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
-        self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose)
-        self.structural_alignment_menu.add_command(label = "CE Alignment",
-            command = lambda program="ce": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)",
-            command = lambda program="salign-str": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # # Sequence alignment tools.
+        # self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        # self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
+        # self.sequence_alignment_menu.add_command(label = "ClustalW",
+        #     command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # self.sequence_alignment_menu.add_command(label = "Clustal Omega",
+        #     command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # self.sequence_alignment_menu.add_command(label = "MUSCLE",
+        #     command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
+        #     command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        #
+        # # Profile alignment tools.
+        # self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        # self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
+        # self.profile_alignment_menu.add_command(label = "ClustalW",
+        #     command = lambda program="clustalw": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        # self.profile_alignment_menu.add_command(label = "Clustal Omega",
+        #     command = lambda program="clustalo": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        # self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
+        #     command = lambda program="salign-seq": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        #
+        # # Structural alignment tools.
+        # self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        # self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
+        # self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose)
+        # self.structural_alignment_menu.add_command(label = "CE Alignment",
+        #     command = lambda program="ce": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)",
+        #     command = lambda program="salign-str": self.pymod.launch_regular_alignment_from_the_main_menu(program))
 
         # Database search for homologous sequences.
         self.database_search_menu = Menu(self.tools_menu, tearoff = 0)
@@ -462,17 +462,17 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.database_search_menu.add_command(label = "BLAST", command = self.pymod.launch_ncbiblast)
         self.database_search_menu.add_command(label = "PSI-BLAST", command = self.pymod.launch_psiblast)
 
-        # Structural analysis.
-        self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
-        self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot)
-        self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
-        self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
-
-        # Homology modeling (MODELLER).
-        self.homology_modeling_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Homology Modeling", menu = self.homology_modeling_menu)
-        self.homology_modeling_menu.add_command(label = "MODELLER", command = self.pymod.launch_modeller_from_main_menu)
+        # # Structural analysis.
+        # self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
+        # self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
+        # self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot)
+        # self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
+        # self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
+        #
+        # # Homology modeling (MODELLER).
+        # self.homology_modeling_menu = Menu(self.tools_menu, tearoff = 0)
+        # self.tools_menu.add_cascade(label = "Homology Modeling", menu = self.homology_modeling_menu)
+        # self.homology_modeling_menu.add_command(label = "MODELLER", command = self.pymod.launch_modeller_from_main_menu)
 
         # Options.
         self.tools_menu.add_separator()
@@ -509,52 +509,52 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         # When the plugin is started there are no models.
         self.main_selection_menu.add_command(label = "Select All", command=self.pymod.select_all_from_main_menu)
         self.main_selection_menu.add_command(label = "Deselect All [Esc]", command=self.pymod.deselect_all_from_main_menu)
-        # Structures selection submenu.
-        self.selection_structures_menu = Menu(self.main_selection_menu,tearoff=0)
-        self.selection_structures_menu.add_command(label="Show All in PyMOL",command=self.pymod.show_all_structures_from_main_menu)
-        self.selection_structures_menu.add_command(label="Hide All in PyMOL",command=self.pymod.hide_all_structures_from_main_menu)
-        self.selection_structures_menu.add_separator()
-        self.selection_structures_menu.add_command(label="Select All",command=self.pymod.select_all_structures_from_main_menu)
-        self.selection_structures_menu.add_command(label="Deselect All",command=self.pymod.deselect_all_structures_from_main_menu)
-        self.main_selection_menu.add_cascade(menu=self.selection_structures_menu, label="Structures")
-        # Clusters selection submenu.
-        self.selection_clusters_menu = Menu(self.main_selection_menu,tearoff=0)
-        self.selection_clusters_menu.add_command(label="Expand All",command=self.pymod.expand_all_clusters_from_main_menu)
-        self.selection_clusters_menu.add_command(label="Collapse All",command=self.pymod.collapse_all_clusters_from_main_menu)
-        self.main_selection_menu.add_cascade(menu=self.selection_clusters_menu, label="Clusters")
+        # # Structures selection submenu.
+        # self.selection_structures_menu = Menu(self.main_selection_menu,tearoff=0)
+        # self.selection_structures_menu.add_command(label="Show All in PyMOL",command=self.pymod.show_all_structures_from_main_menu)
+        # self.selection_structures_menu.add_command(label="Hide All in PyMOL",command=self.pymod.hide_all_structures_from_main_menu)
+        # self.selection_structures_menu.add_separator()
+        # self.selection_structures_menu.add_command(label="Select All",command=self.pymod.select_all_structures_from_main_menu)
+        # self.selection_structures_menu.add_command(label="Deselect All",command=self.pymod.deselect_all_structures_from_main_menu)
+        # self.main_selection_menu.add_cascade(menu=self.selection_structures_menu, label="Structures")
+        # # Clusters selection submenu.
+        # self.selection_clusters_menu = Menu(self.main_selection_menu,tearoff=0)
+        # self.selection_clusters_menu.add_command(label="Expand All",command=self.pymod.expand_all_clusters_from_main_menu)
+        # self.selection_clusters_menu.add_command(label="Collapse All",command=self.pymod.collapse_all_clusters_from_main_menu)
+        # self.main_selection_menu.add_cascade(menu=self.selection_clusters_menu, label="Clusters")
 
         #------------------
         # "Display" menu. -
         #------------------
-        self.display_menu = Menu(self.menubar, tearoff = 0)
-
-        # Color menu.
-        self.main_color_menu = Menu(self.display_menu, tearoff = 0)
-        self.main_color_menu.add_command(label = "By Regular Color Scheme", command=lambda: self.pymod.color_selection("all", None, "regular"))
-        # Residues.
-        self.main_residues_colors_menu = Menu(self.main_color_menu,tearoff=0)
-        self.main_residues_colors_menu.add_command(label="Polarity",command=lambda: self.pymod.color_selection("all", None, "residue"))
-        self.main_color_menu.add_cascade(menu=self.main_residues_colors_menu, label="By residue properties")
-        # Secondary structure.
-        self.main_color_menu.add_command(label="Secondary Structure",command=lambda: self.pymod.color_selection("all", None, "secondary-auto"))
-        self.display_menu.add_cascade(menu=self.main_color_menu, label="Color all Sequences")
-
-        # Font size menu.
-        self.menu_sequence_font_size = StringVar()
-        self.default_font_size = 12 # "14"
-        self.menu_sequence_font_size.set(self.default_font_size)
-        self.font_menu = Menu(self.display_menu, tearoff = 0)
-        self.font_menu.add_radiobutton(label="6",value="6",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        self.font_menu.add_radiobutton(label="8",value="8",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        self.font_menu.add_radiobutton(label="10",value="10",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        self.font_menu.add_radiobutton(label="12",value="12",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        self.font_menu.add_radiobutton(label="14",value="14",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        self.font_menu.add_radiobutton(label="16",value="16",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        self.font_menu.add_radiobutton(label="18",value="18",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        self.display_menu.add_cascade(label = "Font size", menu = self.font_menu)
-
-        # Adds the "Display" menu to the main menu.
-        self.menubar.add_cascade(label = "Display", menu = self.display_menu)
+        # self.display_menu = Menu(self.menubar, tearoff = 0)
+        #
+        # # Color menu.
+        # self.main_color_menu = Menu(self.display_menu, tearoff = 0)
+        # self.main_color_menu.add_command(label = "By Regular Color Scheme", command=lambda: self.pymod.color_selection("all", None, "regular"))
+        # # Residues.
+        # self.main_residues_colors_menu = Menu(self.main_color_menu,tearoff=0)
+        # self.main_residues_colors_menu.add_command(label="Polarity",command=lambda: self.pymod.color_selection("all", None, "residue"))
+        # self.main_color_menu.add_cascade(menu=self.main_residues_colors_menu, label="By residue properties")
+        # # Secondary structure.
+        # self.main_color_menu.add_command(label="Secondary Structure",command=lambda: self.pymod.color_selection("all", None, "secondary-auto"))
+        # self.display_menu.add_cascade(menu=self.main_color_menu, label="Color all Sequences")
+        #
+        # # Font size menu.
+        # self.menu_sequence_font_size = StringVar()
+        # self.default_font_size = 12 # "14"
+        # self.menu_sequence_font_size.set(self.default_font_size)
+        # self.font_menu = Menu(self.display_menu, tearoff = 0)
+        # self.font_menu.add_radiobutton(label="6",value="6",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.font_menu.add_radiobutton(label="8",value="8",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.font_menu.add_radiobutton(label="10",value="10",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.font_menu.add_radiobutton(label="12",value="12",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.font_menu.add_radiobutton(label="14",value="14",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.font_menu.add_radiobutton(label="16",value="16",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.font_menu.add_radiobutton(label="18",value="18",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.display_menu.add_cascade(label = "Font size", menu = self.font_menu)
+        #
+        # # Adds the "Display" menu to the main menu.
+        # self.menubar.add_cascade(label = "Display", menu = self.display_menu)
 
         #---------------
         # "Help" menu. -
@@ -682,7 +682,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
     #################################################################
 
     def deselect_all_sequences_binding(self, event):
-        self.pymod.deselect_all()
+        self.pymod.deselect_all_sequences()
 
 
     def press_up_key(self, event):
@@ -1514,9 +1514,6 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         """
         Gets the highlighted position in the aligned sequence.
         """
-        # print ri, len(self.pymod_element.residues)
-        # return self.pymod_element.get_residue_by_index(ri)
-        print self.get_highlighted_position_index(), len(self.pymod_element.my_sequence), pmsm.get_residue_id_in_gapless_sequence(self.pymod_element.my_sequence, self.get_highlighted_position_index()), len(self.pymod_element.residues)
         return self.pymod_element.get_residue_by_index(self.get_highlighted_position_index(), aligned_sequence_index=True)
 
 
