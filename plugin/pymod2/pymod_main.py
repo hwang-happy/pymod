@@ -84,7 +84,7 @@ from pymod_lib import pymod_sup as pmsp # Supplementary code for PyMod.
 from pymod_lib import pymod_updater as pmup # Updates PyMod fetching the latest stable version via network.
 from pymod_lib import pymod_element as pmel # Classes to represent sequences and alignments.
 from pymod_lib import pymod_structure as pmstr # Classes to represent 3D structures.
-from pymod_lib import pymod_protocols as pmptc # Classes to represent protocols executed using PyMod tools.
+from pymod_lib import pymod_alignments_protocols as pmptca # Classes to represent protocols executed using PyMod tools.
 
 # CE-alignment.
 global ce_alignment_mode
@@ -697,10 +697,9 @@ class PyMod:
         self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"structures/5jdp.pdb")) # NMR.
         self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
-        self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
         self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"), "fasta")
 
-        if 0:
+        if 1:
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam_min.fasta"), "fasta")
 
         if 0:
@@ -727,9 +726,10 @@ class PyMod:
         self.gridder()
 
         # Alignments.
-        for i in range(0,3):
-            self.root_element.list_of_children[i].selected = True
-        self.launch_alignment_program("clustalw", "regular-alignment")
+        if 0:
+            for i in range(0,3):
+                self.root_element.list_of_children[i].selected = True
+            self.launch_alignment_program("clustalw", "regular-alignment")
 
 
     def define_alignment_menu_structure(self):
@@ -1121,11 +1121,15 @@ class PyMod:
             if element.is_cluster():
                 if cluster_type == "all":
                     cluster_elements.append(element)
-                elif cluster_type == "alignment" and element.element_type == "alignment":
-                    cluster_elements.append(element)
-                elif cluster_type == "blast-search" and element.element_type == "blast-search":
-                    cluster_elements.append(element)
+                # elif cluster_type == "alignment" and element.element_type == "alignment":
+                #     cluster_elements.append(element)
+                # elif cluster_type == "blast-search" and element.element_type == "blast-search":
+                #     cluster_elements.append(element)
         return cluster_elements
+
+
+    def get_selected_clusters(self):
+        return [e for e in self.root_element.get_descendants() if e.selected and e.is_cluster()]
 
 
     def build_sequence_selection(self, selection):
@@ -1752,7 +1756,8 @@ class PyMod:
         # Creates a cluster element.
         cluster_element = pmel.PyMod_cluster_element(sequence="...", header=cluster_name,
                                              description=None, color="white",
-                                             algorithm=algorithm, cluster_id=self.alignment_count)
+                                             algorithm=algorithm, cluster_type=cluster_type,
+                                             cluster_id=self.alignment_count)
 
         # Add the new cluster element to PyMod.
         self.add_element_to_pymod(cluster_element)
@@ -1887,10 +1892,13 @@ class PyMod:
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False, clear_selection=False):
+    def gridder(self, set_grid_index_only=False, clear_selection=False, update_clusters=False):
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
         """
+        if update_clusters:
+            for cluster in self.get_cluster_elements():
+                self.update_cluster_sequences(cluster)
         #-------------------------------------------------------------------------
         # Assigns the grid indices and grids the widgets with their new indices. -
         #-------------------------------------------------------------------------
@@ -2271,7 +2279,9 @@ class PyMod:
                     sequence = element.my_sequence.replace("-","")
                 #| Write an output in FASTA format to the output_file_handler given as argument.
                 if unique_indices_headers:
-                    header = self.get_unique_index_header(element)
+                    header = element.get_unique_index_header()
+                else:
+                    header = element.my_header
                 print >> output_file_handler , ">"+header
                 for i in xrange(0, len(sequence), 60):
                     print >> output_file_handler , sequence[i:i+60]
@@ -2314,10 +2324,6 @@ class PyMod:
         output_file_handler.close()
 
 
-    def get_unique_index_header(self, pymod_element):
-        return "__pymod_element_%s__" % pymod_element.unique_index
-
-
     def prepare_pymod_alignment_file(self, output_file_handler, header, sequence, remove_indels=True):
         sequence = str(sequence)
         if remove_indels:
@@ -2350,10 +2356,12 @@ class PyMod:
     ###############################################################################################
 
     def select_all_from_main_menu(self):
+        self.select_all_sequences()
+
+    def select_all_sequences(self):
         for element in self.get_all_sequences():
             if not element.selected:
                 self.main_window.toggle_element(element)
-
 
     def deselect_all_from_main_menu(self):
         self.deselect_all_sequences()
@@ -4160,7 +4168,7 @@ class PyMod:
 
 
     def launch_alignment_program(self, program, alignment_strategy):
-        a = pmptc.Alignment_protocol(self, program, alignment_strategy)
+        a = pmptca.Alignment_protocol(self, program, alignment_strategy)
         a.launch_alignment_program()
 
 

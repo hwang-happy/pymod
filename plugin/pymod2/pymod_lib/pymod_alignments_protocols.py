@@ -6,6 +6,7 @@ from tkFileDialog import *
 import tkMessageBox
 import Pmw
 
+from Bio import SeqIO
 from Bio.Align.Applications import ClustalwCommandline
 from Bio.Align.Applications import MuscleCommandline
 try:
@@ -18,6 +19,7 @@ from pymol import cmd
 
 import pymod_vars as pmdt
 import pymod_gui as pmgi
+
 
 class PyMod_protocol:
     pass
@@ -125,10 +127,9 @@ class Alignment_protocol(PyMod_protocol):
         # self.selected_elements = self.get_selected_elements(include_hidden_children=include_hidden_children_choice)
         self.selected_elements = self.pymod.get_selected_elements()
 
-        # ALITEST
-        # # This will build a series of lists containing informations about which cluster was
-        # # selected by the user.
-        # self.build_cluster_lists()
+        # This will build a series of lists containing informations about which cluster was
+        # selected by the user.
+        self.build_cluster_lists()
 
         # List of alignment programs which use a window to let the user choose some of the algorithm
         # options.
@@ -138,7 +139,7 @@ class Alignment_protocol(PyMod_protocol):
         # Try to assign salign-seq to one of the lists above. If the user is aligning some sequences
         # that have a structure loaded in PyMOL, salign-seq is going to be included in
         # "alignment_algorithms_with_options" beacause the "use structural information to guide the
-        # alignment" will be displayed.
+        # alignment" option will be displayed.
         if [e for e in self.pymod.get_selected_sequences() if e.has_structure()]:
             self.alignment_algorithms_with_options.append("salign-seq")
         else:
@@ -149,28 +150,22 @@ class Alignment_protocol(PyMod_protocol):
         #--------------------------
         if self.alignment_strategy == "regular-alignment":
             # First check if the selection is correct.
-            if self.check_alignment_selection():
-                # ALITEST
-                # # Ask if the user wants to proceed with rebuild-entire-old-alignment or extract-siblings
-                # # if needed.
-                # if self.check_sequences_level():
-                    # Programs that need a window to display their options.
-                    if self.alignment_program in self.alignment_algorithms_with_options:
-                        self.show_alignment_window()
-                    elif self.alignment_program in self.alignment_algorithms_without_options:
-                        if self.clusters_are_involved:
-                            self.show_alignment_window()
-                        else:
-                            # Proceeds directly with the alignment whithout showing a window with
-                            # alignment options.
-                            self.alignment_state()
-                    else:
-                        self.unrecognized_alignment_program(self.alignment_program)
-                # ALITEST
-                # else:
-                #     self.finish_alignment()
-            else:
+            if not self.check_alignment_selection():
                 self.selection_not_valid()
+                return None
+
+            # Ask if the user wants to proceed with rebuild-entire-old-alignment or extract-siblings
+            # if needed.
+            if not self.check_sequences_level():
+                self.finish_alignment()
+                return None
+
+            # Programs that need a window to display their options.
+            if self.clusters_are_involved or self.alignment_program in self.alignment_algorithms_with_options:
+                self.show_alignment_window()
+            # Proceeds directly with the alignment whithout showing a window with alignment options.
+            else:
+                self.alignment_state()
 
         # #--------------------------
         # # For profile alignments. -
@@ -185,38 +180,36 @@ class Alignment_protocol(PyMod_protocol):
         #         self.selection_not_valid()
 
 
-    # ALITEST
-    # def build_cluster_lists(self):
-    #     """
-    #     This will build the self.involved_cluster_elements_list, which will contain the elements
-    #     belonging to cluster that were either selected entirely or with at least one selected child.
-    #     """
-    #     # A set that will contain all the mother_indices of the involved clusters (clusters that
-    #     # have at least one selected element).
-    #     self.involved_clusters_mi_list = set()
-    #     # A set that will contain all the mother_indices of the selected clusters (clusters that
-    #     # have all of their sequences selected).
-    #     self.selected_clusters_mi_list = set()
-    #     # A set that will contain all the mother_indices of all the selected childless mothers.
-    #     self.childless_mothers_mi_list = set()
-    #
-    #     for e in self.get_selected_elements():
-    #         if e.is_cluster() or e.is_child:
-    #             self.involved_clusters_mi_list.add(e.mother_index)
-    #             if e.is_cluster():
-    #                 self.selected_clusters_mi_list.add(e.mother_index)
-    #         else:
-    #             self.childless_mothers_mi_list.add(e.mother_index)
-    #
-    #     # These are going to be used later. Build PyMod elements lists out of the sets defined
-    #     # above.
-    #     self.involved_cluster_elements_list = []
-    #     for mother_index in sorted(list(self.involved_clusters_mi_list)):
-    #         self.involved_cluster_elements_list.append(self.get_mother_by_index(mother_index))
-    #
-    #     self.selected_cluster_elements_list = []
-    #     for mother_index in sorted(list(self.selected_clusters_mi_list)):
-    #         self.selected_cluster_elements_list.append(self.get_mother_by_index(mother_index))
+    def build_cluster_lists(self):
+        """
+        This will build the self.involved_cluster_elements_list, which will contain the elements
+        belonging to cluster that were either selected entirely or with at least one selected child.
+        """
+        #------------------------------------------------------------------------------------
+        # A set that will contain all the clusters that have at least one selected element. -
+        #------------------------------------------------------------------------------------
+        self.involved_clusters_set = set()
+        for e in self.pymod.get_selected_elements():
+            self.involved_clusters_set.add(e.mother)
+        if self.pymod.root_element in self.involved_clusters_set:
+            self.involved_clusters_set.remove(self.pymod.root_element)
+        #--------------------------------------------------------------------------------------
+        # A set that will contain all the clusters that have all of their sequences selected. -
+        #--------------------------------------------------------------------------------------
+        self.selected_clusters_set = set(self.pymod.get_selected_clusters())
+
+        # # A set that will contain all the mother_indices of all the selected childless mothers.
+        # self.childless_mothers_mi_list = set()
+
+        # # These are going to be used later. Build PyMod elements lists out of the sets defined
+        # # above.
+        # self.involved_cluster_elements_list = []
+        # for mother_index in sorted(list(self.involved_clusters_mi_list)):
+        #     self.involved_cluster_elements_list.append(self.get_mother_by_index(mother_index))
+        #
+        # self.selected_cluster_elements_list = []
+        # for mother_index in sorted(list(self.selected_clusters_mi_list)):
+        #     self.selected_cluster_elements_list.append(self.get_mother_by_index(mother_index))
 
 
     def check_alignment_selection(self):
@@ -224,7 +217,6 @@ class Alignment_protocol(PyMod_protocol):
         Checks if the elements selected by the user can be aligned in a "regular-alignment".
         """
         correct_selection = False
-
         if self.alignment_program in pmdt.sequence_alignment_tools:
             # Checks that there are at least two sequences.
             if len(self.selected_elements) > 1:
@@ -235,60 +227,59 @@ class Alignment_protocol(PyMod_protocol):
                 # And that only sequences with structures are selected.
                 if not False in [e.has_structure() for e in self.pymod.get_selected_sequences()]:
                     correct_selection = True
-        else:
-            self.unrecognized_alignment_program(self.alignment_program)
-
         return correct_selection
 
-    # ALITEST
-    # def check_sequences_level(self):
-    #     """
-    #     This method is used to ask the user a confirmation before performing an alignment in certain
-    #     situations (for example when building an alignment only with sequences belonging to the same
-    #     cluster).
-    #     """
-    #     proceed_with_alignment = False
-    #     self.clusters_are_involved = False
-    #
-    #     # ---
-    #     # For regular alignments.
-    #     # ---
-    #     if self.alignment_strategy == "regular-alignment":
-    #
-    #         self.rebuild_single_alignment_choice = False
-    #         self.extract_siblings_choice = False
-    #
-    #         if len(self.involved_clusters_mi_list) == 1 and len(self.childless_mothers_mi_list) == 0:
-    #             # If there is only one cluster selected with all its elements: the user might want to
-    #             # rebuild an alignment with all its elements, ask confirmation.
-    #             if self.involved_clusters_mi_list == self.selected_clusters_mi_list:
-    #                 title = "Rebuild alignment?"
-    #                 message = "Would you like to rebuild the alignment with all its sequences?"
-    #                 proceed_with_alignment = tkMessageBox.askyesno(title, message, parent=self.pymod.main_window)
-    #                 self.rebuild_single_alignment_choice = proceed_with_alignment
-    #             else:
-    #                 title = "Extract children?"
-    #                 message = "Would you like to extract the selected children and build a new alignment?"
-    #                 proceed_with_alignment = tkMessageBox.askyesno(title, message, parent=self.pymod.main_window)
-    #                 self.extract_siblings_choice = proceed_with_alignment
-    #
-    #         elif len(self.involved_clusters_mi_list) > 0:
-    #             self.clusters_are_involved = True
-    #             proceed_with_alignment = True
-    #
-    #         elif len(self.involved_clusters_mi_list) == 0:
-    #             proceed_with_alignment = True
-    #
-    #     # ---
-    #     # For profile alignments.
-    #     # ---
-    #     elif self.alignment_strategy == "profile-alignment":
-    #         proceed_with_alignment = True
-    #         self.clusters_are_involved = True
-    #
-    #     return proceed_with_alignment
-    #
-    #
+
+    def check_sequences_level(self):
+        """
+        This method is used to ask the user a confirmation before performing an alignment in certain
+        situations (for example when building an alignment only with sequences belonging to the same
+        cluster).
+        """
+        proceed_with_alignment = False
+        self.clusters_are_involved = False
+
+        print "@@@"
+        print "self.involved_clusters_set", self.involved_clusters_set
+        print "self.selected_clusters_set", self.selected_clusters_set
+
+        # For regular alignments.
+        if self.alignment_strategy == "regular-alignment":
+
+            self.rebuild_single_alignment_choice = False
+            self.extract_siblings_choice = False
+
+            if len(self.involved_clusters_set) == 1:
+                # If there is only one cluster selected with all its elements: the user might want to
+                # rebuild an alignment with all its elements, ask confirmation.
+                if self.selected_clusters_set == self.involved_clusters_set:
+                    title = "Rebuild alignment?"
+                    message = "Would you like to rebuild the alignment with all its sequences?"
+                    proceed_with_alignment = tkMessageBox.askyesno(title, message, parent=self.pymod.main_window)
+                    self.rebuild_single_alignment_choice = proceed_with_alignment
+                else:
+                    title = "Extract children?"
+                    message = "Would you like to extract the selected children and build a new alignment?"
+                    proceed_with_alignment = tkMessageBox.askyesno(title, message, parent=self.pymod.main_window)
+                    self.extract_siblings_choice = proceed_with_alignment
+
+            # elif len(self.involved_clusters_mi_list) > 0:
+            #     self.clusters_are_involved = True
+            #     proceed_with_alignment = True
+
+            elif len(self.involved_clusters_set) == 0:
+                proceed_with_alignment = True
+
+        # # ---
+        # # For profile alignments.
+        # # ---
+        # elif self.alignment_strategy == "profile-alignment":
+        #     proceed_with_alignment = True
+        #     self.clusters_are_involved = True
+
+        return proceed_with_alignment
+
+
     # def check_profile_alignment_selection(self):
     #     """
     #     Checks if the selected elements can be used to perform a profile alignment.
@@ -737,31 +728,30 @@ class Alignment_protocol(PyMod_protocol):
         mode, it will execute all the steps necessary to perform the alignment.
         """
         # ALITEST
-        # # Gets the parameters from the GUI in order to chose the kind of alignment to perform.
-        # self.alignment_mode = self.define_alignment_mode()
-        self.alignment_mode = "build-new-alignment"
+        # Gets the parameters from the GUI in order to chose the kind of alignment to perform.
+        self.define_alignment_mode()
 
-        # This list is going to be used inside
-        #     - "create_alignment_element"
-        #     - "update_aligned_sequences"
-        #     - "align_and_keep_previous_alignment"
-        #     - "perform_alignment_joining"
-        #     - "salign_sequence_profile_alignment"
-        #     - "profile_profile_alignment"
-        # methods.
+        # This list is going to be used inside in other methods of this class needed to perform the
+        # alignment.
         self.elements_to_align = []
+        self.elements_to_align_dict = {}
 
+        #-----------------------------------
+        # Actually performs the alignment. -
+        #-----------------------------------
         if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
             self.elements_to_align = self.pymod.get_selected_sequences()
+            for element in self.elements_to_align:
+                self.elements_to_align_dict.update({element.get_unique_index_header(): element})
             self.perform_alignment(self.elements_to_align)
 
-        elif self.alignment_mode == "keep-previous-alignment":
-            self.elements_to_align = [] # It will be populated inside self.align_and_keep_previous_alignment().
-            self.align_and_keep_previous_alignment()
-
-        elif self.alignment_mode == "alignment-joining":
-            self.elements_to_align = self.pymod.get_selected_sequences()
-            self.perform_alignment_joining()
+        # elif self.alignment_mode == "keep-previous-alignment":
+        #     self.elements_to_align = [] # It will be populated inside self.align_and_keep_previous_alignment().
+        #     self.align_and_keep_previous_alignment()
+        #
+        # elif self.alignment_mode == "alignment-joining":
+        #     self.elements_to_align = self.pymod.get_selected_sequences()
+        #     self.perform_alignment_joining()
 
         # elif self.alignment_mode == "sequence-to-profile":
         #     self.elements_to_align = []
@@ -777,48 +767,43 @@ class Alignment_protocol(PyMod_protocol):
             self.pymod.show_error_message(title,message)
             return
 
+        #-------------------------------------------
+        # Updates the PyMod elements just aligned. -
+        #-------------------------------------------
+
         self.create_alignment_element()
         self.update_aligned_sequences()
         self.finish_alignment()
 
 
-    # ALITEST
-    # def define_alignment_mode(self):
-    #     """
-    #     Gets several parameters from the user interface in order to define the alignment mode.
-    #     """
-    #     alignment_mode = None
-    #
-    #     # ---
-    #     # Regular alignments.
-    #     # ---
-    #     if self.alignment_strategy == "regular-alignment":
-    #
-    #         if self.rebuild_single_alignment_choice:
-    #             alignment_mode = "rebuild-old-alignment"
-    #
-    #         elif self.extract_siblings_choice:
-    #             alignment_mode = "build-new-alignment"
-    #
-    #         elif self.clusters_are_involved:
-    #             # It can be either "rebuild-old-alignment" or "keep-previous-alignment".
-    #             alignment_mode = self.alignment_mode_radiobutton_var.get()
-    #             # Takes the index of the target cluster.
-    #             self.target_cluster_index = None
-    #
-    #             # Takes the index of the target cluster for the "keep-previous-alignment" mode.
-    #             if alignment_mode == "keep-previous-alignment":
-    #                 # If there is only one cluster involved its index its going to be 0.
-    #                 if len(self.involved_cluster_elements_list) == 1:
-    #                     self.target_cluster_index = 0 # Cluster index.
-    #                 # Get the index of the cluster from the combobox.
-    #                 elif len(self.involved_cluster_elements_list) > 1:
-    #                     target_cluster_name = self.keep_previous_alignment_frame.get_selected_cluster()
-    #                     self.target_cluster_index = self.keep_previous_alignment_frame.get_selected_cluster_index(target_cluster_name)
-    #
-    #         else:
-    #             alignment_mode = "build-new-alignment"
-    #
+    def define_alignment_mode(self):
+        """
+        Gets several parameters from the GUI in order to define the alignment mode.
+        """
+        self.alignment_mode = None
+        # Regular alignments.
+        if self.alignment_strategy == "regular-alignment":
+            if self.rebuild_single_alignment_choice:
+                self.alignment_mode = "rebuild-old-alignment"
+            elif self.extract_siblings_choice:
+                self.alignment_mode = "build-new-alignment"
+            # elif self.clusters_are_involved:
+            #     # It can be either "rebuild-old-alignment" or "keep-previous-alignment".
+            #     alignment_mode = self.alignment_mode_radiobutton_var.get()
+            #     # Takes the index of the target cluster.
+            #     self.target_cluster_index = None
+            #     # Takes the index of the target cluster for the "keep-previous-alignment" mode.
+            #     if alignment_mode == "keep-previous-alignment":
+            #         # If there is only one cluster involved its index its going to be 0.
+            #         if len(self.involved_cluster_elements_list) == 1:
+            #             self.target_cluster_index = 0 # Cluster index.
+            #         # Get the index of the cluster from the combobox.
+            #         elif len(self.involved_cluster_elements_list) > 1:
+            #             target_cluster_name = self.keep_previous_alignment_frame.get_selected_cluster()
+            #             self.target_cluster_index = self.keep_previous_alignment_frame.get_selected_cluster_index(target_cluster_name)
+            else:
+                self.alignment_mode = "build-new-alignment"
+
     #     # ---
     #     # Profile alignments.
     #     # ---
@@ -852,30 +837,29 @@ class Alignment_protocol(PyMod_protocol):
         A method to create a PyMod element for the alignment and to build a cluster to contain the
         aligned sequences.
         """
-        # ---
-        # Build a new alignment.
-        # ---
+        #-------------------------
+        # Build a new alignment. -
+        #-------------------------
         if self.alignment_mode == "build-new-alignment":
             # Actually creates the new PyMod alignment element.
             self.pymod.alignment_count += 1
             ali_name = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.pymod.alignment_count)
-            self.pymod.add_new_cluster_to_pymod(cluster_type="alignment", cluster_name=ali_name, child_elements=self.elements_to_align, algorithm="imported") # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
-            # ali_object = self.build_alignment_object(self.alignment_program, self.pymod.alignment_count)
+            self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
+                                                cluster_name=ali_name,
+                                                child_elements=self.elements_to_align,
+                                                algorithm=self.alignment_program,
+                                                update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
+        #-----------------------------
+        # Rebuilds an old alignment. -
+        #-----------------------------
+        elif self.alignment_mode == "rebuild-old-alignment":
+            self.alignment_element = self.pymod.get_selected_clusters()[0]
+            if self.alignment_element.cluster_type == "alignment":
+                self.alignment_element.my_header = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.alignment_element.cluster_id)
+            elif self.alignment_element.cluster_type == "blast-search":
+                old_cluster_name = self.alignment_element.my_header
+                self.alignment_element.my_header = self.pymod.updates_blast_search_element_name(old_cluster_name, pmdt.algorithms_full_names_dict[self.alignment_program])
 
-        # ALITEST
-    #     # ---
-    #     # Rebuilds an old alignment.
-    #     # ---
-    #     elif self.alignment_mode == "rebuild-old-alignment":
-    #         self.alignment_element = self.involved_cluster_elements_list[0]
-    #         old_id = self.alignment_element.alignment.id
-    #         self.alignment_element.alignment = self.build_alignment_object(self.alignment_program, old_id)
-    #         if self.alignment_element.element_type == "alignment":
-    #             self.alignment_element.my_header = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], old_id)
-    #         elif self.alignment_element.element_type == "blast-search":
-    #             old_cluster_name = self.alignment_element.my_header
-    #             self.alignment_element.my_header = self.updates_blast_search_element_name(old_cluster_name, pmdt.algorithms_full_names_dict[self.alignment_program])
-    #
     #     # ---
     #     # Expand an already existing cluster with new sequences.
     #     # ---
@@ -1099,7 +1083,14 @@ class Alignment_protocol(PyMod_protocol):
         """
 
         if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
-            pass
+            # Gets from an alignment file the sequences with their indels produced in the alignment.
+            handle = open(os.path.join(self.pymod.alignments_directory, self.current_alignment_file_name+".aln"), "rU")
+            records = list(SeqIO.parse(handle, "clustal"))
+            handle.close()
+            # Updates the Sequences.
+            for a, r in enumerate(records):
+                self.elements_to_align_dict[str(r.id)].set_sequence(str(r.seq)) # self.correct_sequence
+
             # # Sequence alignment tools have an output file that can be easily used by the
             # # "display_ordered_sequences()" moethod.
             # if self.alignment_program in pmdt.sequence_alignment_tools:
@@ -1130,7 +1121,7 @@ class Alignment_protocol(PyMod_protocol):
         if remove_temp_files and 0:
             self.remove_alignment_temp_files()
 
-        self.pymod.gridder()
+        self.pymod.gridder(clear_selection=True, update_clusters=True)
 
 
     # def display_ordered_sequences(self):
@@ -2577,3 +2568,30 @@ class Alignment_protocol(PyMod_protocol):
     #
     #     else:
     #         self.alignment_program_not_found("salign-str")
+
+
+###################################################################################################
+# REGULAR ALIGNMENTS.                                                                             #
+###################################################################################################
+
+class Regular_alignment_protocol(Alignment_protocol):
+    pass
+
+
+class Sequence_alignment_protocol(Alignment_protocol):
+    pass
+
+
+class Structural_alignment_protocol(Alignment_protocol):
+    pass
+
+
+class Clustalw_regular_alignment_protocol(Regular_alignment_protocol,Sequence_alignment_protocol):
+    pass
+
+
+###################################################################################################
+# PROFILE ALIGNMENTS.                                                                             #
+###################################################################################################
+class Profile_alignment_protocol(Alignment_protocol):
+    pass

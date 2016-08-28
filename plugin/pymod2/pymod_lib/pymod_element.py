@@ -231,9 +231,10 @@ class PyMod_cluster_element(PyMod_element):
 
     cluster = True
 
-    def __init__(self, sequence=None, header=None, algorithm=None, cluster_id=None, **configs):
+    def __init__(self, sequence=None, header=None, algorithm=None, cluster_type="generic",cluster_id=None, **configs):
         PyMod_element.__init__(self, header, **configs)
         self.algorithm = algorithm
+        self.cluster_type = cluster_type
         self.cluster_id = cluster_id
         self.initial_number_of_sequences = None
         self.my_sequence = sequence
@@ -357,6 +358,42 @@ class PyMod_sequence_element(PyMod_element):
             index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
         return self.residues[index] # self.residues[index]
 
+    ###############################################################################################
+    # Sequence related.                                                                           #
+    ###############################################################################################
+
+    def set_sequence(self, new_sequence):
+        if new_sequence.replace("-","") != self.my_sequence.replace("-",""):
+            raise PyModSequenceConflict("The new sequence does not match with the previous one.")
+        else:
+            self.my_sequence = new_sequence
+
+    ################################
+    # def set_sequence(self, sequence, adjust_sequence=True):
+    #     if adjust_sequence:
+    #         self.my_sequence = pymod.correct_sequence(sequence)
+    #     else:
+    #         self.my_sequence = sequence
+    #
+    # def set_header_name(self, header, adjust_header=True):
+    #     if adjust_header:
+    #         self.my_header_fix = pymod.build_header_string(header)
+    #         # Just the header. This will be displayed in PyMod main window.
+    #         self.my_header = pymod.correct_name(self.my_header_fix)
+    #     else:
+    #         self.my_header_fix = header
+    #         self.my_header = header
+    #     # A compact header.
+    #     self.compact_header = self.get_compact_header(self.my_header)
+    ################################
+
+    ###############################################################################################
+    # Header related.                                                                             #
+    ###############################################################################################
+
+    def get_unique_index_header(self):
+        return "__pymod_element_%s__" % self.unique_index
+
 
     ###############################################################################################
     # Interactions with PyMOL.                                                                    #
@@ -380,29 +417,9 @@ class PyMod_sequence_element(PyMod_element):
         return self.structure.get_pymol_object_name()
 
 
-    ################################
-    # def set_sequence(self, sequence, adjust_sequence=True):
-    #     if adjust_sequence:
-    #         self.my_sequence = pymod.correct_sequence(sequence)
-    #     else:
-    #         self.my_sequence = sequence
-    #
-    # def set_header_name(self, header, adjust_header=True):
-    #     if adjust_header:
-    #         self.my_header_fix = pymod.build_header_string(header)
-    #         # Just the header. This will be displayed in PyMod main window.
-    #         self.my_header = pymod.correct_name(self.my_header_fix)
-    #     else:
-    #         self.my_header_fix = header
-    #         self.my_header = header
-    #     # A compact header.
-    #     self.compact_header = self.get_compact_header(self.my_header)
-    ################################
-
-
-    #################################################################
-    # Structure related.                                            #
-    #################################################################
+    ###############################################################################################
+    # Structure related.                                                                          #
+    ###############################################################################################
 
     def has_structure(self):
         if self.structure != None:
@@ -551,4 +568,7 @@ class PyMod_heteroresidue(PyMod_residue):
 ###################################################################################################
 
 class PyModMissingStructure(Exception):
+    pass
+
+class PyModSequenceConflict(Exception):
     pass

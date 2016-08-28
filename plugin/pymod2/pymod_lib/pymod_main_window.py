@@ -315,6 +315,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
 
         # Bindings.
         self.bind("<Escape>", self.deselect_all_sequences_binding)
+        self.bind("<Control-a>", self.select_all_sequences_binding)
         self.bind("<Up>", self.press_up_key)
         self.bind("<Down>", self.press_down_key)
 
@@ -442,7 +443,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
             command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
         self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
             command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        
+
         # # Profile alignment tools.
         # self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         # self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
@@ -507,7 +508,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.main_selection_menu = Menu(self.menubar, tearoff = 0)
         self.menubar.add_cascade(label = "Selection", menu = self.main_selection_menu)
         # When the plugin is started there are no models.
-        self.main_selection_menu.add_command(label = "Select All", command=self.pymod.select_all_from_main_menu)
+        self.main_selection_menu.add_command(label = "Select All [Ctrl+a]", command=self.pymod.select_all_from_main_menu)
         self.main_selection_menu.add_command(label = "Deselect All [Esc]", command=self.pymod.deselect_all_from_main_menu)
         # # Structures selection submenu.
         # self.selection_structures_menu = Menu(self.main_selection_menu,tearoff=0)
@@ -680,6 +681,9 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
     #################################################################
     # Bindings.                                                     #
     #################################################################
+
+    def select_all_sequences_binding(self, event):
+        self.pymod.select_all_sequences()
 
     def deselect_all_sequences_binding(self, event):
         self.pymod.deselect_all_sequences()
