@@ -425,18 +425,24 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         #----------------
         self.tools_menu = Menu(self.menubar, tearoff = 0)
 
-        # # Sequence alignment tools.
-        # self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
-        # self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
-        # self.sequence_alignment_menu.add_command(label = "ClustalW",
-        #     command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        # self.sequence_alignment_menu.add_command(label = "Clustal Omega",
-        #     command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        # self.sequence_alignment_menu.add_command(label = "MUSCLE",
-        #     command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        # self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
-        #     command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        #
+        # Database search for homologous sequences.
+        self.database_search_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Database Search", menu = self.database_search_menu)
+        self.database_search_menu.add_command(label = "BLAST", command = self.pymod.launch_ncbiblast)
+        self.database_search_menu.add_command(label = "PSI-BLAST", command = self.pymod.launch_psiblast)
+
+        # Sequence alignment tools.
+        self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
+        self.sequence_alignment_menu.add_command(label = "ClustalW",
+            command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "Clustal Omega",
+            command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "MUSCLE",
+            command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
+            command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        
         # # Profile alignment tools.
         # self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         # self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
@@ -455,12 +461,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         #     command = lambda program="ce": self.pymod.launch_regular_alignment_from_the_main_menu(program))
         # self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)",
         #     command = lambda program="salign-str": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-
-        # Database search for homologous sequences.
-        self.database_search_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Database Search", menu = self.database_search_menu)
-        self.database_search_menu.add_command(label = "BLAST", command = self.pymod.launch_ncbiblast)
-        self.database_search_menu.add_command(label = "PSI-BLAST", command = self.pymod.launch_psiblast)
 
         # # Structural analysis.
         # self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
