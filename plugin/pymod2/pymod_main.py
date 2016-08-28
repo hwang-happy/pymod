@@ -701,6 +701,9 @@ class PyMod:
         self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
         self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"), "fasta")
 
+        if 1:
+            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam_min.fasta"), "fasta")
+
         if 0:
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
@@ -715,7 +718,6 @@ class PyMod:
 
         if 0:
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/stockolm/gi.sto"), "stockholm")
-
             self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/custom1.fasta"), "fasta")
             self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi.fasta"), "fasta")
             self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"), "fasta")
@@ -3265,7 +3267,26 @@ class PyMod:
             self.blast_plus.exe_not_found()
             return None
 
-        self.build_blast_window()
+        # Let users decide how to import new sequences when the query is a child element (that
+        # is, it is already present in a cluster).
+        if self.blast_query_element.is_child():
+            new_cluster_text = 'Build a new cluster'
+            old_cluster_text = 'Expand old cluster'
+            self.blast_search_choices_dict = {new_cluster_text: "build-new", old_cluster_text: "expand"}
+            self.blast_dialog = Pmw.MessageDialog(self.main_window,
+                title = 'Import new sequences options',
+                message_text = (
+                "Please select how to import in PyMod the new sequences identified in the search:\n\n"+
+                # "- Extract the query sequence from its cluster and build a new cluster with\n"+
+                # "  the new hit sequences.\n\n"+
+                "- Build a new cluster with the query and the new hit sequences.\n\n"+
+                "- Expand the already existing cluster by appending to it the new hit sequences." ),
+                buttons = (new_cluster_text, old_cluster_text))
+            self.blast_dialog.component("message").configure(justify="left")
+            self.blast_dialog.configure(command=self.blast_dialog_state)
+        else:
+            self.new_sequences_import_mode = "build-new"
+            self.build_blast_window()
 
 
     def check_blast_search_selection(self):
@@ -3273,46 +3294,21 @@ class PyMod:
         Checks that only one sequence is selected as a query for BLAST and stores the query PyMod
         element in 'self.blast_query_element'.
         """
-        correct_selection = False
         selected_sequences = self.get_selected_sequences()
-        if len(selected_sequences) == 1:
+        if len(self.get_selected_sequences()) == 1:
             # Gets the selected sequence. The main index will be used later to build the cluster.
             self.blast_query_element = selected_sequences[0]
-            correct_selection = True
-            # Let users decide how to import new sequences when the query is a child element (that
-            # is, it is already present in a cluster).
-            if self.blast_query_element.is_child():
-                # TODO: use a custom window.
-                pass
-                # new_cluster_text = 'Build a new cluster'
-                # old_cluster_text = 'Expand old cluster'
-                # self.blast_search_choices = {new_cluster_text: "extract", old_cluster_text: "expand"}
-                # self.blast_dialog = Pmw.MessageDialog(self.main_window,
-                #     title = 'Import new sequences options',
-                #     message_text = (
-                #     "Please select how to import in PyMod the new sequences identified in the search:\n\n"+
-                #     "- Extract the query sequence from its cluster and build a new cluster with\n"+
-                #     "  the new hit sequences.\n\n"+
-                #     "- Expand the already existing cluster by appending to it the new hit sequences." ),
-                #     buttons = (new_cluster_text, old_cluster_text))
-                # self.blast_dialog.component("message").configure(justify="left")
-                # self.blast_dialog.configure(command=self.blast_dialog_state)
+            return True
         else:
-            correct_selection = False
-
-        return correct_selection
+            return False
 
 
     def blast_dialog_state(self, dialog_choice):
-        # TODO: Reimplement in a new window.
         self.blast_dialog.withdraw()
         if not dialog_choice:
             return None
-        self.new_sequences_import_mode = self.blast_search_choices[dialog_choice]
-        if self.blast_version == "blast":
-            self.blast_state()
-        elif self.blast_version == "psi-blast":
-            self.psiblast_state()
+        self.new_sequences_import_mode = self.blast_search_choices_dict[dialog_choice]
+        self.build_blast_window()
 
 
     #################################################################
@@ -3544,19 +3540,16 @@ class PyMod:
         # Gets the id% of the hsp.
         matches = float(len(hsp.query) - hsp.gaps)
         idp = float(hsp.identities)/matches
-
         # Gets the query span.
         qt = len(str(self.blast_query_element.my_sequence).replace("-",""))
         qs = hsp.query_start
         qe = len(str(hsp.query).replace("-","")) + qs
         query_span = float(qe - qs)/float(qt)
-
         # Gets the subject span.
         hs = hsp.sbjct_start
         he = len(str(hsp.sbjct).replace("-","")) + hs
-
+        # Returns the information.
         additional_infor_dict = {"id": idp, "query_span":query_span, "matches":matches, "query_end":qe, "sbjct_end":he}
-
         return additional_infor_dict
 
 
@@ -3798,35 +3791,73 @@ class PyMod:
         """
         Builds a cluster with the query sequence as a mother and retrieved hits as children.
         """
+
         # The list of elements whose sequences will be updated according to the star alignment.
         elements_to_update = [self.blast_query_element]
-        # if self.blast_query_element.is_child:
-        #     elements_to_update.extend(self.get_siblings(self.blast_query_element))
 
-        # Gets the original index of the query element in its container.
-        query_original_index = self.get_pymod_element_index_in_container(self.blast_query_element)
+        #------------------------------------------------------------
+        # Builds a new cluster with the query and all the new hits. -
+        #------------------------------------------------------------
+        if self.new_sequences_import_mode == "build-new":
+            # Gets the original index of the query element in its container.
+            query_container = self.blast_query_element.mother
+            query_original_index = self.get_pymod_element_index_in_container(self.blast_query_element)
 
-        # Creates PyMod elements for all the imported hits and add them to the cluster.
-        for h in self.hsp_imported_from_blast:
-            # Gives them the query mother_index, to make them its children.
-            cs = self.build_pymod_element_from_hsp(h)
-            self.add_element_to_pymod(cs)
-            elements_to_update.append(cs)
+            # Creates PyMod elements for all the imported hits and add them to the cluster.
+            for h in self.hsp_imported_from_blast:
+                # Gives them the query mother_index, to make them its children.
+                cs = self.build_pymod_element_from_hsp(h)
+                self.add_element_to_pymod(cs)
+                elements_to_update.append(cs)
 
-        # Builds the "BLAST search" element.
-        new_blast_cluster = self.add_new_cluster_to_pymod(cluster_type="blast-cluster",
-            query=self.blast_query_element,
-            child_elements=elements_to_update,
-            algorithm=pmdt.algorithms_full_names_dict[self.blast_version],
-            update_stars=False)
-        # Move the new cluster to the same position of the original query element in PyMod main
-        # window.
-        self.change_pymod_element_list_index(new_blast_cluster, query_original_index)
+            # Builds the "BLAST search" cluster element.
+            new_blast_cluster = self.add_new_cluster_to_pymod(cluster_type="blast-cluster",
+                query=self.blast_query_element,
+                child_elements=elements_to_update,
+                algorithm=pmdt.algorithms_full_names_dict[self.blast_version],
+                update_stars=False)
+            # Move the new cluster to the same position of the original query element in PyMod main
+            # window.
+            if not query_container.is_root():
+                query_container.add_children(new_blast_cluster)
+            self.change_pymod_element_list_index(new_blast_cluster, query_original_index)
 
-        # Builds a star alignment.
-        ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
-        ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
-        ba.generate_blast_pseudo_alignment()
+            # Builds a star alignment.
+            ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
+            ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
+            ba.generate_blast_pseudo_alignment()
+
+        #----------------------------------------------------------------------------
+        # Expand the original cluster of the query by appending to it the new hits. -
+        #----------------------------------------------------------------------------
+        elif self.new_sequences_import_mode == "expand":
+            # Builds a star alignment.
+            ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
+            # Preapare the 'Star_alignment' object with sequence already present in the cluster.
+            siblings = self.blast_query_element.get_siblings()
+            list_of_aligned_sequences = self.get_list_of_aligned_sequences(siblings)
+            ba.extend_with_aligned_sequences(list_of_aligned_sequences)
+            # Adds new hit sequences to the cluster and generate the alignment.
+            ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
+            ba.generate_blast_pseudo_alignment()
+            # The list of elements whose sequences will be updated according to the star alignment.
+            elements_to_update = []
+            # Begins with the query element.
+            elements_to_update.append(self.blast_query_element)
+            elements_to_update.extend(self.blast_query_element.get_siblings(sequences_only=True))
+
+            new_blast_cluster = self.blast_query_element.mother
+            # Creates PyMod elements for all the imported hits and add them to the cluster.
+            for h in self.hsp_imported_from_blast:
+                # Gives them the query mother_index, to make them its children.
+                cs = self.build_pymod_element_from_hsp(h)
+                self.add_element_to_pymod(cs)
+                elements_to_update.append(cs)
+                new_blast_cluster.add_children(cs)
+
+            # Sets the query elements as the lead of its cluster.
+            self.make_cluster_query(self.blast_query_element)
+
         # Updates the sequences according to the BLAST pseudo alignment.
         ba.update_pymod_elements(elements_to_update)
         self.update_stars(new_blast_cluster) # TODO: or call it in 'gridder'?

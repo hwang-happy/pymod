@@ -236,6 +236,10 @@ class PyMod_tool_window(PyMod_base_window):
         return widgets
 
 
+###################################################################################################
+# OPTION SELECTION WIDGETS.                                                                       #
+###################################################################################################
+
 class PyMod_radioselect(Pmw.RadioSelect):
     """
     Class for custom Pmw.RadioSelect widgets.
@@ -382,7 +386,6 @@ class PyMod_dialog(Pmw.MessageDialog):
 ###################################################################################################
 # CLASSES FOR WIDGETS USED IN SPECIFIC PARTS OF THE PyMod GUI.                                    #
 ###################################################################################################
-
 
 #####################################################################
 # Classes for the graphical user interface of widgets to build      #
@@ -1319,3 +1322,56 @@ class Cluster_selection_frame(Frame):
 
     def get_selected_cluster_index(self, cluster_name):
         return self.involved_clusters_combobox_list.index(cluster_name)
+
+'''
+        current_pack_options = pmgi.pack_options_1
+        current_label_options = pmgi.label_style_1
+
+        # Builds the window.
+        self.campo_window = pmgi.PyMod_tool_window(self.main_window,
+            title = "CAMPO algorithm options",
+            upper_frame_title = "Here you can modify options for CAMPO",
+            submit_command = self.blast_dialog_state)
+
+        # Scoring matrix combobox.
+        self.campo_matrices = ["Blosum90","Blosum80","Blosum62","Blosum50","Blosum45","PAM30","PAM120","PAM250" ]
+        self.campo_matrices_dict = {"Blosum62": "blosum62", "Blosum90": "blosum90","Blosum80":"blosum80",
+                                    "Blosum50": "blosum50", "Blosum45":"blosum45",
+                                    "PAM30": "pam30", "PAM120": "pam120", "PAM250": "pam250"}
+        self.matrix_cbx = pmgi.PyMod_combobox(self.campo_window.midframe, label_text = 'Scoring Matrix Selection',label_style = current_label_options, scrolledlist_items=self.campo_matrices)
+        self.matrix_cbx.pack(**current_pack_options)
+        self.matrix_cbx.selectitem(2)
+        self.campo_window.add_widget_to_align(self.matrix_cbx)
+
+        # Gap open entryfield.
+        self.campo_gap_penalty_enf = pmgi.PyMod_entryfield(
+            self.campo_window.midframe,
+            label_text = "Gap Score",
+            label_style = current_label_options,
+            value = '-1',
+            validate = {'validator' : 'integer',
+                        'min' : -1000, 'max' : 0})
+        self.campo_gap_penalty_enf.pack(**current_pack_options)
+        self.campo_window.add_widget_to_align(self.campo_gap_penalty_enf)
+
+        # Gap extension entryfield.
+        self.campo_gap_to_gap_score_enf = pmgi.PyMod_entryfield(
+            self.campo_window.midframe,
+            label_text = "Gap to Gap Score",
+            label_style = current_label_options,
+            value = '0',
+            validate = {'validator' : 'integer',
+                        'min' : -1000, 'max' : 0})
+        self.campo_gap_to_gap_score_enf.pack(**current_pack_options)
+        self.campo_window.add_widget_to_align(self.campo_gap_to_gap_score_enf)
+
+        # Toss gaps.
+        self.campo_exclude_gaps_rds = pmgi.PyMod_radioselect(self.campo_window.midframe, label_text = 'Toss gaps')
+        for text in ('Yes', 'No'):
+            self.campo_exclude_gaps_rds.add(text)
+        self.campo_exclude_gaps_rds.setvalue('Yes')
+        self.campo_exclude_gaps_rds.pack(**current_pack_options)
+        self.campo_window.add_widget_to_align(self.campo_exclude_gaps_rds)
+
+        self.campo_window.align_widgets(10)
+'''

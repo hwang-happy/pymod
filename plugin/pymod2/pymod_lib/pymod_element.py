@@ -106,12 +106,16 @@ class PyMod_element:
             return False
 
 
+    def is_root(self):
+        return isinstance(self, PyMod_root_element)
+
+
     def is_root_child(self):
-        return isinstance(self.mother, PyMod_root_element)
+        return self.mother.is_root()
 
 
-    def is_root_sequence(self):
-        return self.is_root_child() and not self.is_cluster()
+    # def is_root_sequence(self):
+    #     return self.is_root_child() and not self.is_cluster()
 
 
     def get_ancestor(self, exclude_root_element=True):
@@ -132,11 +136,40 @@ class PyMod_element:
         return descendants
 
 
-    def get_siblings(self):
+    def filter_for_sequences(method):
+        def filterer(self, sequences_only=False):
+            if sequences_only:
+                return filter(lambda e: not e.is_cluster(), method(self, sequences_only))
+            else:
+                return method(self, sequences_only)
+        return filterer
+
+
+    @filter_for_sequences
+    def get_siblings(self, sequences_only=False):
         if not self.mother:
             return []
         else:
             return filter(lambda c: c != self, self.mother.list_of_children)
+
+
+
+    # def check_structure(method):
+    #     def checker(self):
+    #         if not self.has_structure():
+    #             raise PyModMissingStructure("The element does not have a structure.")
+    #         return method(self)
+    #     return checker
+    #
+    #
+    # @check_structure
+    # def get_structure_file(self):
+    #     return self.structure.get_file()
+    #
+    #
+    # @check_structure
+    # def get_pymol_object_name(self):
+    #     return self.structure.get_pymol_object_name()
 
 
     #################################################################
@@ -336,13 +369,16 @@ class PyMod_sequence_element(PyMod_element):
             return method(self)
         return checker
 
+
     @check_structure
     def get_structure_file(self):
         return self.structure.get_file()
 
+
     @check_structure
     def get_pymol_object_name(self):
         return self.structure.get_pymol_object_name()
+
 
     ################################
     # def set_sequence(self, sequence, adjust_sequence=True):

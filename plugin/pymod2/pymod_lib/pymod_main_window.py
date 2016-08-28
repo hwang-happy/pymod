@@ -306,6 +306,23 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         # inserting the project name in the 'new project' window.
         self.withdraw()
 
+        # Builds the widgets where the sequence loaded in PyMod will be displayed.
+        self.create_main_window_frames()
+
+        # Adds other components of PyMod main window.
+        self.create_main_window_message_bars()
+        self.make_main_menu()
+
+        # Bindings.
+        self.bind("<Escape>", self.deselect_all_sequences_binding)
+        self.bind("<Up>", self.press_up_key)
+        self.bind("<Down>", self.press_down_key)
+
+
+    def create_main_window_frames(self):
+        """
+        Create the widgets which will contain the sequences to display in the main window.
+        """
         # Creates a scrolled frame in the main window.
         self.scroll_frame = Pmw.ScrolledFrame(self, borderframe = 0, usehullsize = 1,
                                     horizflex = 'elastic', vertflex = 'elastic', hull_borderwidth = 0 )
@@ -323,26 +340,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.panes.add('right', size = 0.8)
         self.panes.pack(fill = 'both', expand = 1)
 
-        # Adds other components of PyMod main window.
-        self.create_main_window_panes()
-        self.create_main_window_message_bars()
-
-        # Variables needed to make Pmw dialogs work on Ubuntu 14.04+.
-        self.pmw_dialog_wait = True
-        self.pmw_dialog_val = None
-
-        # Bindings.
-        self.bind("<Escape>", self.deselect_all_sequences_binding)
-        self.bind("<Up>", self.press_up_key)
-        self.bind("<Down>", self.press_down_key)
-
-        self.make_main_menu()
-
-
-    def create_main_window_panes(self):
-        """
-        Create the panes containing the sequences to display in the main window.
-        """
         # Creates a scrolled frame inside the RIGHT pane of the paned frame
         self.rightpan = Pmw.ScrolledFrame(self.panes.pane('right'),
             hull_bg='black', frame_bg='black', usehullsize = 0, borderframe = 0,
