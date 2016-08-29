@@ -3820,16 +3820,25 @@ class PyMod:
                 elements_to_update.append(cs)
 
             # Builds the "BLAST search" cluster element.
-            new_blast_cluster = self.add_new_cluster_to_pymod(cluster_type="blast-cluster",
+            new_blast_cluster = self.add_new_cluster_to_pymod(
+                cluster_type="blast-cluster",
                 query=self.blast_query_element,
                 child_elements=elements_to_update,
                 algorithm=pmdt.algorithms_full_names_dict[self.blast_version],
                 update_stars=False)
+
             # Move the new cluster to the same position of the original query element in PyMod main
             # window.
-            if not query_container.is_root():
-                query_container.add_children(new_blast_cluster)
-            self.change_pymod_element_list_index(new_blast_cluster, query_original_index)
+            keep_in_mother_cluster = False
+            if keep_in_mother_cluster:
+                if not query_container.is_root():
+                    query_container.add_children(new_blast_cluster)
+                self.change_pymod_element_list_index(new_blast_cluster, query_original_index)
+            else:
+                if query_container.is_root():
+                    self.change_pymod_element_list_index(new_blast_cluster, query_original_index)
+                else:
+                    self.change_pymod_element_list_index(new_blast_cluster, self.get_pymod_element_index_in_container(query_container)+1)
 
             # Builds a star alignment.
             ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
@@ -3869,9 +3878,8 @@ class PyMod:
 
         # Updates the sequences according to the BLAST pseudo alignment.
         ba.update_pymod_elements(elements_to_update)
-        self.update_stars(new_blast_cluster) # TODO: or call it in 'gridder'?
 
-        self.gridder(clear_selection=True)
+        self.gridder(clear_selection=True, update_clusters=True)
 
 
     #################################################################
@@ -4168,7 +4176,7 @@ class PyMod:
 
 
     def launch_alignment_program(self, program, alignment_strategy):
-        a = pmptca.Alignment_protocol(self, program, alignment_strategy)
+        a = pmptca.Clustalw_regular_alignment_protocol(self)
         a.launch_alignment_program()
 
 
