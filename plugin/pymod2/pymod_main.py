@@ -1132,6 +1132,26 @@ class PyMod:
         return [e for e in self.root_element.get_descendants() if e.selected and e.is_cluster()]
 
 
+    def check_only_one_selected_child_per_cluster(self, cluster_element):
+        """
+        Returns True if the cluster element has only one selected child. This is used in
+        "check_alignment_joining_selection()" and other parts of the PyMod class (while checking
+        the selection for homology modeling).
+        """
+        if len([child for child in cluster_element.get_children() if child.selected]) == 1:
+            return True
+        else:
+            return False
+
+
+    def check_all_elements_in_selection(self, selection, method_name):
+        # Calling methods using 'getattr()' is slower than directly calling them.
+        if False in [getattr(e,method_name)() for e in selection]:
+            return False
+        else:
+            return True
+
+
     def build_sequence_selection(self, selection):
         """
         If the 'selection' argument was not specified, it returns a list with the currently selected
@@ -1140,13 +1160,6 @@ class PyMod:
         if selection == None:
             selection = self.get_selected_sequences()
         return selection
-
-    def check_all_elements_in_selection(self, selection, method_name):
-        # Calling methods using 'getattr()' is slower than directly calling them.
-        if False in [getattr(e,method_name)() for e in selection]:
-            return False
-        else:
-            return True
 
 
     def all_sequences_are_children(self, selection=None):
@@ -4185,6 +4198,7 @@ class PyMod:
             return True
         else:
             return False
+
 
     #################################################################
     # File managment during the alignment process.                  #

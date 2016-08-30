@@ -130,55 +130,25 @@ class Alignment_protocol(PyMod_protocol):
         #--------------------------------------------------------------------------------------
         self.selected_clusters_set = set(self.pymod.get_selected_clusters())
 
-        # # A set that will contain all the mother_indices of all the selected childless mothers.
-        # self.childless_mothers_mi_list = set()
+        #---------------------------------------------------------------------------------
+        # A set that will contain all the selected sequences in the root level of PyMod. -
+        #---------------------------------------------------------------------------------
+        self.selected_root_sequences_set = set([s for s in self.pymod.get_selected_sequences() if s.mother == self.pymod.root_element])
 
-        # # These are going to be used later. Build PyMod elements lists out of the sets defined
-        # # above.
-        # self.involved_cluster_elements_list = []
-        # for mother_index in sorted(list(self.involved_clusters_mi_list)):
-        #     self.involved_cluster_elements_list.append(self.get_mother_by_index(mother_index))
-        #
+        #------------------------------------------------------------
+        # Build PyMod elements lists out of the sets defined above. -
+        #------------------------------------------------------------
+        # TODO: use these lists instead of sets.
+        self.involved_cluster_elements_list = []
+        for e in self.pymod.get_selected_elements():
+            if not e.mother in self.involved_cluster_elements_list:
+                self.involved_cluster_elements_list.append(e.mother)
+        if self.pymod.root_element in self.involved_cluster_elements_list:
+            self.involved_cluster_elements_list.remove(self.pymod.root_element)
+
         # self.selected_cluster_elements_list = []
         # for mother_index in sorted(list(self.selected_clusters_mi_list)):
         #     self.selected_cluster_elements_list.append(self.get_mother_by_index(mother_index))
-
-
-    # def check_only_one_selected_child_per_cluster(self,cluster_element):
-    #     """
-    #     Returns True if the cluster element has only one selected child. This is used in
-    #     "check_alignment_joining_selection()" and other parts of the PyMod class (while checking
-    #     the selection for homology modeling).
-    #     """
-    #     if len([child for child in self.get_children(cluster_element) if child.selected]) == 1:
-    #         return True
-    #     else:
-    #         return False
-    #
-    #
-    # def check_alignment_joining_selection(self):
-    #     """
-    #     Used to check if there is a right selection in order to perform the Alignment Joiner
-    #     algorithm to join two or more clusters.
-    #     """
-    #
-    #     correct_selection = False
-    #     if len(self.involved_cluster_elements_list) > 1:
-    #         # Check that there is only one selected children per cluster.
-    #         too_many_children_per_cluster = False
-    #         for cluster in self.involved_cluster_elements_list:
-    #             if not self.check_only_one_selected_child_per_cluster(cluster):
-    #                 too_many_children_per_cluster = True
-    #                 break
-    #
-    #         if too_many_children_per_cluster:
-    #             correct_selection = False
-    #         else:
-    #             correct_selection = True
-    #     else:
-    #         correct_selection = False
-    #
-    #     return correct_selection
 
 
     #################################################################
@@ -206,18 +176,14 @@ class Alignment_protocol(PyMod_protocol):
         """
         # Options to choose the alignment mode.
         self.build_alignment_mode_frame()
-
         # Options to choose the parameters of the alignment algoirthm being used.
-        self.alignment_options_frame = pmgi.PyMod_frame(self.alignment_window.midframe)
-        self.alignment_options_frame.grid(row=1, column=0, sticky = W+E+N+S)
         self.build_algorithm_options_frame()
 
 
-    ###################################
-    # Part for building the frame     #
-    # containing the options for      #
-    # choosing the alignment mode.    #
-    ###################################
+    #################################################################
+    # Part for building the frame  containing the options for       #
+    # choosing the alignment mode and options.                      #
+    #################################################################
 
     def build_alignment_mode_frame(self):
         """
@@ -225,97 +191,18 @@ class Alignment_protocol(PyMod_protocol):
         """
         self.alignment_mode_frame = pmgi.PyMod_frame(self.alignment_window.midframe)
         self.alignment_mode_frame.grid(row=0, column=0, sticky = W+E+N+S,pady=(0,10))
-
         self.alignment_mode_row = 0
         self.alignment_mode_label = Label(self.alignment_mode_frame, font = "comic 12", height = 1,
                     text= "Alignment Mode", background='black', fg='red',
                     borderwidth = 1, padx = 8)
         self.alignment_mode_label.grid(row=self.alignment_mode_row, column=0, sticky = W)
-
-        self.alignment_mode_radiobutton_var = StringVar()
-
-        self.build_strategy_specific_modes_frames()
+        self.build_strategy_specific_modes_frames() # Defined in child classes.
 
 
-    def build_strategy_specific_modes_frames(self):
-        #------------------------------------------------------
-        # Build a new alignment using the selected sequences. -
-        #------------------------------------------------------
-        if not self.rebuild_single_alignment_choice:
-            self.alignment_mode_radiobutton_var.set("build-new-alignment")
-            self.alignment_mode_row += 1
-            # new_alignment_rb_text = "Build a new alignment from scratch using the selected sequences."
-            new_alignment_rb_text = "Build a new alignment (?)"
-            new_alignment_rb_help = "Build a new alignment from scratch using the selected sequences."
-            self.new_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=new_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="build-new-alignment", background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_build_new_alignment_radio)
-            self.new_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-        else:
-            self.alignment_mode_radiobutton_var.set("rebuild-old-alignment")
-            self.alignment_mode_row += 1
-            new_alignment_rb_text = "Rebuild alignment (?)"
-            new_alignment_rb_help = "Rebuild the alignment with all its sequences."
-            self.new_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=new_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="rebuild-old-alignment", background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_build_new_alignment_radio)
-            self.new_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-
-    # ALITEST
-    #     # ---
-    #     # Alignment joiner.
-    #     # ---
-    #     # This can be performed only if there is one selected child per cluster.
-    #     if len(self.involved_cluster_elements_list) > 1 and self.check_alignment_joining_selection():
-    #         self.alignment_mode_row += 1
-    #         alignment_joiner_rb_text = "Join the alignments using the selected sequences as bridges (see 'Alignment Joining')."
-    #         self.join_alignments_radiobutton = Radiobutton(self.alignment_mode_frame, text=alignment_joiner_rb_text, variable=self.alignment_mode_radiobutton_var, value="alignment-joining",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_alignment_joiner_radio)
-    #         self.join_alignments_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0))
-    #
-    #     # ---
-    #     # "Keep previous alignment".
-    #     # ---
-    #     # Right now it can be used only when the user has selected only one cluster.
-    #     # This alignment mode might be used also for multiple clusters, but right now this is
-    #     # prevented in order to keep the alignment modes selection as simple and as intuitive as
-    #     # possible. If the user wants to append to a cluster some sequences that are contained
-    #     # in another cluster using this method, he/she should firtst extract them from their
-    #     # their original cluster. In order to let the user use this option also for multiple
-    #     # clusters, change the == 1 into >= 1 in the below condition.
-    #     if len(self.involved_cluster_elements_list) == 1:
-    #         keep_alignment_rb_text = None
-    #         # Shows a different label for the checkbutton if there is one or more clusters involved.
-    #         if len(self.involved_cluster_elements_list) > 1:
-    #             keep_alignment_rb_text = "Keep only one alignment and align to its selected sequences the remaining ones"
-    #         elif len(self.involved_cluster_elements_list) == 1:
-    #             target_cluster_name = self.involved_cluster_elements_list[0].my_header
-    #             keep_alignment_rb_text = "Keep '%s', and align to its selected sequences the remaining ones." % (target_cluster_name)
-    #
-    #         self.alignment_mode_row += 1
-    #         self.keep_previous_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=keep_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="keep-previous-alignment",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',justify=LEFT,anchor= NW, command=self.click_on_keep_previous_alignment_radio)
-    #         self.keep_previous_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0))
-    #
-    #         # Only if there are multiple clusters involved it displays a combobox to select the
-    #         # target alignment.
-    #         if len(self.involved_cluster_elements_list) > 1:
-    #             # Frame with the options to control the new alignment. It will be gridded in the
-    #             # click_on_keep_previous_alignment_radio() method.
-    #             self.keep_previous_alignment_frame = Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_cluster_elements_list, label_text = "Alignment to keep:")
-
-
-    def click_on_build_new_alignment_radio(self):
-        if len(self.involved_cluster_elements_list) > 1:
-            if hasattr(self,"keep_previous_alignment_frame"):
-                self.keep_previous_alignment_frame.grid_remove()
-            if hasattr(self,"alignment_joiner_frame"):
-                self.alignment_joiner_frame.grid_remove()
-
-    def click_on_alignment_joiner_radio(self):
-        if len(self.involved_cluster_elements_list) > 1:
-            if hasattr(self,"keep_previous_alignment_frame"):
-                self.keep_previous_alignment_frame.grid_remove()
-
-    def click_on_keep_previous_alignment_radio(self):
-        if len(self.involved_cluster_elements_list) > 1:
-            self.keep_previous_alignment_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
-            if hasattr(self,"alignment_joiner_frame"):
-                self.alignment_joiner_frame.grid_remove()
+    def build_algorithm_options_frame(self):
+        self.alignment_options_frame = pmgi.PyMod_frame(self.alignment_window.midframe)
+        self.alignment_options_frame.grid(row=1, column=0, sticky = W+E+N+S)
+        self.build_algorithm_options_widgets()
 
 
     #################################################################
@@ -621,6 +508,10 @@ class Regular_alignment_protocol(Alignment_protocol):
 
     alignment_strategy = "regular-alignment"
 
+    #################################################################
+    # Start the alignment process.                                  #
+    #################################################################
+
     def start_alignment(self):
         # First check if the selection is correct.
         if not self.check_alignment_selection():
@@ -643,19 +534,25 @@ class Regular_alignment_protocol(Alignment_protocol):
         situations (for example when building an alignment only with sequences belonging to the same
         cluster).
         """
+        print "@@@"
+        print "self.involved_clusters_set", [c.my_header for c in self.involved_clusters_set]
+        print "self.selected_clusters_set", [c.my_header for c in self.selected_clusters_set]
+        print "self.selected_root_sequences_set", [e.my_header for e in self.selected_root_sequences_set]
+        print "self.involved_cluster_elements_list", [e.my_header for e in self.involved_cluster_elements_list]
+
         proceed_with_alignment = False
         self.clusters_are_involved = False
-
-        print "@@@"
-        print "self.involved_clusters_set", self.involved_clusters_set
-        print "self.selected_clusters_set", self.selected_clusters_set
-
         self.rebuild_single_alignment_choice = False
         self.extract_siblings_choice = False
 
-        if len(self.involved_clusters_set) == 1:
+        # Only root sequences are involved.
+        if len(self.involved_clusters_set) == 0 and len(self.selected_root_sequences_set) > 0:
+            proceed_with_alignment = True
+
+        # Only one cluster and not external sequences are involved.
+        if len(self.involved_clusters_set) == 1 and len(self.selected_root_sequences_set) == 0:
             # If there is only one cluster selected with all its elements: the user might want to
-            # rebuild an alignment with all its elements, ask confirmation.
+            # rebuild an alignment with all its elements.
             if self.selected_clusters_set == self.involved_clusters_set:
                 # title = "Rebuild alignment?"
                 # message = "Would you like to rebuild the alignment with all its sequences?"
@@ -663,21 +560,140 @@ class Regular_alignment_protocol(Alignment_protocol):
                 # self.rebuild_single_alignment_choice = proceed_with_alignment
                 proceed_with_alignment = True
                 self.rebuild_single_alignment_choice = proceed_with_alignment
+            # Only a subset of all the elements in a clster are selected.
             else:
                 title = "Extract children?"
                 message = "Would you like to extract the selected children and build a new alignment?"
                 proceed_with_alignment = tkMessageBox.askyesno(title, message, parent=self.pymod.main_window)
                 self.extract_siblings_choice = proceed_with_alignment
 
-        # elif len(self.involved_clusters_mi_list) > 0:
-        #     self.clusters_are_involved = True
-        #     proceed_with_alignment = True
-
-        elif len(self.involved_clusters_set) == 0:
+        # Multiple clusters are involved.
+        elif len(self.involved_clusters_set) > 0:
+            self.clusters_are_involved = True
             proceed_with_alignment = True
 
         return proceed_with_alignment
 
+
+    #################################################################
+    # Build components of the GUI to show the alignment options.    #
+    #################################################################
+
+    def build_strategy_specific_modes_frames(self):
+
+        self.alignment_mode_radiobutton_var = StringVar()
+
+        #----------------------------
+        # Rebuild an old alignment. -
+        #----------------------------
+        if self.rebuild_single_alignment_choice:
+            self.alignment_mode_radiobutton_var.set("rebuild-old-alignment")
+            self.alignment_mode_row += 1
+            new_alignment_rb_text = "Rebuild alignment (?)"
+            new_alignment_rb_help = "Rebuild the alignment with all its sequences."
+            self.new_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=new_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="rebuild-old-alignment", background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_build_new_alignment_radio)
+            self.new_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
+            return None
+
+        #------------------------------------------------------
+        # Build a new alignment using the selected sequences. -
+        #------------------------------------------------------
+        self.alignment_mode_radiobutton_var.set("build-new-alignment")
+        self.alignment_mode_row += 1
+        # new_alignment_rb_text = "Build a new alignment from scratch using the selected sequences."
+        new_alignment_rb_text = "Build a new alignment (?)"
+        new_alignment_rb_help = "Build a new alignment from scratch using the selected sequences."
+        self.new_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=new_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="build-new-alignment", background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_build_new_alignment_radio)
+        self.new_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
+
+        #--------------------
+        # Alignment joiner. -
+        #--------------------
+        # This can be performed only if there is one selected child per cluster.
+        if len(self.involved_cluster_elements_list) > 1 and self.check_alignment_joining_selection():
+            self.alignment_mode_row += 1
+            # alignment_joiner_rb_text = "Join the alignments using the selected sequences as bridges (see 'Alignment Joining')."
+            self.join_alignments_radiobutton = Radiobutton(self.alignment_mode_frame, text="Join Alignments (?)", variable=self.alignment_mode_radiobutton_var, value="alignment-joining",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_alignment_joiner_radio)
+            self.join_alignments_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0))
+
+        #---------------------------
+        # Keep previous alignment. -
+        #---------------------------
+        # Right now it can be used only when the user has selected only one cluster.
+        # This alignment mode might be used also for multiple clusters, but right now this is
+        # prevented in order to keep the alignment modes selection as simple and as intuitive as
+        # possible. If the user wants to append to a cluster some sequences that are contained
+        # in another cluster using this method, he/she should firtst extract them from their
+        # their original cluster. In order to let the user use this option also for multiple
+        # clusters, change the == 1 into >= 1 in the below condition.
+        if len(self.involved_cluster_elements_list) == 1:
+            keep_alignment_rb_text = None
+            # Shows a different label for the checkbutton if there is one or more clusters involved.
+            if len(self.involved_cluster_elements_list) > 1:
+                # keep_alignment_rb_text = "Keep only one alignment and align to its selected sequences the remaining ones"
+                keep_alignment_rb_text =  "Keep previous alignment (?)"
+            elif len(self.involved_cluster_elements_list) == 1:
+                target_cluster_name = self.involved_cluster_elements_list[0].my_header
+                # keep_alignment_rb_text = "Keep '%s', and align to its selected sequences the remaining ones." % (target_cluster_name)
+                keep_alignment_rb_text =  "Keep previous alignment (?)"
+
+            self.alignment_mode_row += 1
+            self.keep_previous_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=keep_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="keep-previous-alignment",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',justify=LEFT,anchor= NW, command=self.click_on_keep_previous_alignment_radio)
+            self.keep_previous_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0))
+
+            # Only if there are multiple clusters involved it displays a combobox to select the
+            # target alignment.
+            if len(self.involved_cluster_elements_list) > 1:
+                # Frame with the options to control the new alignment. It will be gridded in the
+                # click_on_keep_previous_alignment_radio() method.
+                self.keep_previous_alignment_frame = Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_cluster_elements_list, label_text = "Alignment to keep:")
+
+
+    def click_on_build_new_alignment_radio(self):
+        if len(self.involved_cluster_elements_list) > 1:
+            if hasattr(self,"keep_previous_alignment_frame"):
+                self.keep_previous_alignment_frame.grid_remove()
+            if hasattr(self,"alignment_joiner_frame"):
+                self.alignment_joiner_frame.grid_remove()
+
+    def click_on_alignment_joiner_radio(self):
+        if len(self.involved_cluster_elements_list) > 1:
+            if hasattr(self,"keep_previous_alignment_frame"):
+                self.keep_previous_alignment_frame.grid_remove()
+
+    def click_on_keep_previous_alignment_radio(self):
+        if len(self.involved_cluster_elements_list) > 1:
+            self.keep_previous_alignment_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
+            if hasattr(self,"alignment_joiner_frame"):
+                self.alignment_joiner_frame.grid_remove()
+
+
+    def check_alignment_joining_selection(self):
+        """
+        Used to check if there is a right selection in order to perform the Alignment Joiner
+        algorithm to join two or more clusters.
+        """
+        correct_selection = False
+        if len(self.involved_cluster_elements_list) > 1:
+            # Check that there is only one selected children per cluster.
+            too_many_children_per_cluster = False
+            for cluster in self.involved_cluster_elements_list:
+                if not self.pymod.check_only_one_selected_child_per_cluster(cluster):
+                    too_many_children_per_cluster = True
+                    break
+            if too_many_children_per_cluster:
+                correct_selection = False
+            else:
+                correct_selection = True
+        else:
+            correct_selection = False
+
+        return correct_selection
+
+
+    #################################################################
+    # Perform the alignment.                                        #
+    #################################################################
 
     def define_alignment_mode(self):
         """
@@ -804,7 +820,12 @@ class Clustalw_regular_alignment_protocol(Sequence_alignment_protocol):
         self.tool = self.pymod.clustalw
 
 
-    def build_algorithm_options_frame(self):
+    #################################################################
+    # Build components of the GUI to show the alignment options.    #
+    #################################################################
+
+    def build_algorithm_options_widgets(self):
+
         widgets_to_align = []
 
         # Scoring matrix radioselect.
@@ -850,6 +871,10 @@ class Clustalw_regular_alignment_protocol(Sequence_alignment_protocol):
     def get_gapextension_value(self):
         return self.gapextension_enf.getvalue()
 
+
+    #################################################################
+    # Perform the alignment.                                        #
+    #################################################################
 
     def run_alignment_program(self, sequences_to_align, alignment_name=None, alignment_program=None, use_parameters_from_gui=True):
         # if use_parameters_from_gui:
