@@ -18,6 +18,7 @@ from pymol import cmd
 
 import pymod_vars as pmdt
 import pymod_gui as pmgi
+import pymod_sequence_manipulation as pmsm
 
 
 class PyMod_protocol:
@@ -113,42 +114,22 @@ class Alignment_protocol(PyMod_protocol):
 
     def build_cluster_lists(self):
         """
-        This will build the self.involved_cluster_elements_list, which will contain the elements
+        This will build the self.involved_clusters_list, which will contain the elements
         belonging to cluster that were either selected entirely or with at least one selected child.
         """
-        #------------------------------------------------------------------------------------
-        # A set that will contain all the clusters that have at least one selected element. -
-        #------------------------------------------------------------------------------------
-        self.involved_clusters_set = set()
+        # A list that will contain all the clusters that have at least one selected element.
+        self.involved_clusters_list = []
         for e in self.pymod.get_selected_elements():
-            self.involved_clusters_set.add(e.mother)
-        if self.pymod.root_element in self.involved_clusters_set:
-            self.involved_clusters_set.remove(self.pymod.root_element)
+            if not e.mother in self.involved_clusters_list:
+                self.involved_clusters_list.append(e.mother)
+        if self.pymod.root_element in self.involved_clusters_list:
+            self.involved_clusters_list.remove(self.pymod.root_element)
 
-        #--------------------------------------------------------------------------------------
-        # A set that will contain all the clusters that have all of their sequences selected. -
-        #--------------------------------------------------------------------------------------
-        self.selected_clusters_set = set(self.pymod.get_selected_clusters())
+        # A list that will contain all the clusters that have all of their sequences selected.
+        self.selected_clusters_list = self.pymod.get_selected_clusters()
 
-        #---------------------------------------------------------------------------------
-        # A set that will contain all the selected sequences in the root level of PyMod. -
-        #---------------------------------------------------------------------------------
-        self.selected_root_sequences_set = set([s for s in self.pymod.get_selected_sequences() if s.mother == self.pymod.root_element])
-
-        #------------------------------------------------------------
-        # Build PyMod elements lists out of the sets defined above. -
-        #------------------------------------------------------------
-        # TODO: use these lists instead of sets.
-        self.involved_cluster_elements_list = []
-        for e in self.pymod.get_selected_elements():
-            if not e.mother in self.involved_cluster_elements_list:
-                self.involved_cluster_elements_list.append(e.mother)
-        if self.pymod.root_element in self.involved_cluster_elements_list:
-            self.involved_cluster_elements_list.remove(self.pymod.root_element)
-
-        # self.selected_cluster_elements_list = []
-        # for mother_index in sorted(list(self.selected_clusters_mi_list)):
-        #     self.selected_cluster_elements_list.append(self.get_mother_by_index(mother_index))
+        # A list that will contain all the selected sequences in the root level of PyMod.
+        self.selected_root_sequences_list = set([s for s in self.pymod.get_selected_sequences() if s.mother == self.pymod.root_element])
 
 
     #################################################################
@@ -170,9 +151,8 @@ class Alignment_protocol(PyMod_protocol):
 
     def build_alignment_window_middle_frame(self):
         """
-        The middle frame of the window will contain:
-            - a frame with widgets to choose the alignment mode.
-            - a frame with widgets to change the alignment algorithm parameters.
+        The middle frame of the window will contain a frame with widgets to choose the alignment
+        mode and a frame with widgets to change the alignment algorithm parameters.
         """
         # Options to choose the alignment mode.
         self.build_alignment_mode_frame()
@@ -225,6 +205,7 @@ class Alignment_protocol(PyMod_protocol):
         # alignment.
         self.elements_to_align = []
         self.elements_to_align_dict = {}
+        self.protocol_output_file_name = None
 
         #-----------------------------------
         # Actually performs the alignment. -
@@ -236,134 +217,10 @@ class Alignment_protocol(PyMod_protocol):
         #-------------------------------------------
         self.create_alignment_element()
         self.update_aligned_sequences()
+        if 0:
+            self.remove_alignment_temp_files()
         self.finish_alignment()
 
-
-    ###################################
-    # Builds a PyMod cluster element  #
-    # that will contain as children   #
-    # all the aligned sequences.      #
-    ###################################
-
-    def create_alignment_element(self):
-        """
-        A method to create a PyMod element for the alignment and to build a cluster to contain the
-        aligned sequences.
-        """
-        #-------------------------
-        # Build a new alignment. -
-        #-------------------------
-        if self.alignment_mode == "build-new-alignment":
-            # Actually creates the new PyMod alignment element.
-            self.pymod.alignment_count += 1
-            ali_name = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.pymod.alignment_count)
-            self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
-                                                cluster_name=ali_name,
-                                                child_elements=self.elements_to_align,
-                                                algorithm=self.alignment_program,
-                                                update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
-        #-----------------------------
-        # Rebuilds an old alignment. -
-        #-----------------------------
-        elif self.alignment_mode == "rebuild-old-alignment":
-            self.alignment_element = self.pymod.get_selected_clusters()[0]
-            if self.alignment_element.cluster_type == "alignment":
-                self.alignment_element.my_header = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.alignment_element.cluster_id)
-            elif self.alignment_element.cluster_type == "blast-search":
-                old_cluster_name = self.alignment_element.my_header
-                self.alignment_element.my_header = self.pymod.updates_blast_search_element_name(old_cluster_name, pmdt.algorithms_full_names_dict[self.alignment_program])
-
-    #     # ---
-    #     # Expand an already existing cluster with new sequences.
-    #     # ---
-    #     elif self.alignment_mode in ("keep-previous-alignment", "sequence-to-profile"):
-    #
-    #         # Gets the target cluster element.
-    #         self.alignment_element = None
-    #
-    #         if self.alignment_mode == "keep-previous-alignment":
-    #             self.alignment_element = self.involved_cluster_elements_list[self.target_cluster_index]
-    #         elif self.alignment_mode == "sequence-to-profile":
-    #             self.alignment_element = self.selected_cluster_elements_list[self.target_cluster_index]
-    #
-    #         # Appends new sequences to the target cluster.
-    #         for element in self.elements_to_add:
-    #             self.add_to_mother(self.alignment_element,element)
-    #
-    #         # Updates the alignment element with new information about the new alignment.
-    #
-    #         # Creates an alignment object with the same id of the alignment that was kept.
-    #         ali_to_keep_id = self.alignment_element.alignment.id
-    #         self.alignment_element.alignment = self.build_alignment_object("merged", ali_to_keep_id)
-    #
-    #         alignment_description = None
-    #         if self.alignment_mode == "keep-previous-alignment":
-    #             alignment_description = "merged with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])
-    #         elif self.alignment_mode == "sequence-to-profile":
-    #             alignment_description = "built with sequence-to-profile with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])
-    #         alignment_description = "merged"
-    #
-    #         # Changes the name of the alignment element.
-    #         if self.alignment_element.element_type == "alignment":
-    #             self.alignment_element.my_header = self.pymod.set_alignment_element_name(alignment_description,ali_to_keep_id)
-    #         elif self.alignment_element.element_type == "blast-search":
-    #             # self.alignment_element.my_header = self.pymod.set_alignment_element_name(alignment_description,ali_to_keep_id)
-    #             pass
-    #
-    #     # ---
-    #     # Join two or more existing clusters.
-    #     # ---
-    #     elif self.alignment_mode in ("alignment-joining", "profile-to-profile"):
-    #
-    #         # Find the right mother index in order to build the new cluster where one of the
-    #         # original ones was placed.
-    #         lowest_mother_index = 0
-    #         mothers_list = [e for e in self.selected_elements[:]+self.involved_cluster_elements_list[:] if e.is_mother]
-    #         # Use min or max to build the new cluster respectively where the top o bottom original
-    #         # cluster were.
-    #         lowest_mother_index = min([e.mother_index for e in mothers_list]) # CHECK! # min(mothers_list,key=lambda el: el.mother_index).mother_index
-    #
-    #         # Build a new "Alignment" class object.
-    #         self.pymod.alignment_count += 1
-    #
-    #         alignment_description = None
-    #         if self.alignment_mode == "alignment-joining":
-    #             alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
-    #         elif self.alignment_mode == "profile-to-profile":
-    #             alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program] + "profile to profile alignment"
-    #         alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
-    #
-    #         ali_name = "Joined " + self.pymod.set_alignment_element_name(alignment_description, self.pymod.alignment_count)
-    #         ali_object = self.build_alignment_object(self.alignment_program+"-joined", self.pymod.alignment_count)
-    #
-    #         # Builds the new "PyMod_element" object for the new alignment.
-    #         self.alignment_element = PyMod_element("...", ali_name, element_type="alignment", alignment_object=ali_object, adjust_header=False)
-    #         self.add_element_to_pymod(self.alignment_element, "mother", mother_index=lowest_mother_index)
-    #
-    #         # Move all the sequences in the new cluster.
-    #         new_elements = []
-    #         bridges_list = []
-    #         # First appends the mothers (if any) to the new cluster.
-    #         for e in self.selected_elements:
-    #             if e.is_mother and not e.is_cluster():
-    #                 new_elements.append(e)
-    #                 bridges_list.append(e)
-    #         # Then appends the children.
-    #         for cluster in self.involved_cluster_elements_list:
-    #             for c in self.get_children(cluster):
-    #                 new_elements.append(c)
-    #                 if c.selected:
-    #                     bridges_list.append(c)
-    #         for element in sorted(new_elements,key=lambda el: (el.mother_index,el.child_index)):
-    #             self.add_to_mother(self.alignment_element,element)
-    #
-    #         # Marks the bridges so that they are displayed with a "b" in their cluster.
-    #         if self.alignment_mode == "alignment-joining":
-    #             for b in bridges_list:
-    #                 # b.is_bridge = True
-    #                 b.bridge = True
-    #     self.set_initial_ali_seq_number(self.alignment_element)
-    #
 
     ###################################
     # Updates the sequences of the    #
@@ -377,14 +234,15 @@ class Alignment_protocol(PyMod_protocol):
         alignment. And also deletes the temporary files used to align the sequences.
         """
 
-        if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
-            # Gets from an alignment file the sequences with their indels produced in the alignment.
-            handle = open(os.path.join(self.pymod.alignments_directory, self.current_alignment_file_name+".aln"), "rU")
-            records = list(SeqIO.parse(handle, "clustal"))
-            handle.close()
-            # Updates the Sequences.
-            for a, r in enumerate(records):
-                self.elements_to_align_dict[str(r.id)].set_sequence(str(r.seq)) # self.correct_sequence
+        # if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
+        # Gets from an alignment file the sequences with their indels produced in the alignment.
+        handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")
+        records = list(SeqIO.parse(handle, "clustal"))
+        handle.close()
+        # Updates the sequences.
+        for a, r in enumerate(records):
+            element_to_update = self.elements_to_align_dict[str(r.id)]
+            element_to_update.set_sequence(str(r.seq)) # self.correct_sequence
 
             # # Sequence alignment tools have an output file that can be easily used by the
             # # "display_ordered_sequences()" moethod.
@@ -412,9 +270,6 @@ class Alignment_protocol(PyMod_protocol):
         #
         # elif self.alignment_mode in ("alignment-joining", "profile-to-profile"):
         #     self.display_hybrid_al()
-
-        if remove_temp_files and 0:
-            self.remove_alignment_temp_files()
 
         self.pymod.gridder(clear_selection=True, update_clusters=True)
 
@@ -534,29 +389,21 @@ class Regular_alignment_protocol(Alignment_protocol):
         situations (for example when building an alignment only with sequences belonging to the same
         cluster).
         """
-        print "@@@"
-        print "self.involved_clusters_set", [c.my_header for c in self.involved_clusters_set]
-        print "self.selected_clusters_set", [c.my_header for c in self.selected_clusters_set]
-        print "self.selected_root_sequences_set", [e.my_header for e in self.selected_root_sequences_set]
-        print "self.involved_cluster_elements_list", [e.my_header for e in self.involved_cluster_elements_list]
-
         proceed_with_alignment = False
         self.clusters_are_involved = False
         self.rebuild_single_alignment_choice = False
         self.extract_siblings_choice = False
 
         # Only root sequences are involved.
-        if len(self.involved_clusters_set) == 0 and len(self.selected_root_sequences_set) > 0:
+        if len(self.involved_clusters_list) == 0 and len(self.selected_root_sequences_list) > 0:
             proceed_with_alignment = True
 
         # Only one cluster and not external sequences are involved.
-        if len(self.involved_clusters_set) == 1 and len(self.selected_root_sequences_set) == 0:
+        if len(self.involved_clusters_list) == 1 and len(self.selected_root_sequences_list) == 0:
             # If there is only one cluster selected with all its elements: the user might want to
             # rebuild an alignment with all its elements.
-            if self.selected_clusters_set == self.involved_clusters_set:
-                # title = "Rebuild alignment?"
-                # message = "Would you like to rebuild the alignment with all its sequences?"
-                # proceed_with_alignment = tkMessageBox.askyesno(title, message, parent=self.pymod.main_window)
+            if set(self.selected_clusters_list) == set(self.involved_clusters_list):
+                # proceed_with_alignment = tkMessageBox.askyesno("Rebuild alignment?", "Would you like to rebuild the alignment with all its sequences?", parent=self.pymod.main_window)
                 # self.rebuild_single_alignment_choice = proceed_with_alignment
                 proceed_with_alignment = True
                 self.rebuild_single_alignment_choice = proceed_with_alignment
@@ -568,7 +415,7 @@ class Regular_alignment_protocol(Alignment_protocol):
                 self.extract_siblings_choice = proceed_with_alignment
 
         # Multiple clusters are involved.
-        elif len(self.involved_clusters_set) > 0:
+        elif len(self.involved_clusters_list) > 0:
             self.clusters_are_involved = True
             proceed_with_alignment = True
 
@@ -610,7 +457,7 @@ class Regular_alignment_protocol(Alignment_protocol):
         # Alignment joiner. -
         #--------------------
         # This can be performed only if there is one selected child per cluster.
-        if len(self.involved_cluster_elements_list) > 1 and self.check_alignment_joining_selection():
+        if len(self.involved_clusters_list) > 1 and self.check_alignment_joining_selection():
             self.alignment_mode_row += 1
             # alignment_joiner_rb_text = "Join the alignments using the selected sequences as bridges (see 'Alignment Joining')."
             self.join_alignments_radiobutton = Radiobutton(self.alignment_mode_frame, text="Join Alignments (?)", variable=self.alignment_mode_radiobutton_var, value="alignment-joining",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_alignment_joiner_radio)
@@ -625,15 +472,16 @@ class Regular_alignment_protocol(Alignment_protocol):
         # possible. If the user wants to append to a cluster some sequences that are contained
         # in another cluster using this method, he/she should firtst extract them from their
         # their original cluster. In order to let the user use this option also for multiple
-        # clusters, change the == 1 into >= 1 in the below condition.
-        if len(self.involved_cluster_elements_list) == 1:
+        # clusters, change the condition below in:
+        # len(self.involved_clusters_list) >= 1 or (len(self.involved_clusters_list) == 1 and len(self.selected_root_sequences_list) > 0)
+        if len(self.involved_clusters_list) == 1 and len(self.selected_root_sequences_list) > 0:
             keep_alignment_rb_text = None
             # Shows a different label for the checkbutton if there is one or more clusters involved.
-            if len(self.involved_cluster_elements_list) > 1:
+            if len(self.involved_clusters_list) > 1:
                 # keep_alignment_rb_text = "Keep only one alignment and align to its selected sequences the remaining ones"
                 keep_alignment_rb_text =  "Keep previous alignment (?)"
-            elif len(self.involved_cluster_elements_list) == 1:
-                target_cluster_name = self.involved_cluster_elements_list[0].my_header
+            elif len(self.involved_clusters_list) == 1:
+                target_cluster_name = self.involved_clusters_list[0].my_header
                 # keep_alignment_rb_text = "Keep '%s', and align to its selected sequences the remaining ones." % (target_cluster_name)
                 keep_alignment_rb_text =  "Keep previous alignment (?)"
 
@@ -643,26 +491,26 @@ class Regular_alignment_protocol(Alignment_protocol):
 
             # Only if there are multiple clusters involved it displays a combobox to select the
             # target alignment.
-            if len(self.involved_cluster_elements_list) > 1:
+            if len(self.involved_clusters_list) > 1:
                 # Frame with the options to control the new alignment. It will be gridded in the
                 # click_on_keep_previous_alignment_radio() method.
-                self.keep_previous_alignment_frame = Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_cluster_elements_list, label_text = "Alignment to keep:")
+                self.keep_previous_alignment_frame = Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_clusters_list = self.involved_clusters_list, label_text = "Alignment to keep:")
 
 
     def click_on_build_new_alignment_radio(self):
-        if len(self.involved_cluster_elements_list) > 1:
+        if len(self.involved_clusters_list) > 1:
             if hasattr(self,"keep_previous_alignment_frame"):
                 self.keep_previous_alignment_frame.grid_remove()
             if hasattr(self,"alignment_joiner_frame"):
                 self.alignment_joiner_frame.grid_remove()
 
     def click_on_alignment_joiner_radio(self):
-        if len(self.involved_cluster_elements_list) > 1:
+        if len(self.involved_clusters_list) > 1:
             if hasattr(self,"keep_previous_alignment_frame"):
                 self.keep_previous_alignment_frame.grid_remove()
 
     def click_on_keep_previous_alignment_radio(self):
-        if len(self.involved_cluster_elements_list) > 1:
+        if len(self.involved_clusters_list) > 1:
             self.keep_previous_alignment_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
             if hasattr(self,"alignment_joiner_frame"):
                 self.alignment_joiner_frame.grid_remove()
@@ -674,10 +522,10 @@ class Regular_alignment_protocol(Alignment_protocol):
         algorithm to join two or more clusters.
         """
         correct_selection = False
-        if len(self.involved_cluster_elements_list) > 1:
+        if len(self.involved_clusters_list) > 1:
             # Check that there is only one selected children per cluster.
             too_many_children_per_cluster = False
-            for cluster in self.involved_cluster_elements_list:
+            for cluster in self.involved_clusters_list:
                 if not self.pymod.check_only_one_selected_child_per_cluster(cluster):
                     too_many_children_per_cluster = True
                     break
@@ -697,61 +545,481 @@ class Regular_alignment_protocol(Alignment_protocol):
 
     def define_alignment_mode(self):
         """
-        Gets several parameters from the GUI in order to define the alignment mode.
+        Gets parameters from the GUI in order to define the alignment mode.
         """
-        self.alignment_mode = None
-        if self.rebuild_single_alignment_choice:
-            self.alignment_mode = "rebuild-old-alignment"
-        elif self.extract_siblings_choice:
-            self.alignment_mode = "build-new-alignment"
-        # elif self.clusters_are_involved:
-        #     # It can be either "rebuild-old-alignment" or "keep-previous-alignment".
-        #     alignment_mode = self.alignment_mode_radiobutton_var.get()
-        #     # Takes the index of the target cluster.
-        #     self.target_cluster_index = None
-        #     # Takes the index of the target cluster for the "keep-previous-alignment" mode.
-        #     if alignment_mode == "keep-previous-alignment":
-        #         # If there is only one cluster involved its index its going to be 0.
-        #         if len(self.involved_cluster_elements_list) == 1:
-        #             self.target_cluster_index = 0 # Cluster index.
-        #         # Get the index of the cluster from the combobox.
-        #         elif len(self.involved_cluster_elements_list) > 1:
-        #             target_cluster_name = self.keep_previous_alignment_frame.get_selected_cluster()
-        #             self.target_cluster_index = self.keep_previous_alignment_frame.get_selected_cluster_index(target_cluster_name)
-        else:
-            self.alignment_mode = "build-new-alignment"
+        self.alignment_mode = self.alignment_mode_radiobutton_var.get()
+        # Takes the index of the target cluster for the "keep-previous-alignment" mode.
+        if self.alignment_mode == "keep-previous-alignment":
+            self.target_cluster_index = None
+            # If there is only one cluster involved its index its going to be 0.
+            if len(self.involved_clusters_list) == 1:
+                self.target_cluster_index = 0 # Cluster index.
+            # Get the index of the cluster from the combobox. Right now it is not implemented.
+            # else:
+            #     target_cluster_name = self.keep_previous_alignment_frame.get_selected_cluster()
+            #     self.target_cluster_index = self.keep_previous_alignment_frame.get_selected_cluster_index(target_cluster_name)
 
 
-    def perform_alignment_protocol(self):
-        # Actually performs the alignment.
+    def set_alignment_output_file_name(self, output_file_name=None):
+        """
+        If the "alignment_file_name" argument is set to "None" (this happens when performing a new
+        alignment from the PyMod main menu), this method will automatically generate a name for it,
+        using the standard "self.pymod.alignments_files_names" value.
+        """
+        if not output_file_name:
+            # Alignment files ending with the unique_id of the alignment are going to be created.
+            output_file_name = "temp_%s_%s" % (self.pymod.alignments_files_names, self.pymod.unique_index)
+        return output_file_name
+
+
+    def perform_alignment_protocol(self, output_file_name=None):
+        """
+        Actually performs the alignment.
+        """
         if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
             self.elements_to_align = self.pymod.get_selected_sequences()
+            self.protocol_output_file_name = self.set_alignment_output_file_name(output_file_name)
             for element in self.elements_to_align:
                 self.elements_to_align_dict.update({element.get_unique_index_header(): element})
-            self.perform_alignment(self.elements_to_align)
+            self.perform_regular_alignment(self.elements_to_align, self.protocol_output_file_name)
 
-        # elif self.alignment_mode == "keep-previous-alignment":
-        #     self.elements_to_align = [] # It will be populated inside self.align_and_keep_previous_alignment().
-        #     self.align_and_keep_previous_alignment()
-        #
-        # elif self.alignment_mode == "alignment-joining":
-        #     self.elements_to_align = self.pymod.get_selected_sequences()
-        #     self.perform_alignment_joining()
+        elif self.alignment_mode == "keep-previous-alignment":
+            self.align_and_keep_previous_alignment()
+
+        elif self.alignment_mode == "alignment-joining":
+            self.elements_to_align = self.pymod.get_selected_sequences()
+            self.perform_alignment_joining()
 
 
-    def perform_alignment(self, sequences_to_align, alignment_name=None, alignment_program=None, use_parameters_from_gui=True):
+    ################################
+    # Regular alignments protocol. #
+    ################################
+
+    def perform_regular_alignment(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
         """
         Perform a new sequence (or structural) alignment with the algorithm provided in the
         "alignment_program" argument. This method can be used in other parts of the plugin
         independently of the whole process initiated when performing an alignment using the commands
         in the 'Tools' menu in the PyMod main menu.
         """
+        self.run_alignment_program(sequences_to_align, output_file_name, alignment_program, use_parameters_from_gui)
 
-        # Generate a name for the current alignment, which will be used to name its files. If the
-        # "name" argument is set to "None", the "set_current_alignment_file_name" will automatically
-        # generate a name for it.
-        self.current_alignment_file_name = self.pymod.set_current_alignment_file_name(alignment_name)
-        self.run_alignment_program(sequences_to_align, alignment_name, alignment_program, use_parameters_from_gui)
+
+    ##################################################################
+    # Methods for the "keep previous alignment" mode.                #
+    ##################################################################
+
+    def align_and_keep_previous_alignment(self):
+        """
+        Align all selected elements to some cluster. Briefly, what it does is the following:
+            - perform a multiple alignment between all the selected sequences in the target cluster
+              and the other selected sequences to add to the alignment, using the algorithm chosen
+              by the user.
+            - for each of the sequences to add, find the sequence in the cluster which is less
+              distant from it (in sequence alignments in terms of sequence identity) and estabilish
+              conserved pairs.
+            - align individually each conserved pair, and the merge the alignments with the original
+              alignment of the target cluster.
+        This mode is useful when the user is manually building an alignment and wants to append
+        some sequences to some cluster by aligning them to a specific sequence in the target
+        alignment.
+        """
+
+        #------------------
+        # Initialization. -
+        #------------------
+
+        # List of the sequences elements that belong to the target cluster.
+        alignment_to_keep_elements = self.involved_clusters_list[self.target_cluster_index].get_children()
+        # List of the selected sequence in the target cluster.
+        self.selected_sequences_in_target_alignment = [e for e in alignment_to_keep_elements if e.selected]
+
+        # Checks if the there are multiple selected sequence in the target cluster.
+        multiple_selected_seq_in_target_alignment = False
+        if len(self.selected_sequences_in_target_alignment) > 1:
+            multiple_selected_seq_in_target_alignment = True
+
+        # List of the selected sequences that have to be appended to the target cluster.
+        self.elements_to_add = []
+        for e in self.selected_elements:
+            if not e.is_cluster() and not e in alignment_to_keep_elements:
+                self.elements_to_add.append(e)
+
+        #----------------------------------------------------------------------------------------
+        # Perform a first alignment between all the selected sequences (belonging to the target -
+        # cluster and the external ones).                                                       -
+        #----------------------------------------------------------------------------------------
+
+        self.initial_alignment_name = "all_temporary"
+        self.elements_to_align = self.selected_sequences_in_target_alignment[:]+self.elements_to_add[:]
+
+        # For sequence alignment algorithms, perform the first multiple alignment with the same
+        # algorithtm.
+        if self.alignment_program in pmdt.sequence_alignment_tools:
+            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name,
+                                           alignment_program=None, use_parameters_from_gui=True)
+
+        # For structural alignment algorithms, perform the first multiple alignment with a sequence
+        # alignment algorithm with default parameters.
+        elif self.alignment_program in pmdt.structural_alignment_tools:
+            raise Exception("#TODO!")
+            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name,
+                                           alignment_program="clustalw", use_parameters_from_gui=False)
+
+        #-------------------------------------------
+        # Generate the highest identity pair list. -
+        #-------------------------------------------
+
+        highest_identity_pairs_list = self.generate_highest_identity_pairs_list(self.initial_alignment_name)
+
+        # List of filenames of the pairwise alignments of each sequence from "elements_to_add" to
+        # most similiar sequence in the "selected_sequences_in_target_alignment".
+        self.highest_identity_pairs_alignment_list=[]
+
+        # Performs the alignments and stores the name of the output files names (they will be .aln
+        # files) in the list above.
+        self.highest_identity_pairs_alignment_list = self.align_highest_identity_pairs_list(highest_identity_pairs_list)
+
+        #-------------------------------------
+        # Actually joins all the alignments. -
+        #-------------------------------------
+
+        # First builds the al_result.txt file with the target alignment, this is needed by
+        # "alignments_joiner()" method used below.
+        self.merged_alignment_output = "al_result" # align_output.txt
+        self.pymod.build_sequences_file(alignment_to_keep_elements, self.merged_alignment_output,
+                                  file_format="pymod", remove_indels=False, unique_indices_headers=True)
+
+        # Performs the alignments joining progressively.
+        for comp in self.highest_identity_pairs_alignment_list:
+            self.alignments_joiner(os.path.join(self.pymod.alignments_directory, self.merged_alignment_output + ".txt"),
+                                   os.path.join(self.pymod.alignments_directory, comp + ".aln"))
+
+        #-----------------------
+        # Prepares the output. -
+        #-----------------------
+
+        # Converts the .txt file in .aln one.
+        self.pymod.convert_txt_alignment(self.merged_alignment_output + ".txt")
+        # Builds a list of the elements to update.
+        for element in alignment_to_keep_elements + self.elements_to_add:
+            self.elements_to_align_dict.update({element.get_unique_index_header(): element})
+        # Sets the name of the final alignment output file.
+        self.protocol_output_file_name = self.merged_alignment_output
+
+        # The temporary files needed to peform this alignment will be deleted at the end of the
+        # alignment process.
+
+
+    def generate_highest_identity_pairs_list(self, initial_alignment_name):
+        """
+        For each sequence to add to the alignment, finds the nearest selected sequence (in terms
+        of sequence identity) of the target cluster according to the information of previous
+        multiple alignment between all the sequences.
+        """
+        # Reads the output file of the alignment and stores  in a variable a list of its biopython
+        # record objects.
+        initial_alignment_file = open(os.path.join(self.pymod.alignments_directory, initial_alignment_name + ".aln"), "rU")
+        initial_alignment_records = list(SeqIO.parse(initial_alignment_file, "clustal"))
+        initial_alignment_file.close()
+
+        # A list that is going to contain as many rows as the sequence to add to the alignment and
+        # as many columns as the selected sequences in target alignment.
+        pair_list=[]
+        index = 0
+        # Parses the records in the fasta file with the initial alignment just generated.
+        for element in initial_alignment_records:
+            for sequence in self.elements_to_add:
+                # If the sequence in the list is the same of some element in the records.
+                if element.id == sequence.get_unique_index_header():
+                    pair_list.append([])
+                    # Parses the list for sequences fo the alignment to keep.
+                    for structure in initial_alignment_records:
+                        for struct in self.selected_sequences_in_target_alignment:
+                            if structure.id == struct.get_unique_index_header():
+                                identity = pmsm.compute_sequence_identity(element.seq, structure.seq)
+                                pair_list[index].append(identity)
+                    index += 1
+        return pair_list
+
+
+    def align_highest_identity_pairs_list(self,pair_list):
+        alignment_list = []
+        for seq_counter, compared in enumerate(pair_list):
+            pair_to_align=[]
+            for num in range(len(self.selected_sequences_in_target_alignment)):
+                # For each sequence to add perform an aligment to the sequence to which it has the
+                # highest identity according to the initial alignment.
+                if compared[num]==max(compared):
+                    aligned_pair_name = "temp_seq_" + str(seq_counter)
+                    pair_to_align.append(self.selected_sequences_in_target_alignment[num])
+                    pair_to_align.append(self.elements_to_add[seq_counter])
+                    self.perform_regular_alignment(
+                            pair_to_align,
+                            output_file_name=aligned_pair_name,
+                            use_parameters_from_gui=True)
+                    alignment_list.append(aligned_pair_name)
+                    break
+        return alignment_list
+
+
+    def alignments_joiner(self, al1, al2, output_file_name="al_result"):
+        """
+        The algorithm that actually builds the joined alignment.
+        The first file is an alignment file in "PyMod" format, the second is an alignment file in
+        .aln (clustal) format.
+        """
+        # Take the sequences of the CE-aligned structures.
+        struct=open(al1, "r")
+        structs=[]
+        for structure in struct.readlines(): # Maybe just take the sequences instead of the whole line of the file.
+            structs.append([structure])
+        struct.close()
+        # Take the sequences of the non CE-aligned elements to be aligned.
+        mot_and_sons_1 = open(al2, "rU")
+        records1 = list(SeqIO.parse(mot_and_sons_1, "clustal"))
+        mot_and_sons_1.close()
+        # Finds the sequence that the .txt and .aln alignments have in common, the "bridge" sequence.
+        for ax in range(len(structs)):
+            for line in range(len(records1)):
+                # Finds the bridge.
+                if structs[ax][0].split()[0] == records1[line].id:
+                    # Builds a list with as many sub-list elements as the sequences aligned in the
+                    # .txt alignment.
+                    seq1=[]
+                    for s1 in range(len(structs)):
+                        seq1.append([])
+                    # Builds a list with as many sub-list elements as the sequences aligned in the
+                    # .ali alignment.
+                    seq2=[]
+                    for s2 in range(len(records1)):
+                        seq2.append([])
+                    index1=0
+                    index2=0
+                    index1_max=len(structs[ax][0].split()[1])
+                    index2_max=len(records1[line].seq)
+                    # ---
+                    # This is basically an implementation of the part of the "center star" alignment
+                    # method that adds new sequences to the center star by padding indels when
+                    # needed. Here the "bridge" sequence is the "center star".
+                    # ---
+                    # This catches the exception thrown when one of the indices of the sequences goes out of range.
+                    try:
+                        # Start to parse the same bridge sequence in the two alignments.
+                        for aa in range(10000):
+                            # If the indices are referring to the same residue in the two "versions"
+                            # of the bridge sequence.
+                            if structs[ax][0].split()[1][index1] == records1[line].seq[index2]:
+                                for son in range(len(structs)):
+                                    seq1[son].append(structs[son][0].split()[1][index1])
+                                for son2 in range(len(records1)):
+                                    seq2[son2].append(records1[son2].seq[index2])
+                                index1+=1
+                                index2+=1
+                            # If one of the sequences have an indel.
+                            if structs[ax][0].split()[1][index1] == '-' and records1[line].seq[index2] != '-':
+                                for son in range(len(structs)):
+                                    seq1[son].append(structs[son][0].split()[1][index1])
+                                for son2 in range(len(records1)):
+                                        seq2[son2].append('-')
+                                index1+=1
+                            # If one of the sequences have an indel.
+                            if structs[ax][0].split()[1][index1] != '-' and records1[line].seq[index2] == '-':
+                                for son in range(len(structs)):
+                                    seq1[son].append('-')
+                                for son2 in range(len(records1)):
+                                    seq2[son2].append(records1[son2].seq[index2])
+                                index2+=1
+                    except:
+                        stopped_index1=index1
+                        stopped_index2=index2
+                        if index1>=index1_max:
+                            for son in range(len(structs)):
+                                for a in range(index2_max-index2):
+                                    seq1[son].append('-')
+                            for son2 in range(len(records1)):
+                                new_index2=stopped_index2
+                                for b in range(index2_max-stopped_index2):
+                                    seq2[son2].append(records1[son2].seq[new_index2])
+                                    new_index2+=1
+                        if index2>=index2_max:
+                            for son in range(len(records1)):
+                                for a in range(index1_max-index1):
+                                    seq2[son].append('-')
+                            for son2 in range(len(structs)):
+                                new_index1=stopped_index1
+                                for b in range(index1_max-stopped_index1):
+                                    seq1[son2].append(structs[son2][0].split()[1][new_index1])
+                                    new_index1+=1
+                    # Write the results to the al_result.txt file.
+                    f=open(os.path.join(self.pymod.alignments_directory, output_file_name + ".txt"), "w")
+                    for seq_file1 in range(0,ax+1):
+                        print >>f, structs[seq_file1][0].split()[0], "".join(seq1[seq_file1])
+                    for seq_file2 in range(len(records1)):
+                        if seq_file2 != line:
+                            print >>f, records1[seq_file2].id, "".join(seq2[seq_file2])
+                    for seq_file1_again in range(ax+1, len(structs)):
+                        print >>f, structs[seq_file1_again][0].split()[0], "".join(seq1[seq_file1_again])
+                    f.close()
+                    break # This stops the cicle when a bridge sequence has been found.
+                else:
+                    pass
+                    # raise Exception("A bridge sequence was not found in the two aligments...")
+
+
+    # ###################################
+    # # Method to perform the           #
+    # # "alignment joining" mode.       #
+    # ###################################
+    #
+    # def perform_alignment_joining(self):
+    #
+    #     # Prepares alignment files containing the alignments which have to be joined.
+    #     self.alignments_to_join_file_list=[]
+    #
+    #     for (i,cluster) in enumerate(self.involved_clusters_list):
+    #         # Build the .fasta files with the alignments.
+    #         file_name = "cluster_" + str(i)
+    #         children = self.get_children(cluster)
+    #         self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels=True)
+    #         self.alignments_to_join_file_list.append(file_name)
+    #
+    #     # Finds the bridges.
+    #     # If the bridges are specified by the user.
+    #     user_selected_bridges = True
+    #     bridges_list =  []
+    #     if user_selected_bridges:
+    #         children_list = [e for e in self.elements_to_align if e.is_child]
+    #         mothers_list = [e for e in self.elements_to_align if e.is_mother and not e.is_cluster()]
+    #         bridges_list = children_list[:] + mothers_list[:]
+    #     # If the bridges are to be found by Pymod. To be implemented.
+    #     else:
+    #         # Perform an initial alignment between all the selected sequences.
+    #         pass
+    #
+    #     # Performs an alignment between the "bridges".
+    #     self.elements_to_align = bridges_list
+    #     self.bridges_alignment_name = "bridges_alignment"
+    #     self.perform_regular_alignment(self.elements_to_align, self.bridges_alignment_name, use_parameters_from_gui=True)
+    #
+    #     # Builds an al_result.txt file for this alignment.
+    #     self.alignment_joining_output = "al_result"
+    #     self.convert_alignment_format(self.bridges_alignment_name +".aln", self.alignment_joining_output)
+    #
+    #     # Actually joins the alignments and produces a final .txt file with the result.
+    #     for alignment_file_name in self.alignments_to_join_file_list:
+    #         self.alignments_joiner(
+    #             os.path.join(self.pymod.alignments_directory, self.alignment_joining_output + ".txt"),
+    #             os.path.join(self.pymod.alignments_directory, alignment_file_name + ".aln"))
+    #
+    #     # The temporary file will be deleted inside the update_aligned_sequences() method later.
+
+
+    #################################################################
+    # Import the updated sequences in PyMod.                        #
+    #################################################################
+
+    def create_alignment_element(self):
+        """
+        A method to create a PyMod element for the alignment and to build a cluster to contain the
+        aligned sequences.
+        """
+
+        #-------------------------
+        # Build a new alignment. -
+        #-------------------------
+        if self.alignment_mode == "build-new-alignment":
+            # Gets the position in the list of PyMod elements where the new will will be displayed.
+            lowest_index = min([self.pymod.get_pymod_element_index_in_root(e) for e in self.elements_to_align])
+            # Actually creates the new PyMod alignment element.
+            self.pymod.alignment_count += 1
+            ali_name = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.pymod.alignment_count)
+            new_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
+                                                cluster_name=ali_name,
+                                                child_elements=self.elements_to_align,
+                                                algorithm=self.alignment_program,
+                                                update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
+            # Moves the new element from the bottom of the list to its new position.
+            self.pymod.change_pymod_element_list_index(new_cluster, lowest_index)
+
+        #-----------------------------
+        # Rebuilds an old alignment. -
+        #-----------------------------
+        elif self.alignment_mode == "rebuild-old-alignment":
+            self.alignment_element = self.pymod.get_selected_clusters()[0]
+            if self.alignment_element.cluster_type == "alignment":
+                self.alignment_element.my_header = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.alignment_element.cluster_id)
+            elif self.alignment_element.cluster_type == "blast-search":
+                self.alignment_element.my_header = self.updates_blast_search_element_name(self.alignment_element.my_header, pmdt.alignment_programs_full_names_dictionary[self.alignment_program])
+
+        #---------------------------------------------------------
+        # Expand an already existing cluster with new sequences. -
+        #---------------------------------------------------------
+        elif self.alignment_mode == "keep-previous-alignment":
+            # Gets the target cluster element.
+            self.alignment_element = self.involved_clusters_list[self.target_cluster_index]
+            # Appends new sequences to the target cluster.
+            for element in self.elements_to_add:
+                self.alignment_element.add_children(element)
+            # Updates the alignment element with new information about the new alignment.
+            self.alignment_element.algorithm = "merged"
+            # alignment_description = "merged with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])
+            alignment_description = "merged"
+            self.alignment_element.my_header = self.pymod.set_alignment_element_name(alignment_description, self.alignment_element.cluster_id)
+
+    #     # ---
+    #     # Join two or more existing clusters.
+    #     # ---
+    #     elif self.alignment_mode in ("alignment-joining", "profile-to-profile"):
+    #
+    #         # Find the right mother index in order to build the new cluster where one of the
+    #         # original ones was placed.
+    #         lowest_mother_index = 0
+    #         mothers_list = [e for e in self.selected_elements[:]+self.involved_clusters_list[:] if e.is_mother]
+    #         # Use min or max to build the new cluster respectively where the top o bottom original
+    #         # cluster were.
+    #         lowest_mother_index = min([e.mother_index for e in mothers_list]) # CHECK! # min(mothers_list,key=lambda el: el.mother_index).mother_index
+    #
+    #         # Build a new "Alignment" class object.
+    #         self.pymod.alignment_count += 1
+    #
+    #         alignment_description = None
+    #         if self.alignment_mode == "alignment-joining":
+    #             alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
+    #         elif self.alignment_mode == "profile-to-profile":
+    #             alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program] + "profile to profile alignment"
+    #         alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
+    #
+    #         ali_name = "Joined " + self.pymod.set_alignment_element_name(alignment_description, self.pymod.alignment_count)
+    #         ali_object = self.build_alignment_object(self.alignment_program+"-joined", self.pymod.alignment_count)
+    #
+    #         # Builds the new "PyMod_element" object for the new alignment.
+    #         self.alignment_element = PyMod_element("...", ali_name, element_type="alignment", alignment_object=ali_object, adjust_header=False)
+    #         self.add_element_to_pymod(self.alignment_element, "mother", mother_index=lowest_mother_index)
+    #
+    #         # Move all the sequences in the new cluster.
+    #         new_elements = []
+    #         bridges_list = []
+    #         # First appends the mothers (if any) to the new cluster.
+    #         for e in self.selected_elements:
+    #             if e.is_mother and not e.is_cluster():
+    #                 new_elements.append(e)
+    #                 bridges_list.append(e)
+    #         # Then appends the children.
+    #         for cluster in self.involved_clusters_list:
+    #             for c in self.get_children(cluster):
+    #                 new_elements.append(c)
+    #                 if c.selected:
+    #                     bridges_list.append(c)
+    #         for element in sorted(new_elements,key=lambda el: (el.mother_index,el.child_index)):
+    #             self.add_to_mother(self.alignment_element,element)
+    #
+    #         # Marks the bridges so that they are displayed with a "b" in their cluster.
+    #         if self.alignment_mode == "alignment-joining":
+    #             for b in bridges_list:
+    #                 # b.is_bridge = True
+    #                 b.bridge = True
+    #     self.set_initial_ali_seq_number(self.alignment_element)
 
 
 ###################################################################################################
@@ -876,10 +1144,10 @@ class Clustalw_regular_alignment_protocol(Sequence_alignment_protocol):
     # Perform the alignment.                                        #
     #################################################################
 
-    def run_alignment_program(self, sequences_to_align, alignment_name=None, alignment_program=None, use_parameters_from_gui=True):
+    def run_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
         # if use_parameters_from_gui:
             self.run_clustalw(sequences_to_align,
-                          alignment_name=self.current_alignment_file_name,
+                          output_file_name=output_file_name,
                           matrix=self.get_clustalw_matrix_value(),
                           gapopen=int(self.get_gapopen_value()),
                           gapext=float(self.get_gapextension_value()) )
@@ -887,16 +1155,16 @@ class Clustalw_regular_alignment_protocol(Sequence_alignment_protocol):
         #     self.run_clustalw(sequences_to_align, alignment_name=self.current_alignment_file_name)
 
 
-    def run_clustalw(self, sequences_to_align, alignment_name=None, matrix="blosum", gapopen=10, gapext=0.2):
+    def run_clustalw(self, sequences_to_align, output_file_name, matrix="blosum", gapopen=10, gapext=0.2):
         """
         This method allows to interact with the local ClustalW.
         """
         if self.pymod.clustalw.exe_exists():
             # First build an input FASTA file containing the sequences to be aligned.
-            self.pymod.build_sequences_file(sequences_to_align, alignment_name, unique_indices_headers=True)
+            self.pymod.build_sequences_file(sequences_to_align, output_file_name, unique_indices_headers=True)
             # Sets the full paths of input and output files.
-            input_file_path = os.path.join(self.pymod.alignments_directory, alignment_name + ".fasta")
-            output_file_path = os.path.join(self.pymod.alignments_directory, alignment_name + ".aln")
+            input_file_path = os.path.join(self.pymod.alignments_directory, output_file_name + ".fasta")
+            output_file_path = os.path.join(self.pymod.alignments_directory, output_file_name + ".aln")
             # Run an alignment with all the sequences using ClustalW command line, through Biopython.
             cline = ClustalwCommandline(self.pymod.clustalw.get_exe_file_path(),
                     infile=input_file_path, outfile=output_file_path, outorder="INPUT",

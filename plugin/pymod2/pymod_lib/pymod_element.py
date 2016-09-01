@@ -224,6 +224,10 @@ class PyMod_element:
         return self.my_header
 
 
+    def get_unique_index_header(self):
+        return "__pymod_element_%s__" % self.unique_index
+
+
 ###################################################################################################
 # CLUSTERS.                                                                                       #
 ###################################################################################################
@@ -358,6 +362,7 @@ class PyMod_sequence_element(PyMod_element):
             index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
         return self.residues[index] # self.residues[index]
 
+
     ###############################################################################################
     # Sequence related.                                                                           #
     ###############################################################################################
@@ -390,9 +395,6 @@ class PyMod_sequence_element(PyMod_element):
     ###############################################################################################
     # Header related.                                                                             #
     ###############################################################################################
-
-    def get_unique_index_header(self):
-        return "__pymod_element_%s__" % self.unique_index
 
 
     ###############################################################################################

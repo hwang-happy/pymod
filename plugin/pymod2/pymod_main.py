@@ -160,7 +160,7 @@ class PyMod:
 
         # Alignments.
         self.alignments_directory = "alignments"
-        self.alignments_files_names = "alignment_" # or "alignment_temp"
+        self.alignments_files_names = "alignment"
         # A list of all alignments performed by the user.
         self.alignment_list = []
         self.alignment_count = 0
@@ -2014,6 +2014,12 @@ class PyMod:
         mother = pymod_element.mother
         return mother.list_of_children.index(pymod_element)
 
+    def get_pymod_element_index_in_root(self, pymod_element):
+        if not pymod_element.is_child():
+            return self.get_pymod_element_index_in_container(pymod_element)
+        else:
+            return self.get_pymod_element_index_in_root(pymod_element.mother)
+
 
     ###############################################################################################
     # OTHER.                                                                                      #
@@ -2326,22 +2332,23 @@ class PyMod:
         #     else:
         #         records = [SeqRecord(Seq(str(child.my_sequence)), id=child.my_header) for child in elements]
         #     SeqIO.write(records, output_file_handler, "clustal")
-        #
-        # elif file_format == "pymod":
-        #     for element in elements:
-        #         self.prepare_pymod_alignment_file(output_file_handler, element.my_header, element.my_sequence, remove_indels)
+
+        elif file_format == "pymod":
+            for element in elements:
+                sequence = element.my_sequence
+                if remove_indels:
+                    sequence = sequence.replace("-","")
+                if unique_indices_headers:
+                    header = element.get_unique_index_header()
+                else:
+                    header = element.my_header
+                print >> output_file_handler, header, sequence
         #
         # else:
         #     self.show_error_message("File Error", "Unrecognized sequence file format '%s'." % (file_format))
 
         output_file_handler.close()
 
-
-    def prepare_pymod_alignment_file(self, output_file_handler, header, sequence, remove_indels=True):
-        sequence = str(sequence)
-        if remove_indels:
-            sequence = sequence.replace("-","")
-        print >> output_file_handler, header, sequence
 
 
     def convert_alignment_format(self, input_file_name, output_file_name):
@@ -2361,6 +2368,19 @@ class PyMod:
         for element in alignment:
             print >> output_handle, element.id, element.seq
         input_handle.close()
+        output_handle.close()
+
+
+    # TODO: use decorators to redirect the output and input to PyMod directories.
+    def convert_txt_alignment(self, input_file_name, output_format="clustal"):
+        input_handle = open(os.path.join(self.alignments_directory, input_file_name), "rU")
+        output_handle = open(os.path.join(self.alignments_directory, os.path.splitext(input_file_name)[0] + ".aln"), "w")
+        records = []
+        for l in input_handle.readlines():
+            rec = SeqRecord(Seq(l.split(" ")[1].rstrip("\n\r")), id=l.split(" ")[0])
+            records.append(rec)
+        input_handle.close()
+        SeqIO.write(records, output_handle, "clustal")
         output_handle.close()
 
 
@@ -4189,6 +4209,7 @@ class PyMod:
 
 
     def launch_alignment_program(self, program, alignment_strategy):
+        reload(pmptca)
         a = pmptca.Clustalw_regular_alignment_protocol(self)
         a.launch_alignment_program()
 
@@ -4198,26 +4219,6 @@ class PyMod:
             return True
         else:
             return False
-
-
-    #################################################################
-    # File managment during the alignment process.                  #
-    #################################################################
-
-    def set_current_alignment_file_name(self, alignment_file_name):
-        """
-        If the "alignment_file_name" argument is set to "None" (this happens when performing a new
-        alignment from the PyMod main menu), the "set_current_alignment_file_name" will
-        automatically generate a name for it, using the standard "self.alignments_files_names"
-        value.
-        """
-        if alignment_file_name == None:
-            # Alignment files ending with the unique_id of the alignment are going to be created.
-            alignment_file_name = "temp_" + self.alignments_files_names + str(self.unique_index)
-        else:
-            pass
-
-        return alignment_file_name
 
 
     ###############################################################################################
