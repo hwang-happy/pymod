@@ -228,7 +228,7 @@ class Alignment_protocol(PyMod_protocol):
     # display them in PyMod.          #
     ###################################
 
-    def update_aligned_sequences(self, remove_temp_files=True):
+    def update_aligned_sequences(self):
         """
         Called when an alignment is performed. It updates the sequences with the indels obtained in
         the alignment. And also deletes the temporary files used to align the sequences.
@@ -244,70 +244,16 @@ class Alignment_protocol(PyMod_protocol):
             element_to_update = self.elements_to_align_dict[str(r.id)]
             element_to_update.set_sequence(str(r.seq)) # self.correct_sequence
 
-            # # Sequence alignment tools have an output file that can be easily used by the
-            # # "display_ordered_sequences()" moethod.
-            # if self.alignment_program in pmdt.sequence_alignment_tools:
-            #     self.display_ordered_sequences()
-            #
-            # # Structural alignments tools might have output files which need the
-            # # "display_hybrid_al" method in order to be displayed in the PyMod main window.
-            # elif self.alignment_program in pmdt.structural_alignment_tools:
-            #     if self.alignment_program == "ce":
-            #         if len(self.elements_to_align) == 2:
-            #             self.display_ordered_sequences()
-            #         elif len(self.elements_to_align) > 2:
-            #             self.display_hybrid_al(self.current_alignment_file_name)
-            #     elif self.alignment_program == "salign-str":
-            #         self.display_ordered_sequences()
-            #     # Add information to build a root mean square deviation matrix. These RMSD will be
-            #     # computed only once, when the structural alignment first built.
-            #     if pmdt.yesno_dict[self.compute_rmsd_rds.getvalue()]:
-            #         rmsd_list = self.compute_rmsd_list(self.elements_to_align)
-            #         self.alignment_element.alignment.set_rmsd_list(rmsd_list)
-
-        # elif self.alignment_mode in ("keep-previous-alignment", "sequence-to-profile"):
-        #     self.display_hybrid_al()
-        #
-        # elif self.alignment_mode in ("alignment-joining", "profile-to-profile"):
-        #     self.display_hybrid_al()
+        # # Structural alignments tools might have output files which need the
+        # # "display_hybrid_al" method in order to be displayed in the PyMod main window.
+        # if self.alignment_program in pmdt.structural_alignment_tools:
+        #     # Add information to build a root mean square deviation matrix. These RMSD will be
+        #     # computed only once, when the structural alignment first built.
+        #     if pmdt.yesno_dict[self.compute_rmsd_rds.getvalue()]:
+        #         rmsd_list = self.compute_rmsd_list(self.elements_to_align)
+        #         self.alignment_element.alignment.set_rmsd_list(rmsd_list)
 
         self.pymod.gridder(clear_selection=True, update_clusters=True)
-
-
-    # def display_ordered_sequences(self):
-    #     """
-    #     Some alignments programs will produce an output file with the aligned sequences placed
-    #     in the same order of the "elements_to_align" list. This method takes the newly aligned
-    #     sequence from these output files and updates the sequences in the "elements_to_align".
-    #     """
-    #
-    #     # Gets from an alignment file the sequences with their indels produced in the alignment.
-    #     handle = open(os.path.join(self.pymod.alignments_directory, self.current_alignment_file_name+".aln"), "rU")
-    #     records = list(SeqIO.parse(handle, "clustal"))
-    #     handle.close()
-    #
-    #     # Updates the Sequences.
-    #     for a,element in enumerate(self.elements_to_align):
-    #         element.my_sequence = self.correct_sequence(str(records[a].seq))
-    #
-    #
-    # def display_hybrid_al(self,alignment_file_name="al_result"):
-    #     """
-    #     Actually updates the sequences aligned by using the "alignments_joiner()" method.
-    #     """
-    #     try:
-    #         output_file_path = os.path.join(self.pymod.alignments_directory, alignment_file_name +".txt")
-    #         f=open(output_file_path, "r")
-    #         for element in range(len(self.pymod_elements_list)):
-    #             for line in f:
-    #                 # if self.pymod_elements_list[element].my_header_fix[:12].replace(":", "_")==line.split()[0][:12].replace(":", "_"):
-    #                 if self.pymod_elements_list[element].my_header[:12].replace(":", "_")==line.split()[0][:12].replace(":", "_"):
-    #                     new_sequence = self.correct_sequence(line.split()[1])
-    #                     self.pymod_elements_list[element].my_sequence = new_sequence
-    #             f.seek(0)
-    #         f.close()
-    #     except Exception,e:
-    #         self.general_error(e)
 
 
     def remove_alignment_temp_files(self):
@@ -342,17 +288,6 @@ class Alignment_protocol(PyMod_protocol):
            self.alignment_window.destroy()
        except:
            pass
-
-
-    #################################################################
-    # Step 4/4 for performing an alignment from the main menu.      #
-    # Methods to perform different "regular" alignment modes.       #
-    #################################################################
-
-    ###################################
-    # Methods for the "keep previous  #
-    # alignment" mode.                #
-    ###################################
 
 
 ###################################################################################################
@@ -883,7 +818,7 @@ class Regular_alignment_protocol(Alignment_protocol):
             # Build the .fasta files with the alignments.
             file_name = "cluster_%s" % i
             children = cluster.get_children()
-            self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels=False)
+            self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels=False, unique_indices_headers=True)
             alignments_to_join_file_list.append(file_name)
             elements_to_update.extend(children)
 
