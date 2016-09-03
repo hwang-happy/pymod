@@ -701,6 +701,7 @@ class PyMod:
 
         if 1:
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam_min.fasta"), "fasta")
+            self.build_cluster_from_alignment_file("/home/giacomo/pfam_min2.fasta", "fasta")
 
         if 0:
             self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
@@ -1720,6 +1721,11 @@ class PyMod:
             self.load_element_in_pymol(element)
 
 
+    def remove_element_from_pymod(self, element):
+        element.extract_from_cluster()
+        self.main_window.delete_pymod_element_widgets(element)
+
+
     def load_element_in_pymol(self, element, mode = None):
         """
         Loads the PDB structure of the chain into PyMol.
@@ -1756,8 +1762,13 @@ class PyMod:
         # Sets the name of the cluster.
         if cluster_name == None:
             if cluster_type == "alignment":
-                cluster_name = self.set_alignment_element_name(algorithm, self.alignment_count)
+                if pmdt.algorithms_full_names_dict.has_key(algorithm):
+                    algorithm_full_name = pmdt.algorithms_full_names_dict[algorithm]
+                else:
+                    algorithm_full_name = "Unknown"
+                cluster_name = self.set_alignment_element_name(algorithm_full_name, self.alignment_count)
             elif cluster_type == "blast-cluster":
+                # TODO: what?
                 cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.get_compact_header())
 
         # Sets the algorithm.
@@ -1794,7 +1805,7 @@ class PyMod:
         Builds the name of a new alignment element. This name will be displayed on PyMod main
         window.
         """
-        alignment_name = "Alignment " + str(alignment_id) + " (%s)" % (alignment_description)
+        alignment_name = "Alignment %s (%s)" % (alignment_id, alignment_description)
         return alignment_name
 
 
@@ -1906,12 +1917,30 @@ class PyMod:
     ###############################################################################################
 
     def gridder(self, set_grid_index_only=False, clear_selection=False, update_clusters=False):
+        # TODO: put it into pymod_main_window?
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
         """
+        #---------------------------------------
+        # Update clusters elements appearance. -
+        #---------------------------------------
         if update_clusters:
             for cluster in self.get_cluster_elements():
                 self.update_cluster_sequences(cluster)
+
+        ###################################################
+        def print_element(element, level):
+            print "    "*level + "- " + element.my_header
+        def print_recursively(element, level=0):
+            if element.is_mother():
+                print_element(element, level)
+                for c in element.get_children():
+                    print_recursively(c, level=level+1)
+            else:
+                print_element(element, level)
+        print_recursively(self.root_element)
+        ###################################################
+
         #-------------------------------------------------------------------------
         # Assigns the grid indices and grids the widgets with their new indices. -
         #-------------------------------------------------------------------------
@@ -2218,7 +2247,7 @@ class PyMod:
     # Sequences.                                                    #
     #################################################################
 
-    def adjust_aligned_elements_length(self,elements,remove_right_indels=True):
+    def adjust_aligned_elements_length(self, elements, remove_right_indels=True):
         # First remove indels at the end of the sequences.
         if remove_right_indels:
             for e in elements:
@@ -2236,8 +2265,11 @@ class PyMod:
         cluster.
         """
         children = cluster_element.get_children()
-        self.adjust_aligned_elements_length(children)
-        self.update_stars(cluster_element)
+        if len(children) > 0:
+            self.adjust_aligned_elements_length(children) # TODO: insert in update_stars?
+            self.update_stars(cluster_element)
+        else:
+            self.remove_element_from_pymod(cluster_element)
 
 
     def update_stars(self, cluster_element):
@@ -2268,7 +2300,7 @@ class PyMod:
     # SEQUENCES INPUT AND OUTPUT.                                                                 #
     ###############################################################################################
 
-    def build_sequences_file(self, elements, sequences_file_name, new_directory=None, file_format="fasta", remove_indels=True, use_structural_information=False, same_length=True, first_element=None, unique_indices_headers=False):
+    def build_sequences_file(self, elements, sequences_file_name, new_directory=None, file_format="fasta", remove_indels=True, unique_indices_headers=False, use_structural_information=False, same_length=True, first_element=None):
         """
         Builds a sequence file (the format is specified in the alignment_"format" argument) that will
         contain the sequences supplied in the "elements" which has to contain a list of
@@ -2294,13 +2326,8 @@ class PyMod:
 
         if file_format == "fasta":
             for element in elements:
-                if remove_indels:
-                    sequence = element.my_sequence.replace("-","")
+                header, sequence = self.get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
                 #| Write an output in FASTA format to the output_file_handler given as argument.
-                if unique_indices_headers:
-                    header = element.get_unique_index_header()
-                else:
-                    header = element.my_header
                 print >> output_file_handler , ">"+header
                 for i in xrange(0, len(sequence), 60):
                     print >> output_file_handler , sequence[i:i+60]
@@ -2325,30 +2352,34 @@ class PyMod:
         #             print >> output_file_handler, "structure:"+structure+":.:"+chain+":.:"+chain+":::-1.00:-1.00"
         #         for ii in xrange(0,len(sequence),75):
         #             print >> output_file_handler, sequence[ii:ii+75].replace("X",".")
-        #
-        # elif file_format == "clustal":
-        #     if remove_indels:
-        #         records = [SeqRecord(Seq(str(child.my_sequence)).ungap(), id=child.my_header) for child in elements]
-        #     else:
-        #         records = [SeqRecord(Seq(str(child.my_sequence)), id=child.my_header) for child in elements]
-        #     SeqIO.write(records, output_file_handler, "clustal")
+
+        elif file_format == "clustal":
+            records = []
+            for element in elements:
+                header, sequence = self.get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
+                records.append(SeqRecord(Seq(str(sequence)), id=header))
+            SeqIO.write(records, output_file_handler, "clustal")
 
         elif file_format == "pymod":
             for element in elements:
-                sequence = element.my_sequence
-                if remove_indels:
-                    sequence = sequence.replace("-","")
-                if unique_indices_headers:
-                    header = element.get_unique_index_header()
-                else:
-                    header = element.my_header
+                header, sequence = self.get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
                 print >> output_file_handler, header, sequence
-        #
-        # else:
-        #     self.show_error_message("File Error", "Unrecognized sequence file format '%s'." % (file_format))
+
+        else:
+            raise Exception("Unknown file format: %s" % file_format)
 
         output_file_handler.close()
 
+
+    def get_id_and_sequence_to_print(self, pymod_element, remove_indels=True, unique_indices_headers=False):
+        sequence = pymod_element.my_sequence
+        if remove_indels:
+            sequence = sequence.replace("-","")
+        if not unique_indices_headers:
+            header = pymod_element.my_header
+        else:
+            header = pymod_element.get_unique_index_header()
+        return header, sequence
 
 
     def convert_alignment_format(self, input_file_name, output_file_name):

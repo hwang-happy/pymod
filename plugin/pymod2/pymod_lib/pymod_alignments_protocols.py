@@ -230,8 +230,8 @@ class Alignment_protocol(PyMod_protocol):
 
     def update_aligned_sequences(self, remove_temp_files=True):
         """
-        Called when an alignment is performed. It updates the sequences with the indels obtained in the
-        alignment. And also deletes the temporary files used to align the sequences.
+        Called when an alignment is performed. It updates the sequences with the indels obtained in
+        the alignment. And also deletes the temporary files used to align the sequences.
         """
 
         # if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
@@ -577,6 +577,7 @@ class Regular_alignment_protocol(Alignment_protocol):
         Actually performs the alignment.
         """
         if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
+            # TODO: remove the attribure 'elements_to_align'.
             self.elements_to_align = self.pymod.get_selected_sequences()
             self.protocol_output_file_name = self.set_alignment_output_file_name(output_file_name)
             for element in self.elements_to_align:
@@ -587,7 +588,6 @@ class Regular_alignment_protocol(Alignment_protocol):
             self.align_and_keep_previous_alignment()
 
         elif self.alignment_mode == "alignment-joining":
-            self.elements_to_align = self.pymod.get_selected_sequences()
             self.perform_alignment_joining()
 
 
@@ -686,13 +686,13 @@ class Regular_alignment_protocol(Alignment_protocol):
 
         # First builds the al_result.txt file with the target alignment, this is needed by
         # "alignments_joiner()" method used below.
-        self.merged_alignment_output = "al_result" # align_output.txt
-        self.pymod.build_sequences_file(alignment_to_keep_elements, self.merged_alignment_output,
+        merged_alignment_output = "al_result" # align_output.txt
+        self.pymod.build_sequences_file(alignment_to_keep_elements, merged_alignment_output,
                                   file_format="pymod", remove_indels=False, unique_indices_headers=True)
 
         # Performs the alignments joining progressively.
         for comp in self.highest_identity_pairs_alignment_list:
-            self.alignments_joiner(os.path.join(self.pymod.alignments_directory, self.merged_alignment_output + ".txt"),
+            self.alignments_joiner(os.path.join(self.pymod.alignments_directory, merged_alignment_output + ".txt"),
                                    os.path.join(self.pymod.alignments_directory, comp + ".aln"))
 
         #-----------------------
@@ -700,12 +700,12 @@ class Regular_alignment_protocol(Alignment_protocol):
         #-----------------------
 
         # Converts the .txt file in .aln one.
-        self.pymod.convert_txt_alignment(self.merged_alignment_output + ".txt")
+        self.pymod.convert_txt_alignment(merged_alignment_output + ".txt")
         # Builds a list of the elements to update.
         for element in alignment_to_keep_elements + self.elements_to_add:
             self.elements_to_align_dict.update({element.get_unique_index_header(): element})
         # Sets the name of the final alignment output file.
-        self.protocol_output_file_name = self.merged_alignment_output
+        self.protocol_output_file_name = merged_alignment_output
 
         # The temporary files needed to peform this alignment will be deleted at the end of the
         # alignment process.
@@ -867,52 +867,73 @@ class Regular_alignment_protocol(Alignment_protocol):
                     # raise Exception("A bridge sequence was not found in the two aligments...")
 
 
-    # ###################################
-    # # Method to perform the           #
-    # # "alignment joining" mode.       #
-    # ###################################
-    #
-    # def perform_alignment_joining(self):
-    #
-    #     # Prepares alignment files containing the alignments which have to be joined.
-    #     self.alignments_to_join_file_list=[]
-    #
-    #     for (i,cluster) in enumerate(self.involved_clusters_list):
-    #         # Build the .fasta files with the alignments.
-    #         file_name = "cluster_" + str(i)
-    #         children = self.get_children(cluster)
-    #         self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels=True)
-    #         self.alignments_to_join_file_list.append(file_name)
-    #
-    #     # Finds the bridges.
-    #     # If the bridges are specified by the user.
-    #     user_selected_bridges = True
-    #     bridges_list =  []
-    #     if user_selected_bridges:
-    #         children_list = [e for e in self.elements_to_align if e.is_child]
-    #         mothers_list = [e for e in self.elements_to_align if e.is_mother and not e.is_cluster()]
-    #         bridges_list = children_list[:] + mothers_list[:]
-    #     # If the bridges are to be found by Pymod. To be implemented.
-    #     else:
-    #         # Perform an initial alignment between all the selected sequences.
-    #         pass
-    #
-    #     # Performs an alignment between the "bridges".
-    #     self.elements_to_align = bridges_list
-    #     self.bridges_alignment_name = "bridges_alignment"
-    #     self.perform_regular_alignment(self.elements_to_align, self.bridges_alignment_name, use_parameters_from_gui=True)
-    #
-    #     # Builds an al_result.txt file for this alignment.
-    #     self.alignment_joining_output = "al_result"
-    #     self.convert_alignment_format(self.bridges_alignment_name +".aln", self.alignment_joining_output)
-    #
-    #     # Actually joins the alignments and produces a final .txt file with the result.
-    #     for alignment_file_name in self.alignments_to_join_file_list:
-    #         self.alignments_joiner(
-    #             os.path.join(self.pymod.alignments_directory, self.alignment_joining_output + ".txt"),
-    #             os.path.join(self.pymod.alignments_directory, alignment_file_name + ".aln"))
-    #
-    #     # The temporary file will be deleted inside the update_aligned_sequences() method later.
+    ###################################
+    # Method to perform the           #
+    # "alignment joining" mode.       #
+    ###################################
+
+    def perform_alignment_joining(self):
+
+        #------------------------------------------------------------------------------
+        # Prepares alignment files containing the alignments which have to be joined. -
+        #------------------------------------------------------------------------------
+        alignments_to_join_file_list=[]
+        elements_to_update = []
+        for (i,cluster) in enumerate(self.involved_clusters_list):
+            # Build the .fasta files with the alignments.
+            file_name = "cluster_%s" % i
+            children = cluster.get_children()
+            self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels=False)
+            alignments_to_join_file_list.append(file_name)
+            elements_to_update.extend(children)
+
+        #-------------------
+        # Get the bridges. -
+        #-------------------
+        self.elements_to_align = self.pymod.get_selected_sequences()
+        user_selected_bridges = True
+        bridges_list =  []
+        # If the bridges are specified by the user.
+        if user_selected_bridges:
+            children_list = [e for e in self.elements_to_align if e.is_child()]
+            mothers_list = [e for e in self.elements_to_align if e.is_root_sequence()]
+            bridges_list = children_list[:] + mothers_list[:]
+            elements_to_update.extend(mothers_list)
+        # If the bridges are to be found by Pymod. To be implemented.
+        else:
+            # Perform an initial alignment between all the selected sequences.
+            pass
+
+        #-----------------------------------------------
+        # Performs an alignment between the "bridges". -
+        #-----------------------------------------------
+        bridges_alignment_name = "bridges_alignment"
+        self.perform_regular_alignment(bridges_list, bridges_alignment_name, use_parameters_from_gui=True)
+
+        # Builds an al_result.txt file for this alignment.
+        alignment_joining_output = "al_result"
+        self.pymod.convert_alignment_format(bridges_alignment_name +".aln", alignment_joining_output)
+
+        #--------------------------------------------------------------------------------
+        # Actually joins the alignments and produces a final .txt file with the result. -
+        #--------------------------------------------------------------------------------
+        for alignment_file_name in alignments_to_join_file_list:
+            self.alignments_joiner(
+                os.path.join(self.pymod.alignments_directory, alignment_joining_output + ".txt"),
+                os.path.join(self.pymod.alignments_directory, alignment_file_name + ".aln"))
+
+        #-----------------------
+        # Prepares the output. -
+        #-----------------------
+        # Converts the .txt file in .aln one.
+        self.pymod.convert_txt_alignment(alignment_joining_output + ".txt")
+        # Builds a list of the elements to update.
+        for element in elements_to_update:
+            self.elements_to_align_dict.update({element.get_unique_index_header(): element})
+        # Sets the name of the final alignment output file.
+        self.protocol_output_file_name = alignment_joining_output
+
+        # The temporary file will be deleted inside the update_aligned_sequences() method later.
 
 
     #################################################################
@@ -932,10 +953,8 @@ class Regular_alignment_protocol(Alignment_protocol):
             # Gets the position in the list of PyMod elements where the new will will be displayed.
             lowest_index = min([self.pymod.get_pymod_element_index_in_root(e) for e in self.elements_to_align])
             # Actually creates the new PyMod alignment element.
-            self.pymod.alignment_count += 1
-            ali_name = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.pymod.alignment_count)
             new_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
-                                                cluster_name=ali_name,
+                                                # cluster_name=ali_name,
                                                 child_elements=self.elements_to_align,
                                                 algorithm=self.alignment_program,
                                                 update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
@@ -967,59 +986,47 @@ class Regular_alignment_protocol(Alignment_protocol):
             alignment_description = "merged"
             self.alignment_element.my_header = self.pymod.set_alignment_element_name(alignment_description, self.alignment_element.cluster_id)
 
-    #     # ---
-    #     # Join two or more existing clusters.
-    #     # ---
-    #     elif self.alignment_mode in ("alignment-joining", "profile-to-profile"):
-    #
-    #         # Find the right mother index in order to build the new cluster where one of the
-    #         # original ones was placed.
-    #         lowest_mother_index = 0
-    #         mothers_list = [e for e in self.selected_elements[:]+self.involved_clusters_list[:] if e.is_mother]
-    #         # Use min or max to build the new cluster respectively where the top o bottom original
-    #         # cluster were.
-    #         lowest_mother_index = min([e.mother_index for e in mothers_list]) # CHECK! # min(mothers_list,key=lambda el: el.mother_index).mother_index
-    #
-    #         # Build a new "Alignment" class object.
-    #         self.pymod.alignment_count += 1
-    #
-    #         alignment_description = None
-    #         if self.alignment_mode == "alignment-joining":
-    #             alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
-    #         elif self.alignment_mode == "profile-to-profile":
-    #             alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program] + "profile to profile alignment"
-    #         alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
-    #
-    #         ali_name = "Joined " + self.pymod.set_alignment_element_name(alignment_description, self.pymod.alignment_count)
-    #         ali_object = self.build_alignment_object(self.alignment_program+"-joined", self.pymod.alignment_count)
-    #
-    #         # Builds the new "PyMod_element" object for the new alignment.
-    #         self.alignment_element = PyMod_element("...", ali_name, element_type="alignment", alignment_object=ali_object, adjust_header=False)
-    #         self.add_element_to_pymod(self.alignment_element, "mother", mother_index=lowest_mother_index)
-    #
-    #         # Move all the sequences in the new cluster.
-    #         new_elements = []
-    #         bridges_list = []
-    #         # First appends the mothers (if any) to the new cluster.
-    #         for e in self.selected_elements:
-    #             if e.is_mother and not e.is_cluster():
-    #                 new_elements.append(e)
-    #                 bridges_list.append(e)
-    #         # Then appends the children.
-    #         for cluster in self.involved_clusters_list:
-    #             for c in self.get_children(cluster):
-    #                 new_elements.append(c)
-    #                 if c.selected:
-    #                     bridges_list.append(c)
-    #         for element in sorted(new_elements,key=lambda el: (el.mother_index,el.child_index)):
-    #             self.add_to_mother(self.alignment_element,element)
-    #
-    #         # Marks the bridges so that they are displayed with a "b" in their cluster.
-    #         if self.alignment_mode == "alignment-joining":
-    #             for b in bridges_list:
-    #                 # b.is_bridge = True
-    #                 b.bridge = True
-    #     self.set_initial_ali_seq_number(self.alignment_element)
+        #--------------------------------------
+        # Join two or more existing clusters. -
+        #--------------------------------------
+        elif self.alignment_mode == "alignment-joining":
+            # Find the right mother index in order to build the new cluster where one of the
+            # original ones was placed.
+            lowest_index = min([self.pymod.get_pymod_element_index_in_root(e) for e in self.elements_to_align])
+
+            # Move all the sequences in the new cluster.
+            new_elements = []
+            bridges_list = []
+            # First appends the mothers (if any) to the new cluster.
+            for e in self.selected_elements:
+                if e.is_root_sequence():
+                    new_elements.append(e)
+                    bridges_list.append(e)
+            # Then appends the children.
+            for cluster in self.involved_clusters_list:
+                for c in cluster.get_children():
+                    new_elements.append(c)
+                    if c.selected:
+                        bridges_list.append(c)
+            # Orders them.
+            new_elements = sorted(new_elements,key=lambda el: (self.pymod.get_pymod_element_index_in_root(el), self.pymod.get_pymod_element_index_in_container(el)))
+
+            # Marks the bridges so that they are displayed with a "b" in their cluster.
+            # for b in bridges_list:
+            #     # b.is_bridge = True
+            #     b.bridge = True
+
+            alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
+            # ali_name = "Joined " + self.pymod.set_alignment_element_name(alignment_description, self.pymod.alignment_count)
+            # ali_object = self.build_alignment_object(self.alignment_program+"-joined", self.pymod.alignment_count)
+            # Builds the new "PyMod_element" object for the new alignment.
+            new_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
+                                                # cluster_name=ali_name,
+                                                child_elements=new_elements,
+                                                algorithm=self.alignment_program+"-joined",
+                                                update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
+            # Moves the new element from the bottom of the list to its new position.
+            self.pymod.change_pymod_element_list_index(new_cluster, lowest_index)
 
 
 ###################################################################################################

@@ -92,7 +92,7 @@ class PyMod_main_window_mixin:
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
         if target == "all":
             pymod_element_widgets_group.header_entry.grid_forget()
-            if pymod_element.is_child:
+            if pymod_element.is_child():
                 pymod_element_widgets_group.child_sign.grid_forget()
             if pymod_element.is_cluster():
                 pymod_element_widgets_group.cluster_button.grid_forget()
@@ -100,6 +100,11 @@ class PyMod_main_window_mixin:
         elif target == "sequence":
             # pymod_element_widgets_group.
             pass
+
+
+    def delete_pymod_element_widgets(self, pymod_element):
+        self.hide_widgets(pymod_element)
+        self.dict_of_elements_widgets.pop(pymod_element)
 
 
     #################################################################
@@ -705,6 +710,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
     #################################################################
 
     def add_pymod_element_widgets(self, pymod_element):
+        # TODO: put this in the mixin.
         pewp = PyMod_element_widgets_group(left_pane=self.leftpan.interior(),
                                            right_pane=self.rightpan.interior(),
                                            pymod_element=pymod_element)

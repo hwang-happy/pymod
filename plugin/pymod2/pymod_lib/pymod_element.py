@@ -114,8 +114,8 @@ class PyMod_element:
         return self.mother.is_root()
 
 
-    # def is_root_sequence(self):
-    #     return self.is_root_child() and not self.is_cluster()
+    def is_root_sequence(self):
+        return self.is_root_child() and not self.is_cluster()
 
 
     def get_ancestor(self, exclude_root_element=True):
@@ -151,25 +151,6 @@ class PyMod_element:
             return []
         else:
             return filter(lambda c: c != self, self.mother.list_of_children)
-
-
-
-    # def check_structure(method):
-    #     def checker(self):
-    #         if not self.has_structure():
-    #             raise PyModMissingStructure("The element does not have a structure.")
-    #         return method(self)
-    #     return checker
-    #
-    #
-    # @check_structure
-    # def get_structure_file(self):
-    #     return self.structure.get_file()
-    #
-    #
-    # @check_structure
-    # def get_pymol_object_name(self):
-    #     return self.structure.get_pymol_object_name()
 
 
     #################################################################
@@ -248,16 +229,26 @@ class PyMod_cluster_element(PyMod_element):
         if not hasattr(children,"__iter__"):
             children = [children]
         for child in children:
-            # Remove from the old mother.
-            if child.is_child(exclude_root_element=False):
-                old_mother = child.mother
-                old_mother.list_of_children.remove(child)
-            # Add to new mother.
-            child.mother = self
-            self.list_of_children.append(child)
+            self.add_child(child)
         if self.initial_number_of_sequences == None:
             self.initial_number_of_sequences = len(children)
 
+    def add_child(self, child):
+        # Remove from the old mother.
+        if child.is_child(exclude_root_element=False):
+            old_mother = child.mother
+            old_mother.remove_child(child)
+        # Add to new mother.
+        child.mother = self
+        self.list_of_children.append(child)
+
+
+    def remove_child(self, child):
+        self.list_of_children.remove(child)
+
+    def extract_from_cluster(self):
+        mother = self.mother
+        mother.remove_child(self)
 
     def get_children(self):
         return self.list_of_children

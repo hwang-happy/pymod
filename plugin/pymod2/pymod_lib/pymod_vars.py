@@ -18,7 +18,8 @@ algorithms_full_names_dict = {
     "muscle": "MUSCLE",
     "salign-seq": "SALIGN",
     "salign-str": "SALIGN",
-    "ce": "CE-alignment"
+    "ce": "CE-alignment",
+    "imported": "Imported"
 }
 
 
