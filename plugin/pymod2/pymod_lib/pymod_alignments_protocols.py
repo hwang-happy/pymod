@@ -253,7 +253,7 @@ class Alignment_protocol(PyMod_protocol):
         #         rmsd_list = self.compute_rmsd_list(self.elements_to_align)
         #         self.alignment_element.alignment.set_rmsd_list(rmsd_list)
 
-        self.pymod.gridder(clear_selection=True, update_clusters=True)
+        self.pymod.gridder(clear_selection=True, update_clusters=True, update_menus=True)
 
 
     def remove_alignment_temp_files(self):

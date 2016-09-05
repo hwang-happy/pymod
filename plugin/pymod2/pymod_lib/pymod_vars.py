@@ -22,6 +22,11 @@ algorithms_full_names_dict = {
     "imported": "Imported"
 }
 
+can_show_rmsd_matrix = ("ce","salign-str")
+can_show_guide_tree = ("clustalw","clustalo")
+can_show_dendrogram = ("salign-seq","salign-str")
+can_use_scr_find = ("ce","salign-str")
+
 
 #-----------------------------------
 # File formats supported in PyMod. -

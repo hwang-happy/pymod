@@ -724,24 +724,13 @@ class PyMod:
             self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot2.fasta"), "fasta")
             self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot3.fasta"), "fasta")
 
-        self.gridder()
+        self.gridder(update_menus=True)
 
         # Alignments.
         if 0:
             for i in range(0,3):
                 self.root_element.list_of_children[i].selected = True
             self.launch_alignment_program("clustalw", "regular-alignment")
-
-
-    def define_alignment_menu_structure(self):
-        """
-        Define a series of tuples that are going to be used in order to build Alignments menus with
-        different options according to the alignment algorithm used to build the alignment.
-        """
-        self.can_show_rmsd_matrix = ("ce","salign-str")
-        self.can_show_guide_tree = ("clustalw","clustalo")
-        self.can_show_dendrogram = ("salign-seq","salign-str")
-        self.can_use_scr_find = ("ce","salign-str")
 
 
     def show_about_dialog(self):
@@ -1260,7 +1249,7 @@ class PyMod:
         openfilename, extension = self.choose_alignment_file()
         if not None in (openfilename, extension):
             self.build_cluster_from_alignment_file(openfilename, extension)
-        self.gridder()
+        self.gridder(update_menus=True)
 
 
     def choose_structure_file(self):
@@ -1916,7 +1905,7 @@ class PyMod:
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False, clear_selection=False, update_clusters=False):
+    def gridder(self, set_grid_index_only=False, clear_selection=False, update_clusters=False, update_menus=False):
         # TODO: put it into pymod_main_window?
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
@@ -1929,16 +1918,17 @@ class PyMod:
                 self.update_cluster_sequences(cluster)
 
         ###################################################
-        def print_element(element, level):
-            print "    "*level + "- " + element.my_header
-        def print_recursively(element, level=0):
-            if element.is_mother():
-                print_element(element, level)
-                for c in element.get_children():
-                    print_recursively(c, level=level+1)
-            else:
-                print_element(element, level)
-        print_recursively(self.root_element)
+        if 0: # TODO: remove.
+            def print_element(element, level):
+                print "    "*level + "- " + element.my_header
+            def print_recursively(element, level=0):
+                if element.is_mother():
+                    print_element(element, level)
+                    for c in element.get_children():
+                        print_recursively(c, level=level+1)
+                else:
+                    print_element(element, level)
+            print_recursively(self.root_element)
         ###################################################
 
         #-------------------------------------------------------------------------
@@ -1949,8 +1939,16 @@ class PyMod:
         for pymod_element in self.root_element.get_children():
             self.grid_descendants(pymod_element, set_grid_index_only)
             self.grid_row_index += 1
+
+        #---------------------------------------------
+        # Updates other components of the PyMod GUI. -
+        #---------------------------------------------
         if clear_selection:
             self.deselect_all_sequences()
+
+        if update_menus:
+            self.main_window.build_alignment_submenu()
+            # self.build_models_submenu()
 
 
     def grid_descendants(self, pymod_element, set_grid_index_only=False):
@@ -2575,130 +2573,130 @@ class PyMod:
     #
     # def build_scr_find_window(self, alignment_unique_id):
     #     pass
-    #
-    #
-    # #################################################################
-    # # Build and display sequence identity and RMSD matrices of      #
-    # # alignments.                                                   #
-    # #################################################################
-    # def display_identity_matrix(self,alignment_unique_id):
-    #     """
-    #     Computes the current identity matrix of an alignment and shows it in a new window.
-    #     """
-    #     # Get the cluster element.
-    #     alignment_element = self.get_element_by_unique_index(alignment_unique_id)
-    #     # Then get all its children (the aligned elements).
-    #     aligned_elements = self.get_children(alignment_element)
-    #     n = len(aligned_elements)
-    #
-    #     # identity_matrix = [[None]*n]*n # [] # Builds an empty (nxn) "matrix".
-    #     identity_matrix = []
-    #     for a in range(n):
-    #         identity_matrix.append([None]*n)
-    #
-    #     # Computes the identities (or anything else) and builds the matrix.
-    #     for i in range(len(aligned_elements)):
-    #         for j in range(len(aligned_elements)):
-    #             if j >= i:
-    #                 sid = pmsm.compute_sequence_identity(aligned_elements[i].my_sequence,aligned_elements[j].my_sequence)
-    #                 # This will fill "half" of the matrix.
-    #                 identity_matrix[i][j] = sid
-    #                 # This will fill the rest of the matrix. Comment this if want an "half" matrix.
-    #                 identity_matrix[j][i] = sid
-    #
-    #     identity_matrix = numpy.array(identity_matrix)
-    #
-    #     # Build the list of sequences names.
-    #     # Adjust it for PDB names...
-    #     sequences_names = []
-    #     for e in aligned_elements:
-    #         sequences_names.append(e.get_compact_header())
-    #
-    #     title = 'Identity matrix for ' + alignment_element.my_header
-    #     self.show_table(sequences_names, sequences_names, identity_matrix, title)
-    #
-    #
-    # def display_rmsd_matrix(self,alignment_unique_id):
-    #     """
-    #     Computes the current identity matrix of an alignment and shows it in a new window.
-    #     """
-    #     # Get the cluster element.
-    #     alignment_element = self.get_element_by_unique_index(alignment_unique_id)
-    #     # Then get all its children (the aligned elements).
-    #     aligned_elements = self.get_children(alignment_element)
-    #
-    #     rmsd_list = alignment_element.alignment.rmsd_list
-    #     rmsd_matrix_to_display = []
-    #     n = len(aligned_elements)
-    #     for a in range(n):
-    #         rmsd_matrix_to_display.append([None]*n)
-    #
-    #     for i,ei in enumerate(aligned_elements):
-    #         for j,ej in enumerate(aligned_elements):
-    #             if j >= i:
-    #                 # This will fill "half" of the matrix.
-    #                 rmsd = rmsd_list[(ei.unique_index,ej.unique_index)]
-    #                 rmsd_matrix_to_display[i][j] = rmsd
-    #                 # This will fill the rest of the matrix. Comment this if want an "half" matrix.
-    #                 rmsd = rmsd_list[(ej.unique_index,ei.unique_index)]
-    #                 rmsd_matrix_to_display[j][i] = rmsd
-    #
-    #     # Build the list of sequences names.
-    #     sequences_names = []
-    #     for e in aligned_elements:
-    #         sequences_names.append(e.get_compact_header())
-    #
-    #     title = 'RMSD matrix for ' + alignment_element.my_header
-    #     self.show_table(sequences_names, sequences_names, rmsd_matrix_to_display, title)
-    #
-    #
-    # def show_table(self, column_headers=None, row_headers=None, data_array=[], title = "New Table", columns_title = None, rows_title = None, number_of_tabs=2, width=800, height=450, rowheader_width=20):
-    #     """
-    #     Displayes in a new window a table with data from the bidimensional 'data_array' numpy array.
-    #     """
-    #     mfont = "monospace 10"
-    #     number_of_newlines = 2
-    #
-    #     # Builds a new window in which the table will be displayed.
-    #     new_window = Toplevel(self.main_window)
-    #     new_window.title(title)
-    #
-    #     # Create a ScrolledText with headers.
-    #     self.matrix_widget = Pmw.ScrolledText(
-    #             new_window, borderframe = 1,
-    #             usehullsize = True, hull_width = width, hull_height = height,
-    #             columnheader = True, rowheader = True,
-    #             text_padx = 20, text_pady = 20, Header_padx = 20,
-    #             text_wrap='none', text_font = mfont, Header_font = mfont, # Header_foreground = 'blue',
-    #             rowheader_width = rowheader_width, rowheader_pady = 20, rowheader_padx = 20 )
-    #
-    #     # Create the row headers.
-    #     for row in row_headers:
-    #         row = str(row)
-    #         self.matrix_widget.component('rowheader').insert('end', row+"\n"*number_of_newlines)
-    #
-    #     # Create the column headers
-    #     header_line = ''
-    #     for column in column_headers:
-    #         column_text = str(column) + "\t"*number_of_tabs
-    #         header_line = header_line + column_text
-    #     self.matrix_widget.component('columnheader').insert('0.0', header_line)
-    #
-    #     # Enters the data.
-    #     for i,row_items in enumerate(data_array):
-    #         data_line = ""
-    #         for item in row_items:
-    #             column_text = str(item) + "\t"*number_of_tabs
-    #             data_line += column_text
-    #         if i != len(data_array):
-    #             data_line += "\n"*number_of_newlines
-    #         self.matrix_widget.insert('end', data_line)
-    #
-    #     # Prevent users' modifying text and headers and packs it.
-    #     self.matrix_widget.configure(text_state = 'disabled', Header_state = 'disabled')
-    #     self.matrix_widget.pack(padx = 5, pady = 5, fill = 'both', expand = 1)
-    #
-    #
+
+
+    #################################################################
+    # Build and display sequence identity and RMSD matrices of      #
+    # alignments.                                                   #
+    #################################################################
+
+    def display_identity_matrix(self, alignment_element):
+        """
+        Computes the current identity matrix of an alignment and shows it in a new window.
+        """
+        # Then get all its children (the aligned elements).
+        aligned_elements = alignment_element.get_children()
+        n = len(aligned_elements)
+
+        # identity_matrix = [[None]*n]*n # [] # Builds an empty (nxn) "matrix".
+        identity_matrix = []
+        for a in range(n):
+            identity_matrix.append([None]*n)
+
+        # Computes the identities (or anything else) and builds the matrix.
+        for i in range(len(aligned_elements)):
+            for j in range(len(aligned_elements)):
+                if j >= i:
+                    sid = pmsm.compute_sequence_identity(aligned_elements[i].my_sequence,aligned_elements[j].my_sequence)
+                    # This will fill "half" of the matrix.
+                    identity_matrix[i][j] = sid
+                    # This will fill the rest of the matrix. Comment this if want an "half" matrix.
+                    identity_matrix[j][i] = sid
+
+        identity_matrix = numpy.array(identity_matrix)
+
+        # Build the list of sequences names.
+        sequences_names = []
+        for e in aligned_elements:
+            sequences_names.append(e.get_compact_header())
+
+        title = 'Identity matrix for ' + alignment_element.my_header
+        self.show_table(sequences_names, sequences_names, identity_matrix, title)
+
+
+    def display_rmsd_matrix(self,alignment_unique_id):
+        """
+        Computes the current identity matrix of an alignment and shows it in a new window.
+        """
+        pass
+
+        # # Get the cluster element.
+        # alignment_element = self.get_element_by_unique_index(alignment_unique_id)
+        # # Then get all its children (the aligned elements).
+        # aligned_elements = self.get_children(alignment_element)
+        #
+        # rmsd_list = alignment_element.alignment.rmsd_list
+        # rmsd_matrix_to_display = []
+        # n = len(aligned_elements)
+        # for a in range(n):
+        #     rmsd_matrix_to_display.append([None]*n)
+        #
+        # for i,ei in enumerate(aligned_elements):
+        #     for j,ej in enumerate(aligned_elements):
+        #         if j >= i:
+        #             # This will fill "half" of the matrix.
+        #             rmsd = rmsd_list[(ei.unique_index,ej.unique_index)]
+        #             rmsd_matrix_to_display[i][j] = rmsd
+        #             # This will fill the rest of the matrix. Comment this if want an "half" matrix.
+        #             rmsd = rmsd_list[(ej.unique_index,ei.unique_index)]
+        #             rmsd_matrix_to_display[j][i] = rmsd
+        #
+        # # Build the list of sequences names.
+        # sequences_names = []
+        # for e in aligned_elements:
+        #     sequences_names.append(e.get_compact_header())
+        #
+        # title = 'RMSD matrix for ' + alignment_element.my_header
+        # self.show_table(sequences_names, sequences_names, rmsd_matrix_to_display, title)
+
+
+    def show_table(self, column_headers=None, row_headers=None, data_array=[], title = "New Table", columns_title = None, rows_title = None, number_of_tabs=2, width=800, height=450, rowheader_width=20):
+        """
+        Displayes in a new window a table with data from the bidimensional 'data_array' numpy array.
+        """
+        mfont = "monospace 10"
+        number_of_newlines = 2
+
+        # Builds a new window in which the table will be displayed.
+        new_window = Toplevel(self.main_window)
+        new_window.title(title)
+
+        # Create a ScrolledText with headers.
+        self.matrix_widget = Pmw.ScrolledText(
+                new_window, borderframe = 1,
+                usehullsize = True, hull_width = width, hull_height = height,
+                columnheader = True, rowheader = True,
+                text_padx = 20, text_pady = 20, Header_padx = 20,
+                text_wrap='none', text_font = mfont, Header_font = mfont, # Header_foreground = 'blue',
+                rowheader_width = rowheader_width, rowheader_pady = 20, rowheader_padx = 20 )
+
+        # Create the row headers.
+        for row in row_headers:
+            row = str(row)
+            self.matrix_widget.component('rowheader').insert('end', row+"\n"*number_of_newlines)
+
+        # Create the column headers
+        header_line = ''
+        for column in column_headers:
+            column_text = str(column) + "\t"*number_of_tabs
+            header_line = header_line + column_text
+        self.matrix_widget.component('columnheader').insert('0.0', header_line)
+
+        # Enters the data.
+        for i,row_items in enumerate(data_array):
+            data_line = ""
+            for item in row_items:
+                column_text = str(item) + "\t"*number_of_tabs
+                data_line += column_text
+            if i != len(data_array):
+                data_line += "\n"*number_of_newlines
+            self.matrix_widget.insert('end', data_line)
+
+        # Prevent users' modifying text and headers and packs it.
+        self.matrix_widget.configure(text_state = 'disabled', Header_state = 'disabled')
+        self.matrix_widget.pack(padx = 5, pady = 5, fill = 'both', expand = 1)
+
+
     # #################################################################
     # # Show guide trees and build trees out of alignments.           #
     # #################################################################
@@ -3864,7 +3862,6 @@ class PyMod:
         """
         Builds a cluster with the query sequence as a mother and retrieved hits as children.
         """
-
         # The list of elements whose sequences will be updated according to the star alignment.
         elements_to_update = [self.blast_query_element]
 
@@ -4240,6 +4237,7 @@ class PyMod:
 
 
     def launch_alignment_program(self, program, alignment_strategy):
+        # TODO: use a 'selected_elements' arguments.
         reload(pmptca)
         a = pmptca.Clustalw_regular_alignment_protocol(self)
         a.launch_alignment_program()

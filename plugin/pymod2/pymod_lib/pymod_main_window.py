@@ -440,14 +440,10 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         # Sequence alignment tools.
         self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
-        self.sequence_alignment_menu.add_command(label = "ClustalW",
-            command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        self.sequence_alignment_menu.add_command(label = "Clustal Omega",
-            command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        self.sequence_alignment_menu.add_command(label = "MUSCLE",
-            command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
-            command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "ClustalW", command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # self.sequence_alignment_menu.add_command(label = "Clustal Omega", command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # self.sequence_alignment_menu.add_command(label = "MUSCLE", command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        # self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)" command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
 
         # # Profile alignment tools.
         # self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
@@ -495,7 +491,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.build_alignment_submenu()
         # Adds the "Alignments" menu to the main menu
         self.menubar.add_cascade(label = "Alignments", menu = self.alignments_menu)
-        self.pymod.define_alignment_menu_structure()
 
         #-----------------
         # "Models" menu. -
@@ -592,59 +587,47 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         alignment_list = self.pymod.get_cluster_elements()
 
         if alignment_list != []:
-            for element in alignment_list:
-                uid = element.unique_index
-                alignment = element.alignment
-
+            for alignment_element in alignment_list:
                 # Alignment menu for each cluster loaded in PyMod.
                 alignment_submenu = Menu(self.alignments_menu, tearoff = 0)
+
                 # Save to a file dialog.
-                alignment_submenu.add_command(label = "Save to File",
-                        command = lambda ui=uid: self.pymod.save_alignment_to_file_from_ali_menu(ui))
+                alignment_submenu.add_command(label = "Save to File", command = lambda e=alignment_element: self.pymod.save_alignment_to_file_from_ali_menu(e))
                 alignment_submenu.add_separator()
 
                 # Matrices submenu.
                 matrices_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Matrices", menu = matrices_submenu)
-                matrices_submenu.add_command(label = "Identity matrix",
-                    command = lambda ui=uid: self.pymod.display_identity_matrix(ui))
-                if alignment.algorithm in self.pymod.can_show_rmsd_matrix and alignment.rmsd_list != None:
-                    matrices_submenu.add_command(label = "RMSD matrix",
-                        command = lambda ui=uid: self.pymod.display_rmsd_matrix(ui))
+                matrices_submenu.add_command(label = "Identity matrix", command = lambda e=alignment_element: self.pymod.display_identity_matrix(e))
+                if alignment_element.algorithm in pmdt.can_show_rmsd_matrix and alignment.rmsd_list != None:
+                    matrices_submenu.add_command(label = "RMSD matrix", command = lambda e=alignment_element: self.pymod.display_rmsd_matrix(e))
 
                 # Trees.
-                if alignment.initial_number_of_sequence > 2:
+                if alignment_element.initial_number_of_sequences > 2:
                     trees_submenu = Menu(alignment_submenu, tearoff = 0)
                     alignment_submenu.add_cascade(label = "Trees", menu = trees_submenu)
-                    if alignment.algorithm in self.pymod.can_show_guide_tree:
-                        trees_submenu.add_command(label = "Show Guide Tree",
-                            command = lambda ui=uid: self.pymod.show_guide_tree_from_alignments_menu(ui))
-                    if alignment.algorithm in self.pymod.can_show_dendrogram and 0:
-                        trees_submenu.add_command(label = "Show Dendrogram",
-                            command = lambda ui=uid: self.pymod.show_dendrogram_from_alignments_menu(ui))
-                    if len(self.pymod.get_children(element)) >= 2:
-                        trees_submenu.add_command(label = "Build Tree from Alignment",
-                            command = lambda ui=uid: self.pymod.build_tree_from_alignments_menu(ui))
+                    if alignment_element.algorithm in pmdt.can_show_guide_tree:
+                        trees_submenu.add_command(label = "Show Guide Tree", command = lambda e=alignment_element: self.pymod.show_guide_tree_from_alignments_menu(e))
+                    if alignment_element.algorithm in pmdt.can_show_dendrogram and 0:
+                        trees_submenu.add_command(label = "Show Dendrogram", command = lambda e=alignment_element: self.pymod.show_dendrogram_from_alignments_menu(e))
+                    if len(alignment_element.get_children()) >= 2:
+                        trees_submenu.add_command(label = "Build Tree from Alignment", command = lambda e=alignment_element: self.pymod.build_tree_from_alignments_menu(e))
 
                 # Evolutionary conservation.
                 evolutionary_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Evolutionary Conservation", menu = evolutionary_submenu)
-                evolutionary_submenu.add_command(label = "CAMPO",
-                    command = lambda ui=uid: self.pymod.build_campo_window(ui))
-                if alignment.algorithm in self.pymod.can_use_scr_find and 0:
-                    evolutionary_submenu.add_command(label = "SCR_FIND",
-                        command = lambda ui=uid: self.pymod.build_scr_find_window(ui))
+                evolutionary_submenu.add_command(label = "CAMPO", command = lambda e=alignment_element: self.pymod.build_campo_window(e))
+                if alignment_element.algorithm in pmdt.can_use_scr_find and 0:
+                    evolutionary_submenu.add_command(label = "SCR_FIND", command = lambda e=alignment_element: self.pymod.build_scr_find_window(e))
 
                 # Render alignment.
                 render_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Render Alignment", menu = render_submenu)
-                render_submenu.add_command(label = "Generate Logo through WebLogo 3",
-                    command = lambda ui=uid: self.pymod.build_logo_options_window(ui))
-                render_submenu.add_command(label = "Launch ESPript in Web Browser",
-                    command = lambda ui=uid: self.pymod.espript(ui))
+                render_submenu.add_command(label = "Generate Logo through WebLogo 3", command = lambda e=alignment_element: self.pymod.build_logo_options_window(e))
+                render_submenu.add_command(label = "Launch ESPript in Web Browser", command = lambda e=alignment_element: self.pymod.espript(e))
 
                 # Adds the alignment submenu to the PyMod main menu.
-                label_text = element.my_header
+                label_text = alignment_element.my_header
                 self.alignments_menu.add_cascade(label = label_text, menu = alignment_submenu)
 
         else:
