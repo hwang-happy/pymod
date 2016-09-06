@@ -75,6 +75,11 @@ class PyMod_element:
         # Name of the color of the sequence when its "color_by" attribute is set to "regular".
         self.my_color = color
 
+        #-------------------
+        # Alignment files. -
+        #-------------------
+        self.tree_file_path = None
+
         #########
         # TEMP. #
         #########
@@ -207,6 +212,14 @@ class PyMod_element:
 
     def get_unique_index_header(self):
         return "__pymod_element_%s__" % self.unique_index
+
+
+    #################################################################
+    # Alignment files.                                              #
+    #################################################################
+
+    def get_tree_file_path(self):
+        return self.tree_file_path
 
 
 ###################################################################################################

@@ -440,20 +440,19 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         # Sequence alignment tools.
         self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
-        self.sequence_alignment_menu.add_command(label = "ClustalW", command = lambda program="clustalw": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        # self.sequence_alignment_menu.add_command(label = "Clustal Omega", command = lambda program="clustalo": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        # self.sequence_alignment_menu.add_command(label = "MUSCLE", command = lambda program="muscle": self.pymod.launch_regular_alignment_from_the_main_menu(program))
-        # self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)" command = lambda program="salign-seq": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.sequence_alignment_menu.add_command(label = "ClustalW", command = lambda program="clustalw", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
+        # self.sequence_alignment_menu.add_command(label = "Clustal Omega", command = lambda program="clustalo", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
+        # self.sequence_alignment_menu.add_command(label = "MUSCLE", command = lambda program="muscle", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
+        # self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)" command = lambda program="salign-seq", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
-        # # Profile alignment tools.
-        # self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
-        # self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
-        # self.profile_alignment_menu.add_command(label = "ClustalW",
-        #     command = lambda program="clustalw": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        # Profile alignment tools.
+        self.profile_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
+        self.profile_alignment_menu.add_command(label = "ClustalW", command = lambda program="clustalw", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         # self.profile_alignment_menu.add_command(label = "Clustal Omega",
-        #     command = lambda program="clustalo": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        #     command = lambda program="clustalo": self.pymod.launch_alignment_from_the_main_menu(program))
         # self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
-        #     command = lambda program="salign-seq": self.pymod.launch_profile_alignment_from_the_main_menu(program))
+        #     command = lambda program="salign-seq": self.pymod.launch_alignment_from_the_main_menu(program))
         #
         # # Structural alignment tools.
         # self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
