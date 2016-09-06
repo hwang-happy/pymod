@@ -420,14 +420,14 @@ class Cluster_selection_frame(Frame):
         self.target_alignment_combobox.grid(row = 0,column = 1)
         self.target_alignment_combobox.selectitem(0) # Selects the first cluster of the list.
 
-    def get_selected_cluster(self):
+    def get_selected_cluster_name(self):
         """
         Gets the name of the cluster selected in the combobox.
         """
         return self.target_alignment_combobox.get()
 
-    def get_selected_cluster_index(self, cluster_name):
-        return self.involved_clusters_combobox_list.index(cluster_name)
+    def get_selected_cluster_index(self):
+        return self.involved_clusters_combobox_list.index(self.get_selected_cluster_name())
 
 
 #####################################################################
@@ -1285,43 +1285,6 @@ def get_parent_window(target_widget):
 #####################################################################
 # Classes for the graphical user interface.                         #
 #####################################################################
-
-class Cluster_selection_frame(Frame):
-    """
-    Class used to build a frame containing the widgets necessary to select a cluster from a
-    combobox. This is used in the alignment options window.
-    """
-
-    def __init__(self, parent_widget, involved_cluster_elements_list, label_text):
-        # Frame with the options to control the new alignment.
-        Frame.__init__(self,parent_widget, background='black', pady=5, padx=5, bd=0, relief='groove')
-        # Builds the lists to be displayed in the comboboxes.
-        self.involved_clusters_combobox_list = [e.my_header for e in involved_cluster_elements_list]
-        # Label.
-        self.target_alignment_label = Label(self, fg="white" , text= label_text, background='black', padx = 20)
-        self.target_alignment_label.grid(row=0, column=0, sticky = "w")
-
-        # Combobox.
-        self.target_alignment_combobox = Pmw.ComboBox(
-                        self,
-                        labelmargin = None, labelpos = None,
-                        scrolledlist_items = self.involved_clusters_combobox_list,
-                        history = 0 )
-        # Make the combobox entries not editable.
-        self.target_alignment_combobox.component("entryfield").component("entry").configure(
-                        state='readonly', readonlybackground= "white", width=30,
-                        fg="black", bg="white")
-        self.target_alignment_combobox.grid(row = 0,column = 1)
-        self.target_alignment_combobox.selectitem(0) # Selects the first cluster of the list.
-
-    def get_selected_cluster(self):
-        """
-        Gets the name of the cluster selected in the combobox.
-        """
-        return self.target_alignment_combobox.get()
-
-    def get_selected_cluster_index(self, cluster_name):
-        return self.involved_clusters_combobox_list.index(cluster_name)
 
 '''
         current_pack_options = pmgi.pack_options_1

@@ -32,6 +32,7 @@ class Alignment_protocol(PyMod_protocol):
     def __init__(self, pymod):
         self.pymod = pymod
 
+
     #################################################################
     # Step 1/4 for performing an alignment from the main menu.      #
     # Methods to launch an alignment program and check if it can be #
@@ -111,8 +112,19 @@ class Alignment_protocol(PyMod_protocol):
         # selected by the user.
         self.build_cluster_lists()
 
-        # Class specific method.
-        self.start_alignment()
+        # First check if the selection is correct.
+        if not self.check_alignment_selection():
+            self.selection_not_valid()
+            return None
+
+        # Ask if the user wants to proceed with rebuild-entire-old-alignment or extract-siblings
+        # if needed.
+        if not self.check_sequences_level():
+            self.finish_alignment()
+            return None
+
+        # Programs that need a window to display their options.
+        self.show_alignment_window()
 
 
     def build_cluster_lists(self):
@@ -179,6 +191,7 @@ class Alignment_protocol(PyMod_protocol):
                     text= "Alignment Mode", background='black', fg='red',
                     borderwidth = 1, padx = 8)
         self.alignment_mode_label.grid(row=self.alignment_mode_row, column=0, sticky = W)
+        self.alignment_mode_radiobutton_var = StringVar()
         self.build_strategy_specific_modes_frames() # Defined in child classes.
 
 
@@ -225,11 +238,10 @@ class Alignment_protocol(PyMod_protocol):
         self.finish_alignment()
 
 
-    ###################################
-    # Updates the sequences of the    #
-    # aligned elements and then       #
-    # display them in PyMod.          #
-    ###################################
+    def build_elements_to_align_dict(self, elements_to_align):
+        for element in elements_to_align:
+            self.elements_to_align_dict.update({element.get_unique_index_header(): element})
+
 
     def update_aligned_sequences(self):
         """
@@ -269,9 +281,9 @@ class Alignment_protocol(PyMod_protocol):
         pass
 
 
-    ###################################
-    # Finish the alignment.           #
-    ###################################
+    #################################################################
+    # Finish the alignment.                                         #
+    #################################################################
 
     def remove_alignment_temp_files(self):
         """
@@ -313,22 +325,6 @@ class Regular_alignment_protocol(Alignment_protocol):
     #################################################################
     # Start the alignment process.                                  #
     #################################################################
-
-    def start_alignment(self):
-        # First check if the selection is correct.
-        if not self.check_alignment_selection():
-            self.selection_not_valid()
-            return None
-
-        # Ask if the user wants to proceed with rebuild-entire-old-alignment or extract-siblings
-        # if needed.
-        if not self.check_sequences_level():
-            self.finish_alignment()
-            return None
-
-        # Programs that need a window to display their options.
-        self.show_alignment_window()
-
 
     def check_sequences_level(self):
         """
@@ -374,8 +370,6 @@ class Regular_alignment_protocol(Alignment_protocol):
     #################################################################
 
     def build_strategy_specific_modes_frames(self):
-
-        self.alignment_mode_radiobutton_var = StringVar()
 
         #----------------------------
         # Rebuild an old alignment. -
@@ -503,8 +497,7 @@ class Regular_alignment_protocol(Alignment_protocol):
                 self.target_cluster_index = 0 # Cluster index.
             # Get the index of the cluster from the combobox. Right now it is not implemented.
             # else:
-            #     target_cluster_name = self.keep_previous_alignment_frame.get_selected_cluster()
-            #     self.target_cluster_index = self.keep_previous_alignment_frame.get_selected_cluster_index(target_cluster_name)
+            #     self.target_cluster_index = self.keep_previous_alignment_frame.get_selected_cluster_index()
 
 
     def set_alignment_output_file_name(self, output_file_name=None):
@@ -527,8 +520,7 @@ class Regular_alignment_protocol(Alignment_protocol):
             # TODO: remove the attribure 'elements_to_align'.
             self.elements_to_align = self.pymod.get_selected_sequences()
             self.protocol_output_file_name = self.set_alignment_output_file_name(output_file_name)
-            for element in self.elements_to_align:
-                self.elements_to_align_dict.update({element.get_unique_index_header(): element})
+            self.build_elements_to_align_dict(self.elements_to_align)
             self.perform_regular_alignment(self.elements_to_align, self.protocol_output_file_name)
 
         elif self.alignment_mode == "keep-previous-alignment":
@@ -649,8 +641,7 @@ class Regular_alignment_protocol(Alignment_protocol):
         # Converts the .txt file in .aln one.
         self.pymod.convert_txt_alignment(merged_alignment_output + ".txt")
         # Builds a list of the elements to update.
-        for element in alignment_to_keep_elements + self.elements_to_add:
-            self.elements_to_align_dict.update({element.get_unique_index_header(): element})
+        self.build_elements_to_align_dict(alignment_to_keep_elements + self.elements_to_add)
         # Sets the name of the final alignment output file.
         self.protocol_output_file_name = merged_alignment_output
 
@@ -875,12 +866,11 @@ class Regular_alignment_protocol(Alignment_protocol):
         # Converts the .txt file in .aln one.
         self.pymod.convert_txt_alignment(alignment_joining_output + ".txt")
         # Builds a list of the elements to update.
-        for element in elements_to_update:
-            self.elements_to_align_dict.update({element.get_unique_index_header(): element})
+        self.build_elements_to_align_dict(elements_to_update)
         # Sets the name of the final alignment output file.
         self.protocol_output_file_name = alignment_joining_output
 
-        # The temporary file will be deleted inside the update_aligned_sequences() method later.
+        # The temporary file will be deleted later at the end of the 'alignment_state' method.
 
 
     #################################################################
@@ -892,7 +882,6 @@ class Regular_alignment_protocol(Alignment_protocol):
         A method to create a PyMod element for the alignment and to build a cluster to contain the
         aligned sequences.
         """
-
         #-------------------------
         # Build a new alignment. -
         #-------------------------
@@ -1033,21 +1022,9 @@ class Profile_alignment_protocol(Alignment_protocol):
 
     alignment_strategy = "profile-alignment"
 
-    def start_alignment(self):
-        # First check if the selection is correct.
-        if not self.check_alignment_selection():
-            self.selection_not_valid()
-            return None
-
-        # Ask if the user wants to proceed with rebuild-entire-old-alignment or extract-siblings
-        # if needed.
-        if not self.check_sequences_level():
-            self.finish_alignment()
-            return None
-
-        # Programs that need a window to display their options.
-        self.show_alignment_window()
-
+    #################################################################
+    # Start the alignment process.                                  #
+    #################################################################
 
     def check_alignment_selection(self):
         """
@@ -1061,9 +1038,9 @@ class Profile_alignment_protocol(Alignment_protocol):
         number_of_involved_clusters = len(self.involved_clusters_list)
         number_of_root_sequences = len(self.selected_root_sequences_list)
 
+        # No clusters are involved.
         if number_of_selected_clusters == 0:
             return False
-
         # If there is only one selected cluster and if there is at least one selected sequence this
         # cluster, then a sequence to profile alignment can be performed.
         if number_of_involved_clusters == 1 and number_of_selected_clusters == 1 and number_of_root_sequences > 0:
@@ -1089,146 +1066,156 @@ class Profile_alignment_protocol(Alignment_protocol):
 
 
     def check_sequences_level(self):
-        pass
-        # proceed_with_alignment = False
-        # self.clusters_are_involved = False
-        #
-        # print "@@@"
-        # print "self.involved_clusters_set", self.involved_clusters_set
-        # print "self.selected_clusters_set", self.selected_clusters_set
-        #
-        # self.rebuild_single_alignment_choice = False
-        # self.extract_siblings_choice = False
-        # # For profile alignments.
-        # proceed_with_alignment = True
-        # self.clusters_are_involved = True
-        #
-        # return proceed_with_alignment
+        self.clusters_are_involved = True
+        return True
 
+
+    #################################################################
+    # Build components of the GUI to show the alignment options.    #
+    #################################################################
 
     def build_strategy_specific_modes_frames(self):
-        pass
-    #     # ---
-    #     # Perform a profile to profile alignment.
-    #     # ---
-    #     if self.can_perform_ptp_alignment:
-    #         self.alignment_mode_radiobutton_var.set("profile-to-profile")
-    #         self.alignment_mode_row += 1
-    #         profile_profile_rb_text = "Profile to profile: perform a profile to profile alignment."
-    #         self.profile_to_profile_radiobutton = Radiobutton(self.alignment_mode_frame, text=profile_profile_rb_text, variable=self.alignment_mode_radiobutton_var, value="profile-to-profile", background='black', foreground = "white", selectcolor = "red", highlightbackground='black', command=self.click_on_profile_to_profile_radio)
-    #         self.profile_to_profile_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-    #
-    #     else:
-    #         self.alignment_mode_radiobutton_var.set("sequence-to-profile")
-    #
-    #     # ---
-    #     # Perform sequence to profile alignment.
-    #     # ---
-    #     sequence_profile_rb_text = None
-    #     build_target_profile_frame = False
-    #     # Shows a different label for the checkbutton if there is one or more clusters involved.
-    #     if len(self.selected_cluster_elements_list) > 1:
-    #         sequence_profile_rb_text = "Sequence to profile: align to a target profile the rest of the selected sequences."
-    #         build_target_profile_frame = True
-    #     elif len(self.selected_cluster_elements_list) == 1:
-    #         profile_cluster_name = self.involved_cluster_elements_list[0].my_header
-    #         sequence_profile_rb_text = "Sequence to profile: align the selected sequence to the target profile '%s'." % (profile_cluster_name)
-    #
-    #     # Radiobutton.
-    #     self.alignment_mode_row += 1
-    #     self.sequence_to_profile_radiobutton = Radiobutton(self.alignment_mode_frame, text=sequence_profile_rb_text, variable=self.alignment_mode_radiobutton_var, value="sequence-to-profile", background='black', foreground = "white", selectcolor = "red", highlightbackground='black', command=self.click_on_sequence_to_profile_radio)
-    #     self.sequence_to_profile_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-    #
-    #     # If there is more than one selected cluster, then build a frame to let the user choose
-    #     # which is going to be the target profile.
-    #     if build_target_profile_frame:
-    #         # Frame with the options to choose which is going to be the target profile.
-    #         self.target_profile_frame = Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_cluster_elements_list, label_text = "Target profile:")
-    #         # If the profile to profile option is available, the "target_profile_frame" will be
-    #         # hidden until the user clicks on the "sequence_to_profile_radiobutton".
-    #         if not self.can_perform_ptp_alignment:
-    #             self.target_profile_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
+        #------------------------------------------
+        # Perform a profile to profile alignment. -
+        #------------------------------------------
+        if self.can_perform_ptp_alignment:
+            self.alignment_mode_radiobutton_var.set("profile-to-profile")
+            self.alignment_mode_row += 1
+            # profile_profile_rb_text = "Profile to profile: perform a profile to profile alignment."
+            profile_profile_rb_text = "Profile to profile (?)"
+            self.profile_to_profile_radiobutton = Radiobutton(self.alignment_mode_frame, text=profile_profile_rb_text, variable=self.alignment_mode_radiobutton_var, value="profile-to-profile", background='black', foreground = "white", selectcolor = "red", highlightbackground='black', command=self.click_on_profile_to_profile_radio)
+            self.profile_to_profile_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
+        else:
+            self.alignment_mode_radiobutton_var.set("sequence-to-profile")
 
+        #-----------------------------------------
+        # Perform sequence to profile alignment. -
+        #-----------------------------------------
+        sequence_profile_rb_text = None
+        build_target_profile_frame = False
+        # Shows a different label for the checkbutton if there is one or more clusters involved.
+        if len(self.selected_clusters_list) > 1:
+            # sequence_profile_rb_text = "Sequence to profile: align to a target profile the rest of the selected sequences."
+            sequence_profile_rb_text = "Sequence to profile (?)"
+            build_target_profile_frame = True
+        elif len(self.selected_clusters_list) == 1:
+            profile_cluster_name = self.involved_clusters_list[0].my_header
+            # sequence_profile_rb_text = "Sequence to profile: align the selected sequence to the target profile '%s'." % (profile_cluster_name)
+            sequence_profile_rb_text = "Sequence to profile (?)"
+
+        # Radiobutton.
+        self.alignment_mode_row += 1
+        self.sequence_to_profile_radiobutton = Radiobutton(self.alignment_mode_frame, text=sequence_profile_rb_text, variable=self.alignment_mode_radiobutton_var, value="sequence-to-profile", background='black', foreground = "white", selectcolor = "red", highlightbackground='black', command=self.click_on_sequence_to_profile_radio)
+        self.sequence_to_profile_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
+
+        # If there is more than one selected cluster, then build a frame to let the user choose
+        # which is going to be the target profile.
+        if build_target_profile_frame:
+            # Frame with the options to choose which is going to be the target profile.
+            self.target_profile_frame = pmgi.Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_clusters_list, label_text = "Target profile:")
+            # If the profile to profile option is available, the "target_profile_frame" will be
+            # hidden until the user clicks on the "sequence_to_profile_radiobutton".
+            if not self.can_perform_ptp_alignment:
+                self.target_profile_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
 
 
     def click_on_profile_to_profile_radio(self):
-        pass
-        # if hasattr(self,"target_profile_frame"):
-        #     self.target_profile_frame.grid_remove()
+        if hasattr(self,"target_profile_frame"):
+            self.target_profile_frame.grid_remove()
 
     def click_on_sequence_to_profile_radio(self):
-        pass
-        # if self.can_perform_ptp_alignment:
-        #     self.target_profile_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
+        if self.can_perform_ptp_alignment:
+            self.target_profile_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
 
+
+    #################################################################
+    # Perform the alignment.                                        #
+    #################################################################
 
     def define_alignment_mode(self):
         """
         Gets several parameters from the GUI in order to define the alignment mode.
         """
-        self.alignment_mode = None
         # It can be either "sequence-to-profile" or "profile-to-profile".
-        alignment_mode = self.alignment_mode_radiobutton_var.get()
+        self.alignment_mode = self.alignment_mode_radiobutton_var.get()
         # Takes the index of the target cluster.
         self.target_cluster_index = None
         # Takes the index of the target cluster for the "keep-previous-alignment" mode.
-        if alignment_mode == "sequence-to-profile":
+        if self.alignment_mode == "sequence-to-profile":
             # If there is only one cluster involved its index its going to be 0.
-            if len(self.selected_cluster_elements_list) == 1:
+            if len(self.selected_clusters_list) == 1:
                 self.target_cluster_index = 0 # Cluster index.
             # Get the index of the cluster from the combobox.
-            elif len(self.selected_cluster_elements_list) > 1:
-                target_cluster_name = self.target_profile_frame.get_selected_cluster()
-                self.target_cluster_index = self.target_profile_frame.get_selected_cluster_index(target_cluster_name)
+            elif len(self.selected_clusters_list) > 1:
+                self.target_cluster_index = self.target_profile_frame.get_selected_cluster_index()
 
 
     def perform_alignment_protocol(self):
-        pass
-        # if self.alignment_mode == "sequence-to-profile":
-        #     self.elements_to_align = []
-        #     self.perform_sequence_to_profile_alignment()
-        #
-        # elif self.alignment_mode == "profile-to-profile":
-        #     self.elements_to_align = []
-        #     self.profile_profile_alignment()
+        if self.alignment_mode == "sequence-to-profile":
+            self.perform_sequence_to_profile_alignment()
 
+        elif self.alignment_mode == "profile-to-profile":
+            self.perform_profile_to_profile_alignment()
+
+
+    ######################################################
+    # Methods to perform sequence-to-profile alignments. #
+    ######################################################
+
+    def perform_sequence_to_profile_alignment(self):
+        self.run_sequence_to_profile_alignment_program()
+
+
+    #####################################################
+    # Methods to perform profile-to-profile alignments. #
+    #####################################################
+
+    def perform_profile_to_profile_alignment(self):
+        self.run_profile_to_profile_alignment_program()
+
+
+    #################################################################
+    # Import the updated sequences in PyMod.                        #
+    #################################################################
 
     def create_alignment_element(self):
-        pass
-        # elif self.alignment_mode in ("keep-previous-alignment", "sequence-to-profile"):
-        #
-        #     # Gets the target cluster element.
-        #     self.alignment_element = None
-        #
-        #     if self.alignment_mode == "keep-previous-alignment":
-        #         self.alignment_element = self.involved_clusters_list[self.target_cluster_index]
-        #     elif self.alignment_mode == "sequence-to-profile":
-        #         self.alignment_element = self.selected_cluster_elements_list[self.target_cluster_index]
-        #
-        #     # Appends new sequences to the target cluster.
-        #     for element in self.elements_to_add:
-        #         self.add_to_mother(self.alignment_element,element)
-        #
-        #     # Updates the alignment element with new information about the new alignment.
-        #
-        #     # Creates an alignment object with the same id of the alignment that was kept.
-        #     ali_to_keep_id = self.alignment_element.alignment.id
-        #     self.alignment_element.alignment = self.build_alignment_object("merged", ali_to_keep_id)
-        #
-        #     alignment_description = None
-        #     if self.alignment_mode == "keep-previous-alignment":
-        #         alignment_description = "merged with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])
-        #     elif self.alignment_mode == "sequence-to-profile":
-        #         alignment_description = "built with sequence-to-profile with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])
-        #     alignment_description = "merged"
-        #
-        #     # Changes the name of the alignment element.
-        #     if self.alignment_element.element_type == "alignment":
-        #         self.alignment_element.my_header = self.pymod.set_alignment_element_name(alignment_description,ali_to_keep_id)
-        #     elif self.alignment_element.element_type == "blast-search":
-        #         # self.alignment_element.my_header = self.pymod.set_alignment_element_name(alignment_description,ali_to_keep_id)
-        #         pass
 
+        #---------------------------------------------------------
+        # Expand an already existing cluster with new sequences. -
+        #---------------------------------------------------------
+        if self.alignment_mode == "sequence-to-profile":
+            # Gets the target cluster element.
+            self.alignment_element = self.involved_clusters_list[self.target_cluster_index]
+            # Appends new sequences to the target cluster.
+            for element in self.elements_to_add:
+                self.alignment_element.add_children(element)
+            # Updates the alignment element with new information about the new alignment.
+            self.alignment_element.algorithm = "merged"
+            # alignment_description = "merged with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])
+            alignment_description = "merged"
+            self.alignment_element.my_header = self.pymod.set_alignment_element_name(alignment_description, self.alignment_element.cluster_id)
+
+        #--------------------------------------
+        # Join two or more existing clusters. -
+        #--------------------------------------
+        elif self.alignment_mode == "profile-to-profile":
+            # Find the right mother index in order to build the new cluster where one of the
+            # original ones was placed.
+            lowest_index = min([self.pymod.get_pymod_element_index_in_root(e) for e in self.elements_to_align])
+            # Orders them.
+            self.elements_to_align = sorted(self.elements_to_align, key=lambda el: (self.pymod.get_pymod_element_index_in_root(el), self.pymod.get_pymod_element_index_in_container(el)))
+
+            alignment_description = "joined by using " + pmdt.algorithms_full_names_dict[self.alignment_program]
+            # ali_name = "Joined " + self.pymod.set_alignment_element_name(alignment_description, self.pymod.alignment_count)
+            # ali_object = self.build_alignment_object(self.alignment_program+"-joined", self.pymod.alignment_count)
+            # Builds the new "PyMod_element" object for the new alignment.
+            new_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
+                                                # cluster_name=ali_name,
+                                                child_elements=self.elements_to_align,
+                                                algorithm=self.alignment_program+"-joined",
+                                                update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
+            # Moves the new element from the bottom of the list to its new position.
+            self.pymod.change_pymod_element_list_index(new_cluster, lowest_index)
 
 
 ###################################################################################################
@@ -1387,17 +1374,146 @@ class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Profile_a
     # Perform the alignment.                                        #
     #################################################################
 
-    def run_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
+    def run_sequence_to_profile_alignment_program(self):
+        """
+        Align sequences to a target profile by clustalw/clustalo.
+        """
+
+        # List of sequences belonging to profile to be kept (target cluster).
+        target_cluster_element = self.selected_clusters_list[self.target_cluster_index]
+        target_profile_elements = target_cluster_element.get_children()
+
+        # List of sequences to be appended to target cluster.
+        self.elements_to_add = [e for e in self.pymod.get_selected_sequences() if not e in target_profile_elements]
+
+        # create target cluster file
+        profile_file_name = "cluster_0"
+        profile_file_shortcut=os.path.join(self.pymod.alignments_directory, profile_file_name+".fasta")
+        self.pymod.build_sequences_file(target_profile_elements, profile_file_name,
+            file_format="fasta", remove_indels=False, unique_indices_headers=True)
+
+        # create sequence file for sequences to be appended to target cluster
+        sequences_to_add_file_name = "cluster_1"
+        sequences_to_add_file_shortcut=os.path.join(self.pymod.alignments_directory, sequences_to_add_file_name+".fasta")
+        self.pymod.build_sequences_file(self.elements_to_add, sequences_to_add_file_name,
+            file_format="fasta", remove_indels=True, unique_indices_headers=True)
+
+        # Output file name.
+        sequence_to_profile_output = "al_result"
+        output_file_shortcut = os.path.join(self.pymod.alignments_directory, sequence_to_profile_output)
+
+        clustalw_path = self.pymod.clustalw.get_exe_file_path()
+        cline='"'         +clustalw_path+'"'+ \
+            ' -PROFILE1="'+profile_file_shortcut+'"'+ \
+            ' -PROFILE2="'+sequences_to_add_file_shortcut+'" -SEQUENCES -OUTORDER=INPUT'+ \
+            ' -MATRIX='   +self.get_clustalw_matrix_value() + \
+            ' -GAPOPEN='  +self.get_gapopen_value() + \
+            ' -GAPEXT='   +self.get_gapextension_value() + \
+            ' -OUTFILE="' +output_file_shortcut+'.aln"'
+
+        # elif self.alignment_program=="clustalo":
+        #     clustalo_path = self.clustalo.get_exe_file_path()
+        #     cline='"'           +clustalo_path+'"'+ \
+        #         ' --profile1="' +profile_file_shortcut+'"'+ \
+        #         ' --outfile="'  +output_file_shortcut+'.aln"'+ \
+        #         ' --outfmt=clustal --force'+ \
+        #         ' ' +self.extraoption_entry.get()
+        #     if len(self.elements_to_add)>1:
+        #         cline+=' --infile="'  +sequences_to_add_file_shortcut+'"'
+        #     else:
+        #         cline+=' --profile2="'+sequences_to_add_file_shortcut+'"'
+
+        self.pymod.execute_subprocess(cline)
+
+        # Converts the .aln output file into a .txt file, that will be used to update the sequences
+        # loaded in PyMod.
+        self.build_elements_to_align_dict(target_profile_elements+self.elements_to_add)
+        self.protocol_output_file_name = sequence_to_profile_output
+
+
+    def prepare_sequence_to_profile_commandline(self):
         pass
 
 
-    def run_clustalw(self, sequences_to_align, output_file_name, matrix="blosum", gapopen=10, gapext=0.2):
-        pass
+    def run_profile_to_profile_alignment_program(self):
+        # Sequences in selected clusters will all be aligned. Sequences not in selected clusters,
+        # will not be aligned.
+        for cluster in self.selected_clusters_list:
+            self.elements_to_align += list(cluster.get_children())
+
+        # This will be used later in the "create_alignment_element()" method.
+        # self.selected_elements=[e for e in self.selected_elements if e.is_cluster() or e in self.elements_to_align]
+
+        self.profiles_to_join_file_list=[] # two MSA files
+
+        # use_str_info = False
+        # if self.alignment_program == "salign-seq":
+        #     use_str_info = self.get_salign_seq_str_alignment_var()
+
+        for (i,cluster) in enumerate(self.selected_clusters_list):
+            file_name = "cluster_" + str(i) # Build FASTA with the MSAs.
+            children = cluster.get_children()
+
+            # Builds a series of alignment files for each selected cluster.
+            if self.alignment_program.startswith("clustal"):
+                self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
+
+            # elif self.alignment_program.startswith("salign"):
+            #     self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=use_str_info)
+
+            self.profiles_to_join_file_list.append(file_name)
+
+        profile_alignment_output = "al_result"
+
+        if self.alignment_program=="clustalw":
+            self.clustal_profile_profile_alignment(matrix=self.get_clustalw_matrix_value(),
+                gapopen=int(self.get_gapopen_value()),
+                gapext=float(self.get_gapextension_value()),
+                output_file_name=profile_alignment_output)
+
+        # elif self.alignment_program=="clustalo":
+        #     self.clustal_profile_profile_alignment(
+        #         output_file_name=profile_alignment_output,
+        #         extraoption=self.extraoption_entry.get())
+        #
+        # elif self.alignment_program.startswith("salign"):
+        #     self.salign_profile_profile_alignment(
+        #         output_file_name=profile_alignment_output,use_structural_information=use_str_info)
 
 
-    #########################
-    # Finish the alignment. #
-    #########################
+    def clustal_profile_profile_alignment(self, matrix="blosum", gapopen=10, gapext=0.2, output_file_name="al_result", extraoption=''):
 
-    def update_additional_information(self):
-        pass
+        output_file_shortcut=os.path.join(self.pymod.alignments_directory,
+            output_file_name)
+
+        profile1=os.path.join(self.pymod.alignments_directory,
+            self.profiles_to_join_file_list[0]+".aln")
+
+        for profile2 in self.profiles_to_join_file_list[1:]:
+            profile2=os.path.join(self.pymod.alignments_directory,
+                profile2+".aln")
+
+            if self.alignment_program=="clustalo":
+                clustalo_path = self.clustalo.get_exe_file_path()
+                cline='"'           +clustalo_path+'"' \
+                    ' --profile1="' +profile1+'"'+ \
+                    ' --profile2="' +profile2+'"'+ \
+                    ' --outfile="'  +output_file_shortcut+'.aln"' \
+                    ' --outfmt=clustal --force' \
+                    ' ' +extraoption
+            elif self.alignment_program=="clustalw":
+                clustalw_path = self.pymod.clustalw.get_exe_file_path()
+                cline='"'          +clustalw_path+'"' \
+                    ' -PROFILE1="' +profile1+'"'+ \
+                    ' -PROFILE2="' +profile2+'" -OUTORDER=INPUT' \
+                    ' -MATRIX='    +matrix+ \
+                    ' -GAPOPEN='   +str(gapopen)+ \
+                    ' -GAPEXT='    +str(gapext)+ \
+                    ' -OUTFILE="'  +output_file_shortcut+'.aln"'
+
+            profile1=output_file_shortcut+'.aln'
+
+            self.pymod.execute_subprocess(cline)
+
+        self.build_elements_to_align_dict(self.elements_to_align)
+        self.protocol_output_file_name = output_file_name
