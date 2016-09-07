@@ -96,6 +96,13 @@ def find_residue_conservation(template_seq,target_seq,real_id):
     return conservation
 
 
+def all_gaps_column(column):
+    for i in column:
+        if i != "-":
+            return False
+    return True
+
+
 def get_leading_gaps(sequence, index):
     gap_counter = 0
     for i, position in enumerate(sequence[index:]):

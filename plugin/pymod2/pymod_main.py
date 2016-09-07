@@ -2275,6 +2275,22 @@ class PyMod:
         cluster_element.my_sequence = stars
 
 
+    def remove_gap_only_columns(self, cluster_element):
+        """
+        Remove the columns containing only gaps in the child elements of a PyMod cluster element.
+        """
+        children = cluster_element.get_children()
+        all_gaps_columns = []
+        columns_to_keep = []
+        print [len(c.my_sequence) for c in children]
+        for i in range(0, len(children[0].my_sequence)):
+            if pmsm.all_gaps_column([c.my_sequence[i] for c in children]):
+                all_gaps_columns.append(i)
+        for child in children:
+            seq = "".join([t[1] for t in enumerate(child.my_sequence) if not t[0] in all_gaps_columns])
+            child.set_sequence(seq)
+
+
     def get_polymer_type(self, sequence):
         polymer_type = "protein"
         nucleotides = [nt for nt in pmdt.nucleic_acids_dictionary.keys()]

@@ -259,6 +259,9 @@ class Alignment_protocol(PyMod_protocol):
             element_to_update = self.elements_to_align_dict[str(r.id)]
             element_to_update.set_sequence(str(r.seq)) # self.correct_sequence
 
+        # Performs additional operations on the aligned sequences.
+        self.perform_additional_sequence_editing()
+
         # Alignment objects built using different algorithms, store different additional data.
         self.update_additional_information()
 
@@ -272,6 +275,13 @@ class Alignment_protocol(PyMod_protocol):
         #         self.alignment_element.alignment.set_rmsd_list(rmsd_list)
 
         self.pymod.gridder(clear_selection=True, update_clusters=True, update_menus=True)
+
+
+    def perform_additional_sequence_editing(self):
+        """
+        This method will be overidden in children classes.
+        """
+        pass
 
 
     def update_additional_information(self):
