@@ -2396,37 +2396,34 @@ class PyMod:
         return header, sequence
 
 
-    def convert_alignment_format(self, input_file_name, output_file_name):
-        """
-        Converts an alignment file specified in the "input_file_name" argument in an alignment file
-        in the pymod (.txt) format.
-        """
-        input_handle = open(os.path.join(self.alignments_directory, input_file_name), "rU")
-        output_handle = open(os.path.join(self.alignments_directory, output_file_name + ".txt"), "w")
-
-        # Gets the name of the format from the input file extension.
-        original_extension = os.path.splitext(input_file_name)[1].replace(".","")
-        extension_id = pmdt.alignment_extensions_dictionary.values().index(original_extension)
-        format_name = pmdt.alignment_extensions_dictionary.keys()[extension_id]
-
-        alignment = AlignIO.read(input_handle, format_name)
-        for element in alignment:
-            print >> output_handle, element.id, element.seq
-        input_handle.close()
-        output_handle.close()
-
-
     # TODO: use decorators to redirect the output and input to PyMod directories.
-    def convert_txt_alignment(self, input_file_name, output_format="clustal"):
-        input_handle = open(os.path.join(self.alignments_directory, input_file_name), "rU")
-        output_handle = open(os.path.join(self.alignments_directory, os.path.splitext(input_file_name)[0] + ".aln"), "w")
-        records = []
-        for l in input_handle.readlines():
-            rec = SeqRecord(Seq(l.split(" ")[1].rstrip("\n\r")), id=l.split(" ")[0])
-            records.append(rec)
-        input_handle.close()
-        SeqIO.write(records, output_handle, "clustal")
-        output_handle.close()
+    def convert_sequence_file_format(self, input_file_path, input_format, output_format, output_file_name=None):
+        """
+        Converts an sequence file specified in the 'input_format' argument in an alignment file
+        in the format specified in the 'output_format'.
+        """
+        input_file_basename = os.path.basename(input_file_path)
+        input_file_name = os.path.splitext(input_file_basename)[0]
+        input_file_handler = open(input_file_path, "rU")
+        if not output_file_name:
+            output_file_basename = "%s.%s" % (input_file_name, pmdt.alignment_extensions_dictionary[output_format])
+        else:
+            output_file_basename = "%s.%s" % (output_file_name, pmdt.alignment_extensions_dictionary[output_format])
+        output_file_handler = open(os.path.join(os.path.dirname(input_file_path), output_file_basename), "w")
+
+        if input_format == "pymod":
+            records = [SeqRecord(Seq(l.split(" ")[1].rstrip("\n\r")), id=l.split(" ")[0]) for l in input_file_handler.readlines()]
+        else:
+            records = Bio.SeqIO.parse(input_file_handler, input_format)
+
+        if output_format == "pymod":
+            for rec in records:
+                print >> output_file_handler, rec.id, rec.seq
+        else:
+            Bio.SeqIO.write(records, output_file_handler, output_format)
+
+        input_file_handler.close()
+        output_file_handler.close()
 
 
     ###############################################################################################
@@ -4248,7 +4245,10 @@ class PyMod:
         if strategy == "regular":
             if program == "clustalw":
                 a = pmptca.Clustalw_regular_alignment_protocol(self)
+            elif program == "muscle":
+                a = pmptca.MUSCLE_regular_alignment_protocol(self)
             a.launch_alignment_program()
+
         elif strategy == "profile":
             if program == "clustalw":
                 a = pmptca.Clustalw_profile_alignment_protocol(self)

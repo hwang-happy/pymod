@@ -551,7 +551,7 @@ class Regular_alignment_protocol(Alignment_protocol):
         independently of the whole process initiated when performing an alignment using the commands
         in the 'Tools' menu in the PyMod main menu.
         """
-        self.run_alignment_program(sequences_to_align, output_file_name, alignment_program, use_parameters_from_gui)
+        self.run_regular_alignment_program(sequences_to_align, output_file_name, alignment_program, use_parameters_from_gui)
 
 
     ##################################################################
@@ -649,7 +649,8 @@ class Regular_alignment_protocol(Alignment_protocol):
         #-----------------------
 
         # Converts the .txt file in .aln one.
-        self.pymod.convert_txt_alignment(merged_alignment_output + ".txt")
+        self.pymod.convert_sequence_file_format(
+            os.path.join(self.pymod.alignments_directory, merged_alignment_output + ".txt"), "pymod", "clustal")
         # Builds a list of the elements to update.
         self.build_elements_to_align_dict(alignment_to_keep_elements + self.elements_to_add)
         # Sets the name of the final alignment output file.
@@ -860,7 +861,9 @@ class Regular_alignment_protocol(Alignment_protocol):
 
         # Builds an al_result.txt file for this alignment.
         alignment_joining_output = "al_result"
-        self.pymod.convert_alignment_format(bridges_alignment_name +".aln", alignment_joining_output)
+        self.pymod.convert_sequence_file_format(
+            os.path.join(self.pymod.alignments_directory, bridges_alignment_name +".aln"),
+            "clustal", "pymod", output_file_name=alignment_joining_output)
 
         #--------------------------------------------------------------------------------
         # Actually joins the alignments and produces a final .txt file with the result. -
@@ -874,7 +877,10 @@ class Regular_alignment_protocol(Alignment_protocol):
         # Prepares the output. -
         #-----------------------
         # Converts the .txt file in .aln one.
-        self.pymod.convert_txt_alignment(alignment_joining_output + ".txt")
+        self.pymod.convert_sequence_file_format(
+            os.path.join(self.pymod.alignments_directory, alignment_joining_output + ".txt"),
+            "pymod", "clustal")
+
         # Builds a list of the elements to update.
         self.build_elements_to_align_dict(elements_to_update)
         # Sets the name of the final alignment output file.
@@ -979,7 +985,7 @@ class Regular_alignment_protocol(Alignment_protocol):
 # Sequence alignments.                                                                            #
 ###################################################################################################
 
-class Sequence_alignment_protocol(Regular_alignment_protocol):
+class Regular_sequence_alignment_protocol(Regular_alignment_protocol):
 
     def check_alignment_selection(self):
         """
@@ -1007,7 +1013,7 @@ class Sequence_alignment_protocol(Regular_alignment_protocol):
 # Structural alignments.                                                                          #
 ###################################################################################################
 
-class Structural_alignment_protocol(Regular_alignment_protocol):
+class Regular_structural_alignment_protocol(Regular_alignment_protocol):
 
     def check_alignment_selection(self):
         correct_selection = False
@@ -1236,7 +1242,7 @@ class Profile_alignment_protocol(Alignment_protocol):
 # ClustalW.                                                                                       #
 ###################################################################################################
 
-class Clustalw_alignment_protocol():
+class Clustalw_alignment_protocol:
 
     # This attribute will be used from now on in many other methods that PyMod needs to perform
     # an alignment.
@@ -1299,13 +1305,13 @@ class Clustalw_alignment_protocol():
         return self.gapextension_enf.getvalue()
 
 
-class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Sequence_alignment_protocol):
+class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Regular_sequence_alignment_protocol):
 
     #################################################################
     # Perform the alignment.                                        #
     #################################################################
 
-    def run_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
         # if use_parameters_from_gui:
             self.run_clustalw(sequences_to_align,
                           output_file_name=output_file_name,
@@ -1340,26 +1346,27 @@ class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Sequence_
     #########################
 
     def update_additional_information(self):
-        # Builds a permanent copy of the original temporary .dnd file.
-        temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
-        new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_guide_tree.dnd" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
-        shutil.copy(temp_dnd_file_path, new_dnd_file_path)
+        if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
+            # Builds a permanent copy of the original temporary .dnd file.
+            temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
+            new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_guide_tree.dnd" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
+            shutil.copy(temp_dnd_file_path, new_dnd_file_path)
 
-        # Edit the new .dnd file to insert the actual names of the sequences.
-        dnd_file_handler = open(new_dnd_file_path, "r")
-        dnd_file_lines = dnd_file_handler.readlines()
-        dnd_file_handler.close()
-        new_dnd_file_lines = []
-        for line in dnd_file_lines:
-            for m in re.findall("__pymod_element_\d+__", line):
-                line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
-            new_dnd_file_lines.append(line)
-        dnd_file_handler = open(new_dnd_file_path, "w")
-        for line in new_dnd_file_lines:
-            dnd_file_handler.write(line)
-        dnd_file_handler.close()
+            # Edit the new .dnd file to insert the actual names of the sequences.
+            dnd_file_handler = open(new_dnd_file_path, "r")
+            dnd_file_lines = dnd_file_handler.readlines()
+            dnd_file_handler.close()
+            new_dnd_file_lines = []
+            for line in dnd_file_lines:
+                for m in re.findall("__pymod_element_\d+__", line):
+                    line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
+                new_dnd_file_lines.append(line)
+            dnd_file_handler = open(new_dnd_file_path, "w")
+            for line in new_dnd_file_lines:
+                dnd_file_handler.write(line)
+            dnd_file_handler.close()
 
-        self.alignment_element.tree_file_path = new_dnd_file_path
+            self.alignment_element.tree_file_path = new_dnd_file_path
 
         # # ClustalO produces a .dnd file without changing the ":" characters in the name of the
         # # PDB chains and this gives problems in displaying the names when using Phylo. So the
@@ -1527,3 +1534,194 @@ class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Profile_a
 
         self.build_elements_to_align_dict(self.elements_to_align)
         self.protocol_output_file_name = output_file_name
+
+
+###################################################################################################
+# MUSCLE.                                                                                         #
+###################################################################################################
+
+class MUSCLE_alignment_protocol:
+
+    alignment_program = "muscle"
+
+    def __init__(self, pymod):
+        Alignment_protocol.__init__(self, pymod)
+        self.tool = self.pymod.muscle
+
+
+    #################################################################
+    # Build components of the GUI to show the alignment options.    #
+    #################################################################
+
+    def build_algorithm_options_widgets(self):
+        pass
+
+        # widgets_to_align = []
+        #
+        # # Scoring matrix radioselect.
+        # self.matrix_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
+        # self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
+        # self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
+        # for matrix_name in (self.clustal_matrices):
+        #     self.matrix_rds.add(matrix_name)
+        # self.matrix_rds.setvalue("Blosum")
+        # self.matrix_rds.pack(side = 'top', anchor="w", pady = 10)
+        # widgets_to_align.append(self.matrix_rds)
+        #
+        # # Gap open entryfield.
+        # self.gapopen_enf = pmgi.PyMod_entryfield(
+        #     self.alignment_options_frame,
+        #     label_text = "Gap Opening Penalty",
+        #     value = '10',
+        #     validate = {'validator' : 'integer',
+        #                 'min' : 0, 'max' : 1000})
+        # self.gapopen_enf.pack(side = 'top', anchor="w", pady = 10)
+        # widgets_to_align.append(self.gapopen_enf)
+        #
+        # # Gap extension entryfield.
+        # self.gapextension_enf = pmgi.PyMod_entryfield(
+        #     self.alignment_options_frame,
+        #     label_text = "Gap Extension Penalty",
+        #     value = '0.2',
+        #     validate = {'validator' : 'real',
+        #                 'min' : 0, 'max' : 1000})
+        # self.gapextension_enf.pack(side = 'top', anchor="w", pady = 10)
+        # widgets_to_align.append(self.gapextension_enf)
+        #
+        # Pmw.alignlabels(widgets_to_align, sticky="nw")
+        # pmgi.align_input_widgets_components(widgets_to_align, 10)
+
+
+    # def get_clustalw_matrix_value(self):
+    #     return self.clustal_matrices_dict[self.matrix_rds.getvalue()]
+    #
+    # def get_gapopen_value(self):
+    #     return self.gapopen_enf.getvalue()
+    #
+    # def get_gapextension_value(self):
+    #     return self.gapextension_enf.getvalue()
+
+
+class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_sequence_alignment_protocol):
+
+    #################################################################
+    # Perform the alignment.                                        #
+    #################################################################
+
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
+        self.run_muscle(sequences_to_align, output_file_name=output_file_name)
+
+
+    def run_muscle(self, sequences_to_align, output_file_name):
+        """
+        This method allows to interact with the local MUSCLE.
+        """
+        # TODO: to insert the following options:
+        #           - guide tree from:
+        #               - first iteration
+        #               - second iteration
+        #           - set MUSCLE options for:
+        #               - highest accuracy
+        #               - fastest speed
+        #               - large datasets
+        self.pymod.build_sequences_file(sequences_to_align, output_file_name, unique_indices_headers=True)
+        # Input FASTA for MUSCLE.
+        infasta=os.path.join(self.pymod.alignments_directory, output_file_name + ".fasta")
+        # Output FASTA from MUSCLE, in tree order.
+        outfasta_tree=os.path.join(self.pymod.alignments_directory, output_file_name + ".out_fasta")
+        # Output ALN.
+        outaln=os.path.join(self.pymod.alignments_directory, output_file_name + ".aln")
+        cline = MuscleCommandline(self.tool.get_exe_file_path(), input= infasta, out = outfasta_tree, clwout= outaln)
+        self.pymod.execute_subprocess(str(cline))
+        # Convert the output FASTA file in the clustal format.
+        # self.pymod.convert_sequence_file_format(outfasta_tree, "fasta", "clustal")
+
+
+    #########################
+    # Finish the alignment. #
+    #########################
+
+    def update_additional_information(self):
+        pass
+
+        # Builds a permanent copy of the original temporary .dnd file.
+        # temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
+        # new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_guide_tree.dnd" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
+        # shutil.copy(temp_dnd_file_path, new_dnd_file_path)
+        #
+        # # Edit the new .dnd file to insert the actual names of the sequences.
+        # dnd_file_handler = open(new_dnd_file_path, "r")
+        # dnd_file_lines = dnd_file_handler.readlines()
+        # dnd_file_handler.close()
+        # new_dnd_file_lines = []
+        # for line in dnd_file_lines:
+        #     for m in re.findall("__pymod_element_\d+__", line):
+        #         line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
+        #     new_dnd_file_lines.append(line)
+        # dnd_file_handler = open(new_dnd_file_path, "w")
+        # for line in new_dnd_file_lines:
+        #     dnd_file_handler.write(line)
+        # dnd_file_handler.close()
+        #
+        # self.alignment_element.tree_file_path = new_dnd_file_path
+
+
+    # def run_muscle(self, sequences_to_align, alignment_name=None):
+    #     """
+    #     This method allows to interact with the local MUSCLE.
+    #     """
+    #
+    #     if self.muscle.exe_exists():
+    #
+    #         self.pymod.build_sequences_file(sequences_to_align, alignment_name)
+    #
+    #         # infasta - input FASTA for muscle
+    #         # outfasta_tree - output FASTA from muscle, in tree order
+    #         # outaln - output ALN in input order
+    #         infasta=os.path.join(self.pymod.alignments_directory, alignment_name + ".fasta")
+    #         outfasta_tree=os.path.join(self.pymod.alignments_directory, alignment_name + "_tree.fasta")
+    #         outaln=os.path.join(self.pymod.alignments_directory, alignment_name + ".aln")
+    #
+    #         cline = MuscleCommandline( self.muscle.get_exe_file_path(),
+    #             input= infasta, out = outfasta_tree)
+    #         self.pymod.execute_subprocess(str(cline))
+    #
+    #         ''' muscle does not respect sequence input order. e.g.
+    #         (infile)                       (outfile_tree)
+    #         >1tsr.pdb                      >1tsr.pdb
+    #         SSSVPSQKTYQGS                  SSSVPSQKTYQGS---
+    #         >4ibs.pdb      MUSCLE v3.8.31  >1TSR_Chain:A
+    #         VPSQKTYQGSYGF  =============>  SSSVPSQKTYQGS---
+    #         >1TSR_Chain:A                  >4ibs.pdb
+    #         SSSVPSQKTYQGS                  ---VPSQKTYQGSYGF
+    #
+    #         The following code rearranges sequence order in `outfile_tree`
+    #         to match that of `infile`. '''
+    #         try:
+    #             record_outtree=[record for record in SeqIO.parse(outfasta_tree,"fasta")]
+    #             record_outtree_id=[record.id for record in record_outtree]
+    #             record_outtree_ungap=[]
+    #             record_outaln=[]
+    #             for i,record_in in enumerate(SeqIO.parse(infasta,"fasta")):
+    #                 record_index=-1
+    #                 try:
+    #                     record_index=record_outtree_id.index(record_in.id)
+    #                 except:
+    #                     if not len(record_outtree_ungap):
+    #                         record_outtree_ungap=[str(record.seq.ungap('-').ungap('.')) for record in record_outtree]
+    #                     try:
+    #                         record_index=record_outtree_ungap.index(str(record_in.seq.ungap('-').ungap('.')))
+    #                     except:
+    #                         pass
+    #                 if record_index<0:
+    #                     print "Warning! Cannot find record.id="+str(record.id)
+    #                     record_index=i
+    #                 record_outaln.append(record_outtree[record_index])
+    #         except Exception,e:
+    #             print "ERROR!"+str(e)
+    #             record_outaln=SeqIO.parse(outfasta_tree,"fasta")
+    #
+    #         SeqIO.write(record_outaln, outaln, "clustal")
+    #
+    #     else:
+    #         self.alignment_program_not_found("muscle")

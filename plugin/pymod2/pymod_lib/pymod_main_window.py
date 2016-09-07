@@ -442,7 +442,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.tools_menu.add_cascade(label = "Sequence Alignment", menu = self.sequence_alignment_menu)
         self.sequence_alignment_menu.add_command(label = "ClustalW", command = lambda program="clustalw", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         # self.sequence_alignment_menu.add_command(label = "Clustal Omega", command = lambda program="clustalo", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
-        # self.sequence_alignment_menu.add_command(label = "MUSCLE", command = lambda program="muscle", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
+        self.sequence_alignment_menu.add_command(label = "MUSCLE", command = lambda program="muscle", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         # self.sequence_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)" command = lambda program="salign-seq", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
         # Profile alignment tools.
