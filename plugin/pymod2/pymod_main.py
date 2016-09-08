@@ -4245,6 +4245,8 @@ class PyMod:
         if strategy == "regular":
             if program == "clustalw":
                 a = pmptca.Clustalw_regular_alignment_protocol(self)
+            elif program == "clustalo":
+                a = pmptca.Clustalomega_regular_alignment_protocol(self)
             elif program == "muscle":
                 a = pmptca.MUSCLE_regular_alignment_protocol(self)
             a.launch_alignment_program()
@@ -4252,6 +4254,8 @@ class PyMod:
         elif strategy == "profile":
             if program == "clustalw":
                 a = pmptca.Clustalw_profile_alignment_protocol(self)
+            elif program == "clustalo":
+                a = pmptca.Clustalomega_profile_alignment_protocol(self)
             a.launch_alignment_program()
 
 

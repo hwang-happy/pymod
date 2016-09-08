@@ -1295,7 +1295,7 @@ class Clustalw_alignment_protocol:
         pmgi.align_input_widgets_components(widgets_to_align, 10)
 
 
-    def get_clustalw_matrix_value(self):
+    def get_matrix_value(self):
         return self.clustal_matrices_dict[self.matrix_rds.getvalue()]
 
     def get_gapopen_value(self):
@@ -1315,7 +1315,7 @@ class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Regular_s
         # if use_parameters_from_gui:
             self.run_clustalw(sequences_to_align,
                           output_file_name=output_file_name,
-                          matrix=self.get_clustalw_matrix_value(),
+                          matrix=self.get_matrix_value(),
                           gapopen=int(self.get_gapopen_value()),
                           gapext=float(self.get_gapextension_value()) )
         # else:
@@ -1423,7 +1423,7 @@ class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Profile_a
         cline='"'         +clustalw_path+'"'+ \
             ' -PROFILE1="'+profile_file_shortcut+'"'+ \
             ' -PROFILE2="'+sequences_to_add_file_shortcut+'" -SEQUENCES -OUTORDER=INPUT'+ \
-            ' -MATRIX='   +self.get_clustalw_matrix_value() + \
+            ' -MATRIX='   +self.get_matrix_value() + \
             ' -GAPOPEN='  +self.get_gapopen_value() + \
             ' -GAPEXT='   +self.get_gapextension_value() + \
             ' -OUTFILE="' +output_file_shortcut+'.aln"'
@@ -1483,7 +1483,7 @@ class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Profile_a
         profile_alignment_output = "al_result"
 
         if self.alignment_program=="clustalw":
-            self.clustal_profile_profile_alignment(matrix=self.get_clustalw_matrix_value(),
+            self.clustal_profile_profile_alignment(matrix=self.get_matrix_value(),
                 gapopen=int(self.get_gapopen_value()),
                 gapext=float(self.get_gapextension_value()),
                 output_file_name=profile_alignment_output)
@@ -1537,6 +1537,276 @@ class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Profile_a
 
 
 ###################################################################################################
+# Clustal Omega.                                                                                  #
+###################################################################################################
+
+class Clustalomega_alignment_protocol:
+
+    # This attribute will be used from now on in many other methods that PyMod needs to perform
+    # an alignment.
+    alignment_program = "clustalo"
+
+    def __init__(self, pymod):
+        Alignment_protocol.__init__(self, pymod)
+        self.tool = self.pymod.clustalo
+
+    #################################################################
+    # Build components of the GUI to show the alignment options.    #
+    #################################################################
+
+    def build_algorithm_options_widgets(self):
+        self.extraoption=Label(self.alignment_options_frame, font = "comic 12",
+                           height=1, text="Extra Command Line Option",
+                           background='black', fg='red',
+                           borderwidth = 1, padx = 8)
+        self.extraoption.grid(row=10, column=0, sticky = "we", pady=20)
+        self.extraoption_entry=Entry(self.alignment_options_frame,bg='white',width=10)
+        self.extraoption_entry.insert(0, "--auto -v")
+        self.extraoption_entry.grid(row=10,column=1,sticky="we", pady=20)
+        self.extraoption_def=Label(self.alignment_options_frame, font = "comic 10",
+                               height = 1,
+                               text= "--outfmt clustal --force",
+                               background='black', fg='white',
+                               borderwidth = 1, padx = 8)
+        self.extraoption_def.grid(row=10,column=2,sticky="we",pady=20)
+
+
+    def get_extraoption_value(self):
+        return self.extraoption_entry.get()
+
+
+class Clustalomega_regular_alignment_protocol(Clustalomega_alignment_protocol, Regular_sequence_alignment_protocol):
+
+    #################################################################
+    # Perform the alignment.                                        #
+    #################################################################
+
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
+        # if use_parameters_from_gui:
+            self.run_clustalo(sequences_to_align,
+                          output_file_name=output_file_name,
+                          extraoption=self.get_extraoption_value())
+        # else:
+        #     self.run_clustalw(sequences_to_align, alignment_name=self.current_alignment_file_name)
+
+
+    def run_clustalo(self, sequences_to_align, output_file_name=None, extraoption=self.get_extraoption_value()):
+
+        self.pymod.build_sequences_file(sequences_to_align, alignment_name)
+
+        input_file_path = os.path.join(self.pymod.alignments_directory, alignment_name + ".fasta")
+        output_file_path = os.path.join(self.pymod.alignments_directory, alignment_name + ".aln")
+        guidetree_file_path = os.path.join(self.pymod.alignments_directory, alignment_name + ".dnd")
+
+        cline = ClustalOmegaCommandline(
+            self.clustalo.get_exe_file_path(),
+            infile= input_file_path,
+            outfile= output_file_path,
+            guidetree_out=guidetree_file_path,
+            force=True, outfmt="clustal")
+
+        # Run MSA with all sequences using CLustalO command line.
+        cline = str(cline) + ' ' + extraoption
+        self.pymod.execute_subprocess(cline)
+
+
+    #########################
+    # Finish the alignment. #
+    #########################
+
+    def update_additional_information(self):
+        if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
+            # Builds a permanent copy of the original temporary .dnd file.
+            temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
+            new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_guide_tree.dnd" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
+            shutil.copy(temp_dnd_file_path, new_dnd_file_path)
+
+            # Edit the new .dnd file to insert the actual names of the sequences.
+            dnd_file_handler = open(new_dnd_file_path, "r")
+            dnd_file_lines = dnd_file_handler.readlines()
+            dnd_file_handler.close()
+            new_dnd_file_lines = []
+            for line in dnd_file_lines:
+                for m in re.findall("__pymod_element_\d+__", line):
+                    line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
+                new_dnd_file_lines.append(line)
+            dnd_file_handler = open(new_dnd_file_path, "w")
+            for line in new_dnd_file_lines:
+                dnd_file_handler.write(line)
+            dnd_file_handler.close()
+
+            self.alignment_element.tree_file_path = new_dnd_file_path
+
+        # # ClustalO produces a .dnd file without changing the ":" characters in the name of the
+        # # PDB chains and this gives problems in displaying the names when using Phylo. So the
+        # # ":" characters have to be changed in "_".
+        # if self.alignment_program == "clustalo":
+        #     old_dnd_file = open(new_dnd_file_path,"rU")
+        #     new_dnd_file_content = ''
+        #     for dnd_item in old_dnd_file.readlines():
+        #         if re.search(r"_Chain\:?\:",dnd_item):
+        #             Chain_pos=dnd_item.find("_Chain:")+6
+        #             dnd_item=dnd_item[:Chain_pos]+'_'+dnd_item[Chain_pos+1:]
+        #         new_dnd_file_content+=dnd_item
+        #     old_dnd_file.close()
+        #     new_dnd_file = open(new_dnd_file_path,"w")
+        #     new_dnd_file.write(new_dnd_file_content)
+        #     new_dnd_file.close()
+
+
+class Clustalomega_profile_alignment_protocol(Clustalw_alignment_protocol, Profile_alignment_protocol):
+
+    #################################################################
+    # Perform the alignment.                                        #
+    #################################################################
+
+    def run_sequence_to_profile_alignment_program(self):
+        """
+        Align sequences to a target profile by clustalw/clustalo.
+        """
+
+        # List of sequences belonging to profile to be kept (target cluster).
+        target_cluster_element = self.selected_clusters_list[self.target_cluster_index]
+        target_profile_elements = target_cluster_element.get_children()
+
+        # List of sequences to be appended to target cluster.
+        self.elements_to_add = [e for e in self.pymod.get_selected_sequences() if not e in target_profile_elements]
+
+        # create target cluster file
+        profile_file_name = "cluster_0"
+        profile_file_shortcut=os.path.join(self.pymod.alignments_directory, profile_file_name+".fasta")
+        self.pymod.build_sequences_file(target_profile_elements, profile_file_name,
+            file_format="fasta", remove_indels=False, unique_indices_headers=True)
+
+        # create sequence file for sequences to be appended to target cluster
+        sequences_to_add_file_name = "cluster_1"
+        sequences_to_add_file_shortcut=os.path.join(self.pymod.alignments_directory, sequences_to_add_file_name+".fasta")
+        self.pymod.build_sequences_file(self.elements_to_add, sequences_to_add_file_name,
+            file_format="fasta", remove_indels=True, unique_indices_headers=True)
+
+        # Output file name.
+        sequence_to_profile_output = "al_result"
+        output_file_shortcut = os.path.join(self.pymod.alignments_directory, sequence_to_profile_output)
+
+        clustalw_path = self.pymod.clustalw.get_exe_file_path()
+        cline='"'         +clustalw_path+'"'+ \
+            ' -PROFILE1="'+profile_file_shortcut+'"'+ \
+            ' -PROFILE2="'+sequences_to_add_file_shortcut+'" -SEQUENCES -OUTORDER=INPUT'+ \
+            ' -MATRIX='   +self.get_matrix_value() + \
+            ' -GAPOPEN='  +self.get_gapopen_value() + \
+            ' -GAPEXT='   +self.get_gapextension_value() + \
+            ' -OUTFILE="' +output_file_shortcut+'.aln"'
+
+        # elif self.alignment_program=="clustalo":
+        #     clustalo_path = self.clustalo.get_exe_file_path()
+        #     cline='"'           +clustalo_path+'"'+ \
+        #         ' --profile1="' +profile_file_shortcut+'"'+ \
+        #         ' --outfile="'  +output_file_shortcut+'.aln"'+ \
+        #         ' --outfmt=clustal --force'+ \
+        #         ' ' +self.extraoption_entry.get()
+        #     if len(self.elements_to_add)>1:
+        #         cline+=' --infile="'  +sequences_to_add_file_shortcut+'"'
+        #     else:
+        #         cline+=' --profile2="'+sequences_to_add_file_shortcut+'"'
+
+        self.pymod.execute_subprocess(cline)
+
+        # Converts the .aln output file into a .txt file, that will be used to update the sequences
+        # loaded in PyMod.
+        self.build_elements_to_align_dict(target_profile_elements+self.elements_to_add)
+        self.protocol_output_file_name = sequence_to_profile_output
+
+
+    def prepare_sequence_to_profile_commandline(self):
+        pass
+
+
+    def run_profile_to_profile_alignment_program(self):
+        # Sequences in selected clusters will all be aligned. Sequences not in selected clusters,
+        # will not be aligned.
+        for cluster in self.selected_clusters_list:
+            self.elements_to_align += list(cluster.get_children())
+
+        # This will be used later in the "create_alignment_element()" method.
+        # self.selected_elements=[e for e in self.selected_elements if e.is_cluster() or e in self.elements_to_align]
+
+        self.profiles_to_join_file_list=[] # two MSA files
+
+        # use_str_info = False
+        # if self.alignment_program == "salign-seq":
+        #     use_str_info = self.get_salign_seq_str_alignment_var()
+
+        for (i,cluster) in enumerate(self.selected_clusters_list):
+            file_name = "cluster_" + str(i) # Build FASTA with the MSAs.
+            children = cluster.get_children()
+
+            # Builds a series of alignment files for each selected cluster.
+            if self.alignment_program.startswith("clustal"):
+                self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
+
+            # elif self.alignment_program.startswith("salign"):
+            #     self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=use_str_info)
+
+            self.profiles_to_join_file_list.append(file_name)
+
+        profile_alignment_output = "al_result"
+
+        if self.alignment_program=="clustalw":
+            self.clustal_profile_profile_alignment(matrix=self.get_matrix_value(),
+                gapopen=int(self.get_gapopen_value()),
+                gapext=float(self.get_gapextension_value()),
+                output_file_name=profile_alignment_output)
+
+        # elif self.alignment_program=="clustalo":
+        #     self.clustal_profile_profile_alignment(
+        #         output_file_name=profile_alignment_output,
+        #         extraoption=self.extraoption_entry.get())
+        #
+        # elif self.alignment_program.startswith("salign"):
+        #     self.salign_profile_profile_alignment(
+        #         output_file_name=profile_alignment_output,use_structural_information=use_str_info)
+
+
+    def clustal_profile_profile_alignment(self, matrix="blosum", gapopen=10, gapext=0.2, output_file_name="al_result", extraoption=''):
+
+        output_file_shortcut=os.path.join(self.pymod.alignments_directory,
+            output_file_name)
+
+        profile1=os.path.join(self.pymod.alignments_directory,
+            self.profiles_to_join_file_list[0]+".aln")
+
+        for profile2 in self.profiles_to_join_file_list[1:]:
+            profile2=os.path.join(self.pymod.alignments_directory,
+                profile2+".aln")
+
+            if self.alignment_program=="clustalo":
+                clustalo_path = self.clustalo.get_exe_file_path()
+                cline='"'           +clustalo_path+'"' \
+                    ' --profile1="' +profile1+'"'+ \
+                    ' --profile2="' +profile2+'"'+ \
+                    ' --outfile="'  +output_file_shortcut+'.aln"' \
+                    ' --outfmt=clustal --force' \
+                    ' ' +extraoption
+            elif self.alignment_program=="clustalw":
+                clustalw_path = self.pymod.clustalw.get_exe_file_path()
+                cline='"'          +clustalw_path+'"' \
+                    ' -PROFILE1="' +profile1+'"'+ \
+                    ' -PROFILE2="' +profile2+'" -OUTORDER=INPUT' \
+                    ' -MATRIX='    +matrix+ \
+                    ' -GAPOPEN='   +str(gapopen)+ \
+                    ' -GAPEXT='    +str(gapext)+ \
+                    ' -OUTFILE="'  +output_file_shortcut+'.aln"'
+
+            profile1=output_file_shortcut+'.aln'
+
+            self.pymod.execute_subprocess(cline)
+
+        self.build_elements_to_align_dict(self.elements_to_align)
+        self.protocol_output_file_name = output_file_name
+
+
+
+###################################################################################################
 # MUSCLE.                                                                                         #
 ###################################################################################################
 
@@ -1556,51 +1826,6 @@ class MUSCLE_alignment_protocol:
     def build_algorithm_options_widgets(self):
         pass
 
-        # widgets_to_align = []
-        #
-        # # Scoring matrix radioselect.
-        # self.matrix_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
-        # self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
-        # self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
-        # for matrix_name in (self.clustal_matrices):
-        #     self.matrix_rds.add(matrix_name)
-        # self.matrix_rds.setvalue("Blosum")
-        # self.matrix_rds.pack(side = 'top', anchor="w", pady = 10)
-        # widgets_to_align.append(self.matrix_rds)
-        #
-        # # Gap open entryfield.
-        # self.gapopen_enf = pmgi.PyMod_entryfield(
-        #     self.alignment_options_frame,
-        #     label_text = "Gap Opening Penalty",
-        #     value = '10',
-        #     validate = {'validator' : 'integer',
-        #                 'min' : 0, 'max' : 1000})
-        # self.gapopen_enf.pack(side = 'top', anchor="w", pady = 10)
-        # widgets_to_align.append(self.gapopen_enf)
-        #
-        # # Gap extension entryfield.
-        # self.gapextension_enf = pmgi.PyMod_entryfield(
-        #     self.alignment_options_frame,
-        #     label_text = "Gap Extension Penalty",
-        #     value = '0.2',
-        #     validate = {'validator' : 'real',
-        #                 'min' : 0, 'max' : 1000})
-        # self.gapextension_enf.pack(side = 'top', anchor="w", pady = 10)
-        # widgets_to_align.append(self.gapextension_enf)
-        #
-        # Pmw.alignlabels(widgets_to_align, sticky="nw")
-        # pmgi.align_input_widgets_components(widgets_to_align, 10)
-
-
-    # def get_clustalw_matrix_value(self):
-    #     return self.clustal_matrices_dict[self.matrix_rds.getvalue()]
-    #
-    # def get_gapopen_value(self):
-    #     return self.gapopen_enf.getvalue()
-    #
-    # def get_gapextension_value(self):
-    #     return self.gapextension_enf.getvalue()
-
 
 class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_sequence_alignment_protocol):
 
@@ -1618,6 +1843,7 @@ class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_seque
         """
         # TODO: to insert the following options:
         #           - guide tree from:
+        #               - none
         #               - first iteration
         #               - second iteration
         #           - set MUSCLE options for:
@@ -1643,85 +1869,3 @@ class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_seque
 
     def update_additional_information(self):
         pass
-
-        # Builds a permanent copy of the original temporary .dnd file.
-        # temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
-        # new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_guide_tree.dnd" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
-        # shutil.copy(temp_dnd_file_path, new_dnd_file_path)
-        #
-        # # Edit the new .dnd file to insert the actual names of the sequences.
-        # dnd_file_handler = open(new_dnd_file_path, "r")
-        # dnd_file_lines = dnd_file_handler.readlines()
-        # dnd_file_handler.close()
-        # new_dnd_file_lines = []
-        # for line in dnd_file_lines:
-        #     for m in re.findall("__pymod_element_\d+__", line):
-        #         line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
-        #     new_dnd_file_lines.append(line)
-        # dnd_file_handler = open(new_dnd_file_path, "w")
-        # for line in new_dnd_file_lines:
-        #     dnd_file_handler.write(line)
-        # dnd_file_handler.close()
-        #
-        # self.alignment_element.tree_file_path = new_dnd_file_path
-
-
-    # def run_muscle(self, sequences_to_align, alignment_name=None):
-    #     """
-    #     This method allows to interact with the local MUSCLE.
-    #     """
-    #
-    #     if self.muscle.exe_exists():
-    #
-    #         self.pymod.build_sequences_file(sequences_to_align, alignment_name)
-    #
-    #         # infasta - input FASTA for muscle
-    #         # outfasta_tree - output FASTA from muscle, in tree order
-    #         # outaln - output ALN in input order
-    #         infasta=os.path.join(self.pymod.alignments_directory, alignment_name + ".fasta")
-    #         outfasta_tree=os.path.join(self.pymod.alignments_directory, alignment_name + "_tree.fasta")
-    #         outaln=os.path.join(self.pymod.alignments_directory, alignment_name + ".aln")
-    #
-    #         cline = MuscleCommandline( self.muscle.get_exe_file_path(),
-    #             input= infasta, out = outfasta_tree)
-    #         self.pymod.execute_subprocess(str(cline))
-    #
-    #         ''' muscle does not respect sequence input order. e.g.
-    #         (infile)                       (outfile_tree)
-    #         >1tsr.pdb                      >1tsr.pdb
-    #         SSSVPSQKTYQGS                  SSSVPSQKTYQGS---
-    #         >4ibs.pdb      MUSCLE v3.8.31  >1TSR_Chain:A
-    #         VPSQKTYQGSYGF  =============>  SSSVPSQKTYQGS---
-    #         >1TSR_Chain:A                  >4ibs.pdb
-    #         SSSVPSQKTYQGS                  ---VPSQKTYQGSYGF
-    #
-    #         The following code rearranges sequence order in `outfile_tree`
-    #         to match that of `infile`. '''
-    #         try:
-    #             record_outtree=[record for record in SeqIO.parse(outfasta_tree,"fasta")]
-    #             record_outtree_id=[record.id for record in record_outtree]
-    #             record_outtree_ungap=[]
-    #             record_outaln=[]
-    #             for i,record_in in enumerate(SeqIO.parse(infasta,"fasta")):
-    #                 record_index=-1
-    #                 try:
-    #                     record_index=record_outtree_id.index(record_in.id)
-    #                 except:
-    #                     if not len(record_outtree_ungap):
-    #                         record_outtree_ungap=[str(record.seq.ungap('-').ungap('.')) for record in record_outtree]
-    #                     try:
-    #                         record_index=record_outtree_ungap.index(str(record_in.seq.ungap('-').ungap('.')))
-    #                     except:
-    #                         pass
-    #                 if record_index<0:
-    #                     print "Warning! Cannot find record.id="+str(record.id)
-    #                     record_index=i
-    #                 record_outaln.append(record_outtree[record_index])
-    #         except Exception,e:
-    #             print "ERROR!"+str(e)
-    #             record_outaln=SeqIO.parse(outfasta_tree,"fasta")
-    #
-    #         SeqIO.write(record_outaln, outaln, "clustal")
-    #
-    #     else:
-    #         self.alignment_program_not_found("muscle")
