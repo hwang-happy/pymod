@@ -2347,25 +2347,22 @@ class PyMod:
                     print >> output_file_handler , sequence[i:i+60]
                 print >> output_file_handler , ""
 
-        # elif file_format == "pir":
-        #     for child in elements:
-        #         header=child.my_header.replace(':','_')
-        #         sequence = str(child.my_sequence)
-        #         if remove_indels:
-        #             sequence = sequence.replace("-","")
-        #         sequence += '*'
-        #         structure=''
-        #         if hasattr(child.structure,"chain_pdb_file_name_root") and use_structural_information:
-        #             structure=child.structure.chain_pdb_file_name_root
-        #             chain=child.structure.pdb_chain_id
-        #         if not structure: # sequence
-        #             print >> output_file_handler, ">P1;"+ header
-        #             print >> output_file_handler, "sequence:"+header+":::::::0.00:0.00"
-        #         else: # structure
-        #             print >> output_file_handler, ">P1;"+header+chain
-        #             print >> output_file_handler, "structure:"+structure+":.:"+chain+":.:"+chain+":::-1.00:-1.00"
-        #         for ii in xrange(0,len(sequence),75):
-        #             print >> output_file_handler, sequence[ii:ii+75].replace("X",".")
+        elif file_format == "pir":
+            for element in elements:
+                header, sequence = header, sequence = self.get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
+                sequence += '*'
+                structure=''
+                # if hasattr(child.structure,"chain_pdb_file_name_root") and use_structural_information:
+                #     structure=child.structure.chain_pdb_file_name_root
+                #     chain=child.structure.pdb_chain_id
+                if not structure: # sequence
+                    print >> output_file_handler, ">P1;"+ header
+                    print >> output_file_handler, "sequence:"+header+":::::::0.00:0.00"
+                else: # structure
+                    print >> output_file_handler, ">P1;"+header+chain
+                    print >> output_file_handler, "structure:"+structure+":.:"+chain+":.:"+chain+":::-1.00:-1.00"
+                for ii in xrange(0,len(sequence),75):
+                    print >> output_file_handler, sequence[ii:ii+75].replace("X",".")
 
         elif file_format == "clustal":
             records = []
@@ -2393,6 +2390,7 @@ class PyMod:
             header = pymod_element.my_header
         else:
             header = pymod_element.get_unique_index_header()
+            # child.my_header.replace(':','_')
         return header, sequence
 
 
@@ -4243,20 +4241,25 @@ class PyMod:
         # TODO: use a 'selected_elements' arguments.
         reload(pmptca)
         if strategy == "regular":
+            # Sequence alignments.
             if program == "clustalw":
                 a = pmptca.Clustalw_regular_alignment_protocol(self)
             elif program == "clustalo":
                 a = pmptca.Clustalomega_regular_alignment_protocol(self)
             elif program == "muscle":
                 a = pmptca.MUSCLE_regular_alignment_protocol(self)
-            a.launch_alignment_program()
+            elif program == "salign-seq":
+                a = pmptca.SALIGN_seq_regular_alignment_protocol(self)
+            # Structural alignments.
+            pass
 
         elif strategy == "profile":
             if program == "clustalw":
                 a = pmptca.Clustalw_profile_alignment_protocol(self)
             elif program == "clustalo":
                 a = pmptca.Clustalomega_profile_alignment_protocol(self)
-            a.launch_alignment_program()
+
+        a.launch_alignment_program()
 
 
     def ce_exists(self):

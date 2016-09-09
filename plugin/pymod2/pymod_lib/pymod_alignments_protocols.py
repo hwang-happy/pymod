@@ -18,6 +18,11 @@ except:
 import pymol
 from pymol import cmd
 
+try:
+    import modeller
+except:
+    pass
+
 import pymod_vars as pmdt
 import pymod_gui as pmgi
 import pymod_sequence_manipulation as pmsm
@@ -111,6 +116,12 @@ class Alignment_protocol(PyMod_protocol):
         # This will build a series of lists containing informations about which cluster was
         # selected by the user.
         self.build_cluster_lists()
+
+        # Check if there are some sequences with an associated structure involved.
+        if True in [e.has_structure() for e in self.pymod.get_selected_sequences()]:
+            self.structures_are_selected = True
+        else:
+            self.structures_are_selected = False
 
         # First check if the selection is correct.
         if not self.check_alignment_selection():
@@ -1627,7 +1638,6 @@ class MUSCLE_alignment_protocol:
 
 class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_sequence_alignment_protocol):
 
-
     def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
         self.run_muscle(sequences_to_align, output_file_name=output_file_name)
 
@@ -1658,5 +1668,113 @@ class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_seque
         # self.pymod.convert_sequence_file_format(outfasta_tree, "fasta", "clustal")
 
 
-    def update_additional_information(self):
-        pass
+###################################################################################################
+# SALIGN sequence alignment.                                                                      #
+###################################################################################################
+
+class SALIGN_alignment_protocol:
+
+    def alignment_program_exists(self):
+        """
+        Returns True if the program full path was specified in the PyMod Options window.
+        """
+        program_found = False
+        if self.tool.can_be_launched():
+            program_found = True
+        return program_found
+
+
+class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
+
+    alignment_program = "salign-seq"
+
+    def __init__(self, pymod):
+        Alignment_protocol.__init__(self, pymod)
+        self.tool = self.pymod.modeller
+
+    def build_algorithm_options_widgets(self):
+        # Use structure information to guide sequence alignment.
+        self.salign_seq_struct_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
+        for option in ("Yes","No"):
+            self.salign_seq_struct_rds.add(option)
+        self.salign_seq_struct_rds.setvalue("No")
+        self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
+        self.salign_seq_struct_rds.set_input_widget_width(10)
+
+    def get_salign_seq_str_alignment_var(self):
+        if self.structures_are_selected:
+            return pmdt.yesno_dict[self.salign_seq_struct_rds.getvalue()]
+        else:
+            return False
+
+
+class SALIGN_seq_regular_alignment_protocol(SALIGN_seq_alignment_protocol, Regular_sequence_alignment_protocol):
+
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
+        self.run_salign_malign(sequences_to_align, output_file_name=output_file_name)
+
+
+    def run_salign_malign(self, sequences_to_align, output_file_name=None):
+        """
+        alignment.malign - align sequences
+        alignment.align2d - sequence-structure alignment
+        """
+
+        shortcut_to_temp_files= os.path.join(self.pymod.alignments_directory,output_file_name)
+        use_structural_information = self.get_salign_seq_str_alignment_var()
+        
+        # The .pir file will be written in a different way if the user decides to use
+        # structural information in the alignment.
+        self.pymod.build_sequences_file(self.elements_to_align, output_file_name, file_format="pir",
+            unique_indices_headers=True, use_structural_information=use_structural_information)
+
+        if self.tool.run_internally():
+            modeller.log.minimal()
+            env = modeller.environ()
+            env.io.atom_files_directory = ['.', self.pymod.structures_directory]
+            env.io.hetatm = True
+            aln = modeller.alignment(env,
+                                     file=shortcut_to_temp_files +".ali",
+                                     alignment_format='PIR')
+            if use_structural_information:
+                env.libs.topology.read(file="$(LIB)/top_heav.lib")
+                # Structure sensitive variable gap penalty alignment:
+                aln.salign(auto_overhang=True,
+                    gap_penalties_1d=(-100, 0),
+                    gap_penalties_2d=(3.5,3.5,3.5,.2,4.,6.5,2.,0.,0.),
+                    gap_function=True, # structure-dependent gap penalty
+                    feature_weights=(1., 0., 0., 0., 0., 0.),
+                    similarity_flag=True,
+                    alignment_type='tree', #output='ALIGNMENT',
+                    dendrogram_file=shortcut_to_temp_files+".tree")
+            else:
+                aln.salign(auto_overhang=True, gap_penalties_1d=(-450, 0),
+                   alignment_type='tree', output='ALIGNMENT',
+                   dendrogram_file=shortcut_to_temp_files+".tree")
+            aln.write(file=shortcut_to_temp_files +'.ali', alignment_format='PIR')
+
+        else:
+            # create salign_multiple_seq.py to enable external modeller execution
+            config=open("salign_multiple_seq.py", "w")
+            print >> config, "import modeller"
+            print >> config, "modeller.log.verbose()"
+            print >> config, "env = modeller.environ()"
+            print >> config, "env.io.atom_files_directory = ['.', '"+self.pymod.structures_directory+"']"
+            print >> config, "env.io.hetatm = True"
+            print >> config, "aln = modeller.alignment(env,file='%s', alignment_format='PIR')" % (shortcut_to_temp_files + ".ali")
+            if use_structural_information:
+                print >> config, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
+                print >> config, "aln.salign(auto_overhang=True, gap_penalties_1d=(-100, 0), gap_penalties_2d=(3.5,3.5,3.5,0.2,4.0,6.5,2.0,0.0,0.0), gap_function=True, feature_weights=(1., 0., 0., 0., 0., 0.), similarity_flag=True, alignment_type='tree', dendrogram_file='%s')" %(shortcut_to_temp_files+".tree")
+            else:
+                print >> config, "aln.salign(auto_overhang=True, gap_penalties_1d=(-450, -50), dendrogram_file='%s', alignment_type='tree', output='ALIGNMENT')" %(shortcut_to_temp_files+".tree")
+            print >> config, "aln.write(file='"+shortcut_to_temp_files+".ali', alignment_format='PIR')"
+            print >> config, ""
+            config.close()
+
+            cline=self.tool.get_exe_file_path()+" salign_multiple_seq.py"
+            self.pymod.execute_subprocess(cline)
+            os.remove("salign_multiple_seq.py") # remove this temporary file.
+
+        # convert output_file_name.ali to alignment_tmp.fasta
+        record=SeqIO.parse(open(shortcut_to_temp_files + ".ali"),"pir")
+        SeqIO.write(record, open(shortcut_to_temp_files + ".aln","w"), "clustal")
