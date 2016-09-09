@@ -544,14 +544,14 @@ class Regular_alignment_protocol(Alignment_protocol):
     # Regular alignments protocol. #
     ################################
 
-    def perform_regular_alignment(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
+    def perform_regular_alignment(self, sequences_to_align, output_file_name, alignment_program=None):
         """
         Perform a new sequence (or structural) alignment with the algorithm provided in the
         "alignment_program" argument. This method can be used in other parts of the plugin
         independently of the whole process initiated when performing an alignment using the commands
         in the 'Tools' menu in the PyMod main menu.
         """
-        self.run_regular_alignment_program(sequences_to_align, output_file_name, alignment_program, use_parameters_from_gui)
+        self.run_regular_alignment_program(sequences_to_align, output_file_name, alignment_program)
 
 
     ##################################################################
@@ -606,14 +606,14 @@ class Regular_alignment_protocol(Alignment_protocol):
         # algorithtm.
         if self.alignment_program in pmdt.sequence_alignment_tools:
             self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name,
-                                           alignment_program=None, use_parameters_from_gui=True)
+                                           alignment_program=None)
 
         # For structural alignment algorithms, perform the first multiple alignment with a sequence
         # alignment algorithm with default parameters.
         elif self.alignment_program in pmdt.structural_alignment_tools:
             raise Exception("#TODO!")
             self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name,
-                                           alignment_program="clustalw", use_parameters_from_gui=False)
+                                           alignment_program="clustalw")
 
         #-------------------------------------------
         # Generate the highest identity pair list. -
@@ -705,8 +705,7 @@ class Regular_alignment_protocol(Alignment_protocol):
                     pair_to_align.append(self.elements_to_add[seq_counter])
                     self.perform_regular_alignment(
                             pair_to_align,
-                            output_file_name=aligned_pair_name,
-                            use_parameters_from_gui=True)
+                            output_file_name=aligned_pair_name)
                     alignment_list.append(aligned_pair_name)
                     break
         return alignment_list
@@ -857,7 +856,7 @@ class Regular_alignment_protocol(Alignment_protocol):
         # Performs an alignment between the "bridges". -
         #-----------------------------------------------
         bridges_alignment_name = "bridges_alignment"
-        self.perform_regular_alignment(bridges_list, bridges_alignment_name, use_parameters_from_gui=True)
+        self.perform_regular_alignment(bridges_list, bridges_alignment_name)
 
         # Builds an al_result.txt file for this alignment.
         alignment_joining_output = "al_result"
@@ -996,7 +995,6 @@ class Regular_sequence_alignment_protocol(Regular_alignment_protocol):
         if len(self.selected_elements) > 1:
             correct_selection = True
         return correct_selection
-
 
     def selection_not_valid(self):
         """
@@ -1240,11 +1238,10 @@ class Profile_alignment_protocol(Alignment_protocol):
 
 class Clustal_regular_alignment_protocol(Regular_sequence_alignment_protocol):
 
-    #########################
-    # Finish the alignment. #
-    #########################
-
     def update_additional_information(self):
+        """
+        Sets the guide tree file path once the alignment has been performed.
+        """
         if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
             # Builds a permanent copy of the original temporary .dnd file.
             temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
@@ -1264,6 +1261,10 @@ class Clustal_regular_alignment_protocol(Regular_sequence_alignment_protocol):
             for line in new_dnd_file_lines:
                 dnd_file_handler.write(line)
             dnd_file_handler.close()
+
+            # # ClustalO produces a .dnd file without changing the ":" characters in the name of the
+            # # PDB chains and this gives problems in displaying the names when using Phylo. So the
+            # # ":" characters have to be changed in "_".
             # if self.alignment_program == "clustalo":
             #     old_dnd_file = open(new_dnd_file_path,"rU")
             #     new_dnd_file_content = ''
@@ -1281,10 +1282,6 @@ class Clustal_regular_alignment_protocol(Regular_sequence_alignment_protocol):
 
 
 class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
-
-    #################################################################
-    # Perform the alignment.                                        #
-    #################################################################
 
     def run_sequence_to_profile_alignment_program(self):
         """
@@ -1344,9 +1341,10 @@ class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
             children = cluster.get_children()
 
             # Builds a series of alignment files for each selected cluster.
-            if self.alignment_program.startswith("clustal"):
-                self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
+            self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
 
+            # if self.alignment_program.startswith("clustal"):
+                # self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
             # elif self.alignment_program.startswith("salign"):
             #     self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=use_str_info)
 
@@ -1354,11 +1352,31 @@ class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
 
         profile_alignment_output = "al_result"
 
-        if self.alignment_program=="clustalw":
-            self.clustal_profile_profile_alignment(matrix=self.get_matrix_value(),
-                gapopen=int(self.get_gapopen_value()),
-                gapext=float(self.get_gapextension_value()),
-                output_file_name=profile_alignment_output)
+        output_file_shortcut=os.path.join(self.pymod.alignments_directory,
+            profile_alignment_output)
+
+        profile1=os.path.join(self.pymod.alignments_directory,
+            self.profiles_to_join_file_list[0]+".aln")
+
+        for profile2 in self.profiles_to_join_file_list[1:]:
+            profile2=os.path.join(self.pymod.alignments_directory,
+                profile2+".aln")
+
+            cline = self.prepare_profile_to_profile_commandline(profile1, profile2, output_file_shortcut)
+
+            self.pymod.execute_subprocess(cline)
+
+            profile1=output_file_shortcut+'.aln'
+
+        self.build_elements_to_align_dict(self.elements_to_align)
+        self.protocol_output_file_name = profile_alignment_output
+
+
+        # if self.alignment_program=="clustalw":
+        #     self.clustal_profile_profile_alignment(matrix=self.get_matrix_value(),
+        #         gapopen=int(self.get_gapopen_value()),
+        #         gapext=float(self.get_gapextension_value()),
+        #         output_file_name=profile_alignment_output)
 
         # elif self.alignment_program=="clustalo":
         #     self.clustal_profile_profile_alignment(
@@ -1369,43 +1387,6 @@ class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
         #     self.salign_profile_profile_alignment(
         #         output_file_name=profile_alignment_output,use_structural_information=use_str_info)
 
-
-    def clustal_profile_profile_alignment(self, matrix="blosum", gapopen=10, gapext=0.2, output_file_name="al_result", extraoption=''):
-
-        output_file_shortcut=os.path.join(self.pymod.alignments_directory,
-            output_file_name)
-
-        profile1=os.path.join(self.pymod.alignments_directory,
-            self.profiles_to_join_file_list[0]+".aln")
-
-        for profile2 in self.profiles_to_join_file_list[1:]:
-            profile2=os.path.join(self.pymod.alignments_directory,
-                profile2+".aln")
-
-            if self.alignment_program=="clustalo":
-                clustalo_path = self.clustalo.get_exe_file_path()
-                cline='"'           +clustalo_path+'"' \
-                    ' --profile1="' +profile1+'"'+ \
-                    ' --profile2="' +profile2+'"'+ \
-                    ' --outfile="'  +output_file_shortcut+'.aln"' \
-                    ' --outfmt=clustal --force' \
-                    ' ' +extraoption
-            elif self.alignment_program=="clustalw":
-                clustalw_path = self.pymod.clustalw.get_exe_file_path()
-                cline='"'          +clustalw_path+'"' \
-                    ' -PROFILE1="' +profile1+'"'+ \
-                    ' -PROFILE2="' +profile2+'" -OUTORDER=INPUT' \
-                    ' -MATRIX='    +matrix+ \
-                    ' -GAPOPEN='   +str(gapopen)+ \
-                    ' -GAPEXT='    +str(gapext)+ \
-                    ' -OUTFILE="'  +output_file_shortcut+'.aln"'
-
-            profile1=output_file_shortcut+'.aln'
-
-            self.pymod.execute_subprocess(cline)
-
-        self.build_elements_to_align_dict(self.elements_to_align)
-        self.protocol_output_file_name = output_file_name
 
 
 ###################################################################################################
@@ -1422,10 +1403,6 @@ class Clustalw_alignment_protocol:
         Alignment_protocol.__init__(self, pymod)
         self.tool = self.pymod.clustalw
 
-
-    #################################################################
-    # Build components of the GUI to show the alignment options.    #
-    #################################################################
 
     def build_algorithm_options_widgets(self):
 
@@ -1478,19 +1455,13 @@ class Clustalw_alignment_protocol:
 
 class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Clustal_regular_alignment_protocol):
 
-    #################################################################
-    # Perform the alignment.                                        #
-    #################################################################
-
-    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
-        # if use_parameters_from_gui:
-            self.run_clustalw(sequences_to_align,
-                          output_file_name=output_file_name,
-                          matrix=self.get_matrix_value(),
-                          gapopen=int(self.get_gapopen_value()),
-                          gapext=float(self.get_gapextension_value()) )
-        # else:
-        #     self.run_clustalw(sequences_to_align, alignment_name=self.current_alignment_file_name)
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
+        # TODO: use_parameters_from_gui.
+        self.run_clustalw(sequences_to_align,
+                      output_file_name=output_file_name,
+                      matrix=self.get_matrix_value(),
+                      gapopen=int(self.get_gapopen_value()),
+                      gapext=float(self.get_gapextension_value()) )
 
 
     def run_clustalw(self, sequences_to_align, output_file_name, matrix="blosum", gapopen=10, gapext=0.2):
@@ -1512,54 +1483,8 @@ class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Clustal_r
             self.alignment_program_not_found("clustalw")
 
 
-    #########################
-    # Finish the alignment. #
-    #########################
-
-    def update_additional_information(self):
-        """
-        Sets the guide tree file path.
-        """
-        if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
-            # Builds a permanent copy of the original temporary .dnd file.
-            temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
-            new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_guide_tree.dnd" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
-            shutil.copy(temp_dnd_file_path, new_dnd_file_path)
-
-            # Edit the new .dnd file to insert the actual names of the sequences.
-            dnd_file_handler = open(new_dnd_file_path, "r")
-            dnd_file_lines = dnd_file_handler.readlines()
-            dnd_file_handler.close()
-            new_dnd_file_lines = []
-            for line in dnd_file_lines:
-                for m in re.findall("__pymod_element_\d+__", line):
-                    line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
-                new_dnd_file_lines.append(line)
-            dnd_file_handler = open(new_dnd_file_path, "w")
-            for line in new_dnd_file_lines:
-                dnd_file_handler.write(line)
-            dnd_file_handler.close()
-
-            self.alignment_element.tree_file_path = new_dnd_file_path
-
-        # # ClustalO produces a .dnd file without changing the ":" characters in the name of the
-        # # PDB chains and this gives problems in displaying the names when using Phylo. So the
-        # # ":" characters have to be changed in "_".
-        # if self.alignment_program == "clustalo":
-        #     old_dnd_file = open(new_dnd_file_path,"rU")
-        #     new_dnd_file_content = ''
-        #     for dnd_item in old_dnd_file.readlines():
-        #         if re.search(r"_Chain\:?\:",dnd_item):
-        #             Chain_pos=dnd_item.find("_Chain:")+6
-        #             dnd_item=dnd_item[:Chain_pos]+'_'+dnd_item[Chain_pos+1:]
-        #         new_dnd_file_content+=dnd_item
-        #     old_dnd_file.close()
-        #     new_dnd_file = open(new_dnd_file_path,"w")
-        #     new_dnd_file.write(new_dnd_file_content)
-        #     new_dnd_file.close()
-
-
 class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Clustal_profile_alignment_protocol):
+
     def prepare_sequence_to_profile_commandline(self, profile_file_shortcut, sequences_to_add_file_shortcut, output_file_shortcut):
         clustalw_path = self.tool.get_exe_file_path()
         cline='"'         +clustalw_path+'"'+ \
@@ -1572,6 +1497,19 @@ class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Clustal_p
         return cline
 
 
+    def prepare_profile_to_profile_commandline(self, profile1, profile2, output_file_shortcut):
+        clustalw_path = self.tool.get_exe_file_path()
+        cline='"'          +clustalw_path+'"' \
+            ' -PROFILE1="' +profile1+'"'+ \
+            ' -PROFILE2="' +profile2+'" -OUTORDER=INPUT' \
+            ' -MATRIX='    +self.get_matrix_value()+ \
+            ' -GAPOPEN='   +str(self.get_gapopen_value())+ \
+            ' -GAPEXT='    +str(self.get_gapextension_value())+ \
+            ' -OUTFILE="'  +output_file_shortcut+'.aln"'
+        return cline
+
+
+
 ###################################################################################################
 # Clustal Omega.                                                                                  #
 ###################################################################################################
@@ -1581,17 +1519,11 @@ class Clustalomega_alignment_protocol:
     General Clustal Omega alignments.
     """
 
-    # This attribute will be used from now on in many other methods that PyMod needs to perform
-    # an alignment.
     alignment_program = "clustalo"
 
     def __init__(self, pymod):
         Alignment_protocol.__init__(self, pymod)
         self.tool = self.pymod.clustalo
-
-    #################################################################
-    # Build components of the GUI to show the alignment options.    #
-    #################################################################
 
     def build_algorithm_options_widgets(self):
         self.extraoption=Label(self.alignment_options_frame, font = "comic 12",
@@ -1618,17 +1550,11 @@ class Clustalomega_regular_alignment_protocol(Clustalomega_alignment_protocol, C
     """
     Regular alignments using Clustal Omega.
     """
-    #################################################################
-    # Perform the alignment.                                        #
-    #################################################################
 
-    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
-        # if use_parameters_from_gui:
-            self.run_clustalo(sequences_to_align,
-                          output_file_name=output_file_name,
-                          extraoption=self.get_extraoption_value())
-        # else:
-        #     self.run_clustalw(sequences_to_align, alignment_name=self.current_alignment_file_name)
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
+        self.run_clustalo(sequences_to_align,
+                      output_file_name=output_file_name,
+                      extraoption=self.get_extraoption_value())
 
 
     def run_clustalo(self, sequences_to_align, output_file_name=None, extraoption=""):
@@ -1656,18 +1582,31 @@ class Clustalomega_profile_alignment_protocol(Clustalomega_alignment_protocol, C
     """
     Profile alignments for Clustal Omega.
     """
+
     def prepare_sequence_to_profile_commandline(self, profile_file_shortcut, sequences_to_add_file_shortcut, output_file_shortcut):
         clustalo_path = self.tool.get_exe_file_path()
         cline='"'           +clustalo_path+'"'+ \
             ' --profile1="' +profile_file_shortcut+'"'+ \
             ' --outfile="'  +output_file_shortcut+'.aln"'+ \
             ' --outfmt=clustal --force'+ \
-            ' ' +self.extraoption_entry.get()
+            ' ' +self.get_extraoption_value()
         if len(self.elements_to_add)>1:
             cline+=' --infile="'  +sequences_to_add_file_shortcut+'"'
         else:
             cline+=' --profile2="'+sequences_to_add_file_shortcut+'"'
         return cline
+
+
+    def prepare_profile_to_profile_commandline(self, profile1, profile2, output_file_shortcut):
+        clustalo_path = self.tool.get_exe_file_path()
+        cline='"'           +clustalo_path+'"' \
+            ' --profile1="' +profile1+'"'+ \
+            ' --profile2="' +profile2+'"'+ \
+            ' --outfile="'  +output_file_shortcut+'.aln"' \
+            ' --outfmt=clustal --force' \
+            ' ' +self.get_extraoption_value()
+        return cline
+
 
 ###################################################################################################
 # MUSCLE.                                                                                         #
@@ -1682,21 +1621,14 @@ class MUSCLE_alignment_protocol:
         self.tool = self.pymod.muscle
 
 
-    #################################################################
-    # Build components of the GUI to show the alignment options.    #
-    #################################################################
-
     def build_algorithm_options_widgets(self):
         pass
 
 
 class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_sequence_alignment_protocol):
 
-    #################################################################
-    # Perform the alignment.                                        #
-    #################################################################
 
-    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None, use_parameters_from_gui=True):
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
         self.run_muscle(sequences_to_align, output_file_name=output_file_name)
 
 
@@ -1725,10 +1657,6 @@ class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_seque
         # Convert the output FASTA file in the clustal format.
         # self.pymod.convert_sequence_file_format(outfasta_tree, "fasta", "clustal")
 
-
-    #########################
-    # Finish the alignment. #
-    #########################
 
     def update_additional_information(self):
         pass
