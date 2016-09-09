@@ -58,9 +58,6 @@ class Alignment_protocol(PyMod_protocol):
         program_found = False
         if self.tool.exe_exists():
             program_found = True
-        # elif alignment_program in ("salign-seq", "salign-str"):
-        #     if self.pymod.modeller.can_be_launched():
-        #         program_found = True
         # elif alignment_program == "ce":
         #     if self.pymod.ce_exists():
         #         program_found = True
@@ -72,8 +69,6 @@ class Alignment_protocol(PyMod_protocol):
         Displays an error message that tells the user that some program was not found.
         """
         self.tool.exe_not_found()
-        # elif alignment_program in ("salign-seq", "salign-str"):
-        #     self.pymod.modeller.exe_not_found()
         # elif alignment_program == "ce":
         #     title = "CE-alignment Error"
         #     message = "CE-alignment is not available on your PyMod installation. If you want to use this function please see CE-alignment installation instructions on PyMod's User Guide."
@@ -335,6 +330,60 @@ class Alignment_protocol(PyMod_protocol):
            pass
 
 
+    ##################################################################
+    # Common methods used to execute alignments in several           #
+    # protocols.                                                     #
+    ##################################################################
+
+    def generate_highest_identity_pairs_list(self, initial_alignment_name):
+        """
+        For each sequence to add to the alignment, finds the nearest selected sequence (in terms
+        of sequence identity) of the target cluster according to the information of previous
+        multiple alignment between all the sequences.
+        """
+        # Reads the output file of the alignment and stores  in a variable a list of its biopython
+        # record objects.
+        initial_alignment_file = open(os.path.join(self.pymod.alignments_directory, initial_alignment_name + ".aln"), "rU")
+        initial_alignment_records = list(SeqIO.parse(initial_alignment_file, "clustal"))
+        initial_alignment_file.close()
+
+        # A list that is going to contain as many rows as the sequence to add to the alignment and
+        # as many columns as the selected sequences in target alignment.
+        pair_list=[]
+        index = 0
+        # Parses the records in the fasta file with the initial alignment just generated.
+        for element in initial_alignment_records:
+            for sequence in self.elements_to_add:
+                # If the sequence in the list is the same of some element in the records.
+                if element.id == sequence.get_unique_index_header():
+                    pair_list.append([])
+                    # Parses the list for sequences fo the alignment to keep.
+                    for structure in initial_alignment_records:
+                        for struct in self.selected_sequences_in_target_alignment:
+                            if structure.id == struct.get_unique_index_header():
+                                identity = pmsm.compute_sequence_identity(element.seq, structure.seq)
+                                pair_list[index].append(identity)
+                    index += 1
+        return pair_list
+
+
+    def align_highest_identity_pairs_list(self,pair_list):
+        alignment_list = []
+        for seq_counter, compared in enumerate(pair_list):
+            pair_to_align=[]
+            for num in range(len(self.selected_sequences_in_target_alignment)):
+                # For each sequence to add perform an aligment to the sequence to which it has the
+                # highest identity according to the initial alignment.
+                if compared[num]==max(compared):
+                    aligned_pair_name = "temp_seq_" + str(seq_counter)
+                    pair_to_align.append(self.selected_sequences_in_target_alignment[num])
+                    pair_to_align.append(self.elements_to_add[seq_counter])
+                    self.perform_regular_alignment(pair_to_align, output_file_name=aligned_pair_name)
+                    alignment_list.append(aligned_pair_name)
+                    break
+        return alignment_list
+
+
 ###################################################################################################
 # REGULAR ALIGNMENTS.                                                                             #
 ###################################################################################################
@@ -562,7 +611,7 @@ class Regular_alignment_protocol(Alignment_protocol):
         independently of the whole process initiated when performing an alignment using the commands
         in the 'Tools' menu in the PyMod main menu.
         """
-        self.run_regular_alignment_program(sequences_to_align, output_file_name, alignment_program)
+        self.run_regular_alignment_program(sequences_to_align, output_file_name)
 
 
     ##################################################################
@@ -616,15 +665,13 @@ class Regular_alignment_protocol(Alignment_protocol):
         # For sequence alignment algorithms, perform the first multiple alignment with the same
         # algorithtm.
         if self.alignment_program in pmdt.sequence_alignment_tools:
-            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name,
-                                           alignment_program=None)
+            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name)
 
         # For structural alignment algorithms, perform the first multiple alignment with a sequence
         # alignment algorithm with default parameters.
         elif self.alignment_program in pmdt.structural_alignment_tools:
             raise Exception("#TODO!")
-            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name,
-                                           alignment_program="clustalw")
+            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name)
 
         #-------------------------------------------
         # Generate the highest identity pair list. -
@@ -669,57 +716,6 @@ class Regular_alignment_protocol(Alignment_protocol):
 
         # The temporary files needed to peform this alignment will be deleted at the end of the
         # alignment process.
-
-
-    def generate_highest_identity_pairs_list(self, initial_alignment_name):
-        """
-        For each sequence to add to the alignment, finds the nearest selected sequence (in terms
-        of sequence identity) of the target cluster according to the information of previous
-        multiple alignment between all the sequences.
-        """
-        # Reads the output file of the alignment and stores  in a variable a list of its biopython
-        # record objects.
-        initial_alignment_file = open(os.path.join(self.pymod.alignments_directory, initial_alignment_name + ".aln"), "rU")
-        initial_alignment_records = list(SeqIO.parse(initial_alignment_file, "clustal"))
-        initial_alignment_file.close()
-
-        # A list that is going to contain as many rows as the sequence to add to the alignment and
-        # as many columns as the selected sequences in target alignment.
-        pair_list=[]
-        index = 0
-        # Parses the records in the fasta file with the initial alignment just generated.
-        for element in initial_alignment_records:
-            for sequence in self.elements_to_add:
-                # If the sequence in the list is the same of some element in the records.
-                if element.id == sequence.get_unique_index_header():
-                    pair_list.append([])
-                    # Parses the list for sequences fo the alignment to keep.
-                    for structure in initial_alignment_records:
-                        for struct in self.selected_sequences_in_target_alignment:
-                            if structure.id == struct.get_unique_index_header():
-                                identity = pmsm.compute_sequence_identity(element.seq, structure.seq)
-                                pair_list[index].append(identity)
-                    index += 1
-        return pair_list
-
-
-    def align_highest_identity_pairs_list(self,pair_list):
-        alignment_list = []
-        for seq_counter, compared in enumerate(pair_list):
-            pair_to_align=[]
-            for num in range(len(self.selected_sequences_in_target_alignment)):
-                # For each sequence to add perform an aligment to the sequence to which it has the
-                # highest identity according to the initial alignment.
-                if compared[num]==max(compared):
-                    aligned_pair_name = "temp_seq_" + str(seq_counter)
-                    pair_to_align.append(self.selected_sequences_in_target_alignment[num])
-                    pair_to_align.append(self.elements_to_add[seq_counter])
-                    self.perform_regular_alignment(
-                            pair_to_align,
-                            output_file_name=aligned_pair_name)
-                    alignment_list.append(aligned_pair_name)
-                    break
-        return alignment_list
 
 
     def alignments_joiner(self, al1, al2, output_file_name="al_result"):
@@ -1338,14 +1334,7 @@ class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
         for cluster in self.selected_clusters_list:
             self.elements_to_align += list(cluster.get_children())
 
-        # This will be used later in the "create_alignment_element()" method.
-        # self.selected_elements=[e for e in self.selected_elements if e.is_cluster() or e in self.elements_to_align]
-
         self.profiles_to_join_file_list=[] # two MSA files
-
-        # use_str_info = False
-        # if self.alignment_program == "salign-seq":
-        #     use_str_info = self.get_salign_seq_str_alignment_var()
 
         for (i,cluster) in enumerate(self.selected_clusters_list):
             file_name = "cluster_" + str(i) # Build FASTA with the MSAs.
@@ -1353,51 +1342,23 @@ class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
 
             # Builds a series of alignment files for each selected cluster.
             self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
-
-            # if self.alignment_program.startswith("clustal"):
-                # self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
-            # elif self.alignment_program.startswith("salign"):
-            #     self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=use_str_info)
-
             self.profiles_to_join_file_list.append(file_name)
 
         profile_alignment_output = "al_result"
 
-        output_file_shortcut=os.path.join(self.pymod.alignments_directory,
-            profile_alignment_output)
+        output_file_shortcut=os.path.join(self.pymod.alignments_directory, profile_alignment_output)
 
-        profile1=os.path.join(self.pymod.alignments_directory,
-            self.profiles_to_join_file_list[0]+".aln")
+        profile1=os.path.join(self.pymod.alignments_directory, self.profiles_to_join_file_list[0]+".aln")
 
         for profile2 in self.profiles_to_join_file_list[1:]:
             profile2=os.path.join(self.pymod.alignments_directory,
                 profile2+".aln")
-
             cline = self.prepare_profile_to_profile_commandline(profile1, profile2, output_file_shortcut)
-
             self.pymod.execute_subprocess(cline)
-
             profile1=output_file_shortcut+'.aln'
 
         self.build_elements_to_align_dict(self.elements_to_align)
         self.protocol_output_file_name = profile_alignment_output
-
-
-        # if self.alignment_program=="clustalw":
-        #     self.clustal_profile_profile_alignment(matrix=self.get_matrix_value(),
-        #         gapopen=int(self.get_gapopen_value()),
-        #         gapext=float(self.get_gapextension_value()),
-        #         output_file_name=profile_alignment_output)
-
-        # elif self.alignment_program=="clustalo":
-        #     self.clustal_profile_profile_alignment(
-        #         output_file_name=profile_alignment_output,
-        #         extraoption=self.extraoption_entry.get())
-        #
-        # elif self.alignment_program.startswith("salign"):
-        #     self.salign_profile_profile_alignment(
-        #         output_file_name=profile_alignment_output,use_structural_information=use_str_info)
-
 
 
 ###################################################################################################
@@ -1466,7 +1427,7 @@ class Clustalw_alignment_protocol:
 
 class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Clustal_regular_alignment_protocol):
 
-    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         # TODO: use_parameters_from_gui.
         self.run_clustalw(sequences_to_align,
                       output_file_name=output_file_name,
@@ -1562,7 +1523,7 @@ class Clustalomega_regular_alignment_protocol(Clustalomega_alignment_protocol, C
     Regular alignments using Clustal Omega.
     """
 
-    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         self.run_clustalo(sequences_to_align,
                       output_file_name=output_file_name,
                       extraoption=self.get_extraoption_value())
@@ -1638,7 +1599,7 @@ class MUSCLE_alignment_protocol:
 
 class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_sequence_alignment_protocol):
 
-    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         self.run_muscle(sequences_to_align, output_file_name=output_file_name)
 
 
@@ -1693,36 +1654,37 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
         self.tool = self.pymod.modeller
 
     def build_algorithm_options_widgets(self):
+        return False
+
         # Use structure information to guide sequence alignment.
-        self.salign_seq_struct_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
-        for option in ("Yes","No"):
-            self.salign_seq_struct_rds.add(option)
-        self.salign_seq_struct_rds.setvalue("No")
-        self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
-        self.salign_seq_struct_rds.set_input_widget_width(10)
+        # self.salign_seq_struct_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
+        # for option in ("Yes","No"):
+        #     self.salign_seq_struct_rds.add(option)
+        # self.salign_seq_struct_rds.setvalue("No")
+        # self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
+        # self.salign_seq_struct_rds.set_input_widget_width(10)
 
     def get_salign_seq_str_alignment_var(self):
         if self.structures_are_selected:
-            return pmdt.yesno_dict[self.salign_seq_struct_rds.getvalue()]
+            return False # pmdt.yesno_dict[self.salign_seq_struct_rds.getvalue()]
         else:
             return False
 
 
-class SALIGN_seq_regular_alignment_protocol(SALIGN_seq_alignment_protocol, Regular_sequence_alignment_protocol):
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name, use_parameters_from_gui=True, use_structural_information=False):
+        if use_parameters_from_gui:
+            use_structural_information = self.get_salign_seq_str_alignment_var()
+        self.run_salign_malign(sequences_to_align, output_file_name, use_structural_information)
 
-    def run_regular_alignment_program(self, sequences_to_align, output_file_name, alignment_program=None):
-        self.run_salign_malign(sequences_to_align, output_file_name=output_file_name)
 
-
-    def run_salign_malign(self, sequences_to_align, output_file_name=None):
+    def run_salign_malign(self, sequences_to_align, output_file_name, use_structural_information):
         """
         alignment.malign - align sequences
         alignment.align2d - sequence-structure alignment
         """
 
-        shortcut_to_temp_files= os.path.join(self.pymod.alignments_directory,output_file_name)
-        use_structural_information = self.get_salign_seq_str_alignment_var()
-        
+        shortcut_to_temp_files= os.path.join(self.pymod.alignments_directory, output_file_name)
+
         # The .pir file will be written in a different way if the user decides to use
         # structural information in the alignment.
         self.pymod.build_sequences_file(self.elements_to_align, output_file_name, file_format="pir",
@@ -1778,3 +1740,175 @@ class SALIGN_seq_regular_alignment_protocol(SALIGN_seq_alignment_protocol, Regul
         # convert output_file_name.ali to alignment_tmp.fasta
         record=SeqIO.parse(open(shortcut_to_temp_files + ".ali"),"pir")
         SeqIO.write(record, open(shortcut_to_temp_files + ".aln","w"), "clustal")
+
+
+    def salign_profile_profile_alignment(self, output_file_name="al_result",use_structural_information=False):
+        profile1_name = self.profiles_to_join_file_list[0]+".ali"
+        profile1_shortcut=os.path.join(self.pymod.alignments_directory,profile1_name)
+
+        if self.tool.run_internally():
+            modeller.log.minimal()
+            env = modeller.environ()
+            env.io.atom_files_directory = ['.', self.pymod.structures_directory]
+            env.io.hetatm = True
+            env.libs.topology.read(file="$(LIB)/top_heav.lib")
+
+            for profile2 in [os.path.join(self.pymod.alignments_directory,
+                e+".ali") for e in self.profiles_to_join_file_list[1:]]:
+                # cat profile2 to profile1 and return number of sequences
+                # in the original profile1
+
+                ali_txt1=open(profile1_shortcut,'rU').read()
+                ali_txt2=open(profile2,'rU').read()
+                align_block=len([e for e in ali_txt1.splitlines() \
+                    if e.startswith('>')])
+                open(profile1_shortcut,'w').write(ali_txt1+ali_txt2)
+
+                aln = modeller.alignment(env, file=profile1_shortcut, alignment_format="PIR")
+                if use_structural_information:
+                    env.libs.topology.read(file='$(LIB)/top_heav.lib')
+                    aln.salign(rr_file='${LIB}/blosum62.sim.mat',
+                        gap_penalties_1d=(-500, 0), output='',
+                        align_block=align_block, #max_gap_length=20,
+                        align_what='PROFILE', alignment_type="PAIRWISE",
+                        comparison_type='PSSM',
+                        gap_function=True,#structure-dependent gap penalty
+                        feature_weights=(1., 0., 0., 0., 0., 0.),
+                        gap_penalties_2d=(.35,1.2,.9,1.2,.6,8.6,1.2,0.,0.),
+                        similarity_flag=True,
+                        substitution=True,smooth_prof_weight=10.0)
+                else:
+                    aln.salign(rr_file='${LIB}/blosum62.sim.mat',
+                    gap_penalties_1d=(-500, 0), output='',
+                    align_block=align_block,   # no. of seqs. in first MSA
+                    align_what='PROFILE', alignment_type='PAIRWISE',
+                    comparison_type='PSSM',
+                    similarity_flag=True, substitution=True,
+                    smooth_prof_weight=10.0) # For mixing data with priors
+
+                #write out aligned profiles (MSA)
+                aln.write(file=profile1_shortcut, alignment_format="PIR")
+        else: # create salign_profile_profile.py for external modeller
+
+            for profile2 in [os.path.join(self.pymod.alignments_directory,
+                e+".ali") for e in self.profiles_to_join_file_list[1:]]:
+                # cat profile2 to profile1 and return number of sequences
+                # in the original profile1
+                ali_txt1=open(profile1_shortcut,'rU').read()
+                ali_txt2=open(profile2,'rU').read()
+                align_block=len([e for e in ali_txt1.splitlines() if e.startswith('>')])
+                open(profile1_shortcut,'w').write(ali_txt1+ali_txt2)
+
+                config=open("salign_profile_profile.py", "w")
+                print >>config, "import modeller"
+                print >>config, "modeller.log.verbose()"
+                print >>config, "env = modeller.environ()"
+                print >>config, "env.io.atom_files_directory = ['.', '"+self.pymod.structures_directory+"']"
+                print >>config, "env.io.hetatm = True"
+                print >>config, "aln = modeller.alignment(env, file='%s', alignment_format='PIR')"%(profile1_shortcut)
+                if use_structural_information:
+                    print >>config, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
+                    print >>config, "aln.salign(rr_file='${LIB}/blosum62.sim.mat', gap_penalties_1d=(-500, 0), output='', align_block=%d, align_what='PROFILE', alignment_type='PAIRWISE', comparison_type='PSSM', gap_function=True, feature_weights=(1., 0., 0., 0., 0., 0.), gap_penalties_2d=(0.35,1.2,0.9,1.2,0.6,8.6,1.2,0.0,0.0), similarity_flag=True, substitution=True,smooth_prof_weight=10.0)"%(align_block)
+                else:
+                    print >>config, "aln.salign(rr_file='${LIB}/blosum62.sim.mat', gap_penalties_1d=(-500, 0), output='', align_block=%d, align_what='PROFILE', alignment_type='PAIRWISE', comparison_type='PSSM', similarity_flag=True, substitution=True, smooth_prof_weight=10.0) "%(align_block)
+                print >>config, "aln.write(file='%s', alignment_format='PIR')"%(profile1_shortcut)
+                config.close()
+
+                cline=self.tool.get_exe_file_path()+" salign_profile_profile.py"
+                self.pymod.execute_subprocess(cline)
+
+            os.remove("salign_profile_profile.py")
+
+        # self.pymod.convert_alignment_format(profile1_name, output_file_name)
+        self.pymod.convert_sequence_file_format(profile1_shortcut, "pir", "clustal", output_file_name=output_file_name)
+
+
+
+class SALIGN_seq_regular_alignment_protocol(SALIGN_seq_alignment_protocol, Regular_sequence_alignment_protocol):
+    pass
+
+
+class SALIGN_seq_profile_alignment_protocol(SALIGN_seq_alignment_protocol, Profile_alignment_protocol):
+
+    def run_sequence_to_profile_alignment_program(self):
+
+        # List of sequences of profile to be kept (target cluster)
+        target_cluster_element = self.selected_clusters_list[self.target_cluster_index]
+        alignment_to_keep_elements = target_cluster_element.get_children()
+
+        # Used by generate_highest_identity_pairs_list
+        self.selected_sequences_in_target_alignment = alignment_to_keep_elements
+
+        # List of the selected sequences to be appended to target cluster.
+        self.elements_to_add = [e for e in self.pymod.get_selected_sequences() if not e in alignment_to_keep_elements]
+
+        #-----------------------------------------------------------------------------------------
+        # Perform a first sequence alignment between all selected sequences and sequences in the -
+        # target cluster.                                                                        -
+        #-----------------------------------------------------------------------------------------
+        initial_alignment_name = "all_temporary"
+        self.elements_to_align = alignment_to_keep_elements + self.elements_to_add
+
+        # Perform sequence alignment even if sequence-structure alignment was requested, because the
+        # former is signficantly faster.
+        self.run_regular_alignment_program(self.elements_to_align, initial_alignment_name, use_parameters_from_gui=False, use_structural_information=False)
+
+        #-----------------------------------------------------------------------------------------
+        # For each sequence to be appended to the alignment, finds the most similiar sequence in -
+        # the target cluster according to previous multiple sequence alignment.                  -
+        #-----------------------------------------------------------------------------------------
+        highest_identity_pairs_list=self.generate_highest_identity_pairs_list(initial_alignment_name)
+        max_identity_list=map(max,highest_identity_pairs_list)
+        # sort self.elements_to_add according to max_identity_list
+        max_identity_list, self.elements_to_add = zip(*sorted(
+            zip(max_identity_list,self.elements_to_add), reverse=True))
+
+        #-------------------------------------
+        # Construct a PIR format input file. -
+        #-------------------------------------
+        self.profiles_to_join_file_list=[]
+        profiles=[alignment_to_keep_elements]+[[e] for e in self.elements_to_add]
+
+        use_str_info = self.get_salign_seq_str_alignment_var()
+
+        for (i,children) in enumerate(profiles):
+            file_name = "cluster_" + str(i)
+            self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information = use_str_info, unique_indices_headers=True)
+            self.profiles_to_join_file_list.append(file_name)
+
+        #-----------------------------------------------------------------------------------
+        # Sequentially apply profile-profile alignment to each element of elements_to_add. -
+        #-----------------------------------------------------------------------------------
+        profile_alignment_output = "al_result"
+        self.salign_profile_profile_alignment(output_file_name=profile_alignment_output, use_structural_information=use_str_info)
+        self.build_elements_to_align_dict(self.elements_to_align)
+        self.protocol_output_file_name = profile_alignment_output
+
+
+    def run_profile_to_profile_alignment_program(self):
+
+        # Sequences in selected clusters will all be aligned. Sequences not in selected clusters,
+        # will not be aligned.
+        for cluster in self.selected_clusters_list:
+            self.elements_to_align += list(cluster.get_children())
+
+        self.profiles_to_join_file_list=[] # two MSA files
+
+        use_str_info = self.get_salign_seq_str_alignment_var()
+
+        for (i,cluster) in enumerate(self.selected_clusters_list):
+            file_name = "cluster_" + str(i) # Build FASTA with the MSAs.
+            children = cluster.get_children()
+            # Builds a series of alignment files for each selected cluster.
+            # self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
+            self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=use_str_info, unique_indices_headers=True)
+            self.profiles_to_join_file_list.append(file_name)
+
+        profile_alignment_output = "al_result"
+        output_file_shortcut=os.path.join(self.pymod.alignments_directory, profile_alignment_output)
+        profile1=os.path.join(self.pymod.alignments_directory, self.profiles_to_join_file_list[0]+".aln")
+
+        self.salign_profile_profile_alignment(profile_alignment_output, use_structural_information=use_str_info)
+
+        self.build_elements_to_align_dict(self.elements_to_align)
+        self.protocol_output_file_name = profile_alignment_output

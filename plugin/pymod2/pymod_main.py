@@ -4258,6 +4258,8 @@ class PyMod:
                 a = pmptca.Clustalw_profile_alignment_protocol(self)
             elif program == "clustalo":
                 a = pmptca.Clustalomega_profile_alignment_protocol(self)
+            elif program == "salign-seq":
+                a = pmptca.SALIGN_seq_profile_alignment_protocol(self)
 
         a.launch_alignment_program()
 

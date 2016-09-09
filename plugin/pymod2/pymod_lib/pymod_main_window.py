@@ -450,9 +450,8 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.tools_menu.add_cascade(label = "Profile Alignment", menu = self.profile_alignment_menu)
         self.profile_alignment_menu.add_command(label = "ClustalW", command = lambda program="clustalw", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         self.profile_alignment_menu.add_command(label = "Clustal Omega", command = lambda program="clustalo", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
-        # self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)",
-        #     command = lambda program="salign-seq": self.pymod.launch_alignment_from_the_main_menu(program))
-        #
+        self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)", command = lambda program="salign-seq", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
+
         # # Structural alignment tools.
         # self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         # self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
