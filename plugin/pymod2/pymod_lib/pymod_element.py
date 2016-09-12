@@ -211,7 +211,8 @@ class PyMod_element:
 
 
     def get_unique_index_header(self):
-        return "__pymod_element_%s__" % self.unique_index
+        # return "__pymod_element_%s__" % self.unique_index
+        return "temp_pymod_element_%s_" % self.unique_index
 
 
     #################################################################
@@ -348,7 +349,7 @@ class PyMod_sequence_element(PyMod_element):
     def set_sequence_from_residues(self):
         my_sequence = ""
         for res in self.residues:
-            if res.is_residue():
+            if res.is_polymer_residue():
                 my_sequence += res.one_letter_code
         self.my_sequence = my_sequence
 
@@ -371,11 +372,32 @@ class PyMod_sequence_element(PyMod_element):
     # Sequence related.                                                                           #
     ###############################################################################################
 
-    def set_sequence(self, new_sequence):
-        if new_sequence.replace("-","") != self.my_sequence.replace("-",""):
+    def set_sequence(self, new_sequence, exclude_new_heteroatoms=False, exclude_old_heteroatoms=False):
+        current_sequence_ungapped = self.my_sequence.replace("-","")
+        if exclude_old_heteroatoms:
+            current_sequence_ungapped = self.my_sequence.replace("-","").replace(pmdt.modified_residue_one_letter,"")
+        new_sequence_ungapped = new_sequence.replace("-","")
+        # if exclude_new_heteroatoms:
+        #     new_sequence_ungapped = self.my_sequence.replace("-","").replace(pmdt.modified_residue_one_letter,"")
+
+        if new_sequence_ungapped != current_sequence_ungapped:
+            # TODO: remove the output.
+            print "# Sequence:", self.my_header
+            print "# New:", new_sequence_ungapped
+            print "# Old:", current_sequence_ungapped
             raise PyModSequenceConflict("The new sequence does not match with the previous one.")
-        else:
-            self.my_sequence = new_sequence
+
+        self.my_sequence = new_sequence
+        # modres_gapless_indices = [i for i,r in enumerate(self.residues) if r.is_modified_residue()]
+        # lnseq = list(new_sequence)
+        # rc = 0
+        # for i,p in enumerate(lnseq[:]):
+        #     if p != "-":
+        #         if rc in modres_gapless_indices:
+        #             lnseq.insert(i,pmdt.modified_residue_one_letter)
+        #         rc += 1
+        # self.my_sequence = "".join(lnseq)
+
 
     ################################
     # def set_sequence(self, sequence, adjust_sequence=True):
@@ -458,8 +480,8 @@ class PyMod_nucleic_acid_element(PyMod_sequence_element):
 ###################################################################################################
 
 class PyMod_residue:
-    def __init__(self, three_letter_code, one_letter_code, index=None, db_index=None):
 
+    def __init__(self, three_letter_code, one_letter_code, index=None, db_index=None):
         self.three_letter_code = three_letter_code
         self.one_letter_code = one_letter_code
         self.full_name = three_letter_code
@@ -469,22 +491,24 @@ class PyMod_residue:
 
         self.pymod_element = None
 
-        ##########################
-        # # Gets the 3 letter name of the current residue.
-        # resname = residue.get_resname()
-        # # get_id() returns something like: ('H_SCN', 1101, ' ').
-        # residue_id = residue.get_id()
-        # # Hetfield. Example: 'H_SCN' for an HETRES, while ' ' for a normal residue.
-        # hetfield = residue_id[0]
-        # # Number of the residue according to the PDB file.
-        # pdb_position = residue_id[1]
-        ##########################
 
-    def is_residue(self): # TODO: rename this to something more clear.
+    def is_polymer_residue(self): # TODO: rename this to something more clear.
         """
         Check if the residue is part of a polymer chain, or a ligand molecule/atom.
         """
-        return True
+        if not self.is_water() and not self.is_ligand():
+            return True
+        else:
+            return False
+
+    def is_water(self):
+        return isinstance(self, PyMod_water_molecule)
+
+    def is_ligand(self):
+        return isinstance(self, PyMod_ligand)
+
+    def is_modified_residue(self):
+        return isinstance(self, PyMod_modified_residue)
 
 
     def check_structure(method):
@@ -510,6 +534,15 @@ class PyMod_residue:
 
 
 class PyMod_heteroresidue(PyMod_residue):
+    pass
+
+class PyMod_ligand(PyMod_heteroresidue):
+    pass
+
+class PyMod_modified_residue(PyMod_heteroresidue):
+    pass
+
+class PyMod_water_molecule(PyMod_heteroresidue):
     pass
 
 

@@ -452,12 +452,11 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.profile_alignment_menu.add_command(label = "Clustal Omega", command = lambda program="clustalo", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)", command = lambda program="salign-seq", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
-        # # Structural alignment tools.
-        # self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
-        # self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
+        # Structural alignment tools.
+        self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
         # self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose)
-        # self.structural_alignment_menu.add_command(label = "CE Alignment",
-        #     command = lambda program="ce": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.structural_alignment_menu.add_command(label = "CE Alignment", command = lambda program="ce", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         # self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)",
         #     command = lambda program="salign-str": self.pymod.launch_regular_alignment_from_the_main_menu(program))
 
@@ -596,7 +595,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
                 matrices_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Matrices", menu = matrices_submenu)
                 matrices_submenu.add_command(label = "Identity matrix", command = lambda e=alignment_element: self.pymod.display_identity_matrix(e))
-                if alignment_element.algorithm in pmdt.can_show_rmsd_matrix and alignment.rmsd_list != None:
+                if alignment_element.algorithm in pmdt.can_show_rmsd_matrix: # TODO: and alignment_element.rmsd_list != None:
                     matrices_submenu.add_command(label = "RMSD matrix", command = lambda e=alignment_element: self.pymod.display_rmsd_matrix(e))
 
                 # Trees.

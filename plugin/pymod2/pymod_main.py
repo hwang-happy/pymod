@@ -694,43 +694,22 @@ class PyMod:
         print "# Loading default."
 
         seqs_dir = "/home/giacomo/Desktop/sequences"
+
+        self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"structures/5jdp.pdb")) # NMR.
-        self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
-        self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"), "fasta")
-
-        if 1:
-            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam_min.fasta"), "fasta")
-            self.build_cluster_from_alignment_file("/home/giacomo/pfam_min2.fasta", "fasta")
-
-        if 0:
-            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
-            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
-            c1 = self.root_element.list_of_children[-2]
-            c2 = self.root_element.list_of_children[-1]
-            c1.add_children(c2)
-
-        if 0:
-            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/fasta/pfam.fasta"), "fasta")
-            l = self.root_element.list_of_children[-1].list_of_children[0]
-            self.make_cluster_lead(l)
-
-        if 0:
-            self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"alignments/stockolm/gi.sto"), "stockholm")
-            self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/custom1.fasta"), "fasta")
-            self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi.fasta"), "fasta")
-            self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"), "fasta")
-            self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot1.fasta"), "fasta")
-            self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot2.fasta"), "fasta")
-            self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/uniprot3.fasta"), "fasta")
 
         self.gridder(update_menus=True)
 
-        # Alignments.
-        if 0:
-            for i in range(0,3):
-                self.root_element.list_of_children[i].selected = True
-            self.launch_alignment_program("clustalw", "regular-alignment")
+        # # Alignments.
+        # if 0:
+        #     for i in range(0,3):
+        #         self.root_element.list_of_children[i].selected = True
+        #     self.launch_alignment_program("clustalw", "regular-alignment")
 
 
     def show_about_dialog(self):
@@ -4251,7 +4230,8 @@ class PyMod:
             elif program == "salign-seq":
                 a = pmptca.SALIGN_seq_regular_alignment_protocol(self)
             # Structural alignments.
-            pass
+            elif program == "ce":
+                a = pmptca.CEalign_regular_alignment_protocol(self)
 
         elif strategy == "profile":
             if program == "clustalw":
@@ -4269,6 +4249,9 @@ class PyMod:
             return True
         else:
             return False
+
+    def get_ce_mode(self):
+        return ce_alignment_mode
 
 
     ###############################################################################################

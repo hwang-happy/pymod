@@ -386,3 +386,15 @@ def get_prot_one_to_three(one_letter_code):
 
 def get_prot_three_to_one(three_letter_code):
     return prot_standard_and_x_three_to_one_dict[one_letter_code]
+
+
+#--------------------
+# Heteroatoms data. -
+#--------------------
+
+# TODO: check this.
+std_amino_acid_backbone_atoms = set(("N","CA","C"))
+mod_amino_acid_backbone_atoms = set(("N2","C1","C2"))
+
+modified_residue_one_letter = ":"
+ligand_one_letter = "."

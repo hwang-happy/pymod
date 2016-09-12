@@ -13,10 +13,8 @@ from Bio.PDB.Polypeptide import PPBuilder
 
 import pymod_sequence_manipulation as pmsm
 import pymod_element as pmel # Classes to represent sequences and alignments.
+import pymod_vars as pmdt
 
-###################################
-# Start simple and then build up. #
-###################################
 
 class Select_chain_and_first_model(Select):
     """
@@ -100,39 +98,25 @@ class Parsed_pdb_file:
                 for residue in chain:
                     # Gets the 3 letter name of the current residue.
                     resname = residue.get_resname()
-                    # get_id() returns something like: ('H_SCN', 1101, ' ').
-                    residue_id = residue.get_id()
-                    # Hetfield. Example: 'H_SCN' for an HETRES, while ' ' for a normal residue.
-                    hetfield = residue_id[0]
-                    # Number of the residue according to the PDB file.
-                    pdb_position = residue_id[1]
-
+                    # get_id() returns something like: ('H_SCN', 1101, ' '). The first item is
+                    # the hetfield: 'H_SCN' for an HETRES, while ' ' for a normal residue. The
+                    # second item is the id of the residue according to the PDB file.
+                    hetfield, pdb_position = residue.get_id()[0:2]
                     # For HETATM residues.
                     if hetfield[0] == "H":
-                        # Builds a PDB_residue object.
-                        one_letter_symbol = "X"
                         # Check if the current HETRES is a modres according to the info in the MODRES
                         # fields in the PDB file.
-                        is_modified_residue = False
-                        # TODO: check if it is a modified residue.
-                        if is_modified_residue:
-                            # new_hetero_residue.set_hetres_type("modified-residue")
-                            # If the HETRES is a "modified-residue" that is part of the protein
-                            # try to assign to it its original unmodified amminoacid letter.
-                            pass
+                        if self.is_modified_residue(residue):
+                            # If the HETRES is a "modified-residue".
+                            parsed_chain["residues"].append(pmel.PyMod_modified_residue(three_letter_code=resname, one_letter_code=pmdt.modified_residue_one_letter, db_index=pdb_position))
                         else:
-                            # new_hetero_residue.set_hetres_type("ligand")
-                            pass
-                        parsed_chain["sequence"] += "X"
-                        parsed_chain["residues"].append(pmel.PyMod_residue(three_letter_code=resname, one_letter_code=one_letter_symbol, db_index=pdb_position))
+                            parsed_chain["residues"].append(pmel.PyMod_ligand(three_letter_code=resname, one_letter_code=pmdt.ligand_one_letter, db_index=pdb_position))
                     # For water molecules.
                     elif hetfield == "W":
-                        parsed_chain["residues"].append(pmel.PyMod_residue(three_letter_code=resname, one_letter_code=one_letter_symbol, db_index=pdb_position))
+                        parsed_chain["residues"].append(pmel.PyMod_water_molecule(three_letter_code=resname, one_letter_code="w", db_index=pdb_position))
                     # For standard amminoacidic residues. Adds them to the primary sequence.
                     else:
-                        one_letter_symbol = pmsm.three2one(resname)
-                        parsed_chain["sequence"] += one_letter_symbol
-                        parsed_chain["residues"].append(pmel.PyMod_residue(three_letter_code=resname, one_letter_code=one_letter_symbol, db_index=pdb_position))
+                        parsed_chain["residues"].append(pmel.PyMod_residue(three_letter_code=resname, one_letter_code=pmsm.three2one(resname), db_index=pdb_position))
                 list_of_parsed_chains.append(parsed_chain)
 
             # Stops after having parsed the first "model" in the biopython "structure".
@@ -179,6 +163,11 @@ class Parsed_pdb_file:
 
     def get_pymod_elements(self):
         return self.list_of_pymod_elements
+
+
+    def is_modified_residue(self, residue):
+        return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
+
 
 
 def get_sequence_using_ppb(pdb_file_path, output_directory=""):

@@ -55,13 +55,7 @@ class Alignment_protocol(PyMod_protocol):
         """
         Returns True if the program full path was specified in the PyMod Options window.
         """
-        program_found = False
-        if self.tool.exe_exists():
-            program_found = True
-        # elif alignment_program == "ce":
-        #     if self.pymod.ce_exists():
-        #         program_found = True
-        return program_found
+        return self.tool.exe_exists()
 
 
     def alignment_program_not_found(self):
@@ -69,10 +63,6 @@ class Alignment_protocol(PyMod_protocol):
         Displays an error message that tells the user that some program was not found.
         """
         self.tool.exe_not_found()
-        # elif alignment_program == "ce":
-        #     title = "CE-alignment Error"
-        #     message = "CE-alignment is not available on your PyMod installation. If you want to use this function please see CE-alignment installation instructions on PyMod's User Guide."
-        #     self.pymod.show_popup_message("error", title, message)
 
 
     # def unrecognized_alignment_program(self, program):
@@ -238,7 +228,7 @@ class Alignment_protocol(PyMod_protocol):
         # Updates the PyMod elements just aligned. -
         #-------------------------------------------
         self.create_alignment_element()
-        self.update_aligned_sequences()
+        self.update_aligned_elements()
         if 0:
             self.remove_alignment_temp_files()
         self.finish_alignment()
@@ -249,28 +239,16 @@ class Alignment_protocol(PyMod_protocol):
             self.elements_to_align_dict.update({element.get_unique_index_header(): element})
 
 
-    def update_aligned_sequences(self):
+    def update_aligned_elements(self):
         """
         Called when an alignment is performed. It updates the sequences with the indels obtained in
         the alignment. And also deletes the temporary files used to align the sequences.
         """
 
-        # if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
-        # Gets from an alignment file the sequences with their indels produced in the alignment.
-        handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")
-        records = list(SeqIO.parse(handle, "clustal"))
-        handle.close()
-        # Updates the sequences.
-        for a, r in enumerate(records):
-            element_to_update = self.elements_to_align_dict[str(r.id)]
-            element_to_update.set_sequence(str(r.seq)) # self.correct_sequence
+        self.update_aligned_sequences()
 
         # Performs additional operations on the aligned sequences.
         self.perform_additional_sequence_editing()
-
-        # Alignment objects built using different algorithms, store different additional data.
-        self.update_additional_information()
-
         # # Structural alignments tools might have output files which need the
         # # "display_hybrid_al" method in order to be displayed in the PyMod main window.
         # if self.alignment_program in pmdt.structural_alignment_tools:
@@ -280,7 +258,25 @@ class Alignment_protocol(PyMod_protocol):
         #         rmsd_list = self.compute_rmsd_list(self.elements_to_align)
         #         self.alignment_element.alignment.set_rmsd_list(rmsd_list)
 
+        # Alignment objects built using different algorithms, store different additional data.
+        self.update_additional_information()
+
         self.pymod.gridder(clear_selection=True, update_clusters=True, update_menus=True)
+
+
+    def update_aligned_sequences(self):
+        # Gets from an alignment file the sequences with their indels produced in the alignment.
+        ouput_handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")
+        records = list(SeqIO.parse(ouput_handle, "clustal"))
+        ouput_handle.close()
+        # Updates the sequences.
+        for a, r in enumerate(records):
+            element_to_update = self.elements_to_align_dict[str(r.id)]
+            self.update_single_element_sequence(element_to_update, r.seq)
+
+
+    def update_single_element_sequence(self, element_to_update, new_sequence):
+        element_to_update.set_sequence(str(new_sequence)) # self.correct_sequence
 
 
     def perform_additional_sequence_editing(self):
@@ -1636,13 +1632,7 @@ class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_seque
 class SALIGN_alignment_protocol:
 
     def alignment_program_exists(self):
-        """
-        Returns True if the program full path was specified in the PyMod Options window.
-        """
-        program_found = False
-        if self.tool.can_be_launched():
-            program_found = True
-        return program_found
+        return self.tool.can_be_launched()
 
 
 class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
@@ -1912,3 +1902,538 @@ class SALIGN_seq_profile_alignment_protocol(SALIGN_seq_alignment_protocol, Profi
 
         self.build_elements_to_align_dict(self.elements_to_align)
         self.protocol_output_file_name = profile_alignment_output
+
+
+###################################################################################################
+# CE alignment.                                                                                   #
+###################################################################################################
+
+class CEalign_alignment_protocol:
+
+    alignment_program = "ce"
+
+    def __init__(self, pymod):
+        Alignment_protocol.__init__(self, pymod)
+        self.tool = None
+
+
+    def alignment_program_exists(self):
+        return self.pymod.ce_exists()
+
+
+    def alignment_program_not_found(self):
+        title = "CE-alignment Error"
+        message = "CE-alignment is not available on your PyMod installation. If you want to use this function please see CE-alignment installation instructions on PyMod's User Guide."
+        self.pymod.show_popup_message("error", title, message)
+
+
+    def build_algorithm_options_widgets(self):
+
+        widgets_to_align = []
+
+        # # Scoring matrix radioselect.
+        # self.matrix_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
+        # self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
+        # self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
+        # for matrix_name in (self.clustal_matrices):
+        #     self.matrix_rds.add(matrix_name)
+        # self.matrix_rds.setvalue("Blosum")
+        # self.matrix_rds.pack(side = 'top', anchor="w", pady = 10)
+        # widgets_to_align.append(self.matrix_rds)
+        #
+        # # Gap open entryfield.
+        # self.gapopen_enf = pmgi.PyMod_entryfield(
+        #     self.alignment_options_frame,
+        #     label_text = "Gap Opening Penalty",
+        #     value = '10',
+        #     validate = {'validator' : 'integer',
+        #                 'min' : 0, 'max' : 1000})
+        # self.gapopen_enf.pack(side = 'top', anchor="w", pady = 10)
+        # widgets_to_align.append(self.gapopen_enf)
+        #
+        # # Gap extension entryfield.
+        # self.gapextension_enf = pmgi.PyMod_entryfield(
+        #     self.alignment_options_frame,
+        #     label_text = "Gap Extension Penalty",
+        #     value = '0.2',
+        #     validate = {'validator' : 'real',
+        #                 'min' : 0, 'max' : 1000})
+        # self.gapextension_enf.pack(side = 'top', anchor="w", pady = 10)
+        # widgets_to_align.append(self.gapextension_enf)
+        #
+        # Pmw.alignlabels(widgets_to_align, sticky="nw")
+        # pmgi.align_input_widgets_components(widgets_to_align, 10)
+
+
+    # def get_matrix_value(self):
+    #     return self.clustal_matrices_dict[self.matrix_rds.getvalue()]
+    #
+    # def get_gapopen_value(self):
+    #     return self.gapopen_enf.getvalue()
+    #
+    # def get_gapextension_value(self):
+    #     return self.gapextension_enf.getvalue()
+
+
+    def update_aligned_sequences(self):
+        if self.pymod.get_ce_mode() == "plugin":
+            raise Exception("TODO")
+
+        # When saving alignments from PyMOL object built using cealign, PyMOL removes
+        # heteroresidues. This code will be needed to reinsert them in the aligned sequences parsed
+        # from the alignment output file built by PyMOL.
+        elif self.pymod.get_ce_mode() == "pymol":
+            # Gets from an alignment file the sequences with their indels produced in the alignment.
+            ouput_handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")
+            records = list(SeqIO.parse(ouput_handle, "clustal"))
+            ouput_handle.close()
+            lnseq_list = []
+            elements_to_update = []
+            for a, r in enumerate(records):
+                lnseq_list.append(list(str(r.seq)))
+                element_to_update = self.elements_to_align_dict[str(r.id)]
+                elements_to_update.append(element_to_update)
+            # Define where the new heteroresidues will have to be inserted in the updated sequences.
+            modres_insert_indices_dict = {}
+            for element, lnseq in zip(elements_to_update, lnseq_list):
+                modres_count = 0
+                modres_gapless_indices = [i for i,r in enumerate(element.residues) if r.is_modified_residue()]
+                print "### Seq:", element.my_header, modres_gapless_indices
+                for modres_index in modres_gapless_indices:
+                    rc = 0
+                    insert_index = -1
+                    for i,p in enumerate(lnseq):
+                        if p != "-":
+                            # if rc + modres_count == modres_index - 1:
+                                # insert_index = i + 1 + modres_count
+                            if rc == modres_index:
+                                insert_index = i + modres_count
+                                modres_count += 1
+                            rc += 1
+                    if insert_index == -1:
+                        insert_index = len(lnseq) + modres_count
+                    if not insert_index in modres_insert_indices_dict.keys():
+                        modres_insert_indices_dict.update({insert_index: [element]})
+                    else:
+                        modres_insert_indices_dict[insert_index].append(element)
+                    print "# New:", modres_index, insert_index, element.my_header
+            # Updates the sequences with the missing heteroresidues.
+            for insert_index in sorted(modres_insert_indices_dict.keys()):
+                print "### Inserting", insert_index, [e.my_header for e in modres_insert_indices_dict[insert_index]]
+                for e, lnseq in zip(elements_to_update, lnseq_list):
+                    if e in modres_insert_indices_dict[insert_index]:
+                        lnseq.insert(insert_index, pmdt.modified_residue_one_letter)
+                    else:
+                        lnseq.insert(insert_index, "-")
+            # Updated the sequences in PyMod.
+            for e, lnseq in zip(elements_to_update, lnseq_list):
+                self.update_single_element_sequence(e, "".join(lnseq))
+
+
+    def update_single_element_sequence(self, element_to_update, new_sequence):
+        element_to_update.set_sequence(str(new_sequence)) # self.correct_sequence
+
+
+class CEalign_regular_alignment_protocol(CEalign_alignment_protocol, Regular_structural_alignment_protocol):
+
+    def run_regular_alignment_program(self, sequences_to_align, output_file_name):
+        # TODO: use_parameters_from_gui.
+        self.run_ce_alignment(sequences_to_align, output_file_name=output_file_name)
+
+
+    def run_ce_alignment(self, structures_to_align, output_file_name, use_seq_info=False):
+        """
+        Used to launch Ce_align.
+        """
+        # If there are just two selected sequences, just call self.ce_align().
+        if len(structures_to_align) == 2:
+            current_elements_to_align = structures_to_align[:]
+            # Just produce as output an .aln file as output.
+            self.ce_align(current_elements_to_align, output_file_name=output_file_name, output_format="aln", use_seq_info=use_seq_info)
+        # Multiple structural alignment: Ce_align two sequences per round.
+        else:
+            backup_list= structures_to_align[:]
+
+            # Align the first two structures and produces an ce_temp.txt alignment file.
+            temp_ce_alignment = "ce_temp"
+            current_elements_to_align = backup_list[0:2]
+            self.ce_align(current_elements_to_align, output_file_name=temp_ce_alignment, output_format="txt", use_seq_info=use_seq_info)
+
+            # Align the rest of the structures to the first one progressively.
+            for n in range(2,len(backup_list)):
+                current_elements_to_align = [backup_list[0],backup_list[n]]
+                self.ce_align(current_elements_to_align,output_file_name=temp_ce_alignment,output_format="aln", use_seq_info=use_seq_info)
+                txt_file_path = os.path.join(self.pymod.alignments_directory, temp_ce_alignment + ".txt")
+                aln_file_path = os.path.join(self.pymod.alignments_directory, temp_ce_alignment + ".aln")
+                self.alignments_joiner(txt_file_path, aln_file_path, output_file_name = temp_ce_alignment )
+
+            # Complete by cleaning up the temporary files and by creating a final output file.
+            os.remove(os.path.join(self.pymod.alignments_directory, temp_ce_alignment + ".aln"))
+
+            # In this cases pymod will need a .txt format alignment file.
+            if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
+                # Creates the final alignment file. It will be deleted inside
+                # update_aligned_sequences() method.
+                shutil.copy(os.path.join(self.pymod.alignments_directory, temp_ce_alignment + ".txt"),
+                            os.path.join(self.pymod.alignments_directory, output_file_name + ".txt") )
+                self.pymod.convert_sequence_file_format(
+                    os.path.join(self.pymod.alignments_directory, output_file_name + ".txt"),
+                    "pymod", "clustal")
+
+            # In this other cases pymod will need an .aln alignment file, so an .aln file has to be
+            # built from a .txt file.
+            elif self.alignment_mode in ("alignment-joining", "keep-previous-alignment"):
+                # Parses the .txt alignment file.
+                # fh = open(os.path.join(self.pymod.alignments_directory, temp_ce_alignment+".txt"),"r")
+                # sequences = []
+                # for line in fh.readlines():
+                #     sequences.append(line.split())
+                # fh.close()
+                # # And then builds an .aln file copy of the alignment.
+                # records = []
+                # for s in sequences:
+                #     rec = SeqRecord(Seq(s[1]), id=s[0])
+                #     records.append(rec)
+                # handle = open(os.path.join(self.pymod.alignments_directory, ce_alignment_file_name+".aln"), "w")
+                # SeqIO.write(records, handle, "clustal")
+                # handle.close()
+
+                self.pymod.convert_sequence_file_format(
+                    os.path.join(self.pymod.alignments_directory, temp_ce_alignment+".txt"),
+                    "pymod", "clustal", output_file_name=output_file_name)
+            # os.remove(os.path.join(self.pymod.alignments_directory, temp_ce_alignment + ".txt"))
+
+
+    def ce_align(self, elements_to_align, output_file_name=None, output_format="txt", use_seq_info=False):
+        """
+        Actually performs the structural alignment.
+        output_file_name: the name of the alignment.
+        output_format:
+            - "txt": it will produce a pymod format alignment file.
+            - "aln": it will produce an .ali alignment file in clustal format.
+        """
+        # Run CE-alignment using the external module.
+        if self.pymod.get_ce_mode() == "plugin":
+
+            raise Exception("TODO.")
+
+            # ############################################################################
+            # #
+            # #  Copyright (c) 2007, Jason Vertrees.
+            # #  All rights reserved.
+            # #
+            # #  Redistribution and use in source and binary forms, with or without
+            # #  modification, are permitted provided that the following conditions are
+            # #  met:
+            # #
+            # #      * Redistributions of source code must retain the above copyright
+            # #      notice, this list of conditions and the following disclaimer.
+            # #
+            # #      * Redistributions in binary form must reproduce the above copyright
+            # #      notice, this list of conditions and the following disclaimer in
+            # #      the documentation and/or other materials provided with the
+            # #      distribution.
+            # #
+            # #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+            # #  IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+            # #  TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+            # #  PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+            # #  OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+            # #  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+            # #  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+            # #  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+            # #  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+            # #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            # #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+            # #
+            # #############################################################################
+            #
+            # # Takes the header and the chain id of the selected chains.
+            # def prepare_data_for_ce_alignment(element,n):
+            #     sel_header = element.my_header
+            #     chain_id = element.my_header.split(':')[-1]
+            #     sel_name = element.structure.chain_pdb_file_name_root
+            #     sel = element.structure.chain_pdb_file_name_root # element.my_header.replace(":", "_")
+            #     return sel_header, chain_id, sel_name, sel
+            #
+            # #########################################################################
+            # def simpAlign( mat1, mat2, name1, name2, mol1=None, mol2=None, align=0, L=0 ):
+            #     # check for consistency
+            #     assert(len(mat1) == len(mat2))
+            #
+            #     # must alway center the two proteins to avoid
+            #     # affine transformations.  Center the two proteins
+            #     # to their selections.
+            #     COM1 = numpy.sum(mat1,axis=0) / float(L)
+            #     COM2 = numpy.sum(mat2,axis=0) / float(L)
+            #     mat1 = mat1 - COM1
+            #     mat2 = mat2 - COM2
+            #
+            #     # Initial residual, see Kabsch.
+            #     E0 = numpy.sum( numpy.sum(mat1 * mat1,axis=0),axis=0) + numpy.sum( numpy.sum(mat2 * mat2,axis=0),axis=0)
+            #
+            #     #
+            #     # This beautiful step provides the answer.  V and Wt are the orthonormal
+            #     # bases that when multiplied by each other give us the rotation matrix, U.
+            #     # S, (Sigma, from SVD) provides us with the error!  Isn't SVD great!
+            #     V, S, Wt = numpy.linalg.svd( numpy.dot( numpy.transpose(mat2), mat1))
+            #
+            #     # we already have our solution, in the results from SVD.
+            #     # we just need to check for reflections and then produce
+            #     # the rotation.  V and Wt are orthonormal, so their det's
+            #     # are +/-1.
+            #     reflect = float(str(float(numpy.linalg.det(V) * numpy.linalg.det(Wt))))
+            #     if reflect == -1.0:
+            #         S[-1] = -S[-1]
+            #         V[:,-1] = -V[:,-1]
+            #
+            #     RMSD = E0 - (2.0 * sum(S))
+            #     RMSD = numpy.sqrt(abs(RMSD / L))
+            #
+            #     if ( align == 0 ):
+            #         return RMSD;
+            #
+            #     assert(mol1 != None)
+            #     assert(mol2 != None)
+            #
+            #     #U is simply V*Wt
+            #     U = numpy.dot(V, Wt)
+            #
+            #     # rotate and translate the molecule
+            #     mat2 = numpy.dot((mol2 - COM2), U) + COM1
+            #     stored.sel2 = mat2.tolist()
+            #
+            #     # let PyMol know about the changes to the coordinates
+            #     cmd.alter_state(1,name2,"(x,y,z)=stored.sel2.pop(0)")
+            #
+            #     if False:
+            #         print "NumAligned=%d" % L
+            #         print "RMSD=%f" % RMSD
+            #
+            # def cealign( sel1, sel2, verbose=1 ):
+            #     winSize = 8
+            #     # FOR AVERAGING
+            #     winSum = (winSize-1)*(winSize-2) / 2;
+            #     # max gap size
+            #     gapMax = 30
+            #
+            #     # make the lists for holding coordinates
+            #     # partial lists
+            #     stored.sel1 = []
+            #     stored.sel2 = []
+            #     # full lists
+            #     stored.mol1 = []
+            #     stored.mol2 = []
+            #
+            #     # now put the coordinates into a list
+            #     # partials
+            #
+            #     # -- REMOVE ALPHA CARBONS
+            #     sel1 = sel1 + " and n. CA"
+            #     sel2 = sel2 + " and n. CA"
+            #     # -- REMOVE ALPHA CARBONS
+            #
+            #     cmd.iterate_state(1, selector.process(sel1), "stored.sel1.append([x,y,z])")
+            #     cmd.iterate_state(1, selector.process(sel2), "stored.sel2.append([x,y,z])")
+            #
+            #     # full molecule
+            #     mol1 = cmd.identify(sel1,1)[0][0]
+            #     mol2 = cmd.identify(sel2,1)[0][0]
+            #
+            #     # put all atoms from MOL1 & MOL2 into stored.mol1
+            #     cmd.iterate_state(1, mol1, "stored.mol1.append([x,y,z])")
+            #     cmd.iterate_state(1, mol2, "stored.mol2.append([x,y,z])")
+            #
+            #     if ( len(stored.mol1) == 0 ):
+            #             print "ERROR: Your first selection was empty."
+            #             return
+            #     if ( len(stored.mol2) == 0 ):
+            #             print "ERROR: Your second selection was empty."
+            #             return
+            #
+            #     # call the C function
+            #     alignString = ccealign( (stored.sel1, stored.sel2) )
+            #
+            #     if ( len(alignString) == 1 ):
+            #         if ( len(alignString[0]) == 0 ):
+            #             print "\n\nERROR: There was a problem with CEAlign's C Module.  The return value was blank."
+            #             print "ERROR: This is obviously bad.  Please inform a CEAlign developer.\n\n"
+            #             return
+            #
+            #     bestPathID = -1
+            #     bestPathScore = 100000
+            #     bestStr1 = ""
+            #     bestStr2 = ""
+            #
+            #     # for each of the 20 possible alignments returned
+            #     # we check each one for the best CE-Score and keep
+            #     # that one.  The return val of ccealign is a list
+            #     # of lists of pairs.
+            #     for curAlignment in alignString:
+            #         seqCount = len(curAlignment)
+            #         matA = None
+            #         matB = None
+            #
+            #         if ( seqCount == 0 ):
+            #                 continue;
+            #
+            #         for AFP in curAlignment:
+            #                 first, second = AFP
+            #                 if ( matA == None and matB == None ):
+            #                     matA = [ stored.sel1[first-1] ]
+            #                     matB = [ stored.sel2[second-1] ]
+            #                 else:
+            #                     matA.append( stored.sel1[first-1] )
+            #                     matB.append( stored.sel2[second-1] )
+            #
+            #         curScore = simpAlign( matA, matB, mol1, mol2, stored.mol1, stored.mol2, align=0, L=len(matA) )
+            #
+            #         #########################################################################
+            #         # if you want the best RMSD, not CE Score uncomment here down
+            #         #########################################################################
+            #         #if ( curScore < bestPathScore ):
+            #                 #bestPathScore = curScore
+            #                 #bestMatA = matA
+            #                 #bestMatB = matB
+            #         #########################################################################
+            #         # if you want the best RMSD, not CE Score uncomment here up
+            #         #########################################################################
+            #
+            #         #########################################################################
+            #         # if you want a proven, "better" alignment use the CE-score instead
+            #         # Uncomment here down for CE-Score
+            #         #########################################################################
+            #         internalGaps = 0.0;
+            #         for g in range(0, seqCount-1):
+            #             if (not curAlignment[g][0] + 1 == curAlignment[g+1][0]):
+            #                     internalGaps += curAlignment[g+1][0]
+            #             if ( not curAlignment[g][1] + 1 == curAlignment[g+1][1] ):
+            #                     internalGaps += curAlignment[g+1][1]
+            #
+            #             aliLen = float( len(curAlignment))
+            #             numGap = internalGaps;
+            #             curScore = float((curScore/aliLen)*(1.0+(numGap/aliLen)));
+            #
+            #         if ( curScore < bestPathScore ):
+            #             bestPathScore = curScore
+            #             bestMatA = matA
+            #             bestMatB = matB
+            #         #########################################################################
+            #         # if you want a proven, "better" alignment use the CE-score instead
+            #         # Uncomment here UP for CE-Score
+            #         #########################################################################
+            #
+            #     # align the best one string
+            #     simpAlign(bestMatA, bestMatB, mol1, mol2, stored.mol1, stored.mol2, align=1, L=len(bestMatA))
+            #
+            # # Performs an alignment between the two sequences.
+            # def NWrun(s1,s2,pdb1,pdb2,bio_str1,bio_str2,selection1_header,selection2_header,sequence_information=False):
+            #     sc = pmsp.initScore()
+            #     # set up the box
+            #     L = pmsp.setUp(s1,s2,sc, pdb1, pdb2, bio_str1, bio_str2)
+            #     #aaNames,m = BLOSUM.loadMatrix(fn='blosum50.txt')
+            #     aaNames,m = pmsp.loadMatrix()
+            #     pmsp.doScoring(L,s1,s2,m,sc,sequence_information)
+            #     seq1,seq2 = pmsp.trackback(L,s1,s2,m)
+            #
+            #     # Builds an output file with the sequences aligned according to the results of the
+            #     # structural alignment.
+            #     pymod_elements=[PyMod_element(record_seq=seq1, record_header=selection1_header, adjust_header=False),
+            #                     PyMod_element(record_seq=seq2, record_header=selection2_header, adjust_header=False)]
+            #     if output_format == "txt":
+            #         self.pymod.build_sequences_file(elements=pymod_elements, sequences_file_name=output_file_name,
+            #             file_format="pymod", remove_indels=False)
+            #     elif output_format == "aln":
+            #         self.pymod.build_sequences_file(elements=pymod_elements, sequences_file_name=output_file_name,
+            #             file_format="clustal", remove_indels=False)
+            # #########################################################################
+            #
+            # sel1_header, chain_id1, sel1_name, sel1 = prepare_data_for_ce_alignment(elements_to_align[0],1)
+            # sel2_header, chain_id2, sel2_name, sel2 = prepare_data_for_ce_alignment(elements_to_align[1],2)
+            #
+            # cealign (sel1, sel2)
+            # cmd.show('cartoon', sel1 + ' or ' + sel2)
+            # cmd.center('visible')
+            # cmd.zoom('visible')
+            #
+            # # Updates the names of the chains PDB files.
+            # saved_file1 = sel1_name + "_aligned.pdb"
+            # saved_file2 = sel2_name + "_aligned.pdb"
+            #
+            # elements_to_align[0].structure.chain_pdb_file_name = saved_file1
+            # elements_to_align[1].structure.chain_pdb_file_name = saved_file2
+            #
+            # # And saves these new files.
+            # aligned_pdb_file1 = os.path.join(self.structures_directory, saved_file1)
+            # aligned_pdb_file2 = os.path.join(self.structures_directory, saved_file2)
+            # cmd.save(aligned_pdb_file1, sel1)
+            # cmd.save(aligned_pdb_file2, sel2)
+            #
+            # # Finally retrieves the structural alignment between the sequences.
+            # structure1 = Bio.PDB.PDBParser().get_structure(sel1, aligned_pdb_file1)
+            # structure2 = Bio.PDB.PDBParser().get_structure(sel2, aligned_pdb_file2)
+            #
+            # s1 = Seq(str(elements_to_align[0].my_sequence).replace("-",""))
+            # s2 = Seq(str(elements_to_align[1].my_sequence).replace("-",""))
+            #
+            # working_dir = os.getcwd()
+            #
+            # # This will generate the alignment output file with the results of the structural
+            # # alignment.
+            # NWrun(s1, s2,
+            #       os.path.join(working_dir, aligned_pdb_file1), os.path.join(working_dir, aligned_pdb_file2),
+            #       structure1, structure2,
+            #       sel1_header, sel2_header,
+            #       sequence_information = use_seq_info)
+
+        # Run CE-alignment using the PyMOL built-in module.
+        elif self.pymod.get_ce_mode() == "pymol":
+
+            retain_order = 1
+            if retain_order:
+                cmd.set("retain_order", 1)
+
+            sel1 = elements_to_align[0].get_pymol_object_name()
+            sel2 = elements_to_align[1].get_pymol_object_name()
+
+            # Sets temporary names.
+            tsel1 = elements_to_align[0].get_unique_index_header()
+            tsel2 = elements_to_align[1].get_unique_index_header()
+            cmd.set_name(sel1, tsel1)
+            cmd.set_name(sel2, tsel2)
+
+            # Actually performs the alignment.
+            a = cmd.cealign(target=tsel1, mobile=tsel2, object="pymod_temp_cealign")
+            # cmd.center('%s and %s' % (tsel1, tsel2))
+            # cmd.zoom('%s and %s' % (tsel1, tsel2))
+
+            # Updates the names of the chains PDB files and saves these new files.
+            saved_file1 = sel1 + "_aligned.pdb"
+            saved_file2 = sel2 + "_aligned.pdb"
+            # elements_to_align[0].structure.chain_pdb_file_name = saved_file1
+            # elements_to_align[1].structure.chain_pdb_file_name = saved_file2
+            cmd.save(os.path.join(self.pymod.structures_directory, saved_file1), tsel1)
+            cmd.save(os.path.join(self.pymod.structures_directory, saved_file2), tsel2)
+
+            # Finally saves the structural alignment between the sequences.
+            # TODO: choose the right file format.
+            cmd.save(os.path.join(self.pymod.alignments_directory, output_file_name+".aln"), "pymod_temp_cealign")
+            cmd.delete("pymod_temp_cealign")
+
+            # Sets the names of the objects back to original ones.
+            cmd.set_name(tsel1, sel1)
+            cmd.set_name(tsel2, sel2)
+
+            # Converts it in .txt format.
+            if output_format == "txt":
+                self.pymod.convert_sequence_file_format(
+                    os.path.join(self.pymod.alignments_directory, output_file_name + ".aln"),
+                    "clustal", "pymod")
+            elif output_format == "aln":
+                # self.pymod.convert_sequence_file_format(
+                #     os.path.join(self.pymod.alignments_directory, output_file_name + ".fasta"),
+                #     "fasta", "clustal")
+                pass
+
+            if retain_order:
+                cmd.set("retain_order", 0)
