@@ -693,7 +693,7 @@ class PyMod:
         print "###"
         print "# Loading default."
 
-        seqs_dir = "/home/giacomo/Desktop/sequences"
+        seqs_dir = "/home/giacomo/Dropbox/sequences"
 
         self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))

@@ -1979,14 +1979,16 @@ class CEalign_alignment_protocol:
         if self.pymod.get_ce_mode() == "plugin":
             raise Exception("TODO")
 
-        # When saving alignments from PyMOL object built using cealign, PyMOL removes
-        # heteroresidues. This code will be needed to reinsert them in the aligned sequences parsed
-        # from the alignment output file built by PyMOL.
+        #-------------------------------------------------------------------------------------
+        # When saving alignments from PyMOL object built using cealign, PyMOL removes        -
+        # heteroresidues. This code will be needed to reinsert them in the aligned sequences -
+        # parsed from the alignment output file built by PyMOL.                              -
+        #-------------------------------------------------------------------------------------
         elif self.pymod.get_ce_mode() == "pymol":
-            # Gets from an alignment file the sequences with their indels produced in the alignment.
-            ouput_handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")
-            records = list(SeqIO.parse(ouput_handle, "clustal"))
-            ouput_handle.close()
+            # Gets from an alignment file the aligned sequences.
+            input_handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")
+            records = list(SeqIO.parse(input_handle, "clustal"))
+            input_handle.close()
             lnseq_list = []
             elements_to_update = []
             for a, r in enumerate(records):
@@ -1998,14 +2000,11 @@ class CEalign_alignment_protocol:
             for element, lnseq in zip(elements_to_update, lnseq_list):
                 modres_count = 0
                 modres_gapless_indices = [i for i,r in enumerate(element.residues) if r.is_modified_residue()]
-                print "### Seq:", element.my_header, modres_gapless_indices
                 for modres_index in modres_gapless_indices:
                     rc = 0
                     insert_index = -1
                     for i,p in enumerate(lnseq):
                         if p != "-":
-                            # if rc + modres_count == modres_index - 1:
-                                # insert_index = i + 1 + modres_count
                             if rc == modres_index:
                                 insert_index = i + modres_count
                                 modres_count += 1
@@ -2016,15 +2015,15 @@ class CEalign_alignment_protocol:
                         modres_insert_indices_dict.update({insert_index: [element]})
                     else:
                         modres_insert_indices_dict[insert_index].append(element)
-                    print "# New:", modres_index, insert_index, element.my_header
             # Updates the sequences with the missing heteroresidues.
+            modres_count = 0
             for insert_index in sorted(modres_insert_indices_dict.keys()):
-                print "### Inserting", insert_index, [e.my_header for e in modres_insert_indices_dict[insert_index]]
                 for e, lnseq in zip(elements_to_update, lnseq_list):
                     if e in modres_insert_indices_dict[insert_index]:
-                        lnseq.insert(insert_index, pmdt.modified_residue_one_letter)
+                        lnseq.insert(insert_index + modres_count, pmdt.modified_residue_one_letter)
                     else:
-                        lnseq.insert(insert_index, "-")
+                        lnseq.insert(insert_index + modres_count, "-")
+                modres_count += 1
             # Updated the sequences in PyMod.
             for e, lnseq in zip(elements_to_update, lnseq_list):
                 self.update_single_element_sequence(e, "".join(lnseq))
