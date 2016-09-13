@@ -683,8 +683,8 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
-        # self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
@@ -4206,7 +4206,7 @@ class PyMod:
 
     def launch_alignment_program(self, program, strategy):
         # TODO: use a 'selected_elements' arguments.
-        reload(pmptca)
+        # Regular.
         if strategy == "regular":
             # Sequence alignments.
             if program == "clustalw":
@@ -4220,7 +4220,9 @@ class PyMod:
             # Structural alignments.
             elif program == "ce":
                 a = pmptca.CEalign_regular_alignment_protocol(self)
-
+            elif program == "salign-str":
+                a = pmptca.SALIGN_str_regular_alignment_protocol(self)
+        # Profile.
         elif strategy == "profile":
             if program == "clustalw":
                 a = pmptca.Clustalw_profile_alignment_protocol(self)

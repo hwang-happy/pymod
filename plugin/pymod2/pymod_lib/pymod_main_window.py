@@ -457,8 +457,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
         # self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose)
         self.structural_alignment_menu.add_command(label = "CE Alignment", command = lambda program="ce", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
-        # self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)",
-        #     command = lambda program="salign-str": self.pymod.launch_regular_alignment_from_the_main_menu(program))
+        self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)", command = lambda program="salign-str", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
         # # Structural analysis.
         # self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
