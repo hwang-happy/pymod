@@ -1,3 +1,7 @@
+# TODO:
+#   - quit the process if there are some errors.
+#   - add new options to the various alignment tools.
+
 import os
 import sys
 import shutil
@@ -301,7 +305,7 @@ class Alignment_protocol(PyMod_protocol):
             self.update_single_element_sequence(element_to_update, r.seq)
 
 
-    def update_aligned_sequences_inserting_modres(self):
+    def update_aligned_sequences_inserting_modres(self, replace_modres_symbol=None):
         """
         When saving alignments from PyMOL object built using cealign, PyMOL removes
         heteroresidues. This code will be needed to reinsert them in the aligned sequences
@@ -314,7 +318,10 @@ class Alignment_protocol(PyMod_protocol):
         lnseq_list = []
         elements_to_update = []
         for a, r in enumerate(records):
-            lnseq_list.append(list(str(r.seq)))
+            if replace_modres_symbol:
+                lnseq_list.append(filter(lambda p: p != replace_modres_symbol, list(str(r.seq))))
+            else:
+                lnseq_list.append(list(str(r.seq)))
             element_to_update = self.elements_to_align_dict[str(r.id)]
             elements_to_update.append(element_to_update)
         # Define where the new heteroresidues will have to be inserted in the updated sequences.
@@ -1707,6 +1714,8 @@ class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_seque
 
 class SALIGN_alignment_protocol:
 
+    use_hetatm = False
+
     def alignment_program_exists(self):
         return self.tool.can_be_launched()
 
@@ -1760,7 +1769,8 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
             modeller.log.minimal()
             env = modeller.environ()
             env.io.atom_files_directory = ['.', self.pymod.structures_directory]
-            env.io.hetatm = True
+            if self.use_hetatm:
+                env.io.hetatm = True
             aln = modeller.alignment(env,
                                      file=shortcut_to_temp_files +".ali",
                                      alignment_format='PIR')
@@ -1788,7 +1798,8 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
             print >> config, "modeller.log.verbose()"
             print >> config, "env = modeller.environ()"
             print >> config, "env.io.atom_files_directory = ['.', '"+self.pymod.structures_directory+"']"
-            print >> config, "env.io.hetatm = True"
+            if self.use_hetatm:
+                print >> config, "env.io.hetatm = True"
             print >> config, "aln = modeller.alignment(env,file='%s', alignment_format='PIR')" % (shortcut_to_temp_files + ".ali")
             if use_structural_information:
                 print >> config, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
@@ -1816,7 +1827,8 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
             modeller.log.minimal()
             env = modeller.environ()
             env.io.atom_files_directory = ['.', self.pymod.structures_directory]
-            env.io.hetatm = True
+            if self.use_hetatm:
+                env.io.hetatm = True
             env.libs.topology.read(file="$(LIB)/top_heav.lib")
 
             for profile2 in [os.path.join(self.pymod.alignments_directory,
@@ -1870,7 +1882,8 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
                 print >>config, "modeller.log.verbose()"
                 print >>config, "env = modeller.environ()"
                 print >>config, "env.io.atom_files_directory = ['.', '"+self.pymod.structures_directory+"']"
-                print >>config, "env.io.hetatm = True"
+                if self.use_hetatm:
+                    print >>config, "env.io.hetatm = True"
                 print >>config, "aln = modeller.alignment(env, file='%s', alignment_format='PIR')"%(profile1_shortcut)
                 if use_structural_information:
                     print >>config, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
@@ -1888,6 +1901,9 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
         # self.pymod.convert_alignment_format(profile1_name, output_file_name)
         self.pymod.convert_sequence_file_format(profile1_shortcut, "pir", "clustal", output_file_name=output_file_name)
 
+
+    def update_aligned_sequences(self):
+        self.update_aligned_sequences_inserting_modres(replace_modres_symbol=".")
 
 
 class SALIGN_seq_regular_alignment_protocol(SALIGN_seq_alignment_protocol, Regular_sequence_alignment_protocol):
@@ -2022,10 +2038,6 @@ class SALIGN_str_regular_alignment_protocol(SALIGN_alignment_protocol, Regular_s
         shortcut_to_temp_files = os.path.join(self.pymod.current_project_directory_full_path,self.pymod.alignments_directory,output_file_name)
         struct_tup=range(0,len(structures_to_align))
         for ii in range(0,len(structures_to_align)):
-            # struct_entry=structures_to_align[ii].structure.chain_pdb_file_name_root
-            # header = structures_to_align[ii].my_header
-            # chain_id=structures_to_align[ii].structure.pdb_chain_id
-            # struct_tup[ii]=(struct_entry,header,chain_id)
             struct_entry=structures_to_align[ii].get_structure_file(name_only=True, strip_extension=True)
             header = structures_to_align[ii].get_unique_index_header()
             chain_id=structures_to_align[ii].get_structure_chain_id()
@@ -2068,7 +2080,7 @@ class SALIGN_str_regular_alignment_protocol(SALIGN_alignment_protocol, Regular_s
                    improve_alignment=False, fit=False, write_fit=True,
                    write_whole_pdb=False,output='QUALITY')
 
-        else: # except:
+        else:
             # create salign_multiple_struc.py for external modeller execution
 
             config=open("salign_multiple_struc.py", "w")
@@ -2100,7 +2112,6 @@ class SALIGN_str_regular_alignment_protocol(SALIGN_alignment_protocol, Regular_s
         # original structure to saligned structures, and replaces
         # "*_fit.pdb" files with the superposed liganded original structure.
         for (pdb_file_name_root, code, chain) in struct_tup:
-            print "@", pdb_file_name_root, code, chain
             fixed= os.path.join(self.pymod.structures_directory, pdb_file_name_root + "_fit.pdb")
             cmd.load(fixed,"salign_fixed_fit")
             if hasattr(cmd,"super"): # super is sequence-independent

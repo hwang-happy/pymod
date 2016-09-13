@@ -396,5 +396,5 @@ def get_prot_three_to_one(three_letter_code):
 std_amino_acid_backbone_atoms = set(("N","CA","C"))
 mod_amino_acid_backbone_atoms = set(("N2","C1","C2"))
 
-modified_residue_one_letter = ":"
-ligand_one_letter = "."
+modified_residue_one_letter = "X"
+ligand_one_letter = "x"
