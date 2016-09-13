@@ -1,4 +1,5 @@
-# TODO: order the methods among the classes and the main mixin.
+# TODO:
+#     - order the methods among the classes and the main mixin.
 
 from Tkinter import *
 from tkFileDialog import *
@@ -300,6 +301,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
 
         PyMod_main_window_mixin.pymod = pymod
 
+        self.parent = parent
         self.title(self.pymod.pymod_plugin_name)
         self.resizable(1,1)
         self.geometry('800x320')
@@ -820,9 +822,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.build_header_popup_menu()
         self.bind_events_to_header_entry()
 
-        # # Marks the element as being 'showed' in PyMod's main window.
-        # self.is_shown = True # TODO: remove.
-
 
     #################################################################
     # Bindings for mouse events.                                    #
@@ -833,8 +832,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.bind("<B1-Motion>", self.on_header_left_drag)
         self.bind("<Motion>", self.show_sequence_message_bar_text)
         self.bind("<Button-2>", self.click_structure_with_middle_button)
-        if 0:
-            self.bind("<ButtonRelease-3>", self.on_header_right_click)
+        self.bind("<ButtonRelease-3>", self.on_header_right_click)
 
 
     def on_header_left_click(self, event):
@@ -863,7 +861,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             pass
 
 
-    def click_structure_with_middle_button(self,event=None):
+    def click_structure_with_middle_button(self, event=None):
         if self.pymod_element.has_structure():
             # Shows the structure and centers if the sequence is selected in Pymod.
             if self.pymod_element.selected:
@@ -881,14 +879,15 @@ class Header_entry(Entry, PyMod_main_window_mixin):
                 self.hide_chain_in_pymol_from_header_entry()
 
 
-    def on_header_right_click(self,event):
+    def on_header_right_click(self, event):
         """
         Builds a popup menu in the left frame to interact with the sequence.
         """
-        try:
+        if 1: # try:
+            self.build_header_popup_menu()
             self.header_popup_menu.tk_popup(event.x_root, event.y_root, 0)
-        except:
-            pass
+        # except:
+        #     pass
         # popup_menu.grab_release()
         self["disabledbackground"] = 'black'
 
@@ -902,14 +901,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     #     cmd.select(selection, sel)
 
     def center_chain_in_pymol_from_header_entry(self):
-        cmd.center(self.pymod_element.get_pymol_object_name())
+        self.pymod.center_chain_in_pymol(self.pymod_element)
 
     def hide_chain_in_pymol_from_header_entry(self):
-        # Use enable or disable?
-        cmd.disable(self.pymod_element.get_pymol_object_name())
+        self.pymod.hide_chain_in_pymol(self.pymod_element)
 
     def show_chain_in_pymol_from_header_entry(self):
-        cmd.enable(self.pymod_element.get_pymol_object_name())
+        self.pymod.show_chain_in_pymol(self.pymod_element)
 
 
     #################################################################
@@ -926,7 +924,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         main window left pan.
         """
         self.header_popup_menu = Menu(self.parent, tearoff=0, bg='white',
-            activebackground='black', activeforeground='white', postcommand=self.update_left_popup_menu)
+            activebackground='black', activeforeground='white')
 
         # Builds a popup menu for sequence elements.
         if not self.pymod_element.is_cluster():
@@ -940,6 +938,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.selection_menu = Menu(self.header_popup_menu, tearoff=0, bg='white',
             activebackground='black', activeforeground='white')
         self.header_popup_menu.add_cascade(menu=self.selection_menu, label="Selection", state=DISABLED)
+        self.update_left_popup_menu()
 
 
     def update_left_popup_menu(self):
@@ -978,7 +977,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.header_popup_menu.add_separator()
 
         # Build the "Cluster Options" menu.
-        if self.pymod_element.is_child:
+        if self.pymod_element.is_child():
             self.build_cluster_options_menu()
             self.header_popup_menu.add_separator()
 
@@ -1056,9 +1055,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         self.header_popup_menu.add_cascade(menu=self.color_menu, label="Color")
 
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
     def can_be_colored_by_secondary_structure(self):
         """
         Returns True if the element has an associated structure or has a secondary structure
@@ -1080,29 +1077,25 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             return True
         else:
             return False
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
     def build_structure_menu(self):
         """
         Submenu for elements that have a structure loaded in PyMOL.
         """
-        # TODO: complete this menu.
-        return None
         self.structure_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         if self.pymod_element.has_structure():
-            self.structure_menu.add_command(label="Center Chain in PyMOL", command=self.center_chain_in_pymol)
+            self.structure_menu.add_command(label="Center Chain in PyMOL", command=self.center_chain_in_pymol_from_header_entry)
             # A switch could be nice.
-            self.structure_menu.add_command(label="Show Chain in PyMOL", command=self.show_chain_in_pymol)
-            self.structure_menu.add_command(label="Hide Chain in PyMOL", command=self.hide_chain_in_pymol)
+            self.structure_menu.add_command(label="Show Chain in PyMOL", command=self.show_chain_in_pymol_from_header_entry)
+            self.structure_menu.add_command(label="Hide Chain in PyMOL", command=self.hide_chain_in_pymol_from_header_entry)
             self.structure_menu.add_separator()
-            self.structure_menu.add_command(label="PDB Chain Information", command=pymod.show_pdb_info)
+            self.structure_menu.add_command(label="PDB Chain Information", command=self.show_structure_info)
         else:
             if self.pymod_element.pdb_is_fetchable():
-                self.structure_menu.add_command(label="Fetch PDB File", command = lambda: pymod.fetch_pdb_files("single", self))
+                self.structure_menu.add_command(label="Fetch PDB File", command = lambda: self.pymod.fetch_pdb_files("single", self.pymod_element))
                 self.structure_menu.add_separator()
-            self.structure_menu.add_command(label="Associate 3D Structure", command=lambda: pymod.associate_structure_from_popup_menu(self))
+            self.structure_menu.add_command(label="Associate 3D Structure", command=lambda: self.pymod.associate_structure_from_popup_menu(self.pymod_element))
         self.header_popup_menu.add_cascade(menu=self.structure_menu, label="Structure")
 
 
@@ -1110,10 +1103,9 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         Submenu with options to manage a sequence within its cluster.
         """
-        return None # TODO.
         self.cluster_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         self.cluster_menu.add_command(label="Extract Sequence from Cluster", command=self.extract_from_cluster)
-        if not self.is_lead():
+        if not self.pymod_element.is_lead():
             self.cluster_menu.add_separator()
             self.cluster_menu.add_command(label="Make Cluster Lead", command=self.make_lead_from_left_menu)
         self.header_popup_menu.add_cascade(menu=self.cluster_menu, label="Cluster Options")
@@ -1242,6 +1234,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
 
     def build_selection_structure_menu(self):
+        return False
         self.selection_structure_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         if self.pymod.all_sequences_have_structure():
             self.selection_structure_menu.add_command(label="Show chains in PyMOL", command=self.show_selected_chains_in_pymol)
@@ -1257,13 +1250,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.selection_cluster_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         self.selection_cluster_menu.add_command(label="Extract Sequences from their Clusters", command=self.extract_selection_from_cluster)
         selected_sequences = self.pymod.get_selected_sequences()
-        # TODO: implement again.
-        # mother_indices_set = set([e.mother_index for e in selected_sequences])
-        # if len(mother_indices_set) == 1:
-        #     mother = pymod.get_mother_by_index(list(mother_indices_set)[0])
-        #     children = pymod.get_children(mother)
-        #     if len(selected_sequences) < len(children):
-        #         self.selection_cluster_menu.add_command(label="Extract Sequences to New Cluster", command=self.extract_selection_to_new_cluster_from_left_menu)
+        mothers_set = set([s.mother for s in selected_sequences])
+        if len(mothers_set) == 1:
+            mother = list(mothers_set)[0]
+            children = mother.get_children()
+            if len(selected_sequences) < len(children):
+                self.selection_cluster_menu.add_command(label="Extract Sequences to New Cluster", command=self.extract_selection_to_new_cluster_from_left_menu)
         self.selection_menu.add_cascade(menu=self.selection_cluster_menu, label="Cluster Options")
 
 
@@ -1290,102 +1282,139 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     # Sequence manipulation.          #
     ###################################
 
-    # Extracts an element from an alignment.
+    #------------
+    # Clusters. -
+    #------------
+    
     def extract_from_cluster(self):
-        pymod.extract_child(self)
-        pymod.gridder()
+        """
+        Extracts an element from an alignment.
+        """
+        self.pymod_element.extract_to_upper_level()
+        self.pymod.gridder(update_clusters=True, update_menus=True)
 
     def extract_selection_from_cluster(self):
-        for e in pymod.get_selected_sequences():
-            pymod.extract_child(e)
-        pymod.gridder()
+        # for e in pymod.get_selected_sequences():
+        #     pymod.extract_child(e)
+        # pymod.gridder()
+        pass
 
     def extract_selection_to_new_cluster_from_left_menu(self):
-        pymod.extract_selection_to_new_cluster()
+        # pymod.extract_selection_to_new_cluster()
+        pass
 
     def make_lead_from_left_menu(self):
-        pymod.mark_as_lead(self)
-        pymod.gridder()
+        # pymod.mark_as_lead(self)
+        # pymod.gridder()
+        pass
+
+    #------------------
+    # Save sequences. -
+    #------------------
 
     def save_sequence_from_left_pane(self):
         """
         Save option in the popup menu, it saves a single sequence.
         """
-        pymod.sequence_save(self)
+        self.pymod.sequence_save_dialog(self.pymod_element)
 
     def save_selection_from_left_pane(self):
-        pymod.save_selection()
+        self.pymod.save_selection_dialog()
 
-    # Copy option in the popup menu, copies a single sequence.
+    #---------------------
+    # Copy to clipboard. -
+    #---------------------
+
     def copy_sequence_to_clipboard(self):
-        pymod.parent.clipboard_clear()
-        pymod.parent.clipboard_append(self.my_sequence)# self.entry.get("1.0", END))
+        """
+        Copy option in the popup menu, copies a single sequence.
+        """
+        self.pymod.main_window.parent.clipboard_clear()
+        self.pymod.main_window.parent.clipboard_append(self.pymod_element.my_sequence)
 
-    # Copy selection
     def copy_selection(self):
-        pymod.parent.clipboard_clear()
+        self.pymod.main_window.parent.clipboard_clear()
         text_to_copy = ""
-        for element in pymod.pymod_elements_list:
-            if element.selected and not element.is_cluster():
-                # Adapt it for WINDOWS.
+        for element in self.pymod.get_selected_sequences():
+                # TODO: Adapt it for WINDOWS.
                 text_to_copy += element.my_sequence + "\n"
-        pymod.parent.clipboard_append(text_to_copy)
+        self.pymod.main_window.parent.clipboard_append(text_to_copy)
 
+
+    #---------------------------------
+    # Edit sequences and structures. -
+    #---------------------------------
 
     def edit_sequence(self):
-        pass
+        self.pymod.show_edit_sequence_window(self.pymod_element)
 
 
     def edit_structure(self):
+        raise Exception("TODO.")
+
+
+    #------------------------------------------------
+    # Build new sequences and delete old sequences. -
+    #------------------------------------------------
+
+    def duplicate_sequence_from_the_left_pane(self):
+        """
+        Duplicates a single sequence.
+        """
+        self.pymod.duplicate_sequence(self.pymod_element)
+        self.pymod.gridder()
+
+    def duplicate_selection(self):
+        for e in self.pymod.get_selected_sequences():
+            self.pymod.duplicate_sequence(e)
+        self.pymod.gridder()
+
+
+    def delete_sequence_from_the_left_pane(self):
+        """
+        Delete option in the popup menu.
+        """
+        self.pymod.delete_element(self.pymod_element)
+        self.pymod.gridder(update_clusters=True, update_menus=True)
+
+    def delete_many_sequences(self):
+        # Delete the selected sequences.
+        for element in self.pymod.get_selected_sequences():
+            self.pymod.delete_element(element)
+        # Empty cluster elements will be deleted in the 'gridder' method.
+        self.pymod.gridder(update_clusters=True, update_menus=True)
+
+
+    #------------------------------
+    # Save and delete alignments. -
+    #------------------------------
+
+    def save_alignment_from_the_left_pan(self):
+        # pymod.alignment_save(self.get_cluster())
         pass
 
 
-    # Duplicates a single sequence.
-    def duplicate_sequence_from_the_left_pane(self):
-        pymod.duplicate_sequence(self)
-        pymod.gridder()
-
-    # Duplicate selection
-    def duplicate_selection(self):
-        for e in pymod.get_selected_sequences():
-            pymod.duplicate_sequence(e)
-        pymod.gridder()
-
-
-    # Delete option in the popup menu. When multiple sequences have to be deleted the parameter
-    # multiple is se to True.
-    def delete_sequence_from_the_left_pane(self):
-        pymod.delete_element(self)
-        pymod.gridder()
-
-    # Deletes many sequences.
-    def delete_many_sequences(self):
-        # First delete clusters that were entirely selected.
-        to_delete_list = [e for e in pymod.pymod_elements_list if e.selected and e.is_cluster()]
-        for element in to_delete_list:
-            pymod.delete_whole_cluster(element)
-        to_delete_list = [e for e in pymod.pymod_elements_list if e.selected]
-        # Then delete other selected elements.
-        for element in to_delete_list:
-            pymod.delete_element(element)
-        pymod.gridder()
-
-
-    def save_alignment_from_the_left_pan(self):
-        pymod.alignment_save(self.get_cluster())
-
-
     def delete_alignment_from_the_left_pane(self):
-        title = "Delete Cluster?"
-        message = "Are you sure you want to delete %s?" % (self.get_cluster().my_header)
-        choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
-        if choice:
-            pymod.delete_alignment(self.get_cluster())
-        pymod.gridder()
+        # title = "Delete Cluster?"
+        # message = "Are you sure you want to delete %s?" % (self.get_cluster().my_header)
+        # choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
+        # if choice:
+        #     pymod.delete_alignment(self.get_cluster())
+        # pymod.gridder()
+        pass
 
 
     def transfer_alignment_from_the_left_pane(self):
-        pymod.transfer_alignment(self.get_cluster())
+        # pymod.transfer_alignment(self.get_cluster())
+        pass
+
+
+    #--------------------------------------------
+    # Show sequence and structures information. -
+    #--------------------------------------------
+
+    def show_structure_info(self):
+        raise Exception("TODO")
 
 
 ###################################################################################################

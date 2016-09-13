@@ -1,3 +1,7 @@
+# TODO:
+#     - reorganize the code in well defined sections.
+#     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
+
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
 # Copyright (C) 2016 Giacomo Janson, Chengxin Zhang, Alessandro Paiardini
@@ -683,13 +687,16 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
+        self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min.fasta"), "fasta")
+        self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
+        self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
 
         self.gridder(update_menus=True)
 
@@ -1126,7 +1133,7 @@ class PyMod:
         sequences currently selected in the GUI.
         """
         selection = self.build_sequence_selection(selection)
-        if False in [e.is_child for e in selection]:
+        if False in [e.is_child() for e in selection]:
             return False
         else:
             return True
@@ -1282,6 +1289,8 @@ class PyMod:
         """
         Method for loading in PyMod new sequences parsed from sequence files.
         """
+        if not os.path.isfile(file_full_path):
+            raise Exception("File does not exist: %s." % file_full_path)
         if not self.is_sequence_file(file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
         fn = open(file_full_path, "rU")
@@ -1452,6 +1461,141 @@ class PyMod:
         #             self.delete_element(element)
         #
         # self.gridder()
+
+
+    ###############################################################################################
+    # INTERACTIONS WITH PYMOL.                                                                    #
+    ###############################################################################################
+
+    def load_element_in_pymol(self, element, mode = None):
+        """
+        Loads the PDB structure of the chain into PyMol.
+        """
+        file_to_load = element.get_structure_file()
+        pymol_object_name = element.get_pymol_object_name()
+        cmd.load(file_to_load, pymol_object_name)
+        # chain_root_name = element.build_chain_selector_for_pymol()
+        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
+        # cmd.load(file_name_to_load)
+        # cmd.select("last_prot", chain_root_name)
+        # cmd.hide("everything", "last_prot")
+        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
+        # if mode == "model":
+        #     cmd.color("white", "last_prot")
+        # else:
+        #     cmd.color(element.my_color, "last_prot")
+        # cmd.util.cnc("last_prot") # Colors by atom.
+        # cmd.center('last_prot')
+        # cmd.zoom('last_prot')
+        # cmd.delete("last_prot")
+
+
+    def center_chain_in_pymol(self, pymod_element):
+        cmd.center(pymod_element.get_pymol_object_name())
+
+    def hide_chain_in_pymol(self, pymod_element):
+        # Use enable or disable?
+        print "OK"
+        cmd.disable(pymod_element.get_pymol_object_name())
+
+    def show_chain_in_pymol(self, pymod_element):
+        cmd.enable(pymod_element.get_pymol_object_name())
+
+
+    ###############################################################################################
+    # EDIT SEQUENCE AND STRUCTURES.                                                               #
+    ###############################################################################################
+
+    def show_edit_sequence_window(self, pymod_element):
+        """
+        Edit a sequence.
+        """
+        # Builds the GUI.
+        child=Toplevel(pymod.main_window)
+        child.resizable(0,0)
+        #  self.child.geometry('400x500-10+40')
+        child.title("<< Edit Sequence >>")
+        child.config()
+        try:
+            child.grab_set()
+        except:
+            pass
+        ch_main = Frame(child, background='black')
+        ch_main.pack(expand = YES, fill = BOTH)
+        midframe = Frame(ch_main, background='black')
+        midframe.pack(side = TOP, fill = BOTH, anchor="n", ipadx = 5, ipady = 5)
+        lowerframe = Frame(ch_main, background='black')
+        lowerframe.pack(side = BOTTOM, expand = NO, fill = Y, anchor="center", ipadx = 5, ipady = 5)
+        L1 = Label(midframe,font = "comic 12", text="", bg="black", fg= "red")
+        L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
+        scrollbar = Scrollbar(midframe)
+        scrollbar.grid(row=1, column=2, sticky="ns")
+        textarea=Text(midframe, yscrollcommand=scrollbar.set, font = "comic 12",
+                      height=10, bd=0, foreground = 'black', background = 'white',
+                      selectbackground='black', selectforeground='white', width = 60 )
+        textarea.config(state=NORMAL)
+        textarea.tag_config("normal", foreground="black")
+        textarea.insert(END, pymod_element.my_sequence)
+        textarea.grid( row=1, column=1, sticky="nw", padx=0)
+        scrollbar.config(command=textarea.yview)
+
+        # Accept the new sequence.
+        def submit():
+            edited_sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
+            if not pmgi.shared_components.check_non_empty_input(edited_sequence):
+                self.show_error_message("Sequence Error", "Please submit a non empty string.", parent_window=child)
+                return None
+            if not pmsm.check_correct_sequence(edited_sequence):
+                self.show_error_message("Sequence Error", "Please provide a sequence with only standard amino acid characters.", parent_window=child)
+                return None
+            pymod_element.set_sequence(edited_sequence, permissive=True)
+            self.gridder()
+            child.destroy()
+
+        # Submit button.
+        sub_button=Button(lowerframe, text="SUBMIT", command=submit, relief="raised", borderwidth="3", bg="black", fg="white")
+        sub_button.pack()
+
+
+    def duplicate_sequence(self, element_to_duplicate):
+        if element_to_duplicate.has_structure():
+            raise Exception("TODO")
+            # new_file_shortcut = os.path.join(self.structures_directory, element_to_duplicate.structure.original_pdb_file_name)
+            # target_chain_id = element_to_duplicate.structure.pdb_chain_id
+            # # Builds a 'Parsed_pdb_file' object.
+            # pdb_file = Parsed_pdb_file(os.path.abspath(new_file_shortcut))
+            # # Start parsing the PDB file.
+            # pdb_file.parse_pdb_file()
+            # # Builds 'Pymod_elements' objects for each chain present in the PDB file and adds the PDB
+            # # file to the record of PDB files loaded in PyMod.
+            # pdb_file.build_structure_objects(add_to_pymod_pdb_list = False)
+            # # Builds an element and load a structure only for target elements.
+            # for chain_id in pdb_file.get_chains_ids():
+            #     if chain_id == target_chain_id:
+            #         new_element = pdb_file.get_chain_pymod_element(chain_id)
+            #         self.add_element_to_pymod(new_element, "mother")
+            #         self.load_element_in_pymol(new_element)
+        else:
+            # c = PyMod_element(
+            #     str(element_to_duplicate.my_sequence).replace("-",""), element_to_duplicate.my_header_fix,
+            #     full_original_header= "Copy of " + element_to_duplicate.full_original_header, element_type="sequence")
+            duplicated_element = pmel.PyMod_sequence_element(element_to_duplicate.my_sequence, element_to_duplicate.my_header_root)
+            self.add_element_to_pymod(duplicated_element)
+
+
+    def delete_element(self, element):
+        # TODO: place these in the right place.
+        if element.has_structure():
+            self.delete_pdb_file(element)
+        self.remove_element_from_pymod(element)
+
+
+    def delete_pdb_file(self,element):
+        # If the sequence has a PDB file loaded inside PyMOL, then delete it.
+        try:
+            cmd.delete(element.get_pymol_object_name())
+        except:
+            pass
 
 
     def associate_structure_from_popup_menu(self, target_element):
@@ -1682,29 +1826,6 @@ class PyMod:
         self.main_window.delete_pymod_element_widgets(element)
 
 
-    def load_element_in_pymol(self, element, mode = None):
-        """
-        Loads the PDB structure of the chain into PyMol.
-        """
-        file_to_load = element.get_structure_file()
-        pymol_object_name = element.get_pymol_object_name()
-        cmd.load(file_to_load, pymol_object_name)
-        # chain_root_name = element.build_chain_selector_for_pymol()
-        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
-        # cmd.load(file_name_to_load)
-        # cmd.select("last_prot", chain_root_name)
-        # cmd.hide("everything", "last_prot")
-        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
-        # if mode == "model":
-        #     cmd.color("white", "last_prot")
-        # else:
-        #     cmd.color(element.my_color, "last_prot")
-        # cmd.util.cnc("last_prot") # Colors by atom.
-        # cmd.center('last_prot')
-        # cmd.zoom('last_prot')
-        # cmd.delete("last_prot")
-
-
     def add_new_cluster_to_pymod(self, cluster_type="generic", query=None, cluster_name=None, child_elements=[], algorithm=None, update_stars=True):
         if not cluster_type in ("alignment", "blast-cluster", "generic"):
             raise Exception("Invalid cluster type.")
@@ -1784,23 +1905,24 @@ class PyMod:
             self.show_error_message("Selection Error","There aren't any sequences currently loaded in PyMod.")
 
 
-    def sequence_save(self, element):
+    def sequence_save_dialog(self, element):
         """
         Save a single sequence to a file.
         """
+        # Ask to remove indels.
         remove_indels_choice = False
         if "-" in element.my_sequence:
             remove_indels_choice = tkMessageBox.askyesno(message="Would you like to remove indels from the sequence when saving it to a file?", title="Save File", parent=self.main_window)
-
+        # Choose the file path.
         filepath=asksaveasfilename(filetypes=[("fasta","*.fasta")],parent=self.main_window)
-
+        # Actually saves the file.
         if not filepath == "":
             dirpath = os.path.dirname(filepath)
             filename = os.path.splitext(os.path.basename(filepath))[0]
             self.build_sequences_file([element], filename, file_format="fasta", remove_indels=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
 
 
-    def save_selection(self, mode="selection"):
+    def save_selection_dialog(self, mode="selection"):
         """
         Save selection in a single file.
         """
@@ -1810,20 +1932,18 @@ class PyMod:
             selection = self.get_selected_sequences()
         elif mode == "all":
             selection = self.get_all_sequences()
-
         # Ask users if they want to include indels in the sequences to save.
         remove_indels_choice = False
         for e in selection:
             if "-" in e.my_sequence:
                 remove_indels_choice = tkMessageBox.askyesno(message="Would you like to remove indels from the sequences when saving them to a file?", title="Save Selection", parent=self.main_window)
                 break
-
         # Ask users to chose a directory where to save the files.
         filepath=asksaveasfilename(filetypes=[("fasta","*.fasta")],parent=self.main_window)
         if not filepath == "":
             dirpath = os.path.dirname(filepath)
             filename = os.path.splitext(os.path.basename(filepath))[0]
-            self.build_sequences_file(selection, filename, file_format="fasta", remove_indels=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
+            self.build_sequences_file(selection, filename, file_format="fasta", remove_indels=remove_indels_choice, same_length=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
 
 
     def alignment_save(self, alignment_element):
@@ -6430,62 +6550,6 @@ class PyMod:
 #             else:
 #                 srg.use = False
 #         return correct_symmetry_vars
-#
-#
-# # TODO: remove this section.
-# ####################################################################################################
-# # OTHER.                                                                                           #
-# ####################################################################################################
-#
-# def edit_sequence(self):
-#     # TODO: Include a label with the sequence title and also an entry that displayes the index of
-#     #       the residue where the position of the editor currently is.
-#     #       Right now it does not check if incorrect character are supplied.
-#     self.child=Toplevel(pymod.main_window)
-#     self.child.resizable(0,0)
-#     #  self.child.geometry('400x500-10+40')
-#     self.child.title("<< Edit Sequence >>")
-#     self.child.config()
-#     try:
-#         self.child.grab_set()
-#     except:
-#         pass
-#     self.ch_main = Frame(self.child, background='black')
-#     self.ch_main.pack(expand = YES, fill = BOTH)
-#
-#     self.midframe = Frame(self.ch_main, background='black')
-#     self.midframe.pack(side = TOP, fill = BOTH, anchor="n",
-#                           ipadx = 5, ipady = 5)
-#
-#     self.lowerframe = Frame(self.ch_main, background='black')
-#     self.lowerframe.pack(side = BOTTOM, expand = NO, fill = Y, anchor="center",
-#                           ipadx = 5, ipady = 5)
-#
-#     L1 = Label(self.midframe,font = "comic 12", text="", bg="black", fg= "red")
-#     L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
-#
-#     scrollbar = Scrollbar(self.midframe)
-#     scrollbar.grid(row=1, column=2, sticky="ns")
-#
-#     textarea=Text(self.midframe, yscrollcommand=scrollbar.set, font = "comic 12",
-#                   height=10, bd=0, foreground = 'black', background = 'white',
-#                   selectbackground='black', selectforeground='white', width = 60 )
-#     textarea.config(state=NORMAL)
-#     textarea.tag_config("normal", foreground="black")
-#     textarea.insert(END, self.sequence_entry.get("1.0", END))
-#     textarea.grid( row=1, column=1, sticky="nw", padx=0)
-#
-#     scrollbar.config(command=textarea.yview)
-#
-#     def submit():
-#         edited_sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
-#         self.update_element(new_sequence=edited_sequence)
-#         pymod.gridder()
-#         self.child.destroy()
-#
-#     sub_button=Button(self.lowerframe, text="SUBMIT", command=submit,
-#                                     relief="raised", borderwidth="3", bg="black", fg="white")
-#     sub_button.pack()
 
 
 ###################################################################################################

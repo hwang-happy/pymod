@@ -158,6 +158,17 @@ class PyMod_element:
             return filter(lambda c: c != self, self.mother.list_of_children)
 
 
+    def extract_to_upper_level(self):
+        new_mother = self.mother.mother
+        # self.extract_from_cluster()
+        new_mother.add_child(self)
+
+
+    def extract_from_cluster(self):
+        mother = self.mother
+        mother.remove_child(self)
+
+
     #################################################################
     # Check element properties.                                     #
     #################################################################
@@ -194,12 +205,6 @@ class PyMod_element:
 
     def is_bridge(self):
         return self.bridge
-
-    def get_lead(self):
-        for child in self.get_children():
-            if child.is_lead():
-                return child
-        return None
 
 
     #################################################################
@@ -240,7 +245,7 @@ class PyMod_cluster_element(PyMod_element):
 
 
     def add_children(self, children):
-        if not hasattr(children,"__iter__"):
+        if not hasattr(children, "__iter__"):
             children = [children]
         for child in children:
             self.add_child(child)
@@ -260,12 +265,16 @@ class PyMod_cluster_element(PyMod_element):
     def remove_child(self, child):
         self.list_of_children.remove(child)
 
-    def extract_from_cluster(self):
-        mother = self.mother
-        mother.remove_child(self)
-
     def get_children(self):
         return self.list_of_children
+
+    def get_lead(self):
+        for child in self.get_children():
+            if child.is_lead():
+                return child
+        return None
+
+    # TODO: insert here the methods like "update_stars", etc...
 
 
 class PyMod_root_element(PyMod_cluster_element):
@@ -344,7 +353,7 @@ class PyMod_sequence_element(PyMod_element):
         for letter in self.my_sequence:
             if letter != "-":
                 self.residues.append(PyMod_residue(one_letter_code = letter,
-                                               three_letter_code = pmdt.get_prot_one_to_three(letter)))
+                                                   three_letter_code = pmdt.get_prot_one_to_three(letter)))
 
     def set_sequence_from_residues(self):
         my_sequence = ""
@@ -372,7 +381,7 @@ class PyMod_sequence_element(PyMod_element):
     # Sequence related.                                                                           #
     ###############################################################################################
 
-    def set_sequence(self, new_sequence, exclude_new_heteroatoms=False, exclude_old_heteroatoms=False):
+    def set_sequence(self, new_sequence, exclude_new_heteroatoms=False, exclude_old_heteroatoms=False, permissive=False):
         current_sequence_ungapped = self.my_sequence.replace("-","")
         if exclude_old_heteroatoms:
             current_sequence_ungapped = self.my_sequence.replace("-","").replace(pmdt.modified_residue_one_letter,"")
@@ -381,11 +390,14 @@ class PyMod_sequence_element(PyMod_element):
         #     new_sequence_ungapped = self.my_sequence.replace("-","").replace(pmdt.modified_residue_one_letter,"")
 
         if new_sequence_ungapped != current_sequence_ungapped:
-            # TODO: remove the output.
-            print "# Sequence:", self.my_header
-            print "# New:", new_sequence_ungapped
-            print "# Old:", current_sequence_ungapped
-            raise PyModSequenceConflict("The new sequence does not match with the previous one.")
+            if not permissive:
+                # TODO: remove the output.
+                print "# Sequence:", self.my_header
+                print "# New:", new_sequence_ungapped
+                print "# Old:", current_sequence_ungapped
+                raise PyModSequenceConflict("The new sequence does not match with the previous one.")
+            else:
+                self.update_sequence(new_sequence)
 
         self.my_sequence = new_sequence
         # modres_gapless_indices = [i for i,r in enumerate(self.residues) if r.is_modified_residue()]
@@ -397,6 +409,11 @@ class PyMod_sequence_element(PyMod_element):
         #             lnseq.insert(i,pmdt.modified_residue_one_letter)
         #         rc += 1
         # self.my_sequence = "".join(lnseq)
+
+
+    def update_sequence(self, new_sequence):
+        self.my_sequence = new_sequence
+        self.set_residues_from_sequence()
 
 
     ################################
@@ -427,6 +444,13 @@ class PyMod_sequence_element(PyMod_element):
     # Structure related.                                                                          #
     ###############################################################################################
 
+    def has_structure(self):
+        if self.structure != None:
+            return True
+        else:
+            return False
+
+
     def check_structure(method):
         def checker(self, **config):
             if not self.has_structure():
@@ -448,13 +472,6 @@ class PyMod_sequence_element(PyMod_element):
     @check_structure
     def get_pymol_object_name(self):
         return self.structure.get_pymol_object_name()
-
-
-    def has_structure(self):
-        if self.structure != None:
-            return True
-        else:
-            return False
 
 
     def has_predicted_secondary_structure(self):

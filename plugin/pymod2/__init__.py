@@ -7,17 +7,14 @@
 """
 """
 
-# GUI.
-import tkMessageBox
-
-# Check for systemwide libraries.
 import os
 import sys
+import tkMessageBox
 from pymod_lib import pymod_os_specific as pmos
 
-print "#", __file__
-
-# Cheks for NumPy.
+#-------------------
+# Cheks for NumPy. -
+#-------------------
 global numpy_found
 try:
     # Try to directly import NumPy in PyMOL.
@@ -37,7 +34,9 @@ except ImportError, e:
     else:
         numpy_found = False
 
-# Cheks for Biopython.
+#-----------------------
+# Cheks for Biopython. -
+#-----------------------
 global biopython_found
 try:
     pmos.check_biopython(raise_exception_on_fail=True)
@@ -54,7 +53,10 @@ except ImportError, e:
     else:
         biopython_found = False
 
-# Adds the directory where pymod files are located to the sys.path.
+#--------------------------------------------------------------------
+# Adds the directory where pymod files are located to the sys.path. -
+#--------------------------------------------------------------------
+
 pymod_plugin_dirpath = os.path.dirname(__file__)
 if os.path.isdir(pymod_plugin_dirpath):
     sys.path.append(pymod_plugin_dirpath)
@@ -97,13 +99,21 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
             except:
                 pass
 
-# Sets the version of the PyMod plugin.
+#----------------------------------------
+# Sets the version of the PyMod plugin. -
+#----------------------------------------
+
 global __version__
 __version__ = "0.2.2"
 global __revision__
 __revision__ = "1"
 global pymod_plugin_name
 pymod_plugin_name = "PyMod " + __version__
+
+
+#-----------------------------
+# Initialize PyMod in PyMOL. -
+#-----------------------------
 
 def __init__(self):
     """

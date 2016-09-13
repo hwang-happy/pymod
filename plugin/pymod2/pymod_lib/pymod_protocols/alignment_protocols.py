@@ -1,4 +1,5 @@
 # TODO:
+#   - reimplement distance trees and tree building.
 #   - quit the process if there are some errors.
 #   - add new options to the various alignment tools.
 
@@ -42,7 +43,7 @@ import pymod_lib.pymod_sequence_manipulation as pmsm
 global ce_alignment_mode
 try:
     # Try to import the ccealign module.
-    from ccealign import ccealign
+    from pymod_lib.ccealign import ccealign
     ce_alignment_mode = "plugin"
 except:
     if pmos.check_pymol_builtin_cealign():

@@ -1283,6 +1283,10 @@ def get_parent_window(target_widget):
     parent_window = target_widget.nametowidget(parent_window_name) # also: _nametowidget
     return parent_window
 
+
+def check_non_empty_input(gui_input):
+    return gui_input != ""
+
 #####################################################################
 # Classes for the graphical user interface.                         #
 #####################################################################

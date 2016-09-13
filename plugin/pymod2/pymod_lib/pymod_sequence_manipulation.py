@@ -196,6 +196,23 @@ def correct_sequence(sequence):
     return sequence
 
 
+def check_correct_sequence(sequence, remove_indels=True):
+    """
+    Check if string contains any characters not belonging to the standard protein residues alphabet
+    (plus the 'X' characters for heteroresidues.)
+    """
+    non_protein_character_found = False
+    if remove_indels:
+        sequence = sequence.replace("-","")
+    for c in sequence:
+        if not c in pmdt.prot_standard_and_x_one_letter:
+            non_protein_character_found = True
+    if non_protein_character_found:
+        return False
+    else:
+        return True
+
+
 ###################################################################################################
 # HEADERS MANIPULATION.                                                                           #
 ###################################################################################################
