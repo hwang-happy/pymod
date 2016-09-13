@@ -3,12 +3,13 @@ from tkFileDialog import *
 import tkMessageBox
 import tkFont
 import Pmw
+
 import os
 import sys
 
 # Provides functionalities to some widgets.
-import pymod_sequence_manipulation as pmsm
-import pymod_vars as pmdt
+import pymod_lib.pymod_sequence_manipulation as pmsm
+import pymod_lib.pymod_vars as pmdt
 
 ###################################################################################################
 # GENERAL STYLES.                                                                                 #

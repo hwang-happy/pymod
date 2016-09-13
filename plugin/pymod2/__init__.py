@@ -15,6 +15,8 @@ import os
 import sys
 from pymod_lib import pymod_os_specific as pmos
 
+print "#", __file__
+
 # Cheks for NumPy.
 global numpy_found
 try:
@@ -52,10 +54,14 @@ except ImportError, e:
     else:
         biopython_found = False
 
+# Adds the directory where pymod files are located to the sys.path.
+pymod_plugin_dirpath = os.path.dirname(__file__)
+if os.path.isdir(pymod_plugin_dirpath):
+    sys.path.append(pymod_plugin_dirpath)
+
 # Check if there if there is a 'python_libs' directory in PyMod plugin folder and try to import from
 # it the missing Pyhon libraries. The 'python_libs' folder may have been created by the PyMod
 # Installer Bundle, if some Python libraries were missing.
-pymod_plugin_dirpath = os.path.dirname(__file__)
 python_libs_dirpath = os.path.join(pymod_plugin_dirpath, "python_libs")
 if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpath):
     sys.path.insert(0, python_libs_dirpath)

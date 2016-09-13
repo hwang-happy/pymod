@@ -56,8 +56,8 @@ class Tool:
         # A list of Tkinter widgets for choosing the tools parameters values.
         self.parameters_widgets_list = []
 
-        tool_full_name_label = Label(target_frame, text=self.full_name, **pmgi.label_style_1)
-        tool_full_name_label.pack(**pmgi.pack_options_1)
+        tool_full_name_label = Label(target_frame, text=self.full_name, **pmgi.shared_components.label_style_1)
+        tool_full_name_label.pack(**pmgi.shared_components.pack_options_1)
         for i, parameter in enumerate(self.parameters):
             w = parameter.display_options(target_frame)
             # If the display options return a widget, adds it ot the Tool list of parameter widgets.
@@ -185,8 +185,8 @@ class Tool_parameter:
         This is going to be overriden in the child classes of this class, according to the kind of
         parameter.
         """
-        parameter_full_name_label = Label(target_frame, text=self.full_name, **pmgi.label_style_2)
-        parameter_full_name_label.pack(**pmgi.pack_options_1)
+        parameter_full_name_label = Label(target_frame, text=self.full_name, **pmgi.shared_components.label_style_2)
+        parameter_full_name_label.pack(**pmgi.shared_components.pack_options_1)
         # If the widget has to be aligned with other widgets in PyMod options window, then it has
         # to be returned by this method.
         return None
@@ -227,13 +227,13 @@ class Tool_path(Tool_parameter):
 
         starting_text = str(self.get_starting_value())
 
-        self.pef = pmgi.PyMod_path_entryfield(target_frame,
+        self.pef = pmgi.shared_components.PyMod_path_entryfield(target_frame,
             label_text = self.full_name,
-            label_style = pmgi.label_style_2,
+            label_style = pmgi.shared_components.label_style_2,
             value = starting_text,
             path_type = current_path_type, run_after_selection = self.run_after_selection,
             askpath_title = "Search for %s %s" % (self.parent_tool.full_name, self.full_name) )
-        self.pef.pack(**pmgi.pack_options_1)
+        self.pef.pack(**pmgi.shared_components.pack_options_1)
 
         # Returns the widget so that it can be aligned by the 'align_widgets()' method.
         return self.pef
@@ -347,11 +347,11 @@ class Use_importable_modeller(Tool_parameter):
             text_to_show += "available"
         else:
             text_to_show += "unavailable"
-        self.rds = pmgi.Use_importable_modeller_radioselect (
+        self.rds = pmgi.shared_components.Use_importable_modeller_radioselect (
             target_frame, importable_modeller=self.parent_tool.importable_modeller, initial_value=self.value,
-            label_text = self.full_name, label_style = pmgi.label_style_2, run_after_selection=self.update_status,
+            label_text = self.full_name, label_style = pmgi.shared_components.label_style_2, run_after_selection=self.update_status,
             value = text_to_show)
-        self.rds.pack(**pmgi.pack_options_1)
+        self.rds.pack(**pmgi.shared_components.pack_options_1)
         return self.rds
 
     def update_status(self):
@@ -375,13 +375,13 @@ class Modeller_exec_file(Tool_exec_file):
 
     def display_options(self, target_frame):
         starting_text = str(self.get_starting_value())
-        self.pef = pmgi.Modeller_exec_entryfield(target_frame,
+        self.pef = pmgi.shared_components.Modeller_exec_entryfield(target_frame,
             label_text = self.full_name,
-            label_style = pmgi.label_style_2,
+            label_style = pmgi.shared_components.label_style_2,
             value = starting_text,
             path_type = "file", run_after_selection = self.run_after_selection,
             askpath_title = "Search for %s %s" % (self.parent_tool.full_name, self.full_name))
-        self.pef.pack(**pmgi.pack_options_1)
+        self.pef.pack(**pmgi.shared_components.pack_options_1)
 
         if self.parent_tool["use_importable_modeller"].get_value() == "True":
             self.pef.hide_path_selector()

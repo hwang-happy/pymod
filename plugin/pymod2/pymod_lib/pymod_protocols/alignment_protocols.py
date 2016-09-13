@@ -22,7 +22,7 @@ from Bio.Align.Applications import MuscleCommandline
 try:
     from Bio.Align.Applications import ClustalOmegaCommandline
 except:
-    from pymod_sup import ClustalOmegaCommandline
+    from pymod_lib.pymod_sup import ClustalOmegaCommandline
 import Bio.PDB # Only needed for old CE-alignment implementation.
 
 import pymol
@@ -33,10 +33,10 @@ try:
 except:
     pass
 
-import pymod_vars as pmdt
-import pymod_os_specific as pmos
-import pymod_gui as pmgi
-import pymod_sequence_manipulation as pmsm
+import pymod_lib.pymod_vars as pmdt
+import pymod_lib.pymod_os_specific as pmos
+import pymod_lib.pymod_gui as pmgi
+import pymod_lib.pymod_sequence_manipulation as pmsm
 
 # CE-alignment.
 global ce_alignment_mode
@@ -175,7 +175,7 @@ class Alignment_protocol(PyMod_protocol):
         This method builds the structure of the alignment options window.
         """
         # Builds the window.
-        self.alignment_window = pmgi.PyMod_tool_window(self.pymod.main_window,
+        self.alignment_window = pmgi.shared_components.PyMod_tool_window(self.pymod.main_window,
             title = " %s Options " % (pmdt.algorithms_full_names_dict[self.alignment_program]),
             upper_frame_title = "Here you can modify options for %s" % (pmdt.algorithms_full_names_dict[self.alignment_program]),
             submit_command = self.alignment_state)
@@ -203,7 +203,7 @@ class Alignment_protocol(PyMod_protocol):
         """
         Builds a frame with some options to choose the alignment mode.
         """
-        self.alignment_mode_frame = pmgi.PyMod_frame(self.alignment_window.midframe)
+        self.alignment_mode_frame = pmgi.shared_components.PyMod_frame(self.alignment_window.midframe)
         self.alignment_mode_frame.grid(row=0, column=0, sticky = W+E+N+S,pady=(0,10))
         self.alignment_mode_row = 0
         self.alignment_mode_label = Label(self.alignment_mode_frame, font = "comic 12", height = 1,
@@ -215,7 +215,7 @@ class Alignment_protocol(PyMod_protocol):
 
 
     def build_algorithm_options_frame(self):
-        self.alignment_options_frame = pmgi.PyMod_frame(self.alignment_window.midframe)
+        self.alignment_options_frame = pmgi.shared_components.PyMod_frame(self.alignment_window.midframe)
         self.alignment_options_frame.grid(row=1, column=0, sticky = W+E+N+S)
         self.build_algorithm_options_widgets()
 
@@ -1212,7 +1212,7 @@ class Profile_alignment_protocol(Alignment_protocol):
         # which is going to be the target profile.
         if build_target_profile_frame:
             # Frame with the options to choose which is going to be the target profile.
-            self.target_profile_frame = pmgi.Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_clusters_list, label_text = "Target profile:")
+            self.target_profile_frame = pmgi.shared_components.Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_clusters_list, label_text = "Target profile:")
             # If the profile to profile option is available, the "target_profile_frame" will be
             # hidden until the user clicks on the "sequence_to_profile_radiobutton".
             if not self.can_perform_ptp_alignment:
@@ -1460,7 +1460,7 @@ class Clustalw_alignment_protocol:
         widgets_to_align = []
 
         # Scoring matrix radioselect.
-        self.matrix_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
+        self.matrix_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
         self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
         self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
         for matrix_name in (self.clustal_matrices):
@@ -1470,7 +1470,7 @@ class Clustalw_alignment_protocol:
         widgets_to_align.append(self.matrix_rds)
 
         # Gap open entryfield.
-        self.gapopen_enf = pmgi.PyMod_entryfield(
+        self.gapopen_enf = pmgi.shared_components.PyMod_entryfield(
             self.alignment_options_frame,
             label_text = "Gap Opening Penalty",
             value = '10',
@@ -1480,7 +1480,7 @@ class Clustalw_alignment_protocol:
         widgets_to_align.append(self.gapopen_enf)
 
         # Gap extension entryfield.
-        self.gapextension_enf = pmgi.PyMod_entryfield(
+        self.gapextension_enf = pmgi.shared_components.PyMod_entryfield(
             self.alignment_options_frame,
             label_text = "Gap Extension Penalty",
             value = '0.2',
@@ -1490,7 +1490,7 @@ class Clustalw_alignment_protocol:
         widgets_to_align.append(self.gapextension_enf)
 
         Pmw.alignlabels(widgets_to_align, sticky="nw")
-        pmgi.align_input_widgets_components(widgets_to_align, 10)
+        pmgi.shared_components.align_input_widgets_components(widgets_to_align, 10)
 
 
     def get_matrix_value(self):
@@ -1732,7 +1732,7 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
         return False
 
         # Use structure information to guide sequence alignment.
-        # self.salign_seq_struct_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
+        # self.salign_seq_struct_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
         # for option in ("Yes","No"):
         #     self.salign_seq_struct_rds.add(option)
         # self.salign_seq_struct_rds.setvalue("No")
@@ -2011,7 +2011,7 @@ class SALIGN_str_regular_alignment_protocol(SALIGN_alignment_protocol, Regular_s
         return False
 
         # Use structure information to guide sequence alignment.
-        # self.salign_seq_struct_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
+        # self.salign_seq_struct_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
         # for option in ("Yes","No"):
         #     self.salign_seq_struct_rds.add(option)
         # self.salign_seq_struct_rds.setvalue("No")
@@ -2163,7 +2163,7 @@ class CEalign_alignment_protocol:
         widgets_to_align = []
 
         # # Scoring matrix radioselect.
-        # self.matrix_rds = pmgi.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
+        # self.matrix_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
         # self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
         # self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
         # for matrix_name in (self.clustal_matrices):
@@ -2173,7 +2173,7 @@ class CEalign_alignment_protocol:
         # widgets_to_align.append(self.matrix_rds)
         #
         # # Gap open entryfield.
-        # self.gapopen_enf = pmgi.PyMod_entryfield(
+        # self.gapopen_enf = pmgi.shared_components.PyMod_entryfield(
         #     self.alignment_options_frame,
         #     label_text = "Gap Opening Penalty",
         #     value = '10',
@@ -2183,7 +2183,7 @@ class CEalign_alignment_protocol:
         # widgets_to_align.append(self.gapopen_enf)
         #
         # # Gap extension entryfield.
-        # self.gapextension_enf = pmgi.PyMod_entryfield(
+        # self.gapextension_enf = pmgi.shared_components.PyMod_entryfield(
         #     self.alignment_options_frame,
         #     label_text = "Gap Extension Penalty",
         #     value = '0.2',
@@ -2193,7 +2193,7 @@ class CEalign_alignment_protocol:
         # widgets_to_align.append(self.gapextension_enf)
         #
         # Pmw.alignlabels(widgets_to_align, sticky="nw")
-        # pmgi.align_input_widgets_components(widgets_to_align, 10)
+        # pmgi.shared_components.align_input_widgets_components(widgets_to_align, 10)
 
 
     # def get_matrix_value(self):

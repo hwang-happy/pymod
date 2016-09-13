@@ -75,7 +75,6 @@ from pymol import cmd, stored, selector
 from pymod_lib import pymod_campo as campo # Python implementation of the CAMPO algorithm.
 from pymod_lib import pymod_os_specific as pmos # Different OS compatibility-related code.
 from pymod_lib import pymod_sequence_manipulation as pmsm # General biological sequence manipulation.
-from pymod_lib import pymod_main_window as pmmw # Plugin main window and its behaviour.
 from pymod_lib import pymod_gui as pmgi # Part of the graphical user interface of PyMod.
 from pymod_lib import pymod_vars as pmdt # PyMod data used throughout the plugin.
 from pymod_lib import pymod_tool as pm_tool # Classes to represent tools used within PyMod.
@@ -84,7 +83,8 @@ from pymod_lib import pymod_sup as pmsp # Supplementary code for PyMod.
 from pymod_lib import pymod_updater as pmup # Updates PyMod fetching the latest stable version via network.
 from pymod_lib import pymod_element as pmel # Classes to represent sequences and alignments.
 from pymod_lib import pymod_structure as pmstr # Classes to represent 3D structures.
-from pymod_lib import pymod_alignments_protocols as pmptca # Classes to represent protocols executed using PyMod tools.
+from pymod_lib.pymod_protocols import alignment_protocols as pmptca # Classes to represent protocols executed using PyMod tools.
+
 
 global DEBUG
 DEBUG = True
@@ -405,12 +405,12 @@ class PyMod:
         """
         Allows to select the 'PyMod Directory' on PyMod first run.
         """
-        self.pymod_dir_window = pmgi.PyMod_base_window(self.main_window, "PyMod Directory")
+        self.pymod_dir_window = pmgi.shared_components.PyMod_base_window(self.main_window, "PyMod Directory")
         self.pymod_dir_window.geometry('-100+75')
         self.pymod_dir_window.config()
         self.pymod_dir_window.protocol("WM_DELETE_WINDOW", lambda: self.confirm_close(parent=self.pymod_dir_window))
 
-        self.pymod_dir_window_label=Label(self.pymod_dir_window.main_frame, text= "Select a folder inside which to build the 'PyMod Directory'", **pmgi.label_style_0) # Select a folder (where you would like) to create the 'PyMod Directory'
+        self.pymod_dir_window_label=Label(self.pymod_dir_window.main_frame, text= "Select a folder inside which to build the 'PyMod Directory'", **pmgi.shared_components.label_style_0) # Select a folder (where you would like) to create the 'PyMod Directory'
         self.pymod_dir_window_label.pack(fill="x", pady=10, padx=10)
 
         self.pymod_dir_window_entry_frame = Frame(self.pymod_dir_window.main_frame, bg="black")
@@ -422,14 +422,14 @@ class PyMod:
         self.pymod_dir_window_main_entry.pack(side="left")
 
         self.pymod_dir_window_browse_button=Button(self.pymod_dir_window_entry_frame, text="BROWSE",
-        command=self.pymod_directory_browse_state, **pmgi.button_style_2)
+        command=self.pymod_directory_browse_state, **pmgi.shared_components.button_style_2)
         self.pymod_dir_window_browse_button.pack(side="left", pady=0, padx=5)
 
         self.pymod_dir_window_button_frame = Frame(self.pymod_dir_window.main_frame, bg="black")
         self.pymod_dir_window_button_frame.pack()
 
         self.pymod_dir_window_submit_button=Button(self.pymod_dir_window_button_frame, text="SUBMIT",
-            command=self.pymod_directory_selection_state, **pmgi.button_style_1)
+            command=self.pymod_directory_selection_state, **pmgi.shared_components.button_style_1)
         self.pymod_dir_window_submit_button.pack(side="left", pady=10, padx=5)
 
 
@@ -563,7 +563,7 @@ class PyMod:
         """
         Builds the structure of the PyMod main window.
         """
-        self.main_window = pmmw.PyMod_main_window(app.root, self)
+        self.main_window = pmgi.main_window.PyMod_main_window(app.root, self)
 
 
     def show_new_job_window(self):
@@ -571,13 +571,13 @@ class PyMod:
         Builds a window that let users choose the name of the new projects direcotory at the
         beginning of a PyMod session.
         """
-        self.new_dir_window = pmgi.PyMod_base_window(self.main_window, "New PyMod Project")
+        self.new_dir_window = pmgi.shared_components.PyMod_base_window(self.main_window, "New PyMod Project")
         self.new_dir_window.geometry('-100+75')
         self.new_dir_window.resizable(0,0)
         self.new_dir_window.config()
         self.new_dir_window.protocol("WM_DELETE_WINDOW", lambda: self.confirm_close(parent=self.new_dir_window))
 
-        self.new_dir_window_label=Label(self.new_dir_window.main_frame, text= "Enter the name of your new PyMod project", **pmgi.label_style_0) # Create a new directory inside your PyMod projects folder
+        self.new_dir_window_label=Label(self.new_dir_window.main_frame, text= "Enter the name of your new PyMod project", **pmgi.shared_components.label_style_0) # Create a new directory inside your PyMod projects folder
         self.new_dir_window_label.pack(fill="x", pady=10, padx=10)
 
         self.new_dir_window_main_entry=Entry(self.new_dir_window.main_frame, bg='white', width=18)
@@ -585,7 +585,7 @@ class PyMod:
         self.new_dir_window_main_entry.pack()
 
         self.new_dir_window_main_submit=Button(self.new_dir_window.main_frame, text="SUBMIT",
-            command=self.new_job_state, **pmgi.button_style_1)
+            command=self.new_job_state, **pmgi.shared_components.button_style_1)
         self.new_dir_window_main_submit.pack(pady=10)
 
 
@@ -895,7 +895,7 @@ class PyMod:
         Builds a window that allows to modify some PyMod options.
         """
         # Builds the options window.
-        self.pymod_options_window = pmgi.PyMod_tool_window(self.main_window,
+        self.pymod_options_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
             title = "PyMod Options",
             upper_frame_title = "Here you can modify options for PyMod",
             submit_command = lambda: self.set_pymod_options_state(),
@@ -1469,19 +1469,19 @@ class PyMod:
         # self.associate_target_element = target_element
         #
         # # Builds a new window.
-        # self.associate_structure_window = pmgi.PyMod_tool_window(self.main_window,
+        # self.associate_structure_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
         #     title = "Associate Structure",
         #     upper_frame_title = "Associate 3D Structure Options",
         #     submit_command = self.associate_structure_state)
         #
         # # An entryfield to select the structure file.
-        # self.structure_file_enf = pmgi.PyMod_path_entryfield(self.associate_structure_window.midframe,
+        # self.structure_file_enf = pmgi.shared_components.PyMod_path_entryfield(self.associate_structure_window.midframe,
         #     label_text = "Select Structure File",
-        #     label_style = pmgi.label_style_1,
+        #     label_style = pmgi.shared_components.label_style_1,
         #     path_type = "file",
         #     file_types = pmdt.all_structure_file_types_atl,
         #     askpath_title = "Select Structure File")
-        # self.structure_file_enf.pack(**pmgi.pack_options_1)
+        # self.structure_file_enf.pack(**pmgi.shared_components.pack_options_1)
         # self.associate_structure_window.add_widget_to_align(self.structure_file_enf)
         # self.associate_structure_window.add_widget_to_validate(self.structure_file_enf)
         #
@@ -1514,11 +1514,11 @@ class PyMod:
         #
         #     # Displays a combobox to select the chain id of corresponind to the structure to be
         #     # associated with the target sequence.
-        #     self.chain_selection_cbx = pmgi.PyMod_combobox(self.associate_structure_window.midframe,
+        #     self.chain_selection_cbx = pmgi.shared_components.PyMod_combobox(self.associate_structure_window.midframe,
         #         label_text = 'Select Chain to Associate',
-        #         label_style = pmgi.label_style_1,
+        #         label_style = pmgi.shared_components.label_style_1,
         #         scrolledlist_items=available_chains)
-        #     self.chain_selection_cbx.pack(**pmgi.pack_options_1)
+        #     self.chain_selection_cbx.pack(**pmgi.shared_components.pack_options_1)
         #     self.chain_selection_cbx.selectitem(0)
         #     self.associate_structure_window.add_widget_to_align(self.chain_selection_cbx)
         #     self.associate_structure_window.align_widgets(15)
@@ -1589,7 +1589,7 @@ class PyMod:
         #     return
         #
         # # Builds a new window.
-        # self.import_from_pymol_window = pmgi.PyMod_tool_window(self.main_window,
+        # self.import_from_pymol_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
         #     title = "Import from PyMOL",
         #     upper_frame_title = "Load PyMOL Objects into PyMod",
         #     submit_command = self.import_selected_pymol_object)
@@ -2057,7 +2057,7 @@ class PyMod:
         #         message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
         #         self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
         #
-        # self.raw_seq_window = pmgi.PyMod_tool_window(self.main_window,
+        # self.raw_seq_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
         #     title = "Add Raw Sequence",
         #     upper_frame_title = "Type or Paste your Sequence",
         #     submit_command = submit)
@@ -2067,7 +2067,7 @@ class PyMod:
         #
         # # Creates an Entry for the name of the new sequence.
         # seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
-        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.fixed_width_font)
+        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.shared_components.fixed_width_font)
         # seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
         # seq_name.focus_set()
         # seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
@@ -2080,7 +2080,7 @@ class PyMod:
         #
         # # Creates an Entry widget for the sequence.
         # textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
-        #               font = "%s 12" % pmgi.fixed_width_font, height=10,
+        #               font = "%s 12" % pmgi.shared_components.fixed_width_font, height=10,
         #               bd=0, foreground = 'black',
         #               background = 'white', selectbackground='black',
         #               selectforeground='white', width = 60)
@@ -2462,11 +2462,11 @@ class PyMod:
     #     """
     #     self.input_alignment_element = self.get_element_by_unique_index(alignment_unique_id)
     #
-    #     current_pack_options = pmgi.pack_options_1
-    #     current_label_options = pmgi.label_style_1
+    #     current_pack_options = pmgi.shared_components.pack_options_1
+    #     current_label_options = pmgi.shared_components.label_style_1
     #
     #     # Builds the window.
-    #     self.campo_window = pmgi.PyMod_tool_window(self.main_window,
+    #     self.campo_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
     #         title = "CAMPO algorithm options",
     #         upper_frame_title = "Here you can modify options for CAMPO",
     #         submit_command = self.campo_state)
@@ -2476,13 +2476,13 @@ class PyMod:
     #     self.campo_matrices_dict = {"Blosum62": "blosum62", "Blosum90": "blosum90","Blosum80":"blosum80",
     #                                 "Blosum50": "blosum50", "Blosum45":"blosum45",
     #                                 "PAM30": "pam30", "PAM120": "pam120", "PAM250": "pam250"}
-    #     self.matrix_cbx = pmgi.PyMod_combobox(self.campo_window.midframe, label_text = 'Scoring Matrix Selection',label_style = current_label_options, scrolledlist_items=self.campo_matrices)
+    #     self.matrix_cbx = pmgi.shared_components.PyMod_combobox(self.campo_window.midframe, label_text = 'Scoring Matrix Selection',label_style = current_label_options, scrolledlist_items=self.campo_matrices)
     #     self.matrix_cbx.pack(**current_pack_options)
     #     self.matrix_cbx.selectitem(2)
     #     self.campo_window.add_widget_to_align(self.matrix_cbx)
     #
     #     # Gap open entryfield.
-    #     self.campo_gap_penalty_enf = pmgi.PyMod_entryfield(
+    #     self.campo_gap_penalty_enf = pmgi.shared_components.PyMod_entryfield(
     #         self.campo_window.midframe,
     #         label_text = "Gap Score",
     #         label_style = current_label_options,
@@ -2493,7 +2493,7 @@ class PyMod:
     #     self.campo_window.add_widget_to_align(self.campo_gap_penalty_enf)
     #
     #     # Gap extension entryfield.
-    #     self.campo_gap_to_gap_score_enf = pmgi.PyMod_entryfield(
+    #     self.campo_gap_to_gap_score_enf = pmgi.shared_components.PyMod_entryfield(
     #         self.campo_window.midframe,
     #         label_text = "Gap to Gap Score",
     #         label_style = current_label_options,
@@ -2504,7 +2504,7 @@ class PyMod:
     #     self.campo_window.add_widget_to_align(self.campo_gap_to_gap_score_enf)
     #
     #     # Toss gaps.
-    #     self.campo_exclude_gaps_rds = pmgi.PyMod_radioselect(self.campo_window.midframe, label_text = 'Toss gaps')
+    #     self.campo_exclude_gaps_rds = pmgi.shared_components.PyMod_radioselect(self.campo_window.midframe, label_text = 'Toss gaps')
     #     for text in ('Yes', 'No'):
     #         self.campo_exclude_gaps_rds.add(text)
     #     self.campo_exclude_gaps_rds.setvalue('Yes')
@@ -2743,16 +2743,16 @@ class PyMod:
         """
         Builds a window with options to build a tree out of an alignment.
         """
-        current_pack_options = pmgi.pack_options_1
+        current_pack_options = pmgi.shared_components.pack_options_1
 
         # Builds the window.
-        self.tree_building_window = pmgi.PyMod_tool_window(self.main_window,
+        self.tree_building_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
             title="Options for Tree Building",
             upper_frame_title="Here you can modify options for Tree Building",
             submit_command=self.run_tree_building_software)
 
         # Add some options.
-        self.algorithm_rds = pmgi.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Clustering Algorithm')
+        self.algorithm_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Clustering Algorithm')
         for alg_name in (sorted(pmdt.tree_building_alg_dict.keys())):
             self.algorithm_rds.add(alg_name)
         self.algorithm_rds.setvalue("Neighbor Joining")
@@ -2761,14 +2761,14 @@ class PyMod:
 
         if self.tree_building_software == "clustalw":
             # Kimura distance correction.
-            self.distance_correction_rds = pmgi.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Use Distance Correction')
+            self.distance_correction_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Use Distance Correction')
             for text in ('Yes', 'No'):
                 self.distance_correction_rds.add(text)
             self.distance_correction_rds.setvalue('No')
             self.distance_correction_rds.pack(**current_pack_options)
             self.tree_building_window.add_widget_to_align(self.distance_correction_rds)
             # Toss gaps.
-            self.exclude_gaps_rds = pmgi.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Exclude Gaps')
+            self.exclude_gaps_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Exclude Gaps')
             for text in ('Yes', 'No'):
                 self.exclude_gaps_rds.add(text)
             self.exclude_gaps_rds.setvalue('No')
@@ -2855,7 +2855,7 @@ class PyMod:
     #     Launched from the 'Alignments' menu on PyMod main menu. Displayes a window with a series of
     #     widgets through which users can define WebLogo parameters.
     #     """
-    #     self.logo_window = pmgi.PyMod_tool_window(
+    #     self.logo_window = pmgi.shared_components.PyMod_tool_window(
     #         self.main_window,
     #         title = "WebLogo 3 web-application Options",
     #         upper_frame_title = "Here you can modify options for WebLogo 3",
@@ -2865,10 +2865,10 @@ class PyMod:
     #     #Units list.
     #     units_list=['Bits', 'Probability']
     #     #Units combobox.
-    #     self.unit_combobox = pmgi.PyMod_combobox(self.logo_window.midframe,
+    #     self.unit_combobox = pmgi.shared_components.PyMod_combobox(self.logo_window.midframe,
     #         label_text = 'Unit Selection',
     #         scrolledlist_items=units_list)
-    #     self.unit_combobox.pack(**pmgi.pack_options_1)
+    #     self.unit_combobox.pack(**pmgi.shared_components.pack_options_1)
     #     self.unit_combobox.selectitem(0)
     #     self.logo_window.add_widget_to_align(self.unit_combobox)
     #
@@ -2876,10 +2876,10 @@ class PyMod:
     #     colorscheme_list=['Auto', '(AA) Charge', '(AA) Chemistry', '(AA default) Hydrophobicity', '(NA) Classic', '(NA default) Base pairing']
     #     colorscheme_list.sort()
     #     #Color combobox.
-    #     self.color_combobox = pmgi.PyMod_combobox(self.logo_window.midframe,
+    #     self.color_combobox = pmgi.shared_components.PyMod_combobox(self.logo_window.midframe,
     #         label_text = 'Color Scheme Selection',
     #         scrolledlist_items=colorscheme_list)
-    #     self.color_combobox.pack(**pmgi.pack_options_1)
+    #     self.color_combobox.pack(**pmgi.shared_components.pack_options_1)
     #     self.color_combobox.selectitem(5)
     #     self.logo_window.add_widget_to_align(self.color_combobox)
     #
@@ -2888,9 +2888,9 @@ class PyMod:
     #
     #     #Sub-frame created to display entries for Logo Range option
     #     self.range_subframe = Frame(self.logo_window.midframe, background='black')
-    #     self.range_subframe.pack(**pmgi.pack_options_1)
+    #     self.range_subframe.pack(**pmgi.shared_components.pack_options_1)
     #     #Logo Range Label
-    #     self.logo_range_label=Label(self.range_subframe, text= "Logo Range", **pmgi.label_style_1 )
+    #     self.logo_range_label=Label(self.range_subframe, text= "Logo Range", **pmgi.shared_components.label_style_1 )
     #     self.logo_range_label.grid(row=0, column=0, sticky = "w", padx = (0,100))
     #     #Entry: Logo Start Position
     #     self.logo_start=Spinbox(self.range_subframe, from_=1, to=self.AL_LENGTH, width=5)
@@ -2911,7 +2911,7 @@ class PyMod:
     #     #Logo Format
     #     format_list=['PDF', 'PNG image']
     #     #Logo format combobox.
-    #     self.format_combobox = pmgi.PyMod_combobox(self.logo_window.midframe,
+    #     self.format_combobox = pmgi.shared_components.PyMod_combobox(self.logo_window.midframe,
     #         label_text = 'Logo Format',
     #         scrolledlist_items=format_list)
     #     self.format_combobox.selectitem(0)
@@ -2919,7 +2919,7 @@ class PyMod:
     #     self.logo_window.add_advanced_widget(self.format_combobox)
     #
     #     #LOGO title entry.
-    #     self.logo_title_enf = pmgi.PyMod_entryfield(self.logo_window.midframe,
+    #     self.logo_title_enf = pmgi.shared_components.PyMod_entryfield(self.logo_window.midframe,
     #         label_text = 'Logo Title',
     #         value = "")
     #     self.logo_window.add_widget_to_align(self.logo_title_enf)
@@ -2927,7 +2927,7 @@ class PyMod:
     #     self.logo_window.add_widget_to_validate(self.logo_title_enf)
     #
     #     #Stacks per line entry (default:80).
-    #     self.logo_stacks_enf = pmgi.PyMod_entryfield(self.logo_window.midframe,
+    #     self.logo_stacks_enf = pmgi.shared_components.PyMod_entryfield(self.logo_window.midframe,
     #         label_text = 'Stacks per line',
     #         value = 80,
     #         validate = {'validator' : 'integer', 'min' : 0, 'max' : 100} )
@@ -2936,7 +2936,7 @@ class PyMod:
     #     self.logo_window.add_widget_to_validate(self.logo_stacks_enf)
     #
     #     #Option: Scale stacks width.
-    #     self.scale_width_rds = pmgi.PyMod_radioselect(self.logo_window.midframe, label_text = 'Scale stacks width')
+    #     self.scale_width_rds = pmgi.shared_components.PyMod_radioselect(self.logo_window.midframe, label_text = 'Scale stacks width')
     #     for text in ('Yes', 'No'):
     #         self.scale_width_rds.add(text)
     #     self.scale_width_rds.setvalue('No')
@@ -2944,7 +2944,7 @@ class PyMod:
     #     self.logo_window.add_advanced_widget(self.scale_width_rds)
     #
     #     #Option: Show error bars.
-    #     self.show_error_rds = pmgi.PyMod_radioselect(self.logo_window.midframe, label_text = 'Show error bars')
+    #     self.show_error_rds = pmgi.shared_components.PyMod_radioselect(self.logo_window.midframe, label_text = 'Show error bars')
     #     for text in ('Yes', 'No'):
     #         self.show_error_rds.add(text)
     #     self.show_error_rds.setvalue('No')
@@ -3109,16 +3109,16 @@ class PyMod:
     #     Displayes a window with a combobox to let users select a strucure file of which the
     #     secondary structure information will be included in ESPript output.
     #     """
-    #     self.espript_sec_str_window = pmgi.PyMod_tool_window(
+    #     self.espript_sec_str_window = pmgi.shared_components.PyMod_tool_window(
     #         self.main_window,
     #         title = "ESPript Options",
     #         upper_frame_title = "Here you can modify options for ESPript",
     #         submit_command = self.espript_state )
     #     #Units combobox.
-    #     self.espript_sec_str_combobox = pmgi.PyMod_combobox(self.espript_sec_str_window.midframe,
+    #     self.espript_sec_str_combobox = pmgi.shared_components.PyMod_combobox(self.espript_sec_str_window.midframe,
     #         label_text = 'Show Secondary Structure of',
     #         scrolledlist_items=self.espript_structures_list)
-    #     self.espript_sec_str_combobox.pack(**pmgi.pack_options_1)
+    #     self.espript_sec_str_combobox.pack(**pmgi.shared_components.pack_options_1)
     #     self.espript_sec_str_combobox.selectitem(0)
     #     self.espript_sec_str_window.add_widget_to_align(self.espript_sec_str_combobox)
     #     self.espript_sec_str_window.align_widgets(15)
@@ -3365,10 +3365,10 @@ class PyMod:
         Builds a window containing the widget necessary to define the options for BLAST and
         PSI-BLAST searches.
         """
-        current_pack_options = pmgi.pack_options_1
-        current_label_options = pmgi.label_style_1
+        current_pack_options = pmgi.shared_components.pack_options_1
+        current_label_options = pmgi.shared_components.label_style_1
 
-        self.blast_window = pmgi.PyMod_tool_window(self.main_window,
+        self.blast_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
             title = "%s Search Options" % (pmdt.algorithms_full_names_dict[self.blast_version]),
             upper_frame_title = "Here you can modify search options for %s" % (pmdt.algorithms_full_names_dict[self.blast_version]),
             submit_command = self.blast_window_state,
@@ -3384,7 +3384,7 @@ class PyMod:
             # A list containing information about the databases present in PyMod BLAST database
             # folder.
             self.list_of_databases_directories = self.build_blast_db_list()
-            self.psiblast_database_rds = pmgi.PyMod_radioselect(self.blast_window.midframe, label_text = 'Database Selection')
+            self.psiblast_database_rds = pmgi.shared_components.PyMod_radioselect(self.blast_window.midframe, label_text = 'Database Selection')
             # Add the buttons to choose the database.
             # self.psiblast_database_rds.add("select...")
             for db in self.list_of_databases_directories:
@@ -3392,14 +3392,14 @@ class PyMod:
             # Adds a 'Browse' button in order to let users specify a custom database on their
             # system.
             self.interior = self.psiblast_database_rds.component('frame')
-            self.choose_path_label = Label(self.interior, text="None", **pmgi.label_style_2)
+            self.choose_path_label = Label(self.interior, text="None", **pmgi.shared_components.label_style_2)
             self.choose_path_label.grid(column=3,row=0, padx=(0,0))
             self.psiblast_database_rds.button(0).configure(command=self.choose_psiblast_db_dir)
             # Packs the PSI-BLAST database selection widget.
             self.psiblast_database_rds.pack(**current_pack_options)
             self.blast_window.add_widget_to_align(self.psiblast_database_rds)
 
-            self.psiblast_iterations_enf = pmgi.PyMod_entryfield(self.blast_window.midframe,
+            self.psiblast_iterations_enf = pmgi.shared_components.PyMod_entryfield(self.blast_window.midframe,
                 label_text = "PSI-BLAST Iterations",
                 label_style = current_label_options,
                 value = 3,
@@ -3409,7 +3409,7 @@ class PyMod:
             self.blast_window.add_widget_to_validate(self.psiblast_iterations_enf)
 
         elif self.blast_version == "blast":
-            self.ncbiblast_database_rds = pmgi.PyMod_radioselect(self.blast_window.midframe, label_text = 'Database Selection')
+            self.ncbiblast_database_rds = pmgi.shared_components.PyMod_radioselect(self.blast_window.midframe, label_text = 'Database Selection')
             for text, val in pmdt.ncbi_databases:
                 self.ncbiblast_database_rds.add(text)
             self.ncbiblast_database_rds.setvalue('Pdb')
@@ -3417,7 +3417,7 @@ class PyMod:
             self.blast_window.add_widget_to_align(self.ncbiblast_database_rds)
 
         # E-value selection.
-        self.e_value_threshold_enf = pmgi.PyMod_entryfield(self.blast_window.midframe,
+        self.e_value_threshold_enf = pmgi.shared_components.PyMod_entryfield(self.blast_window.midframe,
             label_text = "E-value Threshold",
             label_style = current_label_options,
             value = 10.0,
@@ -3427,7 +3427,7 @@ class PyMod:
         self.blast_window.add_widget_to_validate(self.e_value_threshold_enf)
 
         # Max hit number selection.
-        self.max_hits_enf = pmgi.PyMod_entryfield(self.blast_window.midframe,
+        self.max_hits_enf = pmgi.shared_components.PyMod_entryfield(self.blast_window.midframe,
             label_text = "Max Number of Hits",
             label_style = current_label_options,
             value = 100,
@@ -3442,7 +3442,7 @@ class PyMod:
         self.blast_window.show_advanced_button()
 
         # Minimum id% on with query.
-        self.min_id_enf = pmgi.PyMod_entryfield(self.blast_window.midframe,
+        self.min_id_enf = pmgi.shared_components.PyMod_entryfield(self.blast_window.midframe,
             label_text = "Min ID% Threshold",
             label_style = current_label_options,
             value = 0,
@@ -3452,7 +3452,7 @@ class PyMod:
         self.blast_window.add_widget_to_validate(self.min_id_enf)
 
         # Minimum coverage on the query.
-        self.min_coverage_enf = pmgi.PyMod_entryfield(self.blast_window.midframe,
+        self.min_coverage_enf = pmgi.shared_components.PyMod_entryfield(self.blast_window.midframe,
             label_text = "Min Coverage% Threshold",
             label_style = current_label_options,
             value = 0,
@@ -3467,7 +3467,7 @@ class PyMod:
         # PSI-BLAST minimum inclusion E-value.
         self.psiblast_min_inclusion_eval_default = 0.005
         if self.blast_version == "psi-blast":
-            self.psiblast_eval_threshold_enf = pmgi.PyMod_entryfield(self.blast_window.midframe,
+            self.psiblast_eval_threshold_enf = pmgi.shared_components.PyMod_entryfield(self.blast_window.midframe,
                 label_text = "PSI-BLAST E-value Threshold",
                 label_style = current_label_options,
                 value = self.psiblast_min_inclusion_eval_default,
@@ -3478,7 +3478,7 @@ class PyMod:
 
         # Use current cluster for PSI-BLAST PSSM.
         # if self.blast_query_element.is_child:
-        #     self.use_current_pssm_rds = pmgi.PyMod_radioselect(self.blast_window.midframe, label_text = 'Use current cluster as PSSM')
+        #     self.use_current_pssm_rds = pmgi.shared_components.PyMod_radioselect(self.blast_window.midframe, label_text = 'Use current cluster as PSSM')
         #     for text in ('Yes', 'No'):
         #         self.use_current_pssm_rds.add(text)
         #     self.use_current_pssm_rds.setvalue('No')
@@ -3658,11 +3658,11 @@ class PyMod:
         # A frame with some options to choose the hits to import in PyMod.
         self.blast_controls_frame = Frame(self.blast_middleframe.interior(),background='black')
         self.blast_controls_frame.pack(anchor="w")
-        self.blast_select_all_button = Button(self.blast_controls_frame,text="Select All", command=self.blast_select_all, **pmgi.button_style_1)
+        self.blast_select_all_button = Button(self.blast_controls_frame,text="Select All", command=self.blast_select_all, **pmgi.shared_components.button_style_1)
         self.blast_select_all_button.pack(side="left", padx=(30,10),pady=(10,5))
-        self.blast_select_none_button = Button(self.blast_controls_frame, text="Select None", command=self.blast_select_none, **pmgi.button_style_1)
+        self.blast_select_none_button = Button(self.blast_controls_frame, text="Select None", command=self.blast_select_none, **pmgi.shared_components.button_style_1)
         self.blast_select_none_button.pack(side="left", padx=10,pady=(10,5))
-        self.blast_select_n_button = Button(self.blast_controls_frame, text="Select Top:", command=self.blast_select_n, **pmgi.button_style_1)
+        self.blast_select_n_button = Button(self.blast_controls_frame, text="Select Top:", command=self.blast_select_n, **pmgi.shared_components.button_style_1)
         self.blast_select_n_button.pack(side="left", padx=10,pady=(10,5))
         self.blast_select_n_enf = Pmw.EntryField(self.blast_controls_frame,
                                                  labelpos = None, value = '10',
@@ -3678,7 +3678,7 @@ class PyMod:
         self.blast_submitframe = Frame(self.blast_results_main, background='black', height=20)
         self.blast_submitframe.pack(side = BOTTOM, expand = NO, fill = Y, anchor="center", ipadx = 5, ipady = 5)
         self.blast_submit_button=Button(self.blast_submitframe, text="SUBMIT",
-            command=self.blast_results_state, **pmgi.button_style_1)
+            command=self.blast_results_state, **pmgi.shared_components.button_style_1)
         self.blast_submit_button.pack(side = BOTTOM, fill=BOTH, anchor=CENTER, pady=10)
 
         self.display_blast_hits()
@@ -5296,7 +5296,7 @@ class PyMod:
 #         # Builds the upper frame with the title.
 #         self.upperframe = Frame(self.ch_main, borderwidth=5, background='black', relief='groove', pady=15)
 #         self.upperframe.pack(side = TOP, expand = NO, fill = X, ipadx = 3, ipady = 3, pady=15)
-#         self.mess=Label(self.upperframe, text= "Here you can modify options for MODELLER", **pmgi.label_style_0)
+#         self.mess=Label(self.upperframe, text= "Here you can modify options for MODELLER", **pmgi.shared_components.label_style_0)
 #         self.mess.pack(fill="x")
 #
 #         # Builds the middle frame where there are going to be a Notebook and its tabs.
@@ -5318,7 +5318,7 @@ class PyMod:
 #         self.lowerframe.pack(side = BOTTOM,expand=1,fill=BOTH, anchor="center",ipadx=5,ipady=5)
 #         # This is the button on the modellization window that when is pressed calls
 #         # the state() function above.
-#         self.submit=Button(self.lowerframe, text="SUBMIT", command=self.perform_modelization, **pmgi.button_style_1)
+#         self.submit=Button(self.lowerframe, text="SUBMIT", command=self.perform_modelization, **pmgi.shared_components.button_style_1)
 #         self.submit.pack(pady=10)
 #
 #
@@ -5352,7 +5352,7 @@ class PyMod:
 #             # An additional frame for the "template complex" selection.
 #             self.template_complex_selection_frame = Frame(self.templates_frame_interior,borderwidth=0, background='black', relief='groove', pady=15)
 #             self.template_complex_selection_frame.pack(side="top", anchor="w")
-#             self.template_complex_selection_label=Label(self.template_complex_selection_frame, text= "Template Complex selection: ", **pmgi.modeling_window_title_style)
+#             self.template_complex_selection_label=Label(self.template_complex_selection_frame, text= "Template Complex selection: ", **pmgi.shared_components.modeling_window_title_style)
 #             self.template_complex_selection_label.grid(row=0, column=0,sticky = W+N)
 #
 #             # The user can choose the "template complex" with some Radiobuttons.
@@ -5366,11 +5366,11 @@ class PyMod:
 #             "of your multiple chain model. The relative orientation in space and the interfaces of\n"+
 #             "your model's chains will be based on the architecture of the Template Complex.")
 #
-#             self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **pmgi.modeling_window_explanation)
+#             self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **pmgi.shared_components.modeling_window_explanation)
 #             self.template_complex_message.grid(row=1, column=0, sticky = "w")
 #
 #             for (tc_i,tc) in enumerate(self.template_complex_list):
-#                 tcb = Radiobutton(self.template_complex_selection_frame, text=tc, variable=self.template_complex_var, value=tc, **pmgi.modeling_window_rb_big)
+#                 tcb = Radiobutton(self.template_complex_selection_frame, text=tc, variable=self.template_complex_var, value=tc, **pmgi.shared_components.modeling_window_rb_big)
 #                 tcb.grid(row=tc_i+2, column=0, sticky = "w",padx=(20,0))
 #
 #         # Builds a frame for each modeling_cluster.
@@ -5391,11 +5391,11 @@ class PyMod:
 #             #     - secondary structure assignment to the model  #
 #             #     - others...                                    #
 #             ######################################################
-#             modeling_option_label = Label(modeling_cluster_frame, text= "Modeling options for target: %s" % (modeling_cluster.target_name), **pmgi.modeling_window_title_style)
+#             modeling_option_label = Label(modeling_cluster_frame, text= "Modeling options for target: %s" % (modeling_cluster.target_name), **pmgi.shared_components.modeling_window_title_style)
 #             modeling_option_label.pack(side="top", anchor="w")
 #
-#             additional_options_label=Label(modeling_cluster_frame, text= "Restraints options", **pmgi.modeling_options_sections_style)
-#             additional_options_frame = Frame(modeling_cluster_frame, **pmgi.target_box_style)
+#             additional_options_label=Label(modeling_cluster_frame, text= "Restraints options", **pmgi.shared_components.modeling_options_sections_style)
+#             additional_options_frame = Frame(modeling_cluster_frame, **pmgi.shared_components.target_box_style)
 #             show_additional_options = False
 #             if len(self.modeling_clusters_list) > 1:
 #                 # Use symmetry restraints option.
@@ -5403,10 +5403,10 @@ class PyMod:
 #                     symmetry_frame = Frame(additional_options_frame,background='black',bd=0,relief=GROOVE)
 #                     symmetry_frame.pack(side=LEFT)
 #
-#                     symmetry_label = Label(symmetry_frame, text= "Use simmetry restraints for this chain:", **pmgi.modeling_window_option_style)
+#                     symmetry_label = Label(symmetry_frame, text= "Use simmetry restraints for this chain:", **pmgi.shared_components.modeling_window_option_style)
 #                     symmetry_label.grid(row=0, column=0,sticky= N+W)
 #                     use_symmetry_var = IntVar()
-#                     symmetry_chk = Checkbutton(symmetry_frame, text="", variable=use_symmetry_var, **pmgi.modeling_window_checkbutton)
+#                     symmetry_chk = Checkbutton(symmetry_frame, text="", variable=use_symmetry_var, **pmgi.shared_components.modeling_window_checkbutton)
 #                     symmetry_chk.grid(row=0, column=1,sticky= N+W)
 #
 #                     symmetry_information = "Show Info"
@@ -5422,12 +5422,12 @@ class PyMod:
 #
 #             # Builds a frame for each structure aligned to the target sequence of the current
 #             # modeling cluster.
-#             template_label=Label(modeling_cluster_frame, text= "Template selection", **pmgi.modeling_options_sections_style)
+#             template_label=Label(modeling_cluster_frame, text= "Template selection", **pmgi.shared_components.modeling_options_sections_style)
 #             template_label.pack(side="top", anchor="w")
 #             modeling_cluster.structure_frame_list = []
 #             for (si,structure) in enumerate(modeling_cluster.structure_list):
 #                 # This object is not a tkinter one, but contains as attributes many of them.
-#                 structure_frame = pmgi.Structure_frame(self, structure,modeling_cluster.target,modeling_cluster_frame,si,i)
+#                 structure_frame = pmgi.shared_components.Structure_frame(self, structure,modeling_cluster.target,modeling_cluster_frame,si,i)
 #                 # Builds a frame for each template structure.
 #                 structure_frame.build_frame()
 #                 # Append the current "structure_frame" to the list of the current modeling cluster.
@@ -5477,7 +5477,7 @@ class PyMod:
 #         self.disulfides_container.configure(bd=0,pady=20)
 #
 #         # Part for the "Disulfides" page.
-#         self.disulfides_frame = pmgi.Disulfides_frame(self, self.disulfides_container)
+#         self.disulfides_frame = pmgi.shared_components.Disulfides_frame(self, self.disulfides_container)
 #         # If at least one cluster has a target with at least two CYS residues, then build the
 #         # disulfide page with all its options.
 #         if self.check_targets_with_cys():
@@ -5524,49 +5524,49 @@ class PyMod:
 #         # Start to insert modeling options widgets.
 #         option_widgets_to_align = []
 #         # Option to chose the number of models that Modeller has to produce.
-#         self.max_models_enf = pmgi.PyMod_entryfield(
+#         self.max_models_enf = pmgi.shared_components.PyMod_entryfield(
 #             self.options_frame, label_text = "Models to Build", value = 1,
 #             validate = {'validator' : 'integer', 'min' : 1, 'max' : self.max_models_per_session})
-#         self.max_models_enf.pack(**pmgi.pack_options_1)
+#         self.max_models_enf.pack(**pmgi.shared_components.pack_options_1)
 #         option_widgets_to_align.append(self.max_models_enf)
 #
 #         # Option to choose if Modeller is going to include HETATMs.
-#         self.exclude_heteroatoms_rds = pmgi.PyMod_radioselect(self.options_frame, label_text = 'Exclude Heteroatoms')
+#         self.exclude_heteroatoms_rds = pmgi.shared_components.PyMod_radioselect(self.options_frame, label_text = 'Exclude Heteroatoms')
 #         for choice in ("Yes", "No"):
 #             self.exclude_heteroatoms_rds.add(choice)
 #         self.exclude_heteroatoms_rds.setvalue("No")
-#         self.exclude_heteroatoms_rds.pack(**pmgi.pack_options_1)
+#         self.exclude_heteroatoms_rds.pack(**pmgi.shared_components.pack_options_1)
 #         option_widgets_to_align.append(self.exclude_heteroatoms_rds)
 #         self.exclude_heteroatoms_rds.button(0).configure(command=lambda: self.switch_all_hetres_checkbutton_states(0)) # Yes, inactivate.
 #         self.exclude_heteroatoms_rds.button(1).configure(command=lambda: self.switch_all_hetres_checkbutton_states(1)) # No, activate.
 #
 #         # Option to choose the level of optimization for Modeller.
 #         self.optimization_level_choices = ("None", "Low", "Mid", "High")
-#         self.optimization_level_rds = pmgi.PyMod_radioselect(self.options_frame, label_text = 'Optimization Level')
+#         self.optimization_level_rds = pmgi.shared_components.PyMod_radioselect(self.options_frame, label_text = 'Optimization Level')
 #         for choice in self.optimization_level_choices:
 #             self.optimization_level_rds.add(choice)
 #         self.optimization_level_rds.setvalue("None")
-#         self.optimization_level_rds.pack(**pmgi.pack_options_1)
+#         self.optimization_level_rds.pack(**pmgi.shared_components.pack_options_1)
 #         option_widgets_to_align.append(self.optimization_level_rds)
 #
 #         # Option to choose the way to color the models.
 #         self.color_models_choices = ("Default", "DOPE Score") # Delta DOPE e b-factor
-#         self.color_models_rds = pmgi.PyMod_radioselect(self.options_frame, label_text = 'Color models by')
+#         self.color_models_rds = pmgi.shared_components.PyMod_radioselect(self.options_frame, label_text = 'Color models by')
 #         for choice in self.color_models_choices:
 #             self.color_models_rds.add(choice)
 #         self.color_models_rds.setvalue("Default")
-#         self.color_models_rds.pack(**pmgi.pack_options_1)
+#         self.color_models_rds.pack(**pmgi.shared_components.pack_options_1)
 #         option_widgets_to_align.append(self.color_models_rds)
 #
 #         # Option to choose whether to super models to template.
-#         self.superpose_models_to_templates_rds = pmgi.PyMod_radioselect(self.options_frame, label_text = 'Superpose Models to Templates')
+#         self.superpose_models_to_templates_rds = pmgi.shared_components.PyMod_radioselect(self.options_frame, label_text = 'Superpose Models to Templates')
 #         for choice in ("Yes", "No"):
 #             self.superpose_models_to_templates_rds.add(choice)
 #         self.superpose_models_to_templates_rds.setvalue("Yes")
-#         self.superpose_models_to_templates_rds.pack(**pmgi.pack_options_1)
+#         self.superpose_models_to_templates_rds.pack(**pmgi.shared_components.pack_options_1)
 #         option_widgets_to_align.append(self.superpose_models_to_templates_rds)
 #
-#         pmgi.align_set_of_widgets(option_widgets_to_align)
+#         pmgi.shared_components.align_set_of_widgets(option_widgets_to_align)
 #
 #
 #     def perform_modelization(self):

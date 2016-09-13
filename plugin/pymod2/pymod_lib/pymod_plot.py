@@ -1814,7 +1814,6 @@ def draw_tree(tree, plotting_window_parent=None, label_func=str, do_show=True, s
     # If line collections were used to create clade lines, here they are added
     # to the pyplot plot.
     for coords in horizontal_linecollections:
-        print coords
         cp.draw_line(coords)
     for coords in vertical_linecollections:
         cp.draw_line(coords)
