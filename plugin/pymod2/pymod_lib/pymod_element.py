@@ -424,30 +424,31 @@ class PyMod_sequence_element(PyMod_element):
 
 
     ###############################################################################################
-    # Interactions with PyMOL.                                                                    #
+    # Structure related.                                                                          #
     ###############################################################################################
 
     def check_structure(method):
-        def checker(self):
+        def checker(self, **config):
             if not self.has_structure():
                 raise PyModMissingStructure("The element does not have a structure.")
-            return method(self)
+            return method(self, **config)
         return checker
 
 
     @check_structure
-    def get_structure_file(self):
-        return self.structure.get_file()
+    def get_structure_file(self, name_only=False, strip_extension=False):
+        return self.structure.get_file(name_only=name_only, strip_extension=strip_extension)
+
+
+    @check_structure
+    def get_structure_chain_id(self):
+        return self.structure.get_chain_id()
 
 
     @check_structure
     def get_pymol_object_name(self):
         return self.structure.get_pymol_object_name()
 
-
-    ###############################################################################################
-    # Structure related.                                                                          #
-    ###############################################################################################
 
     def has_structure(self):
         if self.structure != None:

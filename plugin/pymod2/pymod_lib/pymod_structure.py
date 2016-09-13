@@ -106,7 +106,7 @@ class Parsed_pdb_file:
                     if hetfield[0] == "H":
                         # Check if the current HETRES is a modres according to the info in the MODRES
                         # fields in the PDB file.
-                        if self.is_modified_residue(residue):
+                        if self.check_modified_residue(residue):
                             # If the HETRES is a "modified-residue".
                             parsed_chain["residues"].append(pmel.PyMod_modified_residue(three_letter_code=resname, one_letter_code=pmdt.modified_residue_one_letter, db_index=pdb_position))
                         else:
@@ -136,7 +136,7 @@ class Parsed_pdb_file:
             io.save(parsed_chain["file_path"], Select_chain_and_first_model(parsed_chain["pymod_id"]))
 
             # Builds the new 'PyMod_structure'.
-            new_structure = PyMod_structure(parsed_chain["file_path"])
+            new_structure = PyMod_structure(parsed_chain["file_path"], chain_id = parsed_chain["pymod_id"])
             self.list_of_structure_objects.append(new_structure)
             # Builds the new 'PyMod_element'.
             new_element = pmel.PyMod_sequence_element(residues=parsed_chain["residues"], header=parsed_chain["file_name"], structure = new_structure) #, residues=[])
@@ -165,9 +165,8 @@ class Parsed_pdb_file:
         return self.list_of_pymod_elements
 
 
-    def is_modified_residue(self, residue):
+    def check_modified_residue(self, residue):
         return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
-
 
 
 def get_sequence_using_ppb(pdb_file_path, output_directory=""):
@@ -210,11 +209,20 @@ def get_modeller_sequence(pdb_file_path, output_directory=""):
 
 class PyMod_structure:
 
-    def __init__(self, chain_file_path):
+    def __init__(self, chain_file_path, chain_id):
         self.original_chain_file_path = chain_file_path
+        self.chain_id = chain_id
 
-    def get_file(self):
-        return self.original_chain_file_path
+    def get_file(self, name_only=False, strip_extension=False):
+        result = self.original_chain_file_path
+        if name_only:
+            result = os.path.basename(result)
+        if strip_extension:
+            result = os.path.splitext(result)[0]
+        return result
+
+    def get_chain_id(self):
+        return self.chain_id
 
     def get_pymol_object_name(self):
         return os.path.splitext(os.path.basename(self.original_chain_file_path))[0]

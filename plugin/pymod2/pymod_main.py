@@ -42,6 +42,7 @@ import time
 import numpy
 
 # Biopython.
+import Bio
 from Bio import SeqIO
 from Bio import AlignIO
 global has_phylo
@@ -57,7 +58,6 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
-import Bio.PDB # Only needed for old CE-alignment implementation.
 
 # Matplotlib.
 global matplotlib_found
@@ -85,18 +85,6 @@ from pymod_lib import pymod_updater as pmup # Updates PyMod fetching the latest 
 from pymod_lib import pymod_element as pmel # Classes to represent sequences and alignments.
 from pymod_lib import pymod_structure as pmstr # Classes to represent 3D structures.
 from pymod_lib import pymod_alignments_protocols as pmptca # Classes to represent protocols executed using PyMod tools.
-
-# CE-alignment.
-global ce_alignment_mode
-try:
-    # Try to import the ccealign module.
-    from pymod_lib.ccealign import ccealign
-    ce_alignment_mode = "plugin"
-except:
-    if pmos.check_pymol_builtin_cealign():
-        ce_alignment_mode = "pymol"
-    else:
-       ce_alignment_mode = None
 
 global DEBUG
 DEBUG = True
@@ -695,8 +683,8 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
-        self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
@@ -4242,16 +4230,6 @@ class PyMod:
                 a = pmptca.SALIGN_seq_profile_alignment_protocol(self)
 
         a.launch_alignment_program()
-
-
-    def ce_exists(self):
-        if ce_alignment_mode in ("plugin", "pymol"):
-            return True
-        else:
-            return False
-
-    def get_ce_mode(self):
-        return ce_alignment_mode
 
 
     ###############################################################################################
