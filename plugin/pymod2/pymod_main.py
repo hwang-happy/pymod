@@ -1,6 +1,10 @@
 # TODO:
 #     - reorganize the code in well defined sections.
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
+#     - add an "export to .phy file" option when showing distance trees.
+#     - add a similar option for distance matrices.
+#     - add a similar option for an homology modeling session results.
+#     - reimplement the "Display" submenu in the main menu.
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
@@ -263,24 +267,27 @@ class PyMod:
         # different color taken from the list above. It will be used in "color_struct()".
         self.color_index = 0
 
-        # Generates PSIPRED predictions colors for PyMOL.
-        for c in pmdt.psipred_color_dict.keys():
-            # Generates names like: 'pymod_psipred_8_H' (the name of the color with which residues
-            # predicted in an helix with confidence score of 8 will be colored).
-            color_name = "%s_%s_%s" % (pmdt.pymol_psipred_color_name, c[0], c[1])
-            cmd.set_color(color_name, pmdt.psipred_color_dict[c])
+        # # Generates PSIPRED predictions colors for PyMOL.
+        # for c in pmdt.psipred_color_dict.keys():
+        #     # Generates names like: 'pymod_psipred_8_H' (the name of the color with which residues
+        #     # predicted in an helix with confidence score of 8 will be colored).
+        #     color_name = "%s_%s_%s" % (pmdt.pymol_psipred_color_name, c[0], c[1])
+        #     cmd.set_color(color_name, pmdt.psipred_color_dict[c])
+        #
+        # # Prepares CAMPO colors in PyMOL. Generates something like: 'pymod_campo_7'
+        # for c in pmdt.campo_color_dictionary.keys():
+        #     color_name = "%s_%s" % (pmdt.pymol_campo_color_name, c)
+        #     cmd.set_color(color_name, pmdt.campo_color_dictionary[c])
+        #
+        # for c in pmdt.dope_color_dict.keys():
+        #     color_name = "%s_%s" % (pmdt.pymol_dope_color_name, c)
+        #     cmd.set_color(color_name, pmdt.dope_color_dict[c])
 
-        # Prepares CAMPO colors in PyMOL. Generates something like: 'pymod_campo_7'
-        for c in pmdt.campo_color_dictionary.keys():
-            color_name = "%s_%s" % (pmdt.pymol_campo_color_name, c)
-            cmd.set_color(color_name, pmdt.campo_color_dictionary[c])
-
-        for c in pmdt.dope_color_dict.keys():
-            color_name = "%s_%s" % (pmdt.pymol_dope_color_name, c)
-            cmd.set_color(color_name, pmdt.dope_color_dict[c])
-
-        for c in pmdt.polarity_color_dictionary.keys():
-            cmd.set_color(pmdt.pymol_polarity_color_name + c, pmdt.polarity_color_dictionary[c])
+        self.polarity_color_dictionary_rgb = pmdt.polarity_color_dictionary.copy()
+        self.polarity_color_dictionary_tkinter = {}
+        for c in self.polarity_color_dictionary_rgb.keys():
+            cmd.set_color(pmdt.pymol_polarity_color_name + c, self.polarity_color_dictionary_rgb[c])
+            self.polarity_color_dictionary_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.polarity_color_dictionary_rgb[c])})
 
         #--------------------------------------
         # Builds the plugin the main window. -
@@ -1323,9 +1330,10 @@ class PyMod:
             self.add_element_to_pymod(new_child_element)
             aligned_elements.append(new_child_element)
         fh.close()
-        self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
+        new_cluster = self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
         if grid:
             self.gridder()
+            self.update_cluster_sequences(new_cluster)
 
 
     #################################################################
@@ -1553,7 +1561,7 @@ class PyMod:
                 self.show_error_message("Sequence Error", "Please provide a sequence with only standard amino acid characters.", parent_window=child)
                 return None
             pymod_element.set_sequence(edited_sequence, permissive=True)
-            self.gridder()
+            self.gridder(update_clusters=True)
             child.destroy()
 
         # Submit button.
@@ -2044,7 +2052,7 @@ class PyMod:
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False, clear_selection=False, update_clusters=False, update_menus=False):
+    def gridder(self, set_grid_index_only=False, update_text=False, clear_selection=False, update_clusters=False, update_menus=False):
         # TODO: put it into pymod_main_window?
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
@@ -2057,7 +2065,7 @@ class PyMod:
                 self.update_cluster_sequences(cluster)
 
         ###################################################
-        if 1: # TODO: remove.
+        if DEBUG and 0: # TODO: remove.
             def print_element(element, level):
                 print "    "*level + "- " + element.my_header
             def print_recursively(element, level=0):
@@ -2076,7 +2084,7 @@ class PyMod:
         self.grid_row_index = 0
         self.grid_column_index = 0
         for pymod_element in self.root_element.get_children():
-            self.grid_descendants(pymod_element, set_grid_index_only)
+            self.grid_descendants(pymod_element, set_grid_index_only, update_text=update_text)
             self.grid_row_index += 1
 
         #---------------------------------------------
@@ -2090,22 +2098,22 @@ class PyMod:
             # self.build_models_submenu()
 
 
-    def grid_descendants(self, pymod_element, set_grid_index_only=False):
+    def grid_descendants(self, pymod_element, set_grid_index_only=False, update_text=True):
         """
         Grid a single element and all its descendants.
         """
         if pymod_element.is_mother():
             self.grid_column_index += 1
-            self.grid_element(pymod_element, set_grid_index_only)
+            self.grid_element(pymod_element, set_grid_index_only, update_text=update_text)
             if self.main_window.dict_of_elements_widgets[pymod_element].show_children:
                 for child_element in pymod_element.get_children():
-                    self.grid_descendants(child_element, set_grid_index_only)
+                    self.grid_descendants(child_element, set_grid_index_only, update_text=update_text)
             self.grid_column_index -= 1
         else:
-            self.grid_element(pymod_element, set_grid_index_only)
+            self.grid_element(pymod_element, set_grid_index_only, update_text=update_text)
 
 
-    def grid_element(self, pymod_element, set_grid_index_only=False):
+    def grid_element(self, pymod_element, set_grid_index_only=False, update_text=True):
         """
         Grids a single element.
         """
@@ -2113,7 +2121,7 @@ class PyMod:
         self.main_window.set_grid_column_index(pymod_element, self.grid_column_index)
         self.grid_row_index += 1
         if not set_grid_index_only:
-            self.main_window.show_widgets(pymod_element)
+            self.main_window.show_widgets(pymod_element, update_text=update_text)
 
 
     #########################################
@@ -2156,7 +2164,7 @@ class PyMod:
             container.list_of_children = filter(lambda e: e != None, container.list_of_children)
         # Shows the the elements in the new order.
         if elements_to_move != []:
-            self.gridder()
+            self.gridder(update_text=False)
 
 
     def move_single_element(self, direction, element, container_list):
@@ -2412,6 +2420,8 @@ class PyMod:
     #################################################################
 
     def adjust_aligned_elements_length(self, elements, remove_right_indels=True):
+        if len(set([len(e.my_sequence) for e in elements])) == 1:
+            return False
         # First remove indels at the end of the sequences.
         if remove_right_indels:
             for e in elements:
@@ -2421,6 +2431,7 @@ class PyMod:
         max_length = max([len(e.my_sequence) for e in elements])
         for e in elements:
             e.my_sequence = str(e.my_sequence).ljust(max_length,"-")
+            # e.set_sequence(str(e.my_sequence).ljust(max_length,"-"), permissive=False)
 
 
     def update_cluster_sequences(self, cluster_element):

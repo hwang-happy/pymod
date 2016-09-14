@@ -45,7 +45,7 @@ def compute_sequence_identity(seq1, seq2, toss_modres = False, return_matches=Fa
         return round(sequence_identity,2), identical_positions
 
 
-def get_residue_id_in_aligned_sequence(aligned_sequence,real_id):
+def get_residue_id_in_aligned_sequence(aligned_sequence, real_id):
     """
     aligned_sequence: a sequence with indels.
     real_id: the id (position -1) of the residue in the gapless sequence.

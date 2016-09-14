@@ -58,7 +58,7 @@ class PyMod_main_window_mixin:
         pymod_element_widgets_group.grid_column_index = grid_column_index
 
 
-    def show_widgets(self, pymod_element):
+    def show_widgets(self, pymod_element, update_text=False):
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
 
         #--------------------
@@ -86,10 +86,15 @@ class PyMod_main_window_mixin:
             pymod_element_widgets_group.child_sign.grid_forget()
 
         # Adds the sequence of the element.
-        pymod_element_widgets_group.sequence_text.update_text()
+        if update_text:
+            pymod_element_widgets_group.sequence_text.update_text()
         pymod_element_widgets_group.sequence_text.grid(column=10, # pymod_element_widgets_group.grid_column_index+1,
                                                        row = pymod_element_widgets_group.grid_row_index,
                                                        sticky='nw')
+
+    def update_widgets(self, pymod_element):
+        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
+        pymod_element_widgets_group.sequence_text.update_text()
 
 
     def hide_widgets(self, pymod_element, target="all"):
@@ -109,6 +114,224 @@ class PyMod_main_window_mixin:
     def delete_pymod_element_widgets(self, pymod_element):
         self.hide_widgets(pymod_element)
         self.dict_of_elements_widgets.pop(pymod_element)
+
+
+    #################################################################
+    # Color the sequences and structures.                           #
+    #################################################################
+
+    def color_selection(self, mode, target_selection, color_scheme, regular_color=None):
+        """
+        Used to color a single sequence (and its structure) when "mode" is set to "single", to color
+        mulitple sequences when "mode" is et to "multiple" or to color the list of the currently
+        selected elements in the GUI if the mode is set to "selection".
+        """
+        # Builds a list of elements to be colored.
+        elements_to_color = []
+        if mode == "single":
+            elements_to_color.append(target_selection)
+        elif mode == "multiple":
+            elements_to_color.extend(target_selection)
+        elif mode == "selection":
+            elements_to_color.extend(self.pymod.get_selected_sequences())
+        elif mode == "all":
+            elements_to_color.extend(self.pymod.get_all_sequences())
+
+        # Actually proceeds to color the elements.
+        for seq in elements_to_color:
+            if color_scheme == "regular":
+                self.color_element_by_regular_color(seq, regular_color)
+            elif color_scheme == "polarity":
+                self.color_element_by_polarity(seq)
+            # elif color_scheme == "secondary-observed":
+            #     seq.color_element_by_obs_sec_str()
+            # elif color_scheme == "secondary-predicted":
+            #     seq.color_element_by_pred_sec_str()
+            # # Colors elements with 3D structure according to the observed II str, elements with
+            # # predicted II str according to the prediction, and leaves the other elements unaltered.
+            # elif color_scheme == "secondary-auto":
+            #     if seq.has_structure():
+            #         seq.color_element_by_obs_sec_str()
+            #     elif seq.has_predicted_secondary_structure():
+            #         seq.color_element_by_pred_sec_str()
+            # elif color_scheme == "campo-scores":
+            #     seq.color_element_by_campo_scores()
+            # elif color_scheme == "dope":
+            #     seq.color_element_by_dope()
+
+
+    def color_element_by_regular_color(self, element, color=None):
+        """
+        Colors sequence by "regular" colors, that is, colors uniformly the sequence with some color.
+        """
+        element.color_by = "regular"
+        if color != None:
+            element.my_color = color
+        self.color_element(element, on_grid=False, color_pdb=True)
+
+    def color_element_by_polarity(self, element):
+        element.color_by = "polarity"
+        self.color_element(element, on_grid=False, color_pdb=True)
+
+
+    def color_element(self, element, on_grid=False, color_pdb=True):
+        """
+        Colors the sequence entry when it is displayed by the pymod.gridder() method or when the user
+        changes the color scheme of a sequence. This can color also the PDB file of the element (if the
+        element has one). In PyMod the PDB file is not colored when pymod.gridder() is called, it is
+        colored only when the user decides to change the sequence color scheme.
+        """
+        # The 'residues_to_color' variable permits to color all the residues of a polypeptidic chain
+        # (standard + modified) if set to 'all' or only standard residues if set to 'standard'.
+        residues_to_color = "all"
+        if 1: # if self.is_shown: # TODO.
+            self.color_sequence_entry(element, on_grid, residues_to_color=residues_to_color)
+        # if color_pdb and element.has_structure(): # TODO.
+        #     self.color_pdb_structure(residues_to_color=residues_to_color)
+
+
+    def color_sequence_entry(self, element, on_grid, residues_to_color="all"):
+        """
+        Colors the sequence entry in PyMod main window.
+        """
+        element_widgets_group = self.dict_of_elements_widgets[element]
+        # Colors the sequence according to some particular color scheme.
+        if element.color_by != "regular":
+            # Changing the foreground to "white" is needed to color indels with white.
+            element_widgets_group.sequence_text.tag_config("normal", foreground="white", background="black")
+            for (i,aa) in enumerate(element.get_polymer_residues()):
+                tag_name = aa.three_letter_code+str(i)
+                aid = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, i)
+                element_widgets_group.sequence_text.tag_add(tag_name, "1.%d" % (aid)) # "1.0"
+                color = self.get_sequence_residue_color(element, residue =aa, residue_id = i, residues_to_color=residues_to_color)
+                element_widgets_group.sequence_text.tag_config(tag_name, foreground=color)
+
+            # sequence = self.my_sequence
+            # for (i,aa) in enumerate(sequence):
+            #     # Changing the foreground to "white" is needed to color indels with white.
+            #     self.sequence_entry.tag_config("normal", foreground="white", background="black")
+            #     # Creates a series of tags, used to color each residue differently.
+            #     if aa != "-":
+            #         if residues_to_color == "standard" and aa == "X":
+            #             pass
+            #         else:
+            #             tag_name = aa+str(i)
+            #             self.sequence_entry.tag_add(tag_name, "1.%d" % (i)) # "1.0"
+            #             color = self.get_residue_color(residue_ids = (i,aa), color_target="sequence", residues_to_color=residues_to_color)
+            #             self.sequence_entry.tag_config(tag_name, foreground=color)
+            pass
+        # Just color each residue of the sequence with the same color.
+        else:
+
+            # # First find if there are some tags in the Text (that is, if the sequence was colored
+            # # according to some particular color scheme that colors each residue differently).
+            # tags_to_delete = [tag for tag in self.sequence_entry.tag_names() if (tag != "normal" and tag != "sel")]
+            # # In order to color all the sequence with the same color the previously created tags
+            # # have to be deleted, so prooced to delete them.
+            # if tags_to_delete != []:
+            #     for tag in tags_to_delete:
+            #         self.sequence_entry.tag_delete(tag)
+            # self.sequence_entry.tag_config("normal", foreground=self.my_color, background="black")
+            element_widgets_group.sequence_text.tag_config("normal", foreground=element.my_color, background="black")
+
+
+    # TODO: for sequence.
+    def get_sequence_residue_color(self, element, residue, residue_id, residues_to_color="all"):
+        """
+        Gets the color of a residue in the sequence according to the color scheme defined by the
+        "color_by" attribute. "residue_ids" is a tuple containing in [0] the numerical id of the
+        residue in the aligned sequence, and in [1] the character of the residue.
+        """
+        # Name of the color to return.
+        color = "white"
+
+        # # Index of the residue to be colored.
+        # residue_index = None
+        # if color_target == "structure":
+        #     residue_index = residue_ids[0]
+        # elif color_target == "sequence":
+        #     if residues_to_color == "all":
+        #         residue_index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, residue_ids[0])
+        #     elif residues_to_color == "standard":
+        #         residue_index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, residue_ids[0])
+        #         residue_index -= self.my_sequence[0:residue_ids[0]].count("X")
+
+        # if residue[1] != "-":
+        #     pass
+        # else:
+        #     color = "white"
+        # Colors the sequence by residues.
+
+        if element.color_by == "polarity":
+            color = self.pymod.polarity_color_dictionary_tkinter.get(residue.one_letter_code)
+
+
+        # # Colors according by secondary structure assigned by PyMOL.
+        # elif self.color_by == "secondary-observed":
+        #     if residue_ids[1] != "-":
+        #         try:
+        #             color = pmdt.sec_str_color_dict.get(self.pymol_dss_list[residue_index])
+        #         except:
+        #             color = "white"
+        #     else:
+        #         color = "white"
+        #
+        # # Colors according by secondary structure predicted by PSIPRED.
+        # elif self.color_by == "secondary-predicted":
+        #     if residue_ids[1] != "-":
+        #         psipred_vals = self.psipred_elements_list[residue_index]
+        #         if color_target == "sequence":
+        #             psipred_tuple = (psipred_vals["confidence"], psipred_vals["sec-str-element"])
+        #             rgb = pmdt.psipred_color_dict[psipred_tuple]
+        #             color = convert_to_tkinter_rgb(rgb)
+        #         elif color_target == "structure":
+        #             color = "%s_%s_%s" % (pmdt.pymol_psipred_color_name, psipred_vals["confidence"], psipred_vals["sec-str-element"])
+        #     else:
+        #         color = "white"
+        #
+        # # Color by CAMPO scores.
+        # elif self.color_by == "campo-scores":
+        #     if residue_ids[1] != "-":
+        #         # This string will be compatible with Tkinter.
+        #         if color_target == "sequence":
+        #             color = convert_to_tkinter_rgb(pmdt.campo_color_dictionary[self.campo_scores[residue_index]["interval"]])
+        #         # The id of the color (for example "campo1") needed to color the residue in PyMOL.
+        #         elif color_target == "structure":
+        #             color = "%s_%s" % (pmdt.pymol_campo_color_name, self.campo_scores[residue_index]["interval"])
+        #     else:
+        #         color = "white"
+        #
+        # # Color by DOPE values.
+        # elif self.color_by == "dope":
+        #     if residue_ids[1] != "-":
+        #         # This string will be compatible with Tkinter.
+        #         dope_vals = self.dope_items[residue_index]
+        #         if color_target == "sequence":
+        #             rgb = pmdt.dope_color_dict[dope_vals["interval"]]
+        #             color = convert_to_tkinter_rgb(rgb)
+        #         elif color_target == "structure":
+        #             color = "%s_%s" % (pmdt.pymol_dope_color_name, dope_vals["interval"])
+        #     else:
+        #         color = "white"
+
+        return color
+
+
+    def get_structure_residue_color(self, element, residue, residue_id, residues_to_color="all"):
+        """
+        Gets the color of a residue in the sequence according to the color scheme defined by the
+        "color_by" attribute. "residue_ids" is a tuple containing in [0] the numerical id of the
+        residue in the aligned sequence, and in [1] the character of the residue.
+        """
+        # Name of the color to return.
+        color = None
+
+        # Colors the sequence by residues.
+        if element.color_by == "polarity":
+            pass
+            #     # Generate a name to recall the color stored in PyMOL.
+            #     color = pmdt.pymol_polarity_color_name + residue_ids[1]
+        return color
 
 
     #################################################################
@@ -1022,38 +1245,38 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         # A submenu to choose a single color used to color all the residues of a sequence.
         self.regular_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
         for color in pmdt.regular_colours:
-            self.regular_colors_menu.add_command(label=color, command = lambda c=color: pymod.color_selection("single",self,"regular",c))
+            self.regular_colors_menu.add_command(label=color, command = lambda c=color: self.color_selection("single",self.pymod_element,"regular",c))
         self.color_menu.add_cascade(menu=self.regular_colors_menu, label="Color whole Sequence by")
         self.color_menu.add_separator()
 
         # Colors each kind of residue in a sequence in a different way.
         self.residues_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        self.residues_colors_menu.add_command(label="Polarity",command=lambda: pymod.color_selection("single", self, "residue"))
+        self.residues_colors_menu.add_command(label="Polarity",command=lambda: self.color_selection("single", self.pymod_element, "polarity"))
         self.color_menu.add_cascade(menu=self.residues_colors_menu, label="By residue properties")
 
-        # Secondary structure colors.
-        if self.can_be_colored_by_secondary_structure():
-            self.color_menu.add_separator()
-            self.sec_str_color_menu = Menu(self.color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
-            if self.pymod_element.has_structure():
-                self.sec_str_color_menu.add_command(label="Observed", command=lambda: pymod.color_selection("single", self, "secondary-observed"))
-            if self.pymod_element.has_predicted_secondary_structure():
-                self.sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection("single", self, "secondary-predicted"))
-            self.color_menu.add_cascade(menu=self.sec_str_color_menu, label="By Secondary Structure")
-
-        # Conservation colors.
-        if self.can_be_colored_by_conservation():
-            self.color_menu.add_separator()
-            self.conservation_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-            self.conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: pymod.color_selection("single", self, "campo-scores"))
-            self.color_menu.add_cascade(menu=self.conservation_colors_menu, label="By Convservation")
-
-        # Energy colors.
-        if self.can_be_colored_by_energy():
-            self.color_menu.add_separator()
-            self.energy_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-            self.energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection("single", self, "dope"))
-            self.color_menu.add_cascade(menu=self.energy_colors_menu, label="By Energy")
+        # # Secondary structure colors.
+        # if self.can_be_colored_by_secondary_structure():
+        #     self.color_menu.add_separator()
+        #     self.sec_str_color_menu = Menu(self.color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        #     if self.pymod_element.has_structure():
+        #         self.sec_str_color_menu.add_command(label="Observed", command=lambda: pymod.color_selection("single", self, "secondary-observed"))
+        #     if self.pymod_element.has_predicted_secondary_structure():
+        #         self.sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection("single", self, "secondary-predicted"))
+        #     self.color_menu.add_cascade(menu=self.sec_str_color_menu, label="By Secondary Structure")
+        #
+        # # Conservation colors.
+        # if self.can_be_colored_by_conservation():
+        #     self.color_menu.add_separator()
+        #     self.conservation_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        #     self.conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: pymod.color_selection("single", self, "campo-scores"))
+        #     self.color_menu.add_cascade(menu=self.conservation_colors_menu, label="By Convservation")
+        #
+        # # Energy colors.
+        # if self.can_be_colored_by_energy():
+        #     self.color_menu.add_separator()
+        #     self.energy_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        #     self.energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection("single", self, "dope"))
+        #     self.color_menu.add_cascade(menu=self.energy_colors_menu, label="By Energy")
 
         self.header_popup_menu.add_cascade(menu=self.color_menu, label="Color")
 
@@ -1164,9 +1387,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Used to build the color menu of both Selection and cluster elements popup menus.
         """
 
-        # TODO: adjust.
-        return False
-
         target_menu = None
         color_selection_mode = None
         color_selection_target = None
@@ -1177,13 +1397,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             target_menu = self.selection_menu
             color_selection_mode = "selection"
             color_selection_target = None
-            sequences_list = pymod.get_selected_sequences()
+            sequences_list = self.pymod.get_selected_sequences()
             color_target_label = "Selection"
         elif mode == "cluster":
             target_menu = cluster_target_menu
             color_selection_mode = "multiple"
-            color_selection_target = pymod.get_children(self.get_cluster())
-            sequences_list = pymod.get_children(self.get_cluster())
+            color_selection_target = self.pymod_element.get_children() # pymod.get_children(self.get_cluster())
+            sequences_list = self.pymod_element.get_children() # pymod.get_children(self.get_cluster())
             color_target_label = "Cluster"
 
         multiple_color_menu = Menu(target_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
@@ -1191,48 +1411,48 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         # A submenu to choose a single color used to color all the residues of a sequence.
         multiple_regular_colors_menu = Menu(multiple_color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         for color in pmdt.regular_colours:
-            multiple_regular_colors_menu.add_command(label=color, command = lambda c=color: pymod.color_selection(color_selection_mode, color_selection_target, "regular",c))
+            multiple_regular_colors_menu.add_command(label=color, command = lambda c=color: self.color_selection(color_selection_mode, color_selection_target, "regular",c))
         multiple_color_menu.add_cascade(menu=multiple_regular_colors_menu, label="Color whole %s by" % (color_target_label))
         multiple_color_menu.add_separator()
 
         # Colors each kind of residue in a sequence in a different way.
         multiple_residues_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        multiple_residues_colors_menu.add_command(label="Polarity",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "residue"))
+        multiple_residues_colors_menu.add_command(label="Polarity",command=lambda: self.color_selection(color_selection_mode, color_selection_target, "polarity"))
         multiple_color_menu.add_cascade(menu=multiple_residues_colors_menu, label="By residue properties")
 
-        # Secondary structure colors.
-        n_selected_seqs = len(sequences_list)
-        n_structures = len([e for e in sequences_list if e.pymod_element.has_structure()])
-        n_seq_with_predicted_sec_str = len([e for e in sequences_list if e.pymod_element.has_predicted_secondary_structure()])
-
-        if n_structures > 0 or n_seq_with_predicted_sec_str > 0:
-            multiple_color_menu.add_separator()
-            multiple_sec_str_color_menu = Menu(multiple_color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
-            # Available when all the selected sequences have a 3D structure.
-            if n_structures == n_selected_seqs:
-                multiple_sec_str_color_menu.add_command(label="Observed", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-observed"))
-            # Available only if all the sequences have a predicted secondary structure.
-            if n_seq_with_predicted_sec_str == n_selected_seqs:
-                multiple_sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-predicted"))
-            # Available if there is at least one element with a 3D structure or a secondary
-            # structure prediction.
-            if not n_structures == n_selected_seqs:
-                multiple_sec_str_color_menu.add_command(label="Auto (Observer + Predicted)", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-auto"))
-            multiple_color_menu.add_cascade(menu=multiple_sec_str_color_menu, label="By Secondary Structure")
-
-        # Conservation colors.
-        if not False in [e.can_be_colored_by_conservation() for e in sequences_list]:
-            multiple_color_menu.add_separator()
-            multiple_conservation_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-            multiple_conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "campo-scores"))
-            multiple_color_menu.add_cascade(menu=multiple_conservation_colors_menu, label="By Convservation")
-
-        # Energy colors.
-        if not False in [e.can_be_colored_by_energy() for e in sequences_list]:
-            multiple_color_menu.add_separator()
-            multiple_energy_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-            multiple_energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "dope"))
-            multiple_color_menu.add_cascade(menu=multiple_energy_colors_menu, label="By Energy")
+        # # Secondary structure colors.
+        # n_selected_seqs = len(sequences_list)
+        # n_structures = len([e for e in sequences_list if e.pymod_element.has_structure()])
+        # n_seq_with_predicted_sec_str = len([e for e in sequences_list if e.pymod_element.has_predicted_secondary_structure()])
+        #
+        # if n_structures > 0 or n_seq_with_predicted_sec_str > 0:
+        #     multiple_color_menu.add_separator()
+        #     multiple_sec_str_color_menu = Menu(multiple_color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        #     # Available when all the selected sequences have a 3D structure.
+        #     if n_structures == n_selected_seqs:
+        #         multiple_sec_str_color_menu.add_command(label="Observed", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-observed"))
+        #     # Available only if all the sequences have a predicted secondary structure.
+        #     if n_seq_with_predicted_sec_str == n_selected_seqs:
+        #         multiple_sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-predicted"))
+        #     # Available if there is at least one element with a 3D structure or a secondary
+        #     # structure prediction.
+        #     if not n_structures == n_selected_seqs:
+        #         multiple_sec_str_color_menu.add_command(label="Auto (Observer + Predicted)", command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "secondary-auto"))
+        #     multiple_color_menu.add_cascade(menu=multiple_sec_str_color_menu, label="By Secondary Structure")
+        #
+        # # Conservation colors.
+        # if not False in [e.can_be_colored_by_conservation() for e in sequences_list]:
+        #     multiple_color_menu.add_separator()
+        #     multiple_conservation_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        #     multiple_conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "campo-scores"))
+        #     multiple_color_menu.add_cascade(menu=multiple_conservation_colors_menu, label="By Convservation")
+        #
+        # # Energy colors.
+        # if not False in [e.can_be_colored_by_energy() for e in sequences_list]:
+        #     multiple_color_menu.add_separator()
+        #     multiple_energy_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        #     multiple_energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "dope"))
+        #     multiple_color_menu.add_cascade(menu=multiple_energy_colors_menu, label="By Energy")
 
         return multiple_color_menu
 
@@ -1298,7 +1518,9 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.pymod.gridder(update_clusters=True, update_menus=True)
 
     def extract_selection_from_cluster(self):
-        for e in self.pymod.get_selected_sequences():
+        selected_sequences = self.pymod.get_selected_sequences()
+        # Using 'reversed' keeps them in their original order once extracted.
+        for e in reversed(selected_sequences):
             self.pymod.extract_element_from_cluster(e)
         self.pymod.gridder(update_clusters=True, update_menus=True)
 
@@ -1313,7 +1535,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     def remove_lead_from_left_menu(self):
         self.pymod.remove_cluster_lead(self.pymod_element)
         self.pymod.gridder()
-        
+
 
     #------------------
     # Save sequences. -
@@ -1554,7 +1776,6 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         #-------------------------------------------
         # Updates the 'Position' message bar text. -
         #-------------------------------------------
-
         residue_messagebar_text = ""
         # For sequences.
         if not self.pymod_element.is_cluster():

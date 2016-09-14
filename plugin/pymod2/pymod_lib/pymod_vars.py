@@ -109,9 +109,14 @@ ncbi_databases = [("Nr", "nr"), ("Pdb", "pdb"), ("SwissProt", "swissprot"),
                        ("Yeast", "yeast"), ("E. coli", "E. coli"), ("Patents", "patents"),
                        ("Month", "month"), ("Kabat", "kabat"), ("Alu", "alu")]
 
-# ---------------------
-# Color dictionaries. -
-# ---------------------
+###################################################################################################
+# Color dictionaries.                                                                             #
+###################################################################################################
+
+def convert_to_tkinter_rgb(rgb_tuple):
+    rgb_tuple = [i*255 for i in rgb_tuple]
+    return '#%02x%02x%02x' % tuple(rgb_tuple)
+
 
 # Available colors for sequences.
 regular_colours = ['red', 'green', 'blue', 'yellow', 'violet', 'cyan',
@@ -120,28 +125,28 @@ regular_colours = ['red', 'green', 'blue', 'yellow', 'violet', 'cyan',
 
 # Starts to define color dictionaries for amminoacids.
 residue_color_dict = {
-    "G": "orange",
     "A": "blue",
     "L": "blue",
-    "I" : "blue",
-    "R" : "red",
-    "K" : "red",
-    "M" : "blue",
-    "C" : "pink",
-    "Y" : "cyan",
-    "T" : "green",
-    "P" : "yellow",
-    "S" : "green",
-    "W" : "blue",
-    "D" : "magenta",
-    "E" : "magenta",
-    "N" : "green",
-    "Q" : "green",
-    "F" : "blue",
-    "H" : "cyan",
-    "V" : "blue",
-    "X" : "white",
-    "-" : "white"}
+    "I": "blue",
+    "M": "blue",
+    "W": "blue",
+    "F": "blue",
+    "V": "blue",
+    "T": "green",
+    "N": "green",
+    "Q": "green",
+    "S": "green",
+    "P": "yellow",
+    "G": "orange",
+    "R": "red",
+    "K": "red",
+    "C": "pink",
+    "D": "magenta",
+    "E": "magenta",
+    "H": "cyan",
+    "Y": "cyan",
+    "X": "white",
+    "-": "white"}
 
 # Used to color residues according to their observed secondary structure.
 sec_str_color_dict = {
