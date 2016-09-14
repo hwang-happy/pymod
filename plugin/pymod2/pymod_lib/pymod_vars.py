@@ -87,6 +87,7 @@ alignment_extensions_dictionary = {
     "fasta":   "fasta",
     "pir":     "ali",
     "clustal": "aln",
+    "stockholm": "sto",
     "pymod":   "txt"}
 
 #------------

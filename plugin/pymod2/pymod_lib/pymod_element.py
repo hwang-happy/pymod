@@ -160,11 +160,10 @@ class PyMod_element:
 
     def extract_to_upper_level(self):
         new_mother = self.mother.mother
-        # self.extract_from_cluster()
         new_mother.add_child(self)
 
 
-    def extract_from_cluster(self):
+    def remove_from_cluster(self):
         mother = self.mother
         mother.remove_child(self)
 

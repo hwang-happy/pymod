@@ -81,10 +81,13 @@ class PyMod_main_window_mixin:
             pymod_element_widgets_group.child_sign.grid(column = pymod_element_widgets_group.grid_column_index,
                                                         row = pymod_element_widgets_group.grid_row_index,
                                                         sticky='nw', padx=0, pady=0,ipadx=0,ipady=0)
+        else:
+            # Don't show the modifier if the element is not a child.
+            pymod_element_widgets_group.child_sign.grid_forget()
 
         # Adds the sequence of the element.
         pymod_element_widgets_group.sequence_text.update_text()
-        pymod_element_widgets_group.sequence_text.grid(column=10,# pymod_element_widgets_group.grid_column_index+1,
+        pymod_element_widgets_group.sequence_text.grid(column=10, # pymod_element_widgets_group.grid_column_index+1,
                                                        row = pymod_element_widgets_group.grid_row_index,
                                                        sticky='nw')
 
@@ -560,7 +563,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.help_menu = Menu(self.menubar, tearoff = 0)
         self.menubar.add_cascade(label = "Help", menu = self.help_menu)
         self.help_menu.add_command(label = "Test", command = self.pymod.launch_default) # TODO: remove.
-        self.help_menu.add_command(label = "Print Selected", command = self.pymod.print_selected) # TODO: remove.
         self.help_menu.add_command(label = "Online Documentation", command = self.pymod.open_online_documentation)
         self.help_menu.add_command(label = "About", command = self.pymod.show_about_dialog)
         self.help_menu.add_separator()
@@ -1105,9 +1107,11 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         self.cluster_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         self.cluster_menu.add_command(label="Extract Sequence from Cluster", command=self.extract_from_cluster)
+        self.cluster_menu.add_separator()
         if not self.pymod_element.is_lead():
-            self.cluster_menu.add_separator()
             self.cluster_menu.add_command(label="Make Cluster Lead", command=self.make_lead_from_left_menu)
+        else:
+            self.cluster_menu.add_command(label="Remove Cluster Lead", command=self.remove_lead_from_left_menu)
         self.header_popup_menu.add_cascade(menu=self.cluster_menu, label="Cluster Options")
 
 
@@ -1285,28 +1289,31 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     #------------
     # Clusters. -
     #------------
-    
+
     def extract_from_cluster(self):
         """
         Extracts an element from an alignment.
         """
-        self.pymod_element.extract_to_upper_level()
+        self.pymod.extract_element_from_cluster(self.pymod_element)
         self.pymod.gridder(update_clusters=True, update_menus=True)
 
     def extract_selection_from_cluster(self):
-        # for e in pymod.get_selected_sequences():
-        #     pymod.extract_child(e)
-        # pymod.gridder()
-        pass
+        for e in self.pymod.get_selected_sequences():
+            self.pymod.extract_element_from_cluster(e)
+        self.pymod.gridder(update_clusters=True, update_menus=True)
 
     def extract_selection_to_new_cluster_from_left_menu(self):
-        # pymod.extract_selection_to_new_cluster()
-        pass
+        # 'gridder' is called in this method.
+        self.pymod.extract_selection_to_new_cluster()
 
     def make_lead_from_left_menu(self):
-        # pymod.mark_as_lead(self)
-        # pymod.gridder()
-        pass
+        self.pymod.make_cluster_lead(self.pymod_element)
+        self.pymod.gridder()
+
+    def remove_lead_from_left_menu(self):
+        self.pymod.remove_cluster_lead(self.pymod_element)
+        self.pymod.gridder()
+        
 
     #------------------
     # Save sequences. -
@@ -1374,13 +1381,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         Delete option in the popup menu.
         """
-        self.pymod.delete_element(self.pymod_element)
+        self.pymod.delete_element_from_pymod(self.pymod_element)
         self.pymod.gridder(update_clusters=True, update_menus=True)
 
     def delete_many_sequences(self):
         # Delete the selected sequences.
         for element in self.pymod.get_selected_sequences():
-            self.pymod.delete_element(element)
+            self.pymod.delete_element_from_pymod(element)
         # Empty cluster elements will be deleted in the 'gridder' method.
         self.pymod.gridder(update_clusters=True, update_menus=True)
 
@@ -1390,23 +1397,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     #------------------------------
 
     def save_alignment_from_the_left_pan(self):
-        # pymod.alignment_save(self.get_cluster())
-        pass
-
+        self.pymod.alignment_save_dialog(self.pymod_element)
 
     def delete_alignment_from_the_left_pane(self):
-        # title = "Delete Cluster?"
-        # message = "Are you sure you want to delete %s?" % (self.get_cluster().my_header)
-        # choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
-        # if choice:
-        #     pymod.delete_alignment(self.get_cluster())
-        # pymod.gridder()
-        pass
-
+        self.pymod.delete_cluster_dialog(self.pymod_element)
 
     def transfer_alignment_from_the_left_pane(self):
-        # pymod.transfer_alignment(self.get_cluster())
-        pass
+        self.pymod.transfer_alignment(self.pymod_element)
 
 
     #--------------------------------------------
