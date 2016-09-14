@@ -1,4 +1,5 @@
 # TODO:
+#     - remove the appendix "protocol" from all the procol classes names.
 #     - reorganize the code in well defined sections.
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
 #     - add an "export to .phy file" option when showing distance trees.
@@ -91,8 +92,7 @@ from pymod_lib import pymod_sup as pmsp # Supplementary code for PyMod.
 from pymod_lib import pymod_updater as pmup # Updates PyMod fetching the latest stable version via network.
 from pymod_lib import pymod_element as pmel # Classes to represent sequences and alignments.
 from pymod_lib import pymod_structure as pmstr # Classes to represent 3D structures.
-from pymod_lib.pymod_protocols import alignment_protocols as pmptca # Classes to represent protocols executed using PyMod tools.
-
+import pymod_lib.pymod_protocols as pmptc # Classes to represent protocols executed using PyMod tools.
 
 global DEBUG
 DEBUG = True
@@ -4437,26 +4437,26 @@ class PyMod:
         if strategy == "regular":
             # Sequence alignments.
             if program == "clustalw":
-                a = pmptca.Clustalw_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalw_regular_alignment_protocol(self)
             elif program == "clustalo":
-                a = pmptca.Clustalomega_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalomega_regular_alignment_protocol(self)
             elif program == "muscle":
-                a = pmptca.MUSCLE_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.MUSCLE_regular_alignment_protocol(self)
             elif program == "salign-seq":
-                a = pmptca.SALIGN_seq_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.SALIGN_seq_regular_alignment_protocol(self)
             # Structural alignments.
             elif program == "ce":
-                a = pmptca.CEalign_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.CEalign_regular_alignment_protocol(self)
             elif program == "salign-str":
-                a = pmptca.SALIGN_str_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.SALIGN_str_regular_alignment_protocol(self)
         # Profile.
         elif strategy == "profile":
             if program == "clustalw":
-                a = pmptca.Clustalw_profile_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalw_profile_alignment_protocol(self)
             elif program == "clustalo":
-                a = pmptca.Clustalomega_profile_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalomega_profile_alignment_protocol(self)
             elif program == "salign-seq":
-                a = pmptca.SALIGN_seq_profile_alignment_protocol(self)
+                a = pmptc.alignment_protocols.SALIGN_seq_profile_alignment_protocol(self)
 
         a.launch_alignment_program()
 
@@ -4985,67 +4985,8 @@ class PyMod:
     # leafs!
     def assign_secondary_structure(self, element):
         if element.has_structure():
-            if hasattr(self, "ksdssp") and self.ksdssp.exe_exists():
-                self.assign_with_ksdssp(element)
-            else:
-                self.assign_with_pymol_dss(element)
-
-
-    def assign_with_ksdssp(self, element):
-        # Runs ksdssp.
-        dssptext=pmsp.runKSDSSP(os.path.join(self.structures_directory, element.structure.chain_pdb_file_name), ksdssp_exe=self.ksdssp.get_exe_file_path())
-        # Parses ksdssp's output, that is, an series of pdb format 'HELIX' and 'SHEET' record lines.
-        dsspout = dssptext.split("\n")
-        helices = set() # A set to store the sequence numbers of the residues in helical conformation.
-        sheets = set() # A set to store the sequence numbers of the residues in sheet conformation.
-        for line in dsspout:
-            if line.startswith("HELIX"):
-                new_residues_set = set(range(int(line[21:25]), int(line[33:37])+1))
-                helices.update(new_residues_set)
-            elif line.startswith("SHEET"):
-                new_residues_set = set(range(int(line[22:26]), int(line[33:37])+1))
-                sheets.update(new_residues_set)
-        # Assigns to the PyMod element the observed secondaey structure observed using ksdssp.
-        element.pymol_dss_list = []
-        for residue in element.structure.get_all_residues_list():
-            if residue.pdb_position in helices:
-                element.pymol_dss_list.append("H")
-                rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
-                cmd.alter(rsel,"ss='H'") # Set the residue new conformation in PyMOL.
-            elif residue.pdb_position in sheets:
-                element.pymol_dss_list.append("S")
-                rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
-                cmd.alter(rsel,"ss='S'") # Set the residue new conformation in PyMOL.
-            else:
-                element.pymol_dss_list.append("L")
-                rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
-                cmd.alter(rsel,"ss='L'") # Set the residue new conformation in PyMOL.
-        # Updated PyMOL.
-        cmd.rebuild()
-
-
-    def assign_with_pymol_dss(self, element):
-        """
-        Uses PyMOL's DSS algorithm to assign the secondary structure to a sequence according to atom
-        coordinates of its PDB file.
-        """
-        selection = "object %s and n. CA" % element.build_chain_selector_for_pymol()
-        stored.resi_set = set()
-        stored.temp_sec_str = []
-        stored.pymol_info = []
-        stored.pymod_resi_set = set([res.pdb_position for res in element.structure.get_all_residues_list()])
-        def include_sec_str_val(ca_tuple):
-            if not ca_tuple[1] in stored.resi_set and ca_tuple[1] in stored.pymod_resi_set:
-                stored.temp_sec_str.append(ca_tuple[0])
-                stored.resi_set.add(ca_tuple[1])
-                stored.pymol_info.append(ca_tuple)
-        stored.include_val = include_sec_str_val
-        cmd.iterate(selection, "stored.include_val((ss, resv))")
-        # print stored.pymol_info
-        # print [res.pdb_position for res in element.structure.get_all_residues_list()]
-        element.pymol_dss_list = list(stored.temp_sec_str)
-        if not (len(element.pymol_dss_list) == len(element.structure.get_all_residues_list())):
-            pass
+            sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment_protocol(self, element)
+            sec_str_assignment.assign_secondary_structure()
 
 
 #     #################################################################

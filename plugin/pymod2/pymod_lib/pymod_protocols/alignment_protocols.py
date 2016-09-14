@@ -1,3 +1,5 @@
+# Copyright (C) 2014-2016 Chengxin Zhang, Giacomo Janson
+
 # TODO:
 #   - reimplement distance trees and tree building.
 #   - quit the process if there are some errors.
@@ -38,6 +40,7 @@ import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_gui as pmgi
 import pymod_lib.pymod_sequence_manipulation as pmsm
+from pymod_lib.pymod_protocols.base_protocol import PyMod_protocol
 
 # CE-alignment.
 global ce_alignment_mode
@@ -52,15 +55,7 @@ except:
        ce_alignment_mode = None
 
 
-class PyMod_protocol:
-    pass
-
-
 class Alignment_protocol(PyMod_protocol):
-
-    def __init__(self, pymod):
-        self.pymod = pymod
-
 
     #################################################################
     # Step 1/4 for performing an alignment from the main menu.      #

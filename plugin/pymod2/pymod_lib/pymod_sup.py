@@ -23,11 +23,6 @@
 # Import modeules and define useful variables.                                                    #
 ###################################################################################################
 
-# modules for runKSDSSP
-import os
-import subprocess
-from distutils.spawn import find_executable as which
-
 # modules for ramachandran_matplotlib & ramachandran_tkinter
 from Bio import PDB
 from math import pi
@@ -157,118 +152,6 @@ def draw_salign_dendrogram_matplotlib(dendrogram_file):
     pylab.axis([0,width+1,0,height+1])
     pylab.axis('off')
     pylab.show()
-
-
-###################################################################################################
-# KSDSSP.                                                                                         #
-###################################################################################################
-
-def runKSDSSP(PDB_file, output_file=None, energy_cutoff=-0.5,
-              minimum_helix_length=3, minimum_strand_length=3,
-              summary_file=None, ksdssp_exe="ksdssp"):
-    """Command line wrapper for ksdssp,
-    an implementation of the algorithm described in Wolfgang Kabsch and
-    Christian Sander, "Dictionary of Protein Secondary Structure: Pattern
-    Recognition of Hydrogen-Bonded and Geometrical Features," Biopolymers,
-    22, 2577-2637 (1983).
-
-    http://www.cgl.ucsf.edu/Overview/software.html#ksdssp
-
-
-    Example:
-
-    >>> PDB_file = "1TSR.pdb"
-    >>> output_file = "1TSR.ksdssp"
-    >>> ksdssp_cline = runKSDSSP(PDB_file, output_file)
-
-    Arguments:
-    PDB_file
-        The input Protein Data  Bank  (PDB)  file  may  contain  any
-        legal  PDB records.   Only ATOM records will be used.  All others
-        are silently discarded.
-
-    output_file (default: None)
-        The  output  of  ksdssp  is a set of PDB HELIX and SHEET records.
-        If no output_file argument is given, the records will be returned
-        by runKSDSSP
-
-    energy_cutoff (default -0.5)
-        The default energy cutoff for defining hydrogen bonds as
-        recommended  by Kabsch  and  Sander  is  -0.5  kcal/mol.
-
-    minimum_helix_length (default 3)
-        Normally,  HELIX records for helices of length three residues or
-        greater are generated.  This option allows the user to change the
-        minimum  helix length.
-
-    minimum_strand_length (default 3)
-        Normally,  SHEET records for strands of length three residues or
-        greater are generated.  This option allows the user to change the
-        minimum strand length.   Reducing the minimum strand length to 1 is
-        not recommended, as there are bridges in many structures  that
-        confuse  the  algorithm  for defining sheets.
-
-    summary_file (default None)
-        Normally,  ksdssp silently discards all the hydrogen-bonding
-        information after generating the HELIX and SHEET records.  This
-        option makes  ksdssp print  the  information to a file.
-
-    ksdssp_exe (default 'ksdssp')
-        location of KSDSSP executable
-    """
-    PDB_file_isfile=True
-    if os.path.isfile(PDB_file)==False:
-        # Assume PDB_file is the content of a PDB file
-        PDB_file_isfile=False
-        fp=open(".runKSDSSP.PDB_file.tmp",'w')
-        print >> fp, PDB_file
-        fp.close()
-        PDB_file=".runKSDSSP.PDB_file.tmp"
-
-    if not os.path.isfile(ksdssp_exe) and not which(ksdssp_exe):
-        print "Warning! cannot find KSDSSP executable!"
-        print "Specify ksdssp_exe parameter to point to KSDSSP."
-
-    cline=[ksdssp_exe,
-           "-c", str(energy_cutoff),
-           "-h", str(minimum_helix_length),
-           "-s", str(minimum_strand_length)]
-
-
-    if summary_file != None:
-        cline.append("-S")
-        cline.append(summary_file)
-
-    cline.append(PDB_file)
-
-    if output_file != None:
-        cline.append(output_file)
-        try:
-            return_code = subprocess.call(cline)
-        except:
-            return_code = ''
-    else:
-        fp=open(".runKSDSSP.std.tmp",'w')
-        try:
-            return_code = subprocess.call(cline, stdout = fp)
-        except:
-            return_code = ''
-        fp.close
-        fp=open(".runKSDSSP.std.tmp",'rU')
-        return_code=fp.read()
-        fp.close
-
-        try:
-            os.remove(".runKSDSSP.std.tmp")
-        except:
-            print "Fail to remove temporary file .runKSDSSP.std.tmp"
-
-    if PDB_file_isfile==False:
-        try:
-            os.remove(".runKSDSSP.PDB_file.tmp")
-        except:
-            print "Fail to remove temporary file .runKSDSSP.PDB_file.tmp'"
-    return return_code
 
 
 ###################################################################################################
