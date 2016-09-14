@@ -693,7 +693,7 @@ class PyMod:
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
         self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min.fasta"), "fasta")
-        self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
+        # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
         self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
@@ -703,7 +703,7 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
 
-        self.gridder(update_menus=True)
+        self.gridder(update_clusters=True, update_menus=True)
 
         # # Alignments.
         # if 0:
@@ -1332,8 +1332,7 @@ class PyMod:
         fh.close()
         new_cluster = self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
         if grid:
-            self.gridder()
-            self.update_cluster_sequences(new_cluster)
+            self.gridder(update_clusters=True)
 
 
     #################################################################
@@ -1567,6 +1566,11 @@ class PyMod:
         # Submit button.
         sub_button=Button(lowerframe, text="SUBMIT", command=submit, relief="raised", borderwidth="3", bg="black", fg="white")
         sub_button.pack()
+
+
+    def update_element_sequence(self, pymod_element, new_sequence, permissive=False):
+        pymod_element.set_sequence(new_sequence, permissive=permissive)
+        self.main_window.update_widgets(pymod_element)
 
 
     def duplicate_sequence(self, element_to_duplicate):
@@ -2052,7 +2056,7 @@ class PyMod:
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False, update_text=False, clear_selection=False, update_clusters=False, update_menus=False):
+    def gridder(self, set_grid_index_only=False, update_element_text=False, clear_selection=False, update_clusters=False, update_menus=False):
         # TODO: put it into pymod_main_window?
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
@@ -2084,7 +2088,7 @@ class PyMod:
         self.grid_row_index = 0
         self.grid_column_index = 0
         for pymod_element in self.root_element.get_children():
-            self.grid_descendants(pymod_element, set_grid_index_only, update_text=update_text)
+            self.grid_descendants(pymod_element, set_grid_index_only, update_element_text=update_element_text)
             self.grid_row_index += 1
 
         #---------------------------------------------
@@ -2098,22 +2102,22 @@ class PyMod:
             # self.build_models_submenu()
 
 
-    def grid_descendants(self, pymod_element, set_grid_index_only=False, update_text=True):
+    def grid_descendants(self, pymod_element, set_grid_index_only=False, update_element_text=True):
         """
         Grid a single element and all its descendants.
         """
         if pymod_element.is_mother():
             self.grid_column_index += 1
-            self.grid_element(pymod_element, set_grid_index_only, update_text=update_text)
+            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text)
             if self.main_window.dict_of_elements_widgets[pymod_element].show_children:
                 for child_element in pymod_element.get_children():
-                    self.grid_descendants(child_element, set_grid_index_only, update_text=update_text)
+                    self.grid_descendants(child_element, set_grid_index_only, update_element_text=update_element_text)
             self.grid_column_index -= 1
         else:
-            self.grid_element(pymod_element, set_grid_index_only, update_text=update_text)
+            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text)
 
 
-    def grid_element(self, pymod_element, set_grid_index_only=False, update_text=True):
+    def grid_element(self, pymod_element, set_grid_index_only=False, update_element_text=True):
         """
         Grids a single element.
         """
@@ -2121,7 +2125,7 @@ class PyMod:
         self.main_window.set_grid_column_index(pymod_element, self.grid_column_index)
         self.grid_row_index += 1
         if not set_grid_index_only:
-            self.main_window.show_widgets(pymod_element, update_text=update_text)
+            self.main_window.show_widgets(pymod_element, update_element_text=update_element_text)
 
 
     #########################################
@@ -2164,7 +2168,7 @@ class PyMod:
             container.list_of_children = filter(lambda e: e != None, container.list_of_children)
         # Shows the the elements in the new order.
         if elements_to_move != []:
-            self.gridder(update_text=False)
+            self.gridder()
 
 
     def move_single_element(self, direction, element, container_list):
@@ -2443,6 +2447,9 @@ class PyMod:
         if len(children) > 1:
             self.adjust_aligned_elements_length(children) # TODO: insert in update_stars?
             self.update_stars(cluster_element)
+            for c in cluster_element.get_children():
+                self.main_window.update_widgets(c)
+            self.main_window.update_widgets(cluster_element)
         else:
             if len(children) == 1:
                 self.extract_element_from_cluster(children[0])
@@ -4969,77 +4976,78 @@ class PyMod:
 #         self.submit=Button(self.lowerframe, text="SUBMIT", command=state,
 #             relief="raised", borderwidth="3", bg="black", fg="white")
 #         self.submit.pack()
-#
-#
-#     #################################################################
-#     # Secondary structure assignment.                               #
-#     #################################################################
-#
-#     def assign_secondary_structure(self, element):
-#         if element.has_structure():
-#             if hasattr(self, "ksdssp") and self.ksdssp.exe_exists():
-#                 self.assign_with_ksdssp(element)
-#             else:
-#                 self.assign_with_pymol_dss(element)
-#
-#
-#     def assign_with_ksdssp(self, element):
-#         # Runs ksdssp.
-#         dssptext=pmsp.runKSDSSP(os.path.join(self.structures_directory, element.structure.chain_pdb_file_name), ksdssp_exe=self.ksdssp.get_exe_file_path())
-#         # Parses ksdssp's output, that is, an series of pdb format 'HELIX' and 'SHEET' record lines.
-#         dsspout = dssptext.split("\n")
-#         helices = set() # A set to store the sequence numbers of the residues in helical conformation.
-#         sheets = set() # A set to store the sequence numbers of the residues in sheet conformation.
-#         for line in dsspout:
-#             if line.startswith("HELIX"):
-#                 new_residues_set = set(range(int(line[21:25]), int(line[33:37])+1))
-#                 helices.update(new_residues_set)
-#             elif line.startswith("SHEET"):
-#                 new_residues_set = set(range(int(line[22:26]), int(line[33:37])+1))
-#                 sheets.update(new_residues_set)
-#         # Assigns to the PyMod element the observed secondaey structure observed using ksdssp.
-#         element.pymol_dss_list = []
-#         for residue in element.structure.get_all_residues_list():
-#             if residue.pdb_position in helices:
-#                 element.pymol_dss_list.append("H")
-#                 rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
-#                 cmd.alter(rsel,"ss='H'") # Set the residue new conformation in PyMOL.
-#             elif residue.pdb_position in sheets:
-#                 element.pymol_dss_list.append("S")
-#                 rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
-#                 cmd.alter(rsel,"ss='S'") # Set the residue new conformation in PyMOL.
-#             else:
-#                 element.pymol_dss_list.append("L")
-#                 rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
-#                 cmd.alter(rsel,"ss='L'") # Set the residue new conformation in PyMOL.
-#         # Updated PyMOL.
-#         cmd.rebuild()
-#
-#
-#     def assign_with_pymol_dss(self, element):
-#         """
-#         Uses PyMOL's DSS algorithm to assign the secondary structure to a sequence according to atom
-#         coordinates of its PDB file.
-#         """
-#         selection = "object %s and n. CA" % element.build_chain_selector_for_pymol()
-#         stored.resi_set = set()
-#         stored.temp_sec_str = []
-#         stored.pymol_info = []
-#         stored.pymod_resi_set = set([res.pdb_position for res in element.structure.get_all_residues_list()])
-#         def include_sec_str_val(ca_tuple):
-#             if not ca_tuple[1] in stored.resi_set and ca_tuple[1] in stored.pymod_resi_set:
-#                 stored.temp_sec_str.append(ca_tuple[0])
-#                 stored.resi_set.add(ca_tuple[1])
-#                 stored.pymol_info.append(ca_tuple)
-#         stored.include_val = include_sec_str_val
-#         cmd.iterate(selection, "stored.include_val((ss, resv))")
-#         # print stored.pymol_info
-#         # print [res.pdb_position for res in element.structure.get_all_residues_list()]
-#         element.pymol_dss_list = list(stored.temp_sec_str)
-#         if not (len(element.pymol_dss_list) == len(element.structure.get_all_residues_list())):
-#             pass
-#
-#
+
+
+    #################################################################
+    # Secondary structure assignment.                               #
+    #################################################################
+
+    # leafs!
+    def assign_secondary_structure(self, element):
+        if element.has_structure():
+            if hasattr(self, "ksdssp") and self.ksdssp.exe_exists():
+                self.assign_with_ksdssp(element)
+            else:
+                self.assign_with_pymol_dss(element)
+
+
+    def assign_with_ksdssp(self, element):
+        # Runs ksdssp.
+        dssptext=pmsp.runKSDSSP(os.path.join(self.structures_directory, element.structure.chain_pdb_file_name), ksdssp_exe=self.ksdssp.get_exe_file_path())
+        # Parses ksdssp's output, that is, an series of pdb format 'HELIX' and 'SHEET' record lines.
+        dsspout = dssptext.split("\n")
+        helices = set() # A set to store the sequence numbers of the residues in helical conformation.
+        sheets = set() # A set to store the sequence numbers of the residues in sheet conformation.
+        for line in dsspout:
+            if line.startswith("HELIX"):
+                new_residues_set = set(range(int(line[21:25]), int(line[33:37])+1))
+                helices.update(new_residues_set)
+            elif line.startswith("SHEET"):
+                new_residues_set = set(range(int(line[22:26]), int(line[33:37])+1))
+                sheets.update(new_residues_set)
+        # Assigns to the PyMod element the observed secondaey structure observed using ksdssp.
+        element.pymol_dss_list = []
+        for residue in element.structure.get_all_residues_list():
+            if residue.pdb_position in helices:
+                element.pymol_dss_list.append("H")
+                rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
+                cmd.alter(rsel,"ss='H'") # Set the residue new conformation in PyMOL.
+            elif residue.pdb_position in sheets:
+                element.pymol_dss_list.append("S")
+                rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
+                cmd.alter(rsel,"ss='S'") # Set the residue new conformation in PyMOL.
+            else:
+                element.pymol_dss_list.append("L")
+                rsel = element.build_residue_selector_for_pymol(residue.pdb_position)
+                cmd.alter(rsel,"ss='L'") # Set the residue new conformation in PyMOL.
+        # Updated PyMOL.
+        cmd.rebuild()
+
+
+    def assign_with_pymol_dss(self, element):
+        """
+        Uses PyMOL's DSS algorithm to assign the secondary structure to a sequence according to atom
+        coordinates of its PDB file.
+        """
+        selection = "object %s and n. CA" % element.build_chain_selector_for_pymol()
+        stored.resi_set = set()
+        stored.temp_sec_str = []
+        stored.pymol_info = []
+        stored.pymod_resi_set = set([res.pdb_position for res in element.structure.get_all_residues_list()])
+        def include_sec_str_val(ca_tuple):
+            if not ca_tuple[1] in stored.resi_set and ca_tuple[1] in stored.pymod_resi_set:
+                stored.temp_sec_str.append(ca_tuple[0])
+                stored.resi_set.add(ca_tuple[1])
+                stored.pymol_info.append(ca_tuple)
+        stored.include_val = include_sec_str_val
+        cmd.iterate(selection, "stored.include_val((ss, resv))")
+        # print stored.pymol_info
+        # print [res.pdb_position for res in element.structure.get_all_residues_list()]
+        element.pymol_dss_list = list(stored.temp_sec_str)
+        if not (len(element.pymol_dss_list) == len(element.structure.get_all_residues_list())):
+            pass
+
+
 #     #################################################################
 #     # Run PSIPRED.                                                  #
 #     #################################################################

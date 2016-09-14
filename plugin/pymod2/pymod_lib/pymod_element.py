@@ -346,6 +346,12 @@ class PyMod_sequence_element(PyMod_element):
         # Update residues information with indices.
         self.update_residues_information()
 
+        #----------------------------------------------------
+        # Other sequence- or structure-related information. -
+        #----------------------------------------------------
+
+        self.assigned_secondary_structure = None
+
 
     def set_residues_from_sequence(self):
         self.residues = []
@@ -440,7 +446,7 @@ class PyMod_sequence_element(PyMod_element):
 
     def get_polymer_residues(self):
         return filter(lambda r: r.is_polymer_residue(), self.residues)
-        
+
 
     ###############################################################################################
     # Header related.                                                                             #
@@ -480,6 +486,9 @@ class PyMod_sequence_element(PyMod_element):
     def get_pymol_object_name(self):
         return self.structure.get_pymol_object_name()
 
+
+    def has_assigned_secondary_structure(self):
+        return self.assigned_secondary_structure
 
     def has_predicted_secondary_structure(self):
         return False

@@ -58,7 +58,7 @@ class PyMod_main_window_mixin:
         pymod_element_widgets_group.grid_column_index = grid_column_index
 
 
-    def show_widgets(self, pymod_element, update_text=False):
+    def show_widgets(self, pymod_element, update_element_text=False):
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
 
         #--------------------
@@ -86,15 +86,17 @@ class PyMod_main_window_mixin:
             pymod_element_widgets_group.child_sign.grid_forget()
 
         # Adds the sequence of the element.
-        if update_text:
+        if update_element_text:
             pymod_element_widgets_group.sequence_text.update_text()
         pymod_element_widgets_group.sequence_text.grid(column=10, # pymod_element_widgets_group.grid_column_index+1,
                                                        row = pymod_element_widgets_group.grid_row_index,
                                                        sticky='nw')
 
+
     def update_widgets(self, pymod_element):
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
         pymod_element_widgets_group.sequence_text.update_text()
+        self.color_element(pymod_element)
 
 
     def hide_widgets(self, pymod_element, target="all"):
@@ -120,6 +122,7 @@ class PyMod_main_window_mixin:
     # Color the sequences and structures.                           #
     #################################################################
 
+    # leafs!
     def color_selection(self, mode, target_selection, color_scheme, regular_color=None):
         """
         Used to color a single sequence (and its structure) when "mode" is set to "single", to color
@@ -143,8 +146,8 @@ class PyMod_main_window_mixin:
                 self.color_element_by_regular_color(seq, regular_color)
             elif color_scheme == "polarity":
                 self.color_element_by_polarity(seq)
-            # elif color_scheme == "secondary-observed":
-            #     seq.color_element_by_obs_sec_str()
+            elif color_scheme == "secondary-observed":
+                self.color_element_by_obs_sec_str(seq)
             # elif color_scheme == "secondary-predicted":
             #     seq.color_element_by_pred_sec_str()
             # # Colors elements with 3D structure according to the observed II str, elements with
@@ -172,6 +175,17 @@ class PyMod_main_window_mixin:
     def color_element_by_polarity(self, element):
         element.color_by = "polarity"
         self.color_element(element, on_grid=False, color_pdb=True)
+
+    # leafs!
+    def color_element_by_obs_sec_str(self, element, on_grid=False, color_pdb=True):
+        """
+        Color elements by their observed secondary structure.
+        """
+        element.color_by = "secondary-observed"
+        # If PyMOL has not been already used to assign sec str to this sequence.
+        if not element.has_assigned_secondary_structure():
+            self.pymod.assign_secondary_structure(element)
+        self.color_element(element, on_grid=False,color_pdb=True)
 
 
     def color_element(self, element, on_grid=False, color_pdb=True):
@@ -1235,7 +1249,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.sequence_menu.add_command(label="Delete Sequence", command=self.delete_sequence_from_the_left_pane)
         self.header_popup_menu.add_cascade(menu=self.sequence_menu, label="Sequence")
 
-
+    # leafs!
     def build_color_menu(self):
         """
         Color submenu containing all the option to color for a single sequence.
@@ -1254,16 +1268,16 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.residues_colors_menu.add_command(label="Polarity",command=lambda: self.color_selection("single", self.pymod_element, "polarity"))
         self.color_menu.add_cascade(menu=self.residues_colors_menu, label="By residue properties")
 
-        # # Secondary structure colors.
-        # if self.can_be_colored_by_secondary_structure():
-        #     self.color_menu.add_separator()
-        #     self.sec_str_color_menu = Menu(self.color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        #     if self.pymod_element.has_structure():
-        #         self.sec_str_color_menu.add_command(label="Observed", command=lambda: pymod.color_selection("single", self, "secondary-observed"))
-        #     if self.pymod_element.has_predicted_secondary_structure():
-        #         self.sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection("single", self, "secondary-predicted"))
-        #     self.color_menu.add_cascade(menu=self.sec_str_color_menu, label="By Secondary Structure")
-        #
+        # Secondary structure colors.
+        if self.can_be_colored_by_secondary_structure():
+            self.color_menu.add_separator()
+            self.sec_str_color_menu = Menu(self.color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            if self.pymod_element.has_structure():
+                self.sec_str_color_menu.add_command(label="Observed", command=lambda: self.color_selection("single", self.pymod_element, "secondary-observed"))
+            # if self.pymod_element.has_predicted_secondary_structure():
+            #     self.sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection("single", self, "secondary-predicted"))
+            self.color_menu.add_cascade(menu=self.sec_str_color_menu, label="By Secondary Structure")
+        
         # # Conservation colors.
         # if self.can_be_colored_by_conservation():
         #     self.color_menu.add_separator()
@@ -1286,22 +1300,15 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Returns True if the element has an associated structure or has a secondary structure
         prediction.
         """
-        if self.pymod_element.has_structure() or self.pymod_element.has_predicted_secondary_structure():
-            return True
-        else:
-            return False
+        return self.pymod_element.has_structure() or self.pymod_element.has_predicted_secondary_structure()
+
 
     def can_be_colored_by_conservation(self):
-        if self.pymod_element.has_campo_scores():
-            return True
-        else:
-            return False
+        return self.pymod_element.has_campo_scores()
+
 
     def can_be_colored_by_energy(self):
-        if self.pymod_element.dope_items != []:
-            return True
-        else:
-            return False
+        return self.pymod_element.dope_items != []
 
 
     def build_structure_menu(self):
@@ -1381,7 +1388,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.selection_color_menu = self.build_multiple_color_menu(mode="selection")
         self.selection_menu.add_cascade(menu=self.selection_color_menu, label="Color")
 
-
+    # leafs!
     def build_multiple_color_menu(self, mode, cluster_target_menu=None):
         """
         Used to build the color menu of both Selection and cluster elements popup menus.
