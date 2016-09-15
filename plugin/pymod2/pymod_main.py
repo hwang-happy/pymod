@@ -1,4 +1,13 @@
 # TODO:
+#     - PSIPRED.
+#     - CAMPO.
+#     - color structures.
+#     - rest of the evolutionary menu.
+#     - DOPE.
+#     - MODELLER.
+#     - superpose.
+#     - RMSD part.
+
 #     - remove the appendix "protocol" from all the procol classes names.
 #     - reorganize the code in well defined sections.
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.

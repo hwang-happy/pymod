@@ -21,19 +21,33 @@ class Secondary_structure_assignment_protocol(PyMod_protocol):
         self.pymod_element = pymod_element
 
 
-    def assign_secondary_structure(self):
-        if hasattr(self.pymod, "ksdssp") and self.pymod.ksdssp.exe_exists():
-            self.assign_with_ksdssp()
+    def assign_secondary_structure(self, algorithm="dss"): # TODO: set the argument default value to 'None'.
+        if algorithm == None:
+            # If ksdssp is present, use it by default.
+            if hasattr(self.pymod, "ksdssp") and self.pymod.ksdssp.exe_exists():
+                self.assign_with_ksdssp()
+            # Otherwise use PyMOL built-in dss algorithm.
+            else:
+                self.assign_with_pymol_dss()
         else:
-            self.assign_with_pymol_dss()
+            if algorithm == "ksdssp":
+                if hasattr(self.pymod, "ksdssp") and self.pymod.ksdssp.exe_exists():
+                    self.assign_with_ksdssp()
+                else:
+                    raise Exception("Ksdssp is missing.")
+            elif algorithm == "dss":
+                self.assign_with_pymol_dss()
+            else:
+                raise Exception("Unknown secondary structure assignment algorithm.")
+
 
     ###############################################################################################
-    # KSDSSP.                                                                                     #
+    # Ksdssp.                                                                                     #
     ###############################################################################################
 
     def assign_with_ksdssp(self):
         # Runs ksdssp.
-        dssptext=self.runKSDSSP(os.path.join(self.pymod.structures_directory, self.pymod_element.structure.chain_pdb_file_name), ksdssp_exe=self.pymod.ksdssp.get_exe_file_path())
+        dssptext=self.runKSDSSP(os.path.join(self.pymod.structures_directory, self.pymod_element.get_structure_file(name_only=True)), ksdssp_exe=self.pymod.ksdssp.get_exe_file_path())
         # Parses ksdssp's output, that is, an series of pdb format 'HELIX' and 'SHEET' record lines.
         dsspout = dssptext.split("\n")
         helices = set() # A set to store the sequence numbers of the residues in helical conformation.
@@ -46,21 +60,20 @@ class Secondary_structure_assignment_protocol(PyMod_protocol):
                 new_residues_set = set(range(int(line[22:26]), int(line[33:37])+1))
                 sheets.update(new_residues_set)
         # Assigns to the PyMod element the observed secondaey structure observed using ksdssp.
-        self.pymod_element.pymol_dss_list = []
-        for residue in self.pymod_element.structure.get_all_residues_list():
-            if residue.pdb_position in helices:
-                self.pymod_element.pymol_dss_list.append("H")
-                rsel = self.pymod_element.build_residue_selector_for_pymol(residue.pdb_position)
+        for residue in self.pymod_element.get_polymer_residues():
+            if residue.db_index in helices:
+                self.assign_sec_str_to_residue(residue, "H")
+                rsel = residue.get_pymol_selector()
                 cmd.alter(rsel,"ss='H'") # Set the residue new conformation in PyMOL.
-            elif residue.pdb_position in sheets:
-                self.pymod_element.pymol_dss_list.append("S")
-                rsel = self.pymod_element.build_residue_selector_for_pymol(residue.pdb_position)
+            elif residue.db_index in sheets:
+                self.assign_sec_str_to_residue(residue, "S")
+                rsel = residue.get_pymol_selector()
                 cmd.alter(rsel,"ss='S'") # Set the residue new conformation in PyMOL.
             else:
-                self.pymod_element.pymol_dss_list.append("L")
-                rsel = self.pymod_element.build_residue_selector_for_pymol(residue.pdb_position)
+                self.assign_sec_str_to_residue(residue, "L")
+                rsel = residue.get_pymol_selector()
                 cmd.alter(rsel,"ss='L'") # Set the residue new conformation in PyMOL.
-        # Updated PyMOL.
+        # Update in PyMOL.
         cmd.rebuild()
 
 
@@ -181,11 +194,11 @@ class Secondary_structure_assignment_protocol(PyMod_protocol):
         Uses PyMOL's DSS algorithm to assign the secondary structure to a sequence according to atom
         coordinates of its PDB file.
         """
-        selection = "object %s and n. CA" % self.pymod_element.build_chain_selector_for_pymol()
+        selection = "object %s and n. CA" % self.pymod_element.get_pymol_object_name()
         stored.resi_set = set()
         stored.temp_sec_str = []
         stored.pymol_info = []
-        stored.pymod_resi_set = set([res.pdb_position for res in self.pymod_element.structure.get_all_residues_list()])
+        stored.pymod_resi_set = set([res.db_index for res in self.pymod_element.get_polymer_residues()])
         def include_sec_str_val(ca_tuple):
             if not ca_tuple[1] in stored.resi_set and ca_tuple[1] in stored.pymod_resi_set:
                 stored.temp_sec_str.append(ca_tuple[0])
@@ -195,6 +208,13 @@ class Secondary_structure_assignment_protocol(PyMod_protocol):
         cmd.iterate(selection, "stored.include_val((ss, resv))")
         # print stored.pymol_info
         # print [res.pdb_position for res in element.structure.get_all_residues_list()]
-        self.pymod_element.pymol_dss_list = list(stored.temp_sec_str)
-        if not (len(self.pymod_element.pymol_dss_list) == len(self.pymod_element.structure.get_all_residues_list())):
-            pass
+        sec_str_results = list(stored.temp_sec_str)
+
+        if not (len(sec_str_results) == len(self.pymod_element.get_polymer_residues())):
+            # TODO: remove once tested.
+            raise Exception("Error in secodnary structure assignment by PyMOL dss.")
+        else:
+            map(lambda t: self.assign_sec_str_to_residue(t[0], t[1]), zip(self.pymod_element.get_polymer_residues(), sec_str_results))
+
+    def assign_sec_str_to_residue(self, res, ssr):
+        res.assigned_secondary_structure = ssr
