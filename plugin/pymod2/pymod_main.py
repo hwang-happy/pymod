@@ -91,7 +91,6 @@ import pymol
 from pymol import cmd, stored, selector
 
 # PyMod modules.
-from pymod_lib import pymod_campo as campo # Python implementation of the CAMPO algorithm.
 from pymod_lib import pymod_os_specific as pmos # Different OS compatibility-related code.
 from pymod_lib import pymod_sequence_manipulation as pmsm # General biological sequence manipulation.
 from pymod_lib import pymod_gui as pmgi # Part of the graphical user interface of PyMod.
@@ -286,12 +285,15 @@ class PyMod:
             color_name = "%s_%s_%s" % (pmdt.pymol_psipred_color_name, c[0], c[1])
             cmd.set_color(color_name, self.psipred_color_dict_rgb[c])
             self.psipred_color_dict_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.psipred_color_dict_rgb[c])})
-        #
-        # # Prepares CAMPO colors in PyMOL. Generates something like: 'pymod_campo_7'
-        # for c in pmdt.campo_color_dictionary.keys():
-        #     color_name = "%s_%s" % (pmdt.pymol_campo_color_name, c)
-        #     cmd.set_color(color_name, pmdt.campo_color_dictionary[c])
-        #
+
+        # Prepares CAMPO colors in PyMOL and PyMod. Generates something like: 'pymod_campo_7'.
+        self.campo_color_dictionary_rgb = pmdt.campo_color_dictionary.copy()
+        self.campo_color_dictionary_tkinter = {}
+        for c in self.campo_color_dictionary_rgb.keys():
+            color_name = "%s_%s" % (pmdt.pymol_campo_color_name, c)
+            cmd.set_color(color_name, self.campo_color_dictionary_rgb[c])
+            self.campo_color_dictionary_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.campo_color_dictionary_rgb[c])})
+
         # for c in pmdt.dope_color_dict.keys():
         #     color_name = "%s_%s" % (pmdt.pymol_dope_color_name, c)
         #     cmd.set_color(color_name, pmdt.dope_color_dict[c])
@@ -2696,101 +2698,9 @@ class PyMod:
     # CAMPO.                                                        #
     #################################################################
 
-    # def build_campo_window(self, alignment_unique_id):
-    #     """
-    #     Builds a window with opotions for the CAMPO algorithm.
-    #     """
-    #     self.input_alignment_element = self.get_element_by_unique_index(alignment_unique_id)
-    #
-    #     current_pack_options = pmgi.shared_components.pack_options_1
-    #     current_label_options = pmgi.shared_components.label_style_1
-    #
-    #     # Builds the window.
-    #     self.campo_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-    #         title = "CAMPO algorithm options",
-    #         upper_frame_title = "Here you can modify options for CAMPO",
-    #         submit_command = self.campo_state)
-    #
-    #     # Scoring matrix combobox.
-    #     self.campo_matrices = ["Blosum90","Blosum80","Blosum62","Blosum50","Blosum45","PAM30","PAM120","PAM250" ]
-    #     self.campo_matrices_dict = {"Blosum62": "blosum62", "Blosum90": "blosum90","Blosum80":"blosum80",
-    #                                 "Blosum50": "blosum50", "Blosum45":"blosum45",
-    #                                 "PAM30": "pam30", "PAM120": "pam120", "PAM250": "pam250"}
-    #     self.matrix_cbx = pmgi.shared_components.PyMod_combobox(self.campo_window.midframe, label_text = 'Scoring Matrix Selection',label_style = current_label_options, scrolledlist_items=self.campo_matrices)
-    #     self.matrix_cbx.pack(**current_pack_options)
-    #     self.matrix_cbx.selectitem(2)
-    #     self.campo_window.add_widget_to_align(self.matrix_cbx)
-    #
-    #     # Gap open entryfield.
-    #     self.campo_gap_penalty_enf = pmgi.shared_components.PyMod_entryfield(
-    #         self.campo_window.midframe,
-    #         label_text = "Gap Score",
-    #         label_style = current_label_options,
-    #         value = '-1',
-    #         validate = {'validator' : 'integer',
-    #                     'min' : -1000, 'max' : 0})
-    #     self.campo_gap_penalty_enf.pack(**current_pack_options)
-    #     self.campo_window.add_widget_to_align(self.campo_gap_penalty_enf)
-    #
-    #     # Gap extension entryfield.
-    #     self.campo_gap_to_gap_score_enf = pmgi.shared_components.PyMod_entryfield(
-    #         self.campo_window.midframe,
-    #         label_text = "Gap to Gap Score",
-    #         label_style = current_label_options,
-    #         value = '0',
-    #         validate = {'validator' : 'integer',
-    #                     'min' : -1000, 'max' : 0})
-    #     self.campo_gap_to_gap_score_enf.pack(**current_pack_options)
-    #     self.campo_window.add_widget_to_align(self.campo_gap_to_gap_score_enf)
-    #
-    #     # Toss gaps.
-    #     self.campo_exclude_gaps_rds = pmgi.shared_components.PyMod_radioselect(self.campo_window.midframe, label_text = 'Toss gaps')
-    #     for text in ('Yes', 'No'):
-    #         self.campo_exclude_gaps_rds.add(text)
-    #     self.campo_exclude_gaps_rds.setvalue('Yes')
-    #     self.campo_exclude_gaps_rds.pack(**current_pack_options)
-    #     self.campo_window.add_widget_to_align(self.campo_exclude_gaps_rds)
-    #
-    #     self.campo_window.align_widgets(10)
-    #
-    #
-    # def campo_state(self):
-    #     """
-    #     Called when the "SUBMIT" button is pressed on the CAMPO window. Contains the code to compute
-    #     CAMPO scores using the 'CAMPO' class.
-    #     """
-    #     # Saves a .fasta file for the alignment.
-    #     aligned_sequences = self.get_children(self.input_alignment_element)
-    #     self.save_alignment_fasta_file("temp", aligned_sequences)
-    #     input_file_shortcut = os.path.join(self.alignments_directory,"temp.fasta")
-    #
-    #     # Computes CAMPO scores by using the campo module.
-    #     cbc = campo.CAMPO(input_file_shortcut,
-    #                       mutational_matrix = self.campo_matrices_dict[self.matrix_cbx.get()],
-    #                       gap_score = int(self.campo_gap_penalty_enf.getvalue()),
-    #                       gap_gap_score = int(self.campo_gap_to_gap_score_enf.getvalue()),
-    #                       toss_gaps = pmdt.yesno_dict[self.campo_exclude_gaps_rds.getvalue()])
-    #     cbc.compute_id_matrix()
-    #     cbc.run_CAMPO()
-    #
-    #     # Gets the list of CAMPO score. There are as many values as positions in the alignment.
-    #     campo_list = cbc.get_campo_items_list()
-    #
-    #     # Assigns CAMPO scores to each one of the aligned sequences.
-    #     for seq in aligned_sequences:
-    #         seq.campo_scores = []
-    #         for (r,v) in zip(seq.my_sequence,campo_list):
-    #             if r != "-":
-    #                 seq.campo_scores.append(v)
-    #         seq.color_element_by_campo_scores()
-    #
-    #     # Removes the temporary alignment file.
-    #     os.remove(input_file_shortcut)
-    #     self.campo_window.destroy()
-    #
-    #
-    # def build_scr_find_window(self, alignment_unique_id):
-    #     pass
+    def launch_campo_from_main_menu(self, pymod_cluster):
+        campo = pmptc.evolutionary_analysis_protocols.CAMPO_analysis(self, pymod_cluster)
+        campo.perform_analysis()
 
 
     #################################################################

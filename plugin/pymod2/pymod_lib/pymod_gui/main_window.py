@@ -157,8 +157,8 @@ class PyMod_main_window_mixin:
                     self.color_element_by_obs_sec_str(seq)
                 elif seq.has_predicted_secondary_structure():
                     self.color_element_by_pred_sec_str(seq)
-            # elif color_scheme == "campo-scores":
-            #     seq.color_element_by_campo_scores()
+            elif color_scheme == "campo-scores":
+                self.color_element_by_campo_scores(seq)
             # elif color_scheme == "dope":
             #     seq.color_element_by_dope()
 
@@ -195,6 +195,13 @@ class PyMod_main_window_mixin:
         Colors according by secondary structure predicted by PSIPRED.
         """
         element.color_by = "secondary-predicted"
+        self.color_element(element, on_grid=False,color_pdb=True)
+
+    def color_element_by_campo_scores(self, element, on_grid=False, color_pdb=True):
+        """
+        Color by CAMPO scores.
+        """
+        element.color_by = "campo-scores"
         self.color_element(element, on_grid=False,color_pdb=True)
 
 
@@ -272,6 +279,8 @@ class PyMod_main_window_mixin:
             return self.get_observed_sec_str_sequence_color
         elif element.color_by == "secondary-predicted":
             return self.get_predicted_sec_str_sequence_color
+        elif element.color_by == "campo-scores":
+            return self.get_campo_sequence_color
 
     def get_polarity_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
         return self.pymod.polarity_color_dictionary_tkinter.get(residue.one_letter_code)
@@ -282,6 +291,9 @@ class PyMod_main_window_mixin:
     def get_predicted_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
         psipred_tuple = (residue.predict_secondary_structure["confidence"], residue.predict_secondary_structure["sec-str-element"])
         return self.pymod.psipred_color_dict_tkinter[psipred_tuple]
+
+    def get_campo_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        return self.pymod.campo_color_dictionary_tkinter[residue.campo_score["interval"]]
 
 
     # def get_sequence_residue_color(self, element, residue, residue_id, residues_to_color="all"):
@@ -866,9 +878,9 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
                 # Evolutionary conservation.
                 evolutionary_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Evolutionary Conservation", menu = evolutionary_submenu)
-                evolutionary_submenu.add_command(label = "CAMPO", command = lambda e=alignment_element: self.pymod.build_campo_window(e))
-                if alignment_element.algorithm in pmdt.can_use_scr_find and 0:
-                    evolutionary_submenu.add_command(label = "SCR_FIND", command = lambda e=alignment_element: self.pymod.build_scr_find_window(e))
+                evolutionary_submenu.add_command(label = "CAMPO", command = lambda e=alignment_element: self.pymod.launch_campo_from_main_menu(e))
+                # if alignment_element.algorithm in pmdt.can_use_scr_find:
+                #     evolutionary_submenu.add_command(label = "SCR_FIND", command = lambda e=alignment_element: self.pymod.build_scr_find_window(e))
 
                 # Render alignment.
                 render_submenu = Menu(alignment_submenu, tearoff = 0)

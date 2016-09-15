@@ -529,6 +529,8 @@ class PyMod_residue:
         self.pymod_element = None
 
         self.assigned_secondary_structure = None
+        self.predicted_secondary_structure = None
+        self.campo_score = None
 
 
     def is_polymer_residue(self): # TODO: rename this to something more clear.
