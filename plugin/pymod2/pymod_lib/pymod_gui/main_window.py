@@ -905,8 +905,8 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
                 # Render alignment.
                 render_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Render Alignment", menu = render_submenu)
-                render_submenu.add_command(label = "Generate Logo through WebLogo 3", command = lambda e=alignment_element: self.pymod.build_logo_options_window(e))
-                render_submenu.add_command(label = "Launch ESPript in Web Browser", command = lambda e=alignment_element: self.pymod.espript(e))
+                render_submenu.add_command(label = "Generate Logo through WebLogo 3", command = lambda e=alignment_element: self.pymod.launch_weblogo_from_main_menu(e))
+                render_submenu.add_command(label = "Launch ESPript in Web Browser", command = lambda e=alignment_element: self.pymod.launch_espript_from_main_menu(e))
 
                 # Adds the alignment submenu to the PyMod main menu.
                 label_text = alignment_element.my_header

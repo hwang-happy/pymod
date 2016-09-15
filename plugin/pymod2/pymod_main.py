@@ -1,9 +1,13 @@
 # TODO:
 #     - rest of the evolutionary menu.
+#         - alignment rendering
+#         - trees
 #     - complete the header popup menus.
 #     - DOPE.
 #     - similarity_searches_protocols  module and structure fetching.
 #     - MODELLER.
+#     - add raw sequence.
+#     - headers formatting.
 #     - structure appearence and colors.
 #     - reimplement the collapsed clusters features.
 #     - Ramachandran plot.
@@ -2696,13 +2700,20 @@ class PyMod:
         pass
         # self.alignment_save(self.get_element_by_unique_index(alignment_unique_id))
 
-    #################################################################
-    # CAMPO.                                                        #
-    #################################################################
 
     def launch_campo_from_main_menu(self, pymod_cluster):
         campo = pmptc.evolutionary_analysis_protocols.CAMPO_analysis(self, pymod_cluster)
         campo.perform_analysis()
+
+
+    def launch_weblogo_from_main_menu(self, pymod_cluster):
+        weblogo = pmptc.evolutionary_analysis_protocols.WebLogo_analysis(self, pymod_cluster)
+        weblogo.perform_analysis()
+
+
+    def launch_espript_from_main_menu(self, pymod_cluster):
+        espript = pmptc.evolutionary_analysis_protocols.ESPript_analysis(self, pymod_cluster)
+        espript.perform_analysis()
 
 
     #################################################################
@@ -2827,562 +2838,177 @@ class PyMod:
         self.matrix_widget.pack(padx = 5, pady = 5, fill = 'both', expand = 1)
 
 
-    #################################################################
-    # Show guide trees and build trees out of alignments.           #
-    #################################################################
-
-    def show_guide_tree_from_alignments_menu(self, alignment_element):
-        """
-        Shows the guide tree that was constructed in order to perform a multiple alignment.
-        """
-        # Gets the path of the .dnd file of the alignment.
-        self.show_tree(alignment_element.get_tree_file_path())
-
-
-    def show_tree(self, tree_file_path):
-        # Reads a tree file using Phylo.
-        tree = Phylo.read(tree_file_path, "newick")
-        tree.ladderize() # Flip branches so deeper clades are displayed at top
-        # Displayes its content using PyMod plotting engine.
-        pplt.draw_tree(tree, self.main_window)
-
-
-    # def show_dendrogram_from_alignments_menu(self,alignment_unique_id):
+    # #################################################################
+    # # Show guide trees and build trees out of alignments.           #
+    # #################################################################
+    #
+    # def show_guide_tree_from_alignments_menu(self, alignment_element):
     #     """
-    #     Shows dendrograms built by SALIGN.
+    #     Shows the guide tree that was constructed in order to perform a multiple alignment.
     #     """
     #     # Gets the path of the .dnd file of the alignment.
-    #     alignment_element = self.get_element_by_unique_index(alignment_unique_id)
-    #     tree_file_path = alignment_element.alignment.get_dnd_file_path()
-    #     pmsp.draw_salign_dendrogram(tree_file_path)
-
-
-    ###################################
-    # Tree building.                  #
-    ###################################
-
-    def build_tree_from_alignments_menu(self, alignment_element):
-        """
-        Called when the users clicks on the "Build Tree from Alignment" voice in the Alignments
-        menu. It will check if a software to build a tree is available on the user's machine.
-        """
-        self.input_alignment_element = alignment_element
-        self.tree_building_software = None
-        can_build_tree = False
-        if self.clustalw.exe_exists():
-            self.tree_building_software = "clustalw"
-            can_build_tree = True
-        elif self.muscle.exe_exists():
-            self.tree_building_software = "muscle"
-            can_build_tree = True
-        if can_build_tree:
-            self.build_tree_building_window()
-        else:
-            title = "Tree building Error"
-            message = "In order to build a tree out of an alignment you need to install either ClustalW or MUSCLE."
-            self.show_error_message(title, message)
-
-
-    def check_tree_constructor_module(self):
-        try:
-            import Bio.Phylo.TreeConstruction
-            return True
-        except:
-            return False
-
-
-    def build_tree_building_window(self):
-        """
-        Builds a window with options to build a tree out of an alignment.
-        """
-        current_pack_options = pmgi.shared_components.pack_options_1
-
-        # Builds the window.
-        self.tree_building_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-            title="Options for Tree Building",
-            upper_frame_title="Here you can modify options for Tree Building",
-            submit_command=self.run_tree_building_software)
-
-        # Add some options.
-        self.algorithm_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Clustering Algorithm')
-        for alg_name in (sorted(pmdt.tree_building_alg_dict.keys())):
-            self.algorithm_rds.add(alg_name)
-        self.algorithm_rds.setvalue("Neighbor Joining")
-        self.algorithm_rds.pack(**current_pack_options)
-        self.tree_building_window.add_widget_to_align(self.algorithm_rds)
-
-        if self.tree_building_software == "clustalw":
-            # Kimura distance correction.
-            self.distance_correction_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Use Distance Correction')
-            for text in ('Yes', 'No'):
-                self.distance_correction_rds.add(text)
-            self.distance_correction_rds.setvalue('No')
-            self.distance_correction_rds.pack(**current_pack_options)
-            self.tree_building_window.add_widget_to_align(self.distance_correction_rds)
-            # Toss gaps.
-            self.exclude_gaps_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Exclude Gaps')
-            for text in ('Yes', 'No'):
-                self.exclude_gaps_rds.add(text)
-            self.exclude_gaps_rds.setvalue('No')
-            self.exclude_gaps_rds.pack(**current_pack_options)
-            self.tree_building_window.add_widget_to_align(self.exclude_gaps_rds)
-
-        self.tree_building_window.align_widgets(13)
-
-
-    def run_tree_building_software(self):
-        # Saves a temporary input alignment file.
-        alignment_file_name = "alignment_tmp"
-        alignment_file_path = os.path.join(self.alignments_directory, alignment_file_name + '.fasta')
-        self.save_alignment_fasta_file(alignment_file_name, self.input_alignment_element.get_children())
-
-        # Get the parameters from the GUI.
-        clustering_algorithm = self.get_clustering_algorithm()
-
-        # Prepares to run the tree-building algorithm.
-        commandline = ""
-        output_file_path = None
-
-        if self.tree_building_software == "clustalw":
-            commandline =  '"%s"' % (self.clustalw.get_exe_file_path())
-            commandline += ' -TREE -INFILE="%s"' % (alignment_file_path)
-            commandline += ' -OUTPUTTREE=phylip'
-            if self.get_distance_correction_val():
-                commandline += ' -KIMURA'
-            if self.get_exclude_gaps_val():
-                commandline += ' -TOSSGAPS'
-            # if self.get_boostrap_val():
-            #     commandline += ' -SEED='+str(random.randint(0,1000))
-            #     commandline += ' -BOOTLABELS=node'
-            if clustering_algorithm == "nj":
-                commandline += ' -CLUSTERING=NJ'
-            elif clustering_algorithm == "upgma":
-                commandline += ' -CLUSTERING=UPGMA'
-            output_file_path = os.path.join(self.alignments_directory, alignment_file_name + '.ph')
-
-        elif self.tree_building_software == "muscle":
-            commandline =  '"%s"' % (self.muscle.get_exe_file_path())
-            commandline += ' -maketree -in %s' % (alignment_file_path)
-            output_file_path = os.path.join(self.alignments_directory, alignment_file_name + '.phy')
-            commandline += ' -out %s' % (output_file_path)
-            if clustering_algorithm == "nj":
-                commandline += ' -cluster neighborjoining'
-            elif clustering_algorithm == "upgma":
-                pass
-
-        # Actually runs the tree building algorithm.
-        self.execute_subprocess(commandline)
-
-        # Remove temporary files.
-        new_tree_file_path = os.path.join(self.alignments_directory, "%s_%s_align_tree.phy" % (self.alignments_files_names, self.input_alignment_element.unique_index))
-        os.rename(output_file_path, new_tree_file_path)
-        os.remove(alignment_file_path)
-
-        self.tree_building_window.destroy()
-
-        # Reads the output tree file with Phylo and displays its content using PyMod plotting
-        # engine.
-        self.show_tree(new_tree_file_path)
-
-
-    def get_clustering_algorithm(self):
-        return pmdt.tree_building_alg_dict[self.algorithm_rds.getvalue()]
-
-    def get_boostrap_val(self):
-        return pmdt.yesno_dict[self.bootstrap_rds.getvalue()]
-
-    def get_distance_correction_val(self):
-        return pmdt.yesno_dict[self.distance_correction_rds.getvalue()]
-
-    def get_exclude_gaps_val(self):
-        return pmdt.yesno_dict[self.exclude_gaps_rds.getvalue()]
-
-
-    # #################################################################
-    # # Methods for accessing the WebLogo web service.                #
-    # #################################################################
+    #     self.show_tree(alignment_element.get_tree_file_path())
     #
-    # def build_logo_options_window(self, alignment_unique_id):
+    #
+    # def show_tree(self, tree_file_path):
+    #     # Reads a tree file using Phylo.
+    #     tree = Phylo.read(tree_file_path, "newick")
+    #     tree.ladderize() # Flip branches so deeper clades are displayed at top
+    #     # Displayes its content using PyMod plotting engine.
+    #     pplt.draw_tree(tree, self.main_window)
+    #
+    #
+    # # def show_dendrogram_from_alignments_menu(self,alignment_unique_id):
+    # #     """
+    # #     Shows dendrograms built by SALIGN.
+    # #     """
+    # #     # Gets the path of the .dnd file of the alignment.
+    # #     alignment_element = self.get_element_by_unique_index(alignment_unique_id)
+    # #     tree_file_path = alignment_element.alignment.get_dnd_file_path()
+    # #     pmsp.draw_salign_dendrogram(tree_file_path)
+    #
+    #
+    # ###################################
+    # # Tree building.                  #
+    # ###################################
+    #
+    # def build_tree_from_alignments_menu(self, alignment_element):
     #     """
-    #     Launched from the 'Alignments' menu on PyMod main menu. Displayes a window with a series of
-    #     widgets through which users can define WebLogo parameters.
+    #     Called when the users clicks on the "Build Tree from Alignment" voice in the Alignments
+    #     menu. It will check if a software to build a tree is available on the user's machine.
     #     """
-    #     self.logo_window = pmgi.shared_components.PyMod_tool_window(
-    #         self.main_window,
-    #         title = "WebLogo 3 web-application Options",
-    #         upper_frame_title = "Here you can modify options for WebLogo 3",
-    #         submit_command = self.logo_state,
-    #         with_frame=True)
-    #
-    #     #Units list.
-    #     units_list=['Bits', 'Probability']
-    #     #Units combobox.
-    #     self.unit_combobox = pmgi.shared_components.PyMod_combobox(self.logo_window.midframe,
-    #         label_text = 'Unit Selection',
-    #         scrolledlist_items=units_list)
-    #     self.unit_combobox.pack(**pmgi.shared_components.pack_options_1)
-    #     self.unit_combobox.selectitem(0)
-    #     self.logo_window.add_widget_to_align(self.unit_combobox)
-    #
-    #     #Color scheme list.
-    #     colorscheme_list=['Auto', '(AA) Charge', '(AA) Chemistry', '(AA default) Hydrophobicity', '(NA) Classic', '(NA default) Base pairing']
-    #     colorscheme_list.sort()
-    #     #Color combobox.
-    #     self.color_combobox = pmgi.shared_components.PyMod_combobox(self.logo_window.midframe,
-    #         label_text = 'Color Scheme Selection',
-    #         scrolledlist_items=colorscheme_list)
-    #     self.color_combobox.pack(**pmgi.shared_components.pack_options_1)
-    #     self.color_combobox.selectitem(5)
-    #     self.logo_window.add_widget_to_align(self.color_combobox)
-    #
-    #     self.logo_al_element = self.get_element_by_unique_index(alignment_unique_id)
-    #     self.AL_LENGTH = len(self.logo_al_element.my_sequence)
-    #
-    #     #Sub-frame created to display entries for Logo Range option
-    #     self.range_subframe = Frame(self.logo_window.midframe, background='black')
-    #     self.range_subframe.pack(**pmgi.shared_components.pack_options_1)
-    #     #Logo Range Label
-    #     self.logo_range_label=Label(self.range_subframe, text= "Logo Range", **pmgi.shared_components.label_style_1 )
-    #     self.logo_range_label.grid(row=0, column=0, sticky = "w", padx = (0,100))
-    #     #Entry: Logo Start Position
-    #     self.logo_start=Spinbox(self.range_subframe, from_=1, to=self.AL_LENGTH, width=5)
-    #     self.logo_start.grid(row=0, column=1, sticky = "e")
-    #     #Separator dash
-    #     self.logo_range_dash=Label(self.range_subframe, font = "comic 10", height = 1,
-    #                      text= " - ", background='black', fg='white')
-    #     self.logo_range_dash.grid(row=0, column=2, sticky = "e")
-    #     #Entry: Logo End Position
-    #     self.logo_end=Spinbox(self.range_subframe, to=self.AL_LENGTH, width=5)
-    #     self.logo_end.grid(row=0, column=3, sticky = "e")
-    #     self.logo_end.insert(0, self.AL_LENGTH)
-    #     self.logo_end.config(from_=2)
-    #
-    #     # ADVANCED OPTIONS.
-    #     self.logo_window.show_advanced_button()
-    #
-    #     #Logo Format
-    #     format_list=['PDF', 'PNG image']
-    #     #Logo format combobox.
-    #     self.format_combobox = pmgi.shared_components.PyMod_combobox(self.logo_window.midframe,
-    #         label_text = 'Logo Format',
-    #         scrolledlist_items=format_list)
-    #     self.format_combobox.selectitem(0)
-    #     self.logo_window.add_widget_to_align(self.format_combobox)
-    #     self.logo_window.add_advanced_widget(self.format_combobox)
-    #
-    #     #LOGO title entry.
-    #     self.logo_title_enf = pmgi.shared_components.PyMod_entryfield(self.logo_window.midframe,
-    #         label_text = 'Logo Title',
-    #         value = "")
-    #     self.logo_window.add_widget_to_align(self.logo_title_enf)
-    #     self.logo_window.add_advanced_widget(self.logo_title_enf)
-    #     self.logo_window.add_widget_to_validate(self.logo_title_enf)
-    #
-    #     #Stacks per line entry (default:80).
-    #     self.logo_stacks_enf = pmgi.shared_components.PyMod_entryfield(self.logo_window.midframe,
-    #         label_text = 'Stacks per line',
-    #         value = 80,
-    #         validate = {'validator' : 'integer', 'min' : 0, 'max' : 100} )
-    #     self.logo_window.add_widget_to_align(self.logo_stacks_enf)
-    #     self.logo_window.add_advanced_widget(self.logo_stacks_enf)
-    #     self.logo_window.add_widget_to_validate(self.logo_stacks_enf)
-    #
-    #     #Option: Scale stacks width.
-    #     self.scale_width_rds = pmgi.shared_components.PyMod_radioselect(self.logo_window.midframe, label_text = 'Scale stacks width')
-    #     for text in ('Yes', 'No'):
-    #         self.scale_width_rds.add(text)
-    #     self.scale_width_rds.setvalue('No')
-    #     self.logo_window.add_widget_to_align(self.scale_width_rds)
-    #     self.logo_window.add_advanced_widget(self.scale_width_rds)
-    #
-    #     #Option: Show error bars.
-    #     self.show_error_rds = pmgi.shared_components.PyMod_radioselect(self.logo_window.midframe, label_text = 'Show error bars')
-    #     for text in ('Yes', 'No'):
-    #         self.show_error_rds.add(text)
-    #     self.show_error_rds.setvalue('No')
-    #     self.logo_window.add_widget_to_align(self.show_error_rds)
-    #     self.logo_window.add_advanced_widget(self.show_error_rds)
-    #
-    #     self.logo_window.align_widgets(13)
+    #     self.input_alignment_element = alignment_element
+    #     self.tree_building_software = None
+    #     can_build_tree = False
+    #     if self.clustalw.exe_exists():
+    #         self.tree_building_software = "clustalw"
+    #         can_build_tree = True
+    #     elif self.muscle.exe_exists():
+    #         self.tree_building_software = "muscle"
+    #         can_build_tree = True
+    #     if can_build_tree:
+    #         self.build_tree_building_window()
+    #     else:
+    #         title = "Tree building Error"
+    #         message = "In order to build a tree out of an alignment you need to install either ClustalW or MUSCLE."
+    #         self.show_error_message(title, message)
     #
     #
-    # def check_logo_correct_parameters(self):
-    #     '''
-    #     Checks if the values that were insert in the LOGO window are correct.
-    #     '''
-    #     correct_input = True #This variable defines the status
+    # def check_tree_constructor_module(self):
     #     try:
-    #         #checks if entries are integer numbers
-    #         start=int(self.logo_start.get())
-    #         end=int(self.logo_end.get())
-    #         # Filters the BLAST record according to the advanced options.
-    #         if self.logo_window.showing_advanced_widgets:
-    #             stacks_pl = int(self.logo_stacks_enf.getvalue())
-    #         #check on the logic of choosing extremities
-    #         if start >= end:
-    #             correct_input=False
-    #             errortitle = "Input Error"
-    #             errormessage = "Start value cannot be greater than the end value.\nPlease correct."
-    #             self.show_error_message(errortitle, errormessage)
-    #         elif start > self.AL_LENGTH or end > self.AL_LENGTH or start<0 or end<0:
-    #             correct_input=False
-    #             errortitle = "Input Error"
-    #             errormessage = "Values cannot be greater than the sequence length and both must be greater then 0.\nPlease correct."
-    #             self.show_error_message(errortitle, errormessage)
+    #         import Bio.Phylo.TreeConstruction
+    #         return True
     #     except:
-    #         correct_input=False
-    #         errortitle = "Input Error"
-    #         errormessage = "Non valid numeric input.\nPlease correct."
-    #         self.show_error_message(errortitle, errormessage)
-    #     return correct_input
-    #
-    #
-    # def logo_state(self):
-    #     """
-    #     This method is called when the 'Submit' button on the LOGO window is pressed. It runs a
-    #     check on the entries, if they are correct it calls the getLogo() function
-    #     """
-    #     if not self.check_logo_correct_parameters():
     #         return False
-    #     self.getLogo()
     #
     #
-    # def getLogo(self):
-    #     '''
-    #     Generates a LOGO of the alignment, by using WebLogo 3 site.
-    #     Requires active Internet connection.
-    #     '''
-    #     #Units dictionary
-    #     UNITS = {'Bits':'bits', 'Probability':'probability'}
-    #     #Color scheme dictionary
-    #     COLOR_SCHEME = {
-    #         'Auto':'color_auto',
-    #         '(NA default) Base pairing':'color_base_pairing',
-    #         '(NA) Classic':'color_classic',
-    #         '(AA default) Hydrophobicity':'color_hydrophobicity',
-    #         '(AA) Chemistry':'color_chemistry',
-    #         '(AA) Charge':'color_charge'
-    #         }
-    #     #Format dictionary
-    #     FORMATS =  {'PNG image' : 'png_print',    'PDF' : 'pdf'}
-    #     #switch format-extension
-    #     extensions =  {'png_print': 'png',    'pdf' : 'pdf'}
-    #     logo_yesno = {"Yes": "true", "No": "false"}
-    #
-    #     #Options defined in the window
-    #     LOGO_UNIT            = UNITS[self.unit_combobox.get()]
-    #     LOGO_COLOR           = COLOR_SCHEME[self.color_combobox.get()]
-    #     LOGO_RANGE_START     = self.logo_start.get()
-    #     LOGO_RANGE_END       = self.logo_end.get()
-    #     #Options defined in advanced options sub-window, not always visible. Here they are initialised.
-    #     LOGO_FORMAT          = 'pdf'
-    #     LOGO_TITLE           = ''
-    #     LOGO_STACKS_PER_LINE = '80'
-    #     LOGO_SCALE_STACKS    = 'false'
-    #     LOGO_SHOW_ERRORBARS  = 'false'
-    #
-    #     if self.logo_window.showing_advanced_widgets:
-    #         LOGO_FORMAT          = FORMATS[self.format_combobox.get()]
-    #         LOGO_TITLE           = self.logo_title_enf.getvalue()
-    #         LOGO_STACKS_PER_LINE = self.logo_stacks_enf.getvalue()
-    #         LOGO_SCALE_STACKS    = logo_yesno[self.scale_width_rds.getvalue()]
-    #         LOGO_SHOW_ERRORBARS  = logo_yesno[self.show_error_rds.getvalue()]
-    #     self.logo_window.destroy()
-    #
-    #     print 'Running GetLogo...'
-    #
-    #     #weblogo3 URL
-    #     weblogourl = 'http://weblogo.threeplusone.com/create.cgi'
-    #
-    #     #Sets fields and arguments collecting values from the LOGO options window
-    #     values = {'unit_name': LOGO_UNIT, 'color_scheme': LOGO_COLOR,
-    #               'logo_start': LOGO_RANGE_START, 'logo_end'  : LOGO_RANGE_END,
-    #               'format': LOGO_FORMAT, 'logo_title': LOGO_TITLE,
-    #               'stacks_per_line': LOGO_STACKS_PER_LINE,
-    #               'show_xaxis': 'true', 'show_yaxis': 'true',
-    #               'show_ends': 'true', 'show_fineprint': 'true', }
-    #     values_update_scale = {'scale_width': LOGO_SCALE_STACKS}
-    #     values_update_errorbars = {'show_errorbars': LOGO_SHOW_ERRORBARS}
-    #
-    #     if LOGO_SCALE_STACKS != 'false':
-    #         values.update(values_update_scale)
-    #     if LOGO_SHOW_ERRORBARS != 'false':
-    #         values.update(values_update_errorbars)
-    #
-    #     # Builds an url with the multiple alingment and WebLogo parameters and sends a request to
-    #     # the WebLogo server.
-    #     upload_response = self.upload_alignment(self.logo_al_element, weblogourl, 'sequences_file', other_values=values)
-    #
-    #     #Check if valid response is given
-    #     if upload_response:
-    #         #Writes output content in a file with extension given by LOGO_FORMAT
-    #         logofile = os.path.join(self.images_directory,'logo_' + str(self.logo_image_counter) + '.' + extensions[LOGO_FORMAT])
-    #         lf = open(logofile, 'wb')
-    #         print 'Creating file...'
-    #         lf.write(upload_response)
-    #         lf.close()
-    #         self.logo_image_counter += 1
-    #         pmos.open_document_with_default_viewer(logofile)
-    #         print 'Done!'
-    #     else:
-    #         print 'No response. Aborted.'
-    #         title = "Error"
-    #         message = "No valid response from server"
-    #         self.show_error_message(title,message)
-    #
-    #
-    # #################################################################
-    # # Methods for accessing the ESPript web service.                #
-    # #################################################################
-    #
-    # def espript(self, alignment_unique_id):
-    #     '''
-    #     Opens in the default browser the ESPript page, with the current alignment pre-loaded.
-    #     Requires active Internet connection. It needs also the Schubert server to be reachable.
-    #     '''
-    #     # Prepares the target alignment element.
-    #     self.espript_alignment_element = self.get_element_by_unique_index(alignment_unique_id)
-    #     # A list of the header names of those aligned sequences with an associated 3D structure.
-    #     self.espript_structures_list = ["None"]
-    #     self.espript_structures_dict = {"None": None}
-    #     for structure_element in filter(lambda e: e.has_structure(), self.get_children(self.espript_alignment_element)):
-    #         self.espript_structures_list.append(structure_element.my_header)
-    #         # Populates 'espript_structures_dict' so that the structures PDB file names can be
-    #         # accessed by using as keys their header names.
-    #         self.espript_structures_dict.update({structure_element.my_header: structure_element})
-    #     if len(self.espript_structures_list) == 1:
-    #         self.espript_state()
-    #     else:
-    #         self.show_espript_window()
-    #
-    #
-    # def show_espript_window(self):
+    # def build_tree_building_window(self):
     #     """
-    #     Displayes a window with a combobox to let users select a strucure file of which the
-    #     secondary structure information will be included in ESPript output.
+    #     Builds a window with options to build a tree out of an alignment.
     #     """
-    #     self.espript_sec_str_window = pmgi.shared_components.PyMod_tool_window(
-    #         self.main_window,
-    #         title = "ESPript Options",
-    #         upper_frame_title = "Here you can modify options for ESPript",
-    #         submit_command = self.espript_state )
-    #     #Units combobox.
-    #     self.espript_sec_str_combobox = pmgi.shared_components.PyMod_combobox(self.espript_sec_str_window.midframe,
-    #         label_text = 'Show Secondary Structure of',
-    #         scrolledlist_items=self.espript_structures_list)
-    #     self.espript_sec_str_combobox.pack(**pmgi.shared_components.pack_options_1)
-    #     self.espript_sec_str_combobox.selectitem(0)
-    #     self.espript_sec_str_window.add_widget_to_align(self.espript_sec_str_combobox)
-    #     self.espript_sec_str_window.align_widgets(15)
+    #     current_pack_options = pmgi.shared_components.pack_options_1
+    #
+    #     # Builds the window.
+    #     self.tree_building_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
+    #         title="Options for Tree Building",
+    #         upper_frame_title="Here you can modify options for Tree Building",
+    #         submit_command=self.run_tree_building_software)
+    #
+    #     # Add some options.
+    #     self.algorithm_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Clustering Algorithm')
+    #     for alg_name in (sorted(pmdt.tree_building_alg_dict.keys())):
+    #         self.algorithm_rds.add(alg_name)
+    #     self.algorithm_rds.setvalue("Neighbor Joining")
+    #     self.algorithm_rds.pack(**current_pack_options)
+    #     self.tree_building_window.add_widget_to_align(self.algorithm_rds)
+    #
+    #     if self.tree_building_software == "clustalw":
+    #         # Kimura distance correction.
+    #         self.distance_correction_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Use Distance Correction')
+    #         for text in ('Yes', 'No'):
+    #             self.distance_correction_rds.add(text)
+    #         self.distance_correction_rds.setvalue('No')
+    #         self.distance_correction_rds.pack(**current_pack_options)
+    #         self.tree_building_window.add_widget_to_align(self.distance_correction_rds)
+    #         # Toss gaps.
+    #         self.exclude_gaps_rds = pmgi.shared_components.PyMod_radioselect(self.tree_building_window.midframe, label_text = 'Exclude Gaps')
+    #         for text in ('Yes', 'No'):
+    #             self.exclude_gaps_rds.add(text)
+    #         self.exclude_gaps_rds.setvalue('No')
+    #         self.exclude_gaps_rds.pack(**current_pack_options)
+    #         self.tree_building_window.add_widget_to_align(self.exclude_gaps_rds)
+    #
+    #     self.tree_building_window.align_widgets(13)
     #
     #
-    # def espript_state(self):
-    #     """
-    #     Uploads a sequence alignment file in fasta format on schubert (and optionally a structure
-    #     file in the pdb format) and then opens a new tab on users' web browser with the ESPript page
-    #     with the fasta (and the pdb) uploaded files a input.
-    #     """
-    #     schubert_url = 'http://schubert.bio.uniroma1.it/uploader/php_upload.php'
-    #     schubert_folder_url = 'http://schubert.bio.uniroma1.it/uploader/uploads/'
-    #     espript_basic_url = 'http://espript.ibcp.fr/ESPript/cgi-bin/ESPript.cgi?FRAMES=YES&amp;alnfile0='
+    # def run_tree_building_software(self):
+    #     # Saves a temporary input alignment file.
+    #     alignment_file_name = "alignment_tmp"
+    #     alignment_file_path = os.path.join(self.alignments_directory, alignment_file_name + '.fasta')
+    #     self.save_alignment_fasta_file(alignment_file_name, self.input_alignment_element.get_children())
     #
-    #     selected_structure_element = None
-    #     if len(self.espript_structures_list) > 1:
-    #         selected_structure_element = self.espript_structures_dict[self.espript_sec_str_combobox.get()]
+    #     # Get the parameters from the GUI.
+    #     clustering_algorithm = self.get_clustering_algorithm()
     #
-    #     if selected_structure_element != None:
-    #         upload_response = self.upload_alignment(self.espript_alignment_element, schubert_url, 'sequences_file', structure_element = selected_structure_element)
-    #     else:
-    #         upload_response = self.upload_alignment(self.espript_alignment_element, schubert_url, 'sequences_file')
+    #     # Prepares to run the tree-building algorithm.
+    #     commandline = ""
+    #     output_file_path = None
     #
-    #     print 'Attempting to upload...'
+    #     if self.tree_building_software == "clustalw":
+    #         commandline =  '"%s"' % (self.clustalw.get_exe_file_path())
+    #         commandline += ' -TREE -INFILE="%s"' % (alignment_file_path)
+    #         commandline += ' -OUTPUTTREE=phylip'
+    #         if self.get_distance_correction_val():
+    #             commandline += ' -KIMURA'
+    #         if self.get_exclude_gaps_val():
+    #             commandline += ' -TOSSGAPS'
+    #         # if self.get_boostrap_val():
+    #         #     commandline += ' -SEED='+str(random.randint(0,1000))
+    #         #     commandline += ' -BOOTLABELS=node'
+    #         if clustering_algorithm == "nj":
+    #             commandline += ' -CLUSTERING=NJ'
+    #         elif clustering_algorithm == "upgma":
+    #             commandline += ' -CLUSTERING=UPGMA'
+    #         output_file_path = os.path.join(self.alignments_directory, alignment_file_name + '.ph')
     #
-    #     if len(self.espript_structures_list) > 1:
-    #         self.espript_sec_str_window.destroy()
+    #     elif self.tree_building_software == "muscle":
+    #         commandline =  '"%s"' % (self.muscle.get_exe_file_path())
+    #         commandline += ' -maketree -in %s' % (alignment_file_path)
+    #         output_file_path = os.path.join(self.alignments_directory, alignment_file_name + '.phy')
+    #         commandline += ' -out %s' % (output_file_path)
+    #         if clustering_algorithm == "nj":
+    #             commandline += ' -cluster neighborjoining'
+    #         elif clustering_algorithm == "upgma":
+    #             pass
     #
-    #     #Checks if the upload is successful
-    #     print upload_response
-    #     if upload_response.startswith('TRUE'):
-    #         if selected_structure_element == None:
-    #             uploaded_alignment_file = upload_response[6:]
-    #         else:
-    #             uploaded_alignment_file, uploaded_structure_file= upload_response[6:].split(",")
-    #         espript_url = espript_basic_url+schubert_folder_url+uploaded_alignment_file   #creates the URL
-    #         if selected_structure_element != None:
-    #             espript_url += ";struct1file0=%s%s" % (schubert_folder_url,uploaded_structure_file)
-    #             espript_url += ";struct1chain0=%s" % (selected_structure_element.structure.pdb_chain_id)
-    #         webbrowser.open(espript_url)    #opens the URL
-    #         print 'Done'
-    #     else:
-    #         title = "Error"
-    #         message = "Error while uploading the file. Please try again later or check your Internet connection."
-    #         self.show_error_message(title,message)
+    #     # Actually runs the tree building algorithm.
+    #     self.execute_subprocess(commandline)
     #
-    #
-    # #################################################################
-    # # Common methods for interacting with web services.             #
-    # #################################################################
-    #
-    # def upload_alignment(self, alignment_element, url, form_upload_file_name, structure_element = None, other_values={}):
-    #     '''
-    #     This function creates a POST request to the URL 'url'. The 'form_upload_file_name' argument is the
-    #     name of the form field that encodes the file to be uploaded. For instance: if in the upload form
-    #     the field of the file is called "sequence_file", the form_upload_file_name argument has to be set to
-    #     'sequence_file'. It's equivalent to the 'name' variable of the UNIX command curl:
-    #         curl --form name=@content
-    #     The function saves the current alignment and sends it to the server. It may also send other data,
-    #     encoded in 'other_values' dictionary (a dictionary containing the parameters normally sent by compiling
-    #     a form in the HTML page). This argument is optional and by default is an empty dictionary.
-    #     Returns the response given by the server as a string.
-    #     '''
-    #     response_content = ''
-    #
-    #     #Saves alignment in FASTA format
-    #     alignment_file_name='alignment_tmp'
-    #     self.save_alignment_fasta_file(alignment_file_name, self.get_children(alignment_element), first_element=structure_element)
-    #     alignment_file_path=os.path.join(self.alignments_directory, alignment_file_name + '.fasta')
-    #
-    #     #Copy file content to a string
-    #     al_file = open(alignment_file_path)
-    #     alignment_string = al_file.read()
-    #     al_file.close()
+    #     # Remove temporary files.
+    #     new_tree_file_path = os.path.join(self.alignments_directory, "%s_%s_align_tree.phy" % (self.alignments_files_names, self.input_alignment_element.unique_index))
+    #     os.rename(output_file_path, new_tree_file_path)
     #     os.remove(alignment_file_path)
-    #     print alignment_string
     #
-    #     values={form_upload_file_name: alignment_string}
+    #     self.tree_building_window.destroy()
     #
-    #     # Adds other values to the url.
-    #     if other_values:
-    #         values.update(other_values)
-    #     # Uploads also a structure file.
-    #     if structure_element != None:
-    #         # values.update(other_values)
-    #         structure_file = open(os.path.join(self.structures_directory, structure_element.structure.chain_pdb_file_name))
-    #         structure_file_string = structure_file.read()
-    #         dbref_line = "DBREF %s" % (structure_element.my_header).ljust(80, " ")
-    #         structure_file_string = dbref_line + "\n" + structure_file_string
-    #         structure_file.close()
-    #         values.update({"structure_file": structure_file_string})
-    #
-    #     user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8)'
-    #     headers = { 'User-Agent' : user_agent }
-    #
-    #     try:
-    #         #Creates a request
-    #         data = urllib.urlencode(values)
-    #         req = urllib2.Request(url, data, headers=headers)
-    #         #Gets server response and reads it
-    #         response = urllib2.urlopen(req)
-    #         response_content = response.read()
-    #     except:
-    #         response_content = ''
-    #         title = "Connection Error"
-    #         message = "Can not access the server.\nPlease check your Internet access."
-    #         self.show_error_message(title,message)
-    #
-    #     return response_content
+    #     # Reads the output tree file with Phylo and displays its content using PyMod plotting
+    #     # engine.
+    #     self.show_tree(new_tree_file_path)
     #
     #
+    # def get_clustering_algorithm(self):
+    #     return pmdt.tree_building_alg_dict[self.algorithm_rds.getvalue()]
+    #
+    # def get_boostrap_val(self):
+    #     return pmdt.yesno_dict[self.bootstrap_rds.getvalue()]
+    #
+    # def get_distance_correction_val(self):
+    #     return pmdt.yesno_dict[self.distance_correction_rds.getvalue()]
+    #
+    # def get_exclude_gaps_val(self):
+    #     return pmdt.yesno_dict[self.exclude_gaps_rds.getvalue()]
+
+
     # ###############################################################################################
     # # MODELS MENU AND ITS BEHAVIOUR.                                                              #
     # ###############################################################################################
