@@ -1,7 +1,6 @@
 # Copyright (C) 2014-2016 Chengxin Zhang, Giacomo Janson
 
 # TODO:
-#   - reimplement distance trees and tree building.
 #   - quit the process if there are some errors.
 #   - add new options to the various alignment tools.
 
@@ -84,12 +83,6 @@ class Alignment_protocol(PyMod_protocol):
         self.tool.exe_not_found()
 
 
-    # def unrecognized_alignment_program(self, program):
-    #     title = "Alignment error"
-    #     message = "Unrecognized alignment program: %s..." % (program)
-    #     self.pymod.show_popup_message("error", title, message)
-
-
     #################################################################
     # Step 2/4 for performing an alignment from the main menu.      #
     # Methods to check if the user built a correct selection in     #
@@ -106,7 +99,6 @@ class Alignment_protocol(PyMod_protocol):
         # alignment process.
         self.selected_elements = []
 
-        # ALITEST
         # # If among the selected sequences there are some leader sequences of some collapsed cluster,
         # # ask users if they want to include their hidden siblings in the alignment.
         # include_hidden_children_choice = None
@@ -256,6 +248,11 @@ class Alignment_protocol(PyMod_protocol):
     def build_elements_to_align_dict(self, elements_to_align):
         for element in elements_to_align:
             self.elements_to_align_dict.update({element.get_unique_index_header(): element})
+
+
+    def update_alignment_element(self, alignment_element, new_algorithm=None):
+        if new_algorithm:
+            alignment_element.algorithm = new_algorithm
 
 
     def update_aligned_elements(self):
@@ -1003,6 +1000,8 @@ class Regular_alignment(Alignment_protocol):
                 self.alignment_element.my_header = self.pymod.set_alignment_element_name(pmdt.algorithms_full_names_dict[self.alignment_program], self.alignment_element.cluster_id)
             elif self.alignment_element.cluster_type == "blast-search":
                 self.alignment_element.my_header = self.updates_blast_search_element_name(self.alignment_element.my_header, pmdt.alignment_programs_full_names_dictionary[self.alignment_program])
+            self.update_alignment_element(self.alignment_element, new_algorithm=self.alignment_program)
+
 
         #---------------------------------------------------------
         # Expand an already existing cluster with new sequences. -
@@ -1324,7 +1323,7 @@ class Clustal_regular_alignment(Regular_sequence_alignment):
         """
         Sets the guide tree file path once the alignment has been performed.
         """
-        if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
+        if len(self.elements_to_align) > 2 and self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
             # Builds a permanent copy of the original temporary .dnd file.
             temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".dnd")
             new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_guide_tree.dnd" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
@@ -1336,7 +1335,7 @@ class Clustal_regular_alignment(Regular_sequence_alignment):
             dnd_file_handler.close()
             new_dnd_file_lines = []
             for line in dnd_file_lines:
-                for m in re.findall("__pymod_element_\d+__", line):
+                for m in re.findall(pmdt.unique_index_header_regex, line):
                     line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
                 new_dnd_file_lines.append(line)
             dnd_file_handler = open(new_dnd_file_path, "w")
@@ -1499,8 +1498,7 @@ class Clustalw_alignment:
         return self.gapextension_enf.getvalue()
 
 
-
-class Clustalw_Regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
+class Clustalw_regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         # TODO: use_parameters_from_gui.

@@ -404,3 +404,13 @@ mod_amino_acid_backbone_atoms = set(("N2","C1","C2"))
 
 modified_residue_one_letter = "X"
 ligand_one_letter = "x"
+
+
+###############################
+# PyMod elements information. #
+###############################
+
+# "__pymod_element_%s__"
+# "temp_pymod_element_%s_"
+unique_index_header_formatted = "temp_pymod_element_%s_"
+unique_index_header_regex = r"temp_pymod_element_\d+_"

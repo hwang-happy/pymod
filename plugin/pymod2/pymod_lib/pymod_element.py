@@ -215,8 +215,7 @@ class PyMod_element:
 
 
     def get_unique_index_header(self):
-        # return "__pymod_element_%s__" % self.unique_index
-        return "temp_pymod_element_%s_" % self.unique_index
+        return pmdt.unique_index_header_formatted % self.unique_index
 
 
     #################################################################

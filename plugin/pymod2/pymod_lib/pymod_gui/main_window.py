@@ -96,7 +96,8 @@ class PyMod_main_window_mixin:
     def update_widgets(self, pymod_element):
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
         pymod_element_widgets_group.sequence_text.update_text()
-        self.color_element(pymod_element)
+        pymod_element_widgets_group.header_entry.update_title()
+        self.color_element(pymod_element, color_pdb=False)
 
 
     def hide_widgets(self, pymod_element, target="all"):
@@ -1086,7 +1087,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         # This is used only here to set the textvarialble of the entry as the header of the sequence.
         self.header_entry_var = StringVar()
-        self.header_entry_var.set(self.pymod_element.my_header)
+        self.update_title()
 
         Entry.__init__(self, self.parent,
             font = self.sequence_font,
@@ -1106,6 +1107,10 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         # Left menu object building and binding of the mouse events to the entries.
         self.build_header_popup_menu()
         self.bind_events_to_header_entry()
+
+
+    def update_title(self):
+        self.header_entry_var.set(self.pymod_element.my_header)
 
 
     #################################################################
@@ -1194,6 +1199,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     def show_chain_in_pymol_from_header_entry(self):
         self.pymod.show_chain_in_pymol(self.pymod_element)
 
+    def show_selected_chains_in_pymol_from_popup_menu(self):
+        for e in self.pymod.get_selected_sequences():
+            self.pymod.show_chain_in_pymol(e)
+
+    def hide_selected_chains_in_pymol_from_popup_menu(self):
+        for e in self.pymod.get_selected_sequences():
+            self.pymod.hide_chain_in_pymol(e)
 
     #################################################################
     # Builds the header popup menu.                                 #
@@ -1493,15 +1505,14 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
 
     def build_selection_structure_menu(self):
-        return False
         self.selection_structure_menu = Menu(self.selection_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         if self.pymod.all_sequences_have_structure():
-            self.selection_structure_menu.add_command(label="Show chains in PyMOL", command=self.show_selected_chains_in_pymol)
-            self.selection_structure_menu.add_command(label="Hide chains in PyMOL", command=self.hide_selected_chains_in_pymol)
+            self.selection_structure_menu.add_command(label="Show chains in PyMOL", command=self.show_selected_chains_in_pymol_from_popup_menu)
+            self.selection_structure_menu.add_command(label="Hide chains in PyMOL", command=self.hide_selected_chains_in_pymol_from_popup_menu)
             self.selection_structure_menu.add_separator()
             self.selection_structure_menu.add_command(label="Remove 3D Structures")
         elif self.pymod.all_sequences_have_fetchable_pdbs():
-            self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: pymod.fetch_pdb_files("selection", None))
+            self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: self.fetch_pdb_files("selection", None))
         self.selection_menu.add_cascade(menu=self.selection_structure_menu, label="Structures")
 
 
