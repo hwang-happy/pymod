@@ -350,8 +350,13 @@ class PyMod_sequence_element(PyMod_element):
         # Other sequence- or structure-related information. -
         #----------------------------------------------------
 
+        self.initialize_additional_information()
+
+
+    def initialize_additional_information(self):
         self.assigned_secondary_structure = None
         self.predicted_secondary_structure = None
+        self.campo_scores = None
 
 
     def set_residues_from_sequence(self):
@@ -420,8 +425,7 @@ class PyMod_sequence_element(PyMod_element):
     def update_sequence(self, new_sequence):
         self.my_sequence = new_sequence
         self.set_residues_from_sequence()
-        self.assigned_secondary_structure = None
-        self.predicted_secondary_structure = None
+        self.initialize_additional_information()
 
 
     ################################
@@ -491,14 +495,14 @@ class PyMod_sequence_element(PyMod_element):
 
 
     def has_assigned_secondary_structure(self):
-        return self.assigned_secondary_structure
+        return bool(self.assigned_secondary_structure)
 
     def has_predicted_secondary_structure(self):
-        return self.predicted_secondary_structure
+        return bool(self.predicted_secondary_structure)
 
 
     def has_campo_scores(self):
-        return False
+        return bool(self.campo_scores)
 
 
     def pdb_is_fetchable(self):

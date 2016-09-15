@@ -1,3 +1,6 @@
+# Copyright (C) 2014-2016 Giacomo Janson
+
+
 # TODO:
 #   - add an "remove gap only columns" option in the CAMPO window.
 
@@ -116,6 +119,7 @@ class CAMPO_analysis(PyMod_protocol):
                 if r != "-":
                     residues[rc].campo_score = v
                     rc += 1
+            seq.campo_scores = True
             self.pymod.main_window.color_element_by_campo_scores(seq)
 
         # Removes the temporary alignment file.

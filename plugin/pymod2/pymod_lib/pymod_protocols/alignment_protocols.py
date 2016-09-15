@@ -463,7 +463,7 @@ class Alignment_protocol(PyMod_protocol):
 # REGULAR ALIGNMENTS.                                                                             #
 ###################################################################################################
 
-class Regular_alignment_protocol(Alignment_protocol):
+class Regular_alignment(Alignment_protocol):
 
     alignment_strategy = "regular-alignment"
 
@@ -1066,7 +1066,7 @@ class Regular_alignment_protocol(Alignment_protocol):
 # Sequence alignments.                                                                            #
 ###################################################################################################
 
-class Regular_sequence_alignment_protocol(Regular_alignment_protocol):
+class Regular_sequence_alignment(Regular_alignment):
 
     def check_alignment_selection(self):
         """
@@ -1093,7 +1093,7 @@ class Regular_sequence_alignment_protocol(Regular_alignment_protocol):
 # Structural alignments.                                                                          #
 ###################################################################################################
 
-class Regular_structural_alignment_protocol(Regular_alignment_protocol):
+class Regular_structural_alignment(Regular_alignment):
 
     def check_alignment_selection(self):
         correct_selection = False
@@ -1114,7 +1114,7 @@ class Regular_structural_alignment_protocol(Regular_alignment_protocol):
 # PROFILE ALIGNMENTS.                                                                             #
 ###################################################################################################
 
-class Profile_alignment_protocol(Alignment_protocol):
+class Profile_alignment(Alignment_protocol):
 
     alignment_strategy = "profile-alignment"
 
@@ -1318,7 +1318,7 @@ class Profile_alignment_protocol(Alignment_protocol):
 # SPECIFIC ALGORITHMS.                                                                            #
 ###################################################################################################
 
-class Clustal_regular_alignment_protocol(Regular_sequence_alignment_protocol):
+class Clustal_regular_alignment(Regular_sequence_alignment):
 
     def update_additional_information(self):
         """
@@ -1363,7 +1363,7 @@ class Clustal_regular_alignment_protocol(Regular_sequence_alignment_protocol):
             self.alignment_element.tree_file_path = new_dnd_file_path
 
 
-class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
+class Clustal_profile_alignment(Profile_alignment):
 
     def run_sequence_to_profile_alignment_program(self):
         """
@@ -1440,7 +1440,7 @@ class Clustal_profile_alignment_protocol(Profile_alignment_protocol):
 # ClustalW.                                                                                       #
 ###################################################################################################
 
-class Clustalw_alignment_protocol:
+class Clustalw_alignment:
 
     # This attribute will be used from now on in many other methods that PyMod needs to perform
     # an alignment.
@@ -1500,7 +1500,7 @@ class Clustalw_alignment_protocol:
 
 
 
-class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Clustal_regular_alignment_protocol):
+class Clustalw_Regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         # TODO: use_parameters_from_gui.
@@ -1530,7 +1530,7 @@ class Clustalw_regular_alignment_protocol(Clustalw_alignment_protocol, Clustal_r
             self.alignment_program_not_found("clustalw")
 
 
-class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Clustal_profile_alignment_protocol):
+class Clustalw_profile_alignment(Clustalw_alignment, Clustal_profile_alignment):
 
     def prepare_sequence_to_profile_commandline(self, profile_file_shortcut, sequences_to_add_file_shortcut, output_file_shortcut):
         clustalw_path = self.tool.get_exe_file_path()
@@ -1561,7 +1561,7 @@ class Clustalw_profile_alignment_protocol(Clustalw_alignment_protocol, Clustal_p
 # Clustal Omega.                                                                                  #
 ###################################################################################################
 
-class Clustalomega_alignment_protocol:
+class Clustalomega_alignment:
     """
     General Clustal Omega alignments.
     """
@@ -1593,7 +1593,7 @@ class Clustalomega_alignment_protocol:
         return self.extraoption_entry.get()
 
 
-class Clustalomega_regular_alignment_protocol(Clustalomega_alignment_protocol, Clustal_regular_alignment_protocol):
+class Clustalomega_regular_alignment(Clustalomega_alignment, Clustal_regular_alignment):
     """
     Regular alignments using Clustal Omega.
     """
@@ -1625,7 +1625,7 @@ class Clustalomega_regular_alignment_protocol(Clustalomega_alignment_protocol, C
 
 
 
-class Clustalomega_profile_alignment_protocol(Clustalomega_alignment_protocol, Clustal_profile_alignment_protocol):
+class Clustalomega_profile_alignment(Clustalomega_alignment, Clustal_profile_alignment):
     """
     Profile alignments for Clustal Omega.
     """
@@ -1659,7 +1659,7 @@ class Clustalomega_profile_alignment_protocol(Clustalomega_alignment_protocol, C
 # MUSCLE.                                                                                         #
 ###################################################################################################
 
-class MUSCLE_alignment_protocol:
+class MUSCLE_alignment:
 
     alignment_program = "muscle"
 
@@ -1672,7 +1672,7 @@ class MUSCLE_alignment_protocol:
         pass
 
 
-class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_sequence_alignment_protocol):
+class MUSCLE_Regular_alignment(MUSCLE_alignment, Regular_sequence_alignment):
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         self.run_muscle(sequences_to_align, output_file_name=output_file_name)
@@ -1708,7 +1708,7 @@ class MUSCLE_regular_alignment_protocol(MUSCLE_alignment_protocol, Regular_seque
 # SALIGN sequence alignment.                                                                      #
 ###################################################################################################
 
-class SALIGN_alignment_protocol:
+class SALIGN_alignment:
 
     use_hetatm = False
 
@@ -1716,7 +1716,7 @@ class SALIGN_alignment_protocol:
         return self.tool.can_be_launched()
 
 
-class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
+class SALIGN_seq_alignment(SALIGN_alignment):
 
     alignment_program = "salign-seq"
 
@@ -1902,11 +1902,11 @@ class SALIGN_seq_alignment_protocol(SALIGN_alignment_protocol):
         self.update_aligned_sequences_inserting_modres(replace_modres_symbol=".")
 
 
-class SALIGN_seq_regular_alignment_protocol(SALIGN_seq_alignment_protocol, Regular_sequence_alignment_protocol):
+class SALIGN_seq_regular_alignment(SALIGN_seq_alignment, Regular_sequence_alignment):
     pass
 
 
-class SALIGN_seq_profile_alignment_protocol(SALIGN_seq_alignment_protocol, Profile_alignment_protocol):
+class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
 
     def run_sequence_to_profile_alignment_program(self):
 
@@ -1995,7 +1995,7 @@ class SALIGN_seq_profile_alignment_protocol(SALIGN_seq_alignment_protocol, Profi
 # SALIGN structural alignment.                                                                    #
 ###################################################################################################
 
-class SALIGN_str_regular_alignment_protocol(SALIGN_alignment_protocol, Regular_structural_alignment_protocol):
+class SALIGN_str_regular_alignment(SALIGN_alignment, Regular_structural_alignment):
 
     alignment_program = "salign-str"
 
@@ -2135,7 +2135,7 @@ class SALIGN_str_regular_alignment_protocol(SALIGN_alignment_protocol, Regular_s
 # CE alignment.                                                                                   #
 ###################################################################################################
 
-class CEalign_alignment_protocol:
+class CEalign_alignment:
 
     alignment_program = "ce"
 
@@ -2210,7 +2210,7 @@ class CEalign_alignment_protocol:
             self.update_aligned_sequences_inserting_modres()
 
 
-class CEalign_regular_alignment_protocol(CEalign_alignment_protocol, Regular_structural_alignment_protocol):
+class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment):
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         # TODO: use_parameters_from_gui.

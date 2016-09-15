@@ -1,10 +1,11 @@
 # TODO:
-#     - CAMPO.
-#     - color structures.
 #     - rest of the evolutionary menu.
+#     - complete the header popup menus.
 #     - DOPE.
 #     - similarity_searches_protocols  module and structure fetching.
 #     - MODELLER.
+#     - structure appearence and colors.
+#     - reimplement the collapsed clusters features.
 #     - Ramachandran plot.
 #     - superpose.
 #     - RMSD part.
@@ -298,6 +299,7 @@ class PyMod:
         #     color_name = "%s_%s" % (pmdt.pymol_dope_color_name, c)
         #     cmd.set_color(color_name, pmdt.dope_color_dict[c])
 
+        # Residue polarity colors.
         self.polarity_color_dictionary_rgb = pmdt.polarity_color_dictionary.copy()
         self.polarity_color_dictionary_tkinter = {}
         for c in self.polarity_color_dictionary_rgb.keys():
@@ -4360,26 +4362,26 @@ class PyMod:
         if strategy == "regular":
             # Sequence alignments.
             if program == "clustalw":
-                a = pmptc.alignment_protocols.Clustalw_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalw_regular_alignment(self)
             elif program == "clustalo":
-                a = pmptc.alignment_protocols.Clustalomega_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalomega_regular_alignment(self)
             elif program == "muscle":
-                a = pmptc.alignment_protocols.MUSCLE_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.MUSCLE_regular_alignment(self)
             elif program == "salign-seq":
-                a = pmptc.alignment_protocols.SALIGN_seq_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.SALIGN_seq_regular_alignment(self)
             # Structural alignments.
             elif program == "ce":
-                a = pmptc.alignment_protocols.CEalign_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.CEalign_regular_alignment(self)
             elif program == "salign-str":
-                a = pmptc.alignment_protocols.SALIGN_str_regular_alignment_protocol(self)
+                a = pmptc.alignment_protocols.SALIGN_str_regular_alignment(self)
         # Profile.
         elif strategy == "profile":
             if program == "clustalw":
-                a = pmptc.alignment_protocols.Clustalw_profile_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalw_profile_alignment(self)
             elif program == "clustalo":
-                a = pmptc.alignment_protocols.Clustalomega_profile_alignment_protocol(self)
+                a = pmptc.alignment_protocols.Clustalomega_profile_alignment(self)
             elif program == "salign-seq":
-                a = pmptc.alignment_protocols.SALIGN_seq_profile_alignment_protocol(self)
+                a = pmptc.alignment_protocols.SALIGN_seq_profile_alignment(self)
 
         a.launch_alignment_program()
 

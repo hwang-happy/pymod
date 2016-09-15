@@ -441,7 +441,7 @@ class PSIPRED_prediction(PyMod_protocol):
         # Actually stores in the PyMod elements the results.
         element.psipred_elements_list = []
         for c, e, res in zip(confs, preds, element.get_polymer_residues()):
-            res.predict_secondary_structure = {"confidence":int(c),"sec-str-element":e}
+            res.psipred_result = {"confidence":int(c),"sec-str-element":e}
 
         return True
 
