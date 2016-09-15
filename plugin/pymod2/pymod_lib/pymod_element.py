@@ -351,6 +351,7 @@ class PyMod_sequence_element(PyMod_element):
         #----------------------------------------------------
 
         self.assigned_secondary_structure = None
+        self.predicted_secondary_structure = None
 
 
     def set_residues_from_sequence(self):
@@ -419,6 +420,8 @@ class PyMod_sequence_element(PyMod_element):
     def update_sequence(self, new_sequence):
         self.my_sequence = new_sequence
         self.set_residues_from_sequence()
+        self.assigned_secondary_structure = None
+        self.predicted_secondary_structure = None
 
 
     ################################
@@ -491,7 +494,7 @@ class PyMod_sequence_element(PyMod_element):
         return self.assigned_secondary_structure
 
     def has_predicted_secondary_structure(self):
-        return False
+        return self.predicted_secondary_structure
 
 
     def has_campo_scores(self):

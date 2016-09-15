@@ -1,10 +1,11 @@
 # TODO:
-#     - PSIPRED.
 #     - CAMPO.
 #     - color structures.
 #     - rest of the evolutionary menu.
 #     - DOPE.
+#     - similarity_searches_protocols  module and structure fetching.
 #     - MODELLER.
+#     - Ramachandran plot.
 #     - superpose.
 #     - RMSD part.
 
@@ -276,12 +277,15 @@ class PyMod:
         # different color taken from the list above. It will be used in "color_struct()".
         self.color_index = 0
 
-        # # Generates PSIPRED predictions colors for PyMOL.
-        # for c in pmdt.psipred_color_dict.keys():
-        #     # Generates names like: 'pymod_psipred_8_H' (the name of the color with which residues
-        #     # predicted in an helix with confidence score of 8 will be colored).
-        #     color_name = "%s_%s_%s" % (pmdt.pymol_psipred_color_name, c[0], c[1])
-        #     cmd.set_color(color_name, pmdt.psipred_color_dict[c])
+        # Generates PSIPRED predictions colors for PyMOL.
+        self.psipred_color_dict_rgb = pmdt.psipred_color_dict.copy()
+        self.psipred_color_dict_tkinter = {}
+        for c in self.psipred_color_dict_rgb.keys():
+            # Generates names like: 'pymod_psipred_8_H' (the name of the color with which residues
+            # predicted in an helix with confidence score of 8 will be colored).
+            color_name = "%s_%s_%s" % (pmdt.pymol_psipred_color_name, c[0], c[1])
+            cmd.set_color(color_name, self.psipred_color_dict_rgb[c])
+            self.psipred_color_dict_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.psipred_color_dict_rgb[c])})
         #
         # # Prepares CAMPO colors in PyMOL. Generates something like: 'pymod_campo_7'
         # for c in pmdt.campo_color_dictionary.keys():
@@ -4991,238 +4995,24 @@ class PyMod:
     # Secondary structure assignment.                               #
     #################################################################
 
-    # leafs!
     def assign_secondary_structure(self, element):
         if element.has_structure():
-            sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment_protocol(self, element)
+            sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment(self, element)
             sec_str_assignment.assign_secondary_structure()
 
 
-#     #################################################################
-#     # Run PSIPRED.                                                  #
-#     #################################################################
-#
-#     def launch_psipred_from_main_menu(self):
-#         """
-#         Called when users decide to predict the secondary structure of a sequence using PSIPRED.
-#         """
-#         selection = self.get_selected_sequences()
-#         if len(selection) == 0:
-#             self.show_error_message("PSIPRED Error", "Please select at least one sequence to be analyzed with PSIPRED.")
-#             return False
-#         if self.check_psipred_parameters():
-#             for sequence in selection:
-#                 # Actually calls the method that launches PSIPRED.
-#                 prediction_successful = self.run_psipred(sequence)
-#                 if prediction_successful:
-#                     sequence.color_by = "secondary-predicted"
-#                     sequence.color_element(on_grid=False,color_pdb=True)
-#
-#
-#     def check_psipred_parameters(self): # predict_secondary_structure(self, elements=None):
-#         """
-#         Checks that the files needed to run PSIPRED exists on users' machines.
-#         """
-#         # First checks for PSIPRED installation.
-#         if not self.psipred["exe_dir_path"].path_exists():
-#             self.psipred.exe_not_found()
-#             return False
-#
-#         # Then checks for PSIPRED datafiles.
-#         if not self.psipred["data_dir_path"].path_exists():
-#             title = "PSIPRED error"
-#             message = "PSIPRED 'data' directory not found! Please specify it in the PSIPRED options in the options window of PyMod."
-#             self.show_error_message(title,message)
-#             return False
-#
-#         # Checks for PSI-BLAST on the user's system.
-#         if not self.blast_plus["exe_dir_path"].path_exists():
-#             self.blast_plus.exe_not_found()
-#             return False
-#
-#         # And finally checks for a BLAST database.
-#         if not self.psipred["database_dir_path"].path_exists():
-#             self.show_error_message("PSIPRED error", "A directory containing a BLAST database was not found! Please specify it in the PSIPRED options in the options window of PyMod.")
-#             return False
-#
-#         dbpath = self.psipred["database_dir_path"].get_value()
-#         if not pmos.verify_valid_blast_dbdir(dbpath):
-#             self.show_error_message("PSIPRED Error", "The database '%s' directory does not contain a valid set of database files." % (dbpath))
-#             return False
-#
-#         return True
-#
-#
-#     def run_psipred(self, element):
-#         """
-#         Actually runs PSIPRED, collects its results and map them on the sequences in PyMod main
-#         window.
-#         """
-#         print_output = True
-#         sequence_header = element.my_header
-#         if print_output:
-#             print "Beginning PSIPRED prediction for:", sequence_header
-#
-#         # The name of the BLAST database file.
-#         # If the database files are contained in a folder like this: /home/user/pymod/databases/swissprot/swissprot
-#         dbpath = self.psipred["database_dir_path"].get_value() # e.g.: /home/user/pymod/databases/swissprot
-#         dbprefix = pmos.get_blast_database_prefix(dbpath) # e.g.: swissprot
-#         if print_output:
-#             print "dbpath:", dbpath
-#
-#         # Where the NCBI programs have been installed.
-#         ncbidir = self.blast_plus["exe_dir_path"].get_value()
-#         if print_output:
-#             print "ncbidir:", ncbidir
-#
-#         # Where the PSIPRED V2 programs have been installed.
-#         execdir = self.psipred["exe_dir_path"].get_value()
-#         if print_output:
-#             print "execdir:", execdir
-#
-#         # Where the PSIPRED V2 data files have been installed.
-#         datadir = self.psipred["data_dir_path"].get_value()
-#         if print_output:
-#             print "datadir",datadir
-#
-#         # Write the temporary input fasta file, setting its basename.
-#         basename = "psipred_temp"
-#         if print_output:
-#             print "basename: ", basename
-#         self.build_sequences_file([element], basename, file_format="fasta", remove_indels=True, new_directory=self.psipred_directory)
-#
-#         # ---
-#         # Execute PSI-BLAST.
-#         # ---
-#         if print_output:
-#             print "Running PSI-BLAST with sequence", basename ,"..."
-#         try:
-#             self.execute_psiblast(
-#                 ncbi_dir = ncbidir,
-#                 db_path = dbpath,
-#                 query = os.path.join(self.psipred_directory, basename+".fasta"),
-#                 inclusion_ethresh = 0.001,
-#                 out_pssm = os.path.join(self.psipred_directory, basename+".chk"),
-#                 out = os.path.join(self.psipred_directory, basename+".blast"),
-#                 num_iterations = 3,
-#                 num_alignments = 0)
-#             # psiblast_output = open("%s.blast" % os.path.join(self.psipred_directory, basename),"w")
-#             # self.execute_subprocess(psiblast_command, new_stdout=psiblast_output)
-#             # psiblast_output.close()
-#
-#         except:
-#             if print_output:
-#                 print "FATAL: Error whilst running psiblast - script terminated!"
-#             self.show_error_message("PSIPRED Error", "There was an error while running PSI-BLAST, so PSIPRED cannot perform a prediction for %s." % (sequence_header))
-#             self.remove_psipred_temp_files()
-#             return None
-#
-#         # ---
-#         # Execute chkparse.
-#         # ---
-#         # !WORKING! The problem is here.
-#         if print_output:
-#             print "Predicting secondary structure..."
-#         # query = pmos.build_commandline_file_argument("query", query, "fasta")
-#         chkdir_command = (pmos.build_commandline_path_string(os.path.join(execdir, pmos.get_exe_file_name("chkparse"))) + " " +
-#                           pmos.build_commandline_path_string("%s.chk" % os.path.join(self.psipred_directory, basename)))
-#         try:
-#             chkdir_output = open("%s.mtx" % os.path.join(self.psipred_directory, basename),"w")
-#             self.execute_subprocess(chkdir_command, new_stdout=chkdir_output)
-#             chkdir_output.close()
-#         except:
-#             if print_output:
-#                 print "FATAL: Error whilst running chkdir - script terminated!"
-#             self.show_error_message("PSIPRED Error", "No homologous sequences were found by PSI-BLAST for %s, so PSIPRED cannot perform a prediction for this sequence." % (sequence_header))
-#             self.remove_psipred_temp_files()
-#             return None
-#
-#         # ---
-#         # Execute PSIPRED pass 1.
-#         # ---
-#         psipass1_command = (pmos.build_commandline_path_string(os.path.join(execdir, pmos.get_exe_file_name("psipred"))) + " " +
-#                             pmos.build_commandline_path_string("%s.mtx" % os.path.join(self.psipred_directory, basename)) + " " +
-#                             pmos.build_commandline_path_string(os.path.join(datadir, "weights.dat")) + " " +
-#                             pmos.build_commandline_path_string(os.path.join(datadir, "weights.dat2")) + " " +
-#                             pmos.build_commandline_path_string(os.path.join(datadir, "weights.dat3")))
-#         try:
-#             psipass1_output = open("%s.ss" % os.path.join(self.psipred_directory, basename),"w")
-#             self.execute_subprocess(psipass1_command, new_stdout=psipass1_output)
-#             psipass1_output.close()
-#         except:
-#             if print_output:
-#                 print "FATAL: Error whilst running psipred 1 - script terminated!"
-#             self.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
-#             self.remove_psipred_temp_files()
-#             return None
-#
-#         # ---
-#         # Execute PSIPRED pass 2.
-#         # ---
-#         psipass2_command = (pmos.build_commandline_path_string(os.path.join(execdir, pmos.get_exe_file_name("psipass2"))) + " " +
-#                             "%s 1 1.0 1.0" % pmos.build_commandline_path_string(os.path.join(datadir,"weights_p2.dat")) + " " +
-#                             pmos.build_commandline_path_string("%s.ss2" % os.path.join(self.psipred_directory, basename)) + " " +
-#                             pmos.build_commandline_path_string("%s.ss" % os.path.join(self.psipred_directory, basename)))
-#         try:
-#             psipass2_output = open("%s.horiz" % os.path.join(self.psipred_directory, basename),"w")
-#             self.execute_subprocess(psipass2_command, new_stdout=psipass2_output)
-#             psipass2_output.close()
-#         except:
-#             if print_output:
-#                 print "FATAL: Error whilst running psipass 2 - script terminated!"
-#             self.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
-#             self.remove_psipred_temp_files()
-#             return None
-#
-#         # ---
-#         # Clean up PSIPRED files.
-#         # ---
-#         if print_output:
-#             print "Cleaning up ..."
-#
-#         # Remove temporary files.
-#         self.remove_psipred_temp_files()
-#
-#         # Renames the output files.
-#         output_files_name = pmos.clean_file_name(element.my_header)
-#         for ext in pmdt.psipred_output_extensions:
-#             os.rename(os.path.join(self.psipred_directory, basename+ext),
-#                       os.path.join(self.psipred_directory, output_files_name+ext))
-#
-#         if print_output:
-#             print "Final output files:" + output_files_name + ".ss2 " + output_files_name + ".horiz"
-#         print "Finished."
-#
-#         # ---
-#         # Parses the results from .horiz output file.
-#         # ---
-#         results_file = open(os.path.join(self.psipred_directory, output_files_name+".horiz"),"r")
-#         confs = "" # String for confidence scores of each residue.
-#         preds = "" # String for the secondary structure elements prediction of each residue.
-#         for l in results_file.readlines():
-#             if l.startswith("Conf:"):
-#                 rl = l[6:66].replace(" ","").replace("\n","")
-#                 confs += rl
-#             elif l.startswith("Pred:"):
-#                 rl = l[6:66].replace(" ","").replace("\n","")
-#                 preds += rl
-#         results_file.close()
-#
-#         # Actually stores in the PyMod elements the results.
-#         element.psipred_elements_list = []
-#         for c, e in zip(confs, preds):
-#             element.psipred_elements_list.append({"confidence":int(c),"sec-str-element":e})
-#
-#         return True
-#
-#
-#     def remove_psipred_temp_files(self):
-#         try:
-#             files_to_remove = filter(lambda f: not os.path.splitext(f)[1] in pmdt.psipred_output_extensions, os.listdir(self.psipred_directory))
-#             map(lambda f: os.remove(os.path.join(self.psipred_directory,f)) , files_to_remove)
-#         except:
-#             pass
-#
+    #################################################################
+    # Run PSIPRED.                                                  #
+    #################################################################
+
+    def launch_psipred_from_main_menu(self):
+        """
+        Called when users decide to predict the secondary structure of a sequence using PSIPRED.
+        """
+        psipred_protocol = pmptc.structural_analysis_protocols.PSIPRED_prediction(self, self.get_selected_sequences())
+        psipred_protocol.predict_secondary_structure()
+
+
 #     #################################################################
 #     # Superpose.                                                    #
 #     #################################################################

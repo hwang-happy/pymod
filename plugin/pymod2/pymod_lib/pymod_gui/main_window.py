@@ -148,8 +148,8 @@ class PyMod_main_window_mixin:
                 self.color_element_by_polarity(seq)
             elif color_scheme == "secondary-observed":
                 self.color_element_by_obs_sec_str(seq)
-            # elif color_scheme == "secondary-predicted":
-            #     seq.color_element_by_pred_sec_str()
+            elif color_scheme == "secondary-predicted":
+                self.color_element_by_pred_sec_str(seq)
             # Colors elements with 3D structure according to the observed II str, elements with
             # predicted II str according to the prediction, and leaves the other elements unaltered.
             elif color_scheme == "secondary-auto":
@@ -188,6 +188,13 @@ class PyMod_main_window_mixin:
         # If PyMOL has not been already used to assign sec str to this sequence.
         if not element.has_assigned_secondary_structure():
             self.pymod.assign_secondary_structure(element)
+        self.color_element(element, on_grid=False,color_pdb=True)
+
+    def color_element_by_pred_sec_str(self, element, on_grid=False, color_pdb=True):
+        """
+        Colors according by secondary structure predicted by PSIPRED.
+        """
+        element.color_by = "secondary-predicted"
         self.color_element(element, on_grid=False,color_pdb=True)
 
 
@@ -263,12 +270,18 @@ class PyMod_main_window_mixin:
             return self.get_polarity_sequence_color
         elif element.color_by == "secondary-observed":
             return self.get_observed_sec_str_sequence_color
+        elif element.color_by == "secondary-predicted":
+            return self.get_predicted_sec_str_sequence_color
 
     def get_polarity_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
         return self.pymod.polarity_color_dictionary_tkinter.get(residue.one_letter_code)
 
     def get_observed_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
         return pmdt.sec_str_color_dict.get(residue.assigned_secondary_structure)
+
+    def get_predicted_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        psipred_tuple = (residue.predict_secondary_structure["confidence"], residue.predict_secondary_structure["sec-str-element"])
+        return self.pymod.psipred_color_dict_tkinter[psipred_tuple]
 
 
     # def get_sequence_residue_color(self, element, residue, residue_id, residues_to_color="all"):
@@ -292,17 +305,6 @@ class PyMod_main_window_mixin:
         #     color = "white"
         # Colors the sequence by residues.
 
-        # # Colors according by secondary structure assigned by PyMOL.
-        # elif self.color_by == "secondary-observed":
-        #     if residue_ids[1] != "-":
-        #         try:
-        #             color = pmdt.sec_str_color_dict.get(self.pymol_dss_list[residue_index])
-        #         except:
-        #             color = "white"
-        #     else:
-        #         color = "white"
-        #
-        # # Colors according by secondary structure predicted by PSIPRED.
         # elif self.color_by == "secondary-predicted":
         #     if residue_ids[1] != "-":
         #         psipred_vals = self.psipred_elements_list[residue_index]
@@ -713,13 +715,13 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.structural_alignment_menu.add_command(label = "CE Alignment", command = lambda program="ce", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)", command = lambda program="salign-str", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
-        # # Structural analysis.
-        # self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
-        # self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
+        # Structural analysis.
+        self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
         # self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot)
         # self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
-        # self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
-        #
+        self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
+
         # # Homology modeling (MODELLER).
         # self.homology_modeling_menu = Menu(self.tools_menu, tearoff = 0)
         # self.tools_menu.add_cascade(label = "Homology Modeling", menu = self.homology_modeling_menu)
@@ -1286,8 +1288,8 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.sec_str_color_menu = Menu(self.color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
             if self.pymod_element.has_structure():
                 self.sec_str_color_menu.add_command(label="Observed", command=lambda: self.color_selection("single", self.pymod_element, "secondary-observed"))
-            # if self.pymod_element.has_predicted_secondary_structure():
-            #     self.sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: pymod.color_selection("single", self, "secondary-predicted"))
+            if self.pymod_element.has_predicted_secondary_structure():
+                self.sec_str_color_menu.add_command(label="Predicted by PSI-PRED", command=lambda: self.color_selection("single", self.pymod_element, "secondary-predicted"))
             self.color_menu.add_cascade(menu=self.sec_str_color_menu, label="By Secondary Structure")
 
         # # Conservation colors.
