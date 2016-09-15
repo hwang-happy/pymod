@@ -299,6 +299,8 @@ pymol_polarity_color_name = "pymod_h_"
 # Standard bioinformatics dictionaries and lists. -
 #--------------------------------------------------
 
+# TODO: delete this old part.
+
 # Containers of the letters representing amminoacids in sequences.
 protein_residues = ("A","C","D","E","F","G","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y","X")
 protein_residues_set = set(protein_residues)

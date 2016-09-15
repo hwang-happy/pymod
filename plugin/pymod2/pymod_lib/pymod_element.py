@@ -356,6 +356,7 @@ class PyMod_sequence_element(PyMod_element):
         self.assigned_secondary_structure = None
         self.predicted_secondary_structure = None
         self.campo_scores = None
+        self.dope_scores = None
 
 
     def set_residues_from_sequence(self):
@@ -534,6 +535,7 @@ class PyMod_residue:
         self.assigned_secondary_structure = None
         self.predicted_secondary_structure = None
         self.campo_score = None
+        self.dope_score = None
 
 
     def is_polymer_residue(self): # TODO: rename this to something more clear.
@@ -544,6 +546,9 @@ class PyMod_residue:
             return True
         else:
             return False
+
+    def is_standard_residue(self):
+        return None # TODO.
 
     def is_water(self):
         return isinstance(self, PyMod_water_molecule)

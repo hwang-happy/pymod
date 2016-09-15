@@ -159,8 +159,8 @@ class PyMod_main_window_mixin:
                     self.color_element_by_pred_sec_str(seq)
             elif color_scheme == "campo-scores":
                 self.color_element_by_campo_scores(seq)
-            # elif color_scheme == "dope":
-            #     seq.color_element_by_dope()
+            elif color_scheme == "dope":
+                self.color_element_by_dope(seq)
 
 
     ##########################
@@ -204,6 +204,12 @@ class PyMod_main_window_mixin:
         element.color_by = "campo-scores"
         self.color_element(element, on_grid=False,color_pdb=True)
 
+    def color_element_by_dope(self, element, on_grid=False, color_pdb=True):
+        """
+        Color by DOPE scores.
+        """
+        element.color_by = "dope"
+        self.color_element(element, on_grid=False,color_pdb=True)
 
     #################################################
     # Actually colors the sequences and structures. #
@@ -282,6 +288,8 @@ class PyMod_main_window_mixin:
             return self.get_predicted_sec_str_sequence_color
         elif element.color_by == "campo-scores":
             return self.get_campo_sequence_color
+        elif element.color_by == "dope":
+            return self.get_dope_sequence_color
 
     def get_polarity_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
         return self.pymod.polarity_color_dictionary_tkinter.get(residue.one_letter_code)
@@ -295,6 +303,9 @@ class PyMod_main_window_mixin:
 
     def get_campo_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
         return self.pymod.campo_color_dictionary_tkinter[residue.campo_score["interval"]]
+
+    def get_dope_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        return self.pymod.dope_color_dictionary_tkinter[residue.dope_score["interval"]]
 
 
     ########################
@@ -348,6 +359,8 @@ class PyMod_main_window_mixin:
             return self.get_predicted_sec_str_structure_color
         elif element.color_by == "campo-scores":
             return self.get_campo_structure_color
+        elif element.color_by == "dope":
+            return self.get_dope_structure_color
 
     def get_polarity_structure_color(self, element, residue, residue_id, residues_to_color="all"):
         return "%s%s" % (pmdt.pymol_polarity_color_name, residue.one_letter_code)
@@ -360,6 +373,9 @@ class PyMod_main_window_mixin:
 
     def get_campo_structure_color(self, element, residue, residue_id, residues_to_color="all"):
         return "%s_%s" % (pmdt.pymol_campo_color_name, residue.campo_score["interval"])
+
+    def get_dope_structure_color(self, element, residue, residue_id, residues_to_color="all"):
+        return "%s_%s" % (pmdt.pymol_dope_color_name, residue.dope_score["interval"])
 
     # def get_sequence_residue_color(self, element, residue, residue_id, residues_to_color="all"):
         # # Color by DOPE values.
@@ -752,7 +768,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
         # self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot)
-        # self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
+        self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
         self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
 
         # # Homology modeling (MODELLER).
