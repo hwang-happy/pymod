@@ -150,9 +150,10 @@ residue_color_dict = {
 
 # Used to color residues according to their observed secondary structure.
 sec_str_color_dict = {
-  "H": "red",     # PyMOL helix.
-  "S" : "yellow", # PyMOL sheet.
-  "L" : "green" } # PyMOL aperiodic.
+  "H": "red",    # PyMOL helix.
+  "S": "yellow", # PyMOL sheet.
+  "L": "green",  # PyMOL aperiodic.
+  None: "white"}
 
 # Used to color residues according to their predicted secondary structure.
 psipred_color_dict = {

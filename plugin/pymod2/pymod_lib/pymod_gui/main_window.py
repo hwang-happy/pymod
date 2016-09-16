@@ -211,6 +211,7 @@ class PyMod_main_window_mixin:
         element.color_by = "dope"
         self.color_element(element, on_grid=False,color_pdb=True)
 
+
     #################################################
     # Actually colors the sequences and structures. #
     #################################################
@@ -226,7 +227,7 @@ class PyMod_main_window_mixin:
         # (standard + modified) if set to 'all' or only standard residues if set to 'standard'.
         residues_to_color = "all"
         if 1: # if self.is_shown: # TODO.
-            self.color_sequence_entry(element, on_grid, residues_to_color=residues_to_color)
+            self.color_sequence_text(element, on_grid, residues_to_color=residues_to_color)
         if color_pdb and element.has_structure():
             self.color_structure(element, on_grid, residues_to_color=residues_to_color)
 
@@ -235,7 +236,7 @@ class PyMod_main_window_mixin:
     # Coloring sequences. #
     #######################
 
-    def color_sequence_entry(self, element, on_grid, residues_to_color="all"):
+    def color_sequence_text(self, element, on_grid, residues_to_color="all"):
         """
         Colors the sequence entry in PyMod main window.
         """
@@ -244,7 +245,7 @@ class PyMod_main_window_mixin:
         if element.color_by != "regular":
             # Changing the foreground to "white" is needed to color indels with white.
             element_widgets_group.sequence_text.tag_config("normal", foreground="white", background="black")
-            get_sequence_residue_color = self.assign_residue_sequence_coloring_method(element)
+            get_sequence_residue_color = self.assign_residue_coloring_method(element, "sequence")
             for (i,aa) in enumerate(element.get_polymer_residues()):
                 tag_name = aa.three_letter_code+str(i)
                 aid = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, i)
@@ -279,35 +280,6 @@ class PyMod_main_window_mixin:
             element_widgets_group.sequence_text.tag_config("normal", foreground=element.my_color, background="black")
 
 
-    def assign_residue_sequence_coloring_method(self, element):
-        if element.color_by == "polarity":
-            return self.get_polarity_sequence_color
-        elif element.color_by == "secondary-observed":
-            return self.get_observed_sec_str_sequence_color
-        elif element.color_by == "secondary-predicted":
-            return self.get_predicted_sec_str_sequence_color
-        elif element.color_by == "campo-scores":
-            return self.get_campo_sequence_color
-        elif element.color_by == "dope":
-            return self.get_dope_sequence_color
-
-    def get_polarity_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return self.pymod.polarity_color_dictionary_tkinter.get(residue.one_letter_code)
-
-    def get_observed_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return pmdt.sec_str_color_dict.get(residue.assigned_secondary_structure)
-
-    def get_predicted_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        psipred_tuple = (residue.psipred_result["confidence"], residue.psipred_result["sec-str-element"])
-        return self.pymod.psipred_color_dict_tkinter[psipred_tuple]
-
-    def get_campo_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return self.pymod.campo_color_dictionary_tkinter[residue.campo_score["interval"]]
-
-    def get_dope_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return self.pymod.dope_color_dictionary_tkinter[residue.dope_score["interval"]]
-
-
     ########################
     # Coloring structures. #
     ########################
@@ -336,7 +308,7 @@ class PyMod_main_window_mixin:
             #     residue_sel = self.build_residue_selector_for_pymol(res.pdb_position)
             #     # Finally colors the residue in PyMOL.
             #     cmd.color(color, residue_sel)
-            get_sequence_residue_color = self.assign_residue_structure_coloring_method(element)
+            get_sequence_residue_color = self.assign_residue_coloring_method(element, "structure")
             for (i,res) in enumerate(element.get_polymer_residues()):
                 # Gets the right color for the current residue.
                 color = get_sequence_residue_color(element, residue = res, residue_id = i, residues_to_color=residues_to_color)
@@ -350,48 +322,68 @@ class PyMod_main_window_mixin:
         cmd.util.cnc(chain_sel) # Colors by atom.
 
 
-    def assign_residue_structure_coloring_method(self, element):
+    ####################################
+    # Get the colors for the residues. #
+    ####################################
+
+    def assign_residue_coloring_method(self, element, color_target):
         if element.color_by == "polarity":
-            return self.get_polarity_structure_color
+            if color_target == "sequence":
+                return self.get_polarity_sequence_color
+            elif color_target == "structure":
+                return self.get_polarity_structure_color
         elif element.color_by == "secondary-observed":
-            return self.get_observed_sec_str_structure_color
+            if color_target == "sequence":
+                return self.get_observed_sec_str_sequence_color
+            elif color_target == "structure":
+                return self.get_observed_sec_str_structure_color
         elif element.color_by == "secondary-predicted":
-            return self.get_predicted_sec_str_structure_color
+            if color_target == "sequence":
+                return self.get_predicted_sec_str_sequence_color
+            elif color_target == "structure":
+                return self.get_predicted_sec_str_structure_color
         elif element.color_by == "campo-scores":
-            return self.get_campo_structure_color
+            if color_target == "sequence":
+                return self.get_campo_sequence_color
+            elif color_target == "structure":
+                return self.get_campo_structure_color
         elif element.color_by == "dope":
-            return self.get_dope_structure_color
+            if color_target == "sequence":
+                return self.get_dope_sequence_color
+            elif color_target == "structure":
+                return self.get_dope_structure_color
+
+
+    def get_polarity_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        return self.pymod.polarity_color_dictionary_tkinter.get(residue.one_letter_code)
 
     def get_polarity_structure_color(self, element, residue, residue_id, residues_to_color="all"):
         return "%s%s" % (pmdt.pymol_polarity_color_name, residue.one_letter_code)
 
+    def get_observed_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        return pmdt.sec_str_color_dict.get(residue.secondary_structure)
+
     def get_observed_sec_str_structure_color(self, element, residue, residue_id, residues_to_color="all"):
-        return pmdt.sec_str_color_dict.get(residue.assigned_secondary_structure)
+        return pmdt.sec_str_color_dict.get(residue.secondary_structure)
+
+    def get_predicted_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        return self.pymod.psipred_color_dict_tkinter[(residue.psipred_result["confidence"], residue.psipred_result["sec-str-element"])]
 
     def get_predicted_sec_str_structure_color(self, element, residue, residue_id, residues_to_color="all"):
         return "%s_%s_%s" % (pmdt.pymol_psipred_color_name, residue.psipred_result["confidence"], residue.psipred_result["sec-str-element"])
 
+    def get_campo_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        return self.pymod.campo_color_dictionary_tkinter[residue.campo_score["interval"]]
+
     def get_campo_structure_color(self, element, residue, residue_id, residues_to_color="all"):
         return "%s_%s" % (pmdt.pymol_campo_color_name, residue.campo_score["interval"])
+
+    def get_dope_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
+        return self.pymod.dope_color_dictionary_tkinter[residue.dope_score["interval"]]
 
     def get_dope_structure_color(self, element, residue, residue_id, residues_to_color="all"):
         return "%s_%s" % (pmdt.pymol_dope_color_name, residue.dope_score["interval"])
 
-    # def get_sequence_residue_color(self, element, residue, residue_id, residues_to_color="all"):
-        # # Color by DOPE values.
-        # elif self.color_by == "dope":
-        #     if residue_ids[1] != "-":
-        #         # This string will be compatible with Tkinter.
-        #         dope_vals = self.dope_items[residue_index]
-        #         if color_target == "sequence":
-        #             rgb = pmdt.dope_color_dict[dope_vals["interval"]]
-        #             color = convert_to_tkinter_rgb(rgb)
-        #         elif color_target == "structure":
-        #             color = "%s_%s" % (pmdt.pymol_dope_color_name, dope_vals["interval"])
-        #     else:
-        #         color = "white"
-        #
-        # return color
 
     ###########################
     # Check coloring schemes. #

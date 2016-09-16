@@ -1,8 +1,4 @@
 # TODO:
-#     - simplify the part for color structure assignment.
-#     - DOPE.
-#         - it does not work with hetatms.
-#         - test it.
 #     - 'similarity_searches_protocols' module and structure fetching.
 #     - MODELLER.
 #     - add raw sequence.
@@ -726,7 +722,7 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
 
         self.gridder(update_clusters=True, update_menus=True)
 
@@ -1376,7 +1372,7 @@ class PyMod:
         if hasattr(p,"get_pymod_elements"):
             pymod_elements = p.get_pymod_elements()
             for element in pymod_elements:
-                self.add_element_to_pymod(element, load_in_pymol=True)
+                self.add_element_to_pymod(element, load_in_pymol=True, color="red") # TODO: change the color part.
         if grid:
             self.gridder()
 
@@ -1859,8 +1855,11 @@ class PyMod:
         # Adjust its header.
         if adjust_header and not element.is_cluster(): # Cluster elements do not need their headers to be adjusted.
             self.adjust_headers(element)
+        if color: # TODO.
+            element.my_color = color
         # Builds for it some Tkinter widgets to show in PyMod main window.
         self.main_window.add_pymod_element_widgets(element)
+
         # Load its structure in PyMOL.
         if element.has_structure() and load_in_pymol:
             self.load_element_in_pymol(element)

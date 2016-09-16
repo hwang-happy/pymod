@@ -23,6 +23,7 @@ except:
 
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
+import pymod_lib.pymod_sequence_manipulation as pmsm
 import pymod_lib.pymod_plot as pplt
 from pymod_lib.pymod_protocols.base_protocol import PyMod_protocol
 
@@ -228,13 +229,12 @@ class Secondary_structure_assignment(PyMod_protocol):
         sec_str_results = list(stored.temp_sec_str)
 
         if not (len(sec_str_results) == len(self.pymod_element.get_polymer_residues())):
-            # TODO: remove once tested.
-            raise Exception("Error in secodnary structure assignment by PyMOL dss.")
-        else:
-            map(lambda t: self.assign_sec_str_to_residue(t[0], t[1]), zip(self.pymod_element.get_polymer_residues(), sec_str_results))
+            # raise Exception("Error in secondary structure assignment by PyMOL dss.")
+            pass # TODO.
+        map(lambda t: self.assign_sec_str_to_residue(t[0], t[1]), zip(self.pymod_element.get_polymer_residues(), sec_str_results))
 
     def assign_sec_str_to_residue(self, res, ssr):
-        res.assigned_secondary_structure = ssr
+        res.secondary_structure = ssr
 
 
 ###################################################################################################
@@ -633,22 +633,27 @@ class DOPE_assesment(PyMod_protocol):
         """
         profile_file = open(profile_file_name,"r")
         vals = []
-        # Adds None values to gaps the Modeller way.
         for line in profile_file.readlines():
             res_three_letter_code = line[8:11]
             # Read all non-comment and non-blank lines from the file:
-            if not line.startswith('#') and len(line) > 10 and line[8:11] in pmdt.prot_standard_three_letters_set:
-                # Exclude water molecules (named 'TIP3') and heteroresidues from the graph.
+            if not line.startswith('#') and len(line) > 10:
+                # Initially do not exclude also water molecules (named 'TIP3') and heteroresidues
+                # from the graph.
                 spl = line.split()
                 vals.append(float(spl[-1]))
-
         profile_file.close()
-        # Add a 'None' value at position '0', so that we effectively count from 1.
-        # vals.insert(0, None)
         return vals
 
 
     def assign_dope_items(self, selection):
+        # Retain only the DOPE values for residues of the chain (standard and modified residues).
+        for chain_element in selection:
+            filtered_chain_dope_scores = []
+            all_chain_dope_scores = self.dope_scores_dict[chain_element]
+            for res, score in zip(chain_element.residues, all_chain_dope_scores):
+                if res.is_polymer_residue():
+                    filtered_chain_dope_scores.append(score)
+            self.dope_scores_dict[chain_element] = filtered_chain_dope_scores
         # Builds a list of all DOPE values of the residues in the selection.
         ldope = []
         for chain_element in selection:
@@ -671,13 +676,9 @@ class DOPE_assesment(PyMod_protocol):
             dope_items = []
             for dope_score, bin_id in zip(adope, inds): # zip(ldope, inds):
                 dope_items.append({"score":dope_score, "interval": bin_id})
-            i = 0
-            for res in chain_element.get_polymer_residues():
-                if not res.is_modified_residue():
-                    res.dope_score = dope_items[i]
-                    i += 1
-                else:
-                    res.dope_score = (None, None)
+            # Actually assigns the DOPE score to the residues of the PyMod element.
+            for res, dope_item in zip(chain_element.get_polymer_residues(), dope_items):
+                res.dope_score = dope_item
 
 
     def prepare_dope_plot_data(self, selection, start_from=0, mode="single"):

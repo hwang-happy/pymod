@@ -454,6 +454,9 @@ class PyMod_sequence_element(PyMod_element):
     def get_polymer_residues(self):
         return filter(lambda r: r.is_polymer_residue(), self.residues)
 
+    def get_standard_residues(self):
+        return filter(lambda r: r.is_polymer_residue() and not r.is_modified_residue(), self.residues)
+
 
     ###############################################################################################
     # Header related.                                                                             #
@@ -532,8 +535,8 @@ class PyMod_residue:
 
         self.pymod_element = None
 
-        self.assigned_secondary_structure = None
-        self.predicted_secondary_structure = None
+        self.secondary_structure = None
+        self.psipred_result = None
         self.campo_score = None
         self.dope_score = None
 
