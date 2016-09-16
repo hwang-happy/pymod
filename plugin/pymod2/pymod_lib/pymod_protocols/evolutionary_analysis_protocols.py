@@ -18,7 +18,7 @@ import Pmw
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_gui as pmgi
-from pymod_lib.pymod_protocols.base_protocol import PyMod_protocol
+from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
 
 # Needed by the 'CAMPO' class.
 from Bio import SeqIO

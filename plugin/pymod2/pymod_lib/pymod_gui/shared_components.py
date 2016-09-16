@@ -236,6 +236,18 @@ class PyMod_tool_window(PyMod_base_window):
                     widgets.append(w)
         return widgets
 
+    def check_general_input(self):
+        """
+        Checks if valid input has been supplied by users in PyMod tools windows.
+        """
+        for widget in self.get_widgets_to_validate():
+            if widget.getvalue() in ("","-"):
+                title = "Input Error"
+                message = "Please fill in the '%s' option with valid input." % (widget.component("label").cget("text"))
+                tkMessageBox.showerror(title, message, parent=self)
+                return False
+        return True
+
 
 ###################################################################################################
 # OPTION SELECTION WIDGETS.                                                                       #

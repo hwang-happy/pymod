@@ -25,7 +25,7 @@ import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_sequence_manipulation as pmsm
 import pymod_lib.pymod_plot as pplt
-from pymod_lib.pymod_protocols.base_protocol import PyMod_protocol
+from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, PSI_BLAST_common
 
 ###################################################################################################
 # SECONDARY STRUCTURE ASSIGNMENT.                                                                 #
@@ -241,14 +241,14 @@ class Secondary_structure_assignment(PyMod_protocol):
 # PSIPRED.                                                                                        #
 ###################################################################################################
 
-class PSIPRED_prediction(PyMod_protocol):
+class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
 
     def __init__(self, pymod, target_sequences=None):
         PyMod_protocol.__init__(self, pymod)
         self.target_sequences = self.get_pymod_elements(target_sequences)
 
 
-    def predict_secondary_structure(self):
+    def launch_from_gui(self):
         if len(self.target_sequences) == 0:
             # TODO: use exceptions instead.
             self.pymod.show_error_message("PSIPRED Error", "Please select at least one sequence to be analyzed with PSIPRED.")
@@ -341,7 +341,7 @@ class PSIPRED_prediction(PyMod_protocol):
         if print_output:
             print "Running PSI-BLAST with sequence", basename ,"..."
         try:
-            self.pymod.execute_psiblast(
+            self.execute_psiblast(
                 ncbi_dir = ncbidir,
                 db_path = dbpath,
                 query = os.path.join(self.pymod.psipred_directory, basename+".fasta"),
@@ -481,7 +481,7 @@ class DOPE_assesment(PyMod_protocol):
         self.dope_scores_dict = {}
 
 
-    def perform_assessment(self):
+    def launch_from_gui(self):
         """
         Called when users decide calculate DOPE of a structure loaded in PyMod.
         """
@@ -679,6 +679,7 @@ class DOPE_assesment(PyMod_protocol):
             # Actually assigns the DOPE score to the residues of the PyMod element.
             for res, dope_item in zip(chain_element.get_polymer_residues(), dope_items):
                 res.dope_score = dope_item
+            chain_element.dope_scores = True
 
 
     def prepare_dope_plot_data(self, selection, start_from=0, mode="single"):
@@ -734,11 +735,6 @@ class DOPE_assesment(PyMod_protocol):
                 residue_additional_data.insert(0, {None:None})
 
             # Prepares the data.
-            print "##################"
-            print len(element_dope_scores)
-            print "##################"
-            print len(residue_additional_data)
-
             dope_plot_data.append({"dope_scores": element_dope_scores,
                                    "additional_data": residue_additional_data,
                                    "label": element.get_compact_header()})# element.my_header[0:15]})

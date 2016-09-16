@@ -507,6 +507,8 @@ class PyMod_sequence_element(PyMod_element):
     def has_campo_scores(self):
         return bool(self.campo_scores)
 
+    def has_dope_scores(self):
+        return bool(self.dope_scores)
 
     def pdb_is_fetchable(self):
         return False

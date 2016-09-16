@@ -22,6 +22,8 @@
 ###################################################################################################
 # Import modeules and define useful variables.                                                    #
 ###################################################################################################
+import os
+from distutils.spawn import find_executable as which # Used in a method to run ksdssp.
 
 # modules for ramachandran_matplotlib & ramachandran_tkinter
 from Bio import PDB

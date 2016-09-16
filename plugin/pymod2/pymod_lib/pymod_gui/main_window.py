@@ -399,8 +399,8 @@ class PyMod_main_window_mixin:
     def can_be_colored_by_conservation(self, element):
         return element.has_campo_scores()
 
-    # def can_be_colored_by_energy(self, element):
-    #     return element.dope_items != []
+    def can_be_colored_by_energy(self, element):
+        return element.has_dope_scores()
 
 
     #################################################################
@@ -731,8 +731,8 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         # Database search for homologous sequences.
         self.database_search_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Database Search", menu = self.database_search_menu)
-        self.database_search_menu.add_command(label = "BLAST", command = self.pymod.launch_ncbiblast)
-        self.database_search_menu.add_command(label = "PSI-BLAST", command = self.pymod.launch_psiblast)
+        self.database_search_menu.add_command(label = "BLAST", command = lambda program="blast": self.pymod.launch_blast_algorithm(program))
+        self.database_search_menu.add_command(label = "PSI-BLAST", command = lambda program="psi-blast": self.pymod.launch_blast_algorithm(program))
 
         # Sequence alignment tools.
         self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
@@ -1350,12 +1350,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: self.color_selection("single", self.pymod_element, "campo-scores"))
             self.color_menu.add_cascade(menu=self.conservation_colors_menu, label="By Convservation")
 
-        # # Energy colors.
-        # if self.can_be_colored_by_energy():
-        #     self.color_menu.add_separator()
-        #     self.energy_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        #     self.energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection("single", self, "dope"))
-        #     self.color_menu.add_cascade(menu=self.energy_colors_menu, label="By Energy")
+        # Energy colors.
+        if self.can_be_colored_by_energy(self.pymod_element):
+            self.color_menu.add_separator()
+            self.energy_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            self.energy_colors_menu.add_command(label="DOPE scores",command=lambda: self.color_selection("single", self.pymod_element, "dope"))
+            self.color_menu.add_cascade(menu=self.energy_colors_menu, label="By Energy")
 
         self.header_popup_menu.add_cascade(menu=self.color_menu, label="Color")
 
@@ -1502,12 +1502,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             multiple_conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: self.color_selection(color_selection_mode, color_selection_target, "campo-scores"))
             multiple_color_menu.add_cascade(menu=multiple_conservation_colors_menu, label="By Convservation")
 
-        # # Energy colors.
-        # if not False in [e.can_be_colored_by_energy() for e in sequences_list]:
-        #     multiple_color_menu.add_separator()
-        #     multiple_energy_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        #     multiple_energy_colors_menu.add_command(label="DOPE scores",command=lambda: pymod.color_selection(color_selection_mode, color_selection_target, "dope"))
-        #     multiple_color_menu.add_cascade(menu=multiple_energy_colors_menu, label="By Energy")
+        # Energy colors.
+        if not False in [self.can_be_colored_by_energy(e) for e in sequences_list]:
+            multiple_color_menu.add_separator()
+            multiple_energy_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            multiple_energy_colors_menu.add_command(label="DOPE scores",command=lambda: self.color_selection(color_selection_mode, color_selection_target, "dope"))
+            multiple_color_menu.add_cascade(menu=multiple_energy_colors_menu, label="By Energy")
 
         return multiple_color_menu
 
