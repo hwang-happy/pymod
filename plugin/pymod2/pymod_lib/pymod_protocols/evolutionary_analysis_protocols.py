@@ -40,7 +40,7 @@ class Evolutionary_analysis_protocol(PyMod_protocol):
 
 class CAMPO_analysis(Evolutionary_analysis_protocol):
 
-    def perform_analysis(self):
+    def launch_from_gui(self):
         self.build_campo_window()
 
 
@@ -451,7 +451,7 @@ class Web_services_common:
 
 class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
 
-    def perform_analysis(self):
+    def launch_from_gui(self):
         self.build_logo_options_window()
 
     #################################################################
@@ -694,7 +694,7 @@ class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
 
 class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
 
-    def perform_analysis(self):
+    def launch_from_gui(self):
         self.espript()
 
     #################################################################
@@ -792,7 +792,7 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
 
 class Tree_building(Evolutionary_analysis_protocol):
 
-    def build_tree(self):
+    def launch_from_gui(self):
         """
         It will check if a software to build a tree is available on the user's machine.
         """

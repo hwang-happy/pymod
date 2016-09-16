@@ -1,5 +1,4 @@
 # TODO:
-#     - structure fetching.
 #     - MODELLER.
 #     - add raw sequence.
 #     - headers formatting.
@@ -8,10 +7,10 @@
 #     - Ramachandran plot.
 #     - superpose.
 #     - RMSD part.
+#     - structure fetching.
 #     - reimplement the rest.
 
 #     - remove the appendix "protocol" from all the procol classes names.
-#     - reorganize the code in well defined sections.
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
 #     - add an "export to .phy file" option when showing distance trees.
 #     - add a similar option for distance matrices.
@@ -121,7 +120,7 @@ class PyMod:
     """
 
     ###############################################################################################
-    # STARTUP OF THE PLUGIN AND STRUCTURE OF THE MAIN WINDOW.                                     #
+    # STARTUP OF THE PLUGIN.                                                                      #
     ###############################################################################################
 
     def __init__(self, app, pymod_plugin_name, pymod_version, pymod_revision):
@@ -687,6 +686,7 @@ class PyMod:
             self.main_window.deiconify()
             self.launch_default()
 
+
     def initialize_session(self, new_project_directory):
         """
         Initializes a session and shows the main window, which was previously hidden.
@@ -714,6 +714,7 @@ class PyMod:
         # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min.fasta"), "fasta")
         # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
         # self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"))
+        self.open_sequence_file(os.path.join(seqs_dir,"fetch_pdb.fasta"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
         self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
@@ -729,245 +730,6 @@ class PyMod:
         #     for i in range(0,3):
         #         self.root_element.list_of_children[i].selected = True
         #     self.launch_alignment_program("clustalw", "regular-alignment")
-
-
-    def show_about_dialog(self):
-        Pmw.aboutversion(self.pymod_version + "." + self.pymod_revision)
-        Pmw.aboutcopyright('Copyright (C): 2016 Giacomo Janson, Chengxin Zhang,\nAlessandro Paiardini')
-        Pmw.aboutcontact(
-            'For information on PyMod %s visit:\n' % (self.pymod_version) +
-            '  http://schubert.bio.uniroma1.it/pymod/documentation.html\n\n' +
-            'Or send us an email at:\n' +
-            '  giacomo.janson@uniroma1.it'
-        )
-        self.about = Pmw.AboutDialog(self.main_window, applicationname = self.pymod_plugin_name)
-        self.about.show()
-
-
-    def open_online_documentation(self):
-        webbrowser.open("http://schubert.bio.uniroma1.it/pymod/documentation.html")
-
-
-    def launch_pymod_update(self):
-        # Gets the latest release number from network.
-        return None
-        try:
-            update_found = pmup.check_for_updates(self.pymod_version, self.pymod_revision)
-        except Exception, e:
-            self.show_error_message("Connection Error", "Can not obtain the latest PyMod version number beacause of the following error: '%s'" % e)
-            return False
-
-        if not update_found:
-            self.show_warning_message("Update Canceled", "Your PyMod version (%s.%s) is already up to date." % (self.pymod_version, self.pymod_revision))
-            return False
-
-        # Ask for update confirmation.
-        title = "Update PyMod?"
-        message = "Would you like to update your current PyMod version (%s.%s) to the latest stable one available online (%s)? You will need to restart PyMOL in order to use the new version." % (self.pymod_version, self.pymod_revision, update_found)
-        answer = tkMessageBox.askyesno(title, message, parent=self.main_window)
-        if not answer:
-            return False
-
-        # Fetches the latest stable version files of PyMod.
-        try:
-            plugin_zipfile_temp_name = pmup.fetch_plugin_zipfile()
-        except Exception, e:
-            self.show_error_message("Connection Error", "Can not fetch the latest PyMod files beacause of the following error: '%s'" % e)
-            return False
-
-        if not plugin_zipfile_temp_name:
-            return False
-
-        # Installs the new PyMod version.
-        pymod_plugin_dir = os.path.dirname(os.path.dirname(__file__))
-        update_results = pmup.update_pymod(plugin_zipfile_temp_name, pymod_plugin_dir)
-        if update_results[0]:
-            self.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
-        else:
-            self.show_error_message("Update Failed", update_results[1])
-
-
-    def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True, grid=False):
-        """
-        Displays error or warning messages and refreshes the sequence window.
-        """
-        if parent_window == None:
-            parent_window = self.main_window
-
-        if popup_type == "error":
-            tkMessageBox.showerror(title_to_show, message_to_show, parent=parent_window)
-        elif popup_type == "info":
-            tkMessageBox.showinfo(title_to_show, message_to_show, parent=parent_window)
-        elif popup_type == "warning":
-            tkMessageBox.showwarning(title_to_show, message_to_show, parent=parent_window)
-
-        if refresh:
-            self.deselect_all_sequences()
-        if grid:
-            self.gridder()
-
-
-    def show_info_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
-        self.show_popup_message("info",title_to_show,message_to_show,parent_window,refresh)
-
-    def show_warning_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
-        self.show_popup_message("warning",title_to_show,message_to_show,parent_window,refresh)
-
-    def show_error_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
-        self.show_popup_message("error",title_to_show,message_to_show,parent_window,refresh)
-
-
-    def general_error(self,e=''):
-        title = "Unknown Error"
-        message = "PyMod has experienced an unknown error:\n"+str(e)
-        self.show_error_message(title,message)
-
-
-    def confirm_close(self, parent=None):
-        """
-        Asks confirmation when the main window is closed by the user.
-        """
-        parent_window = None
-        if parent == None:
-            parent_window = self.main_window
-        else:
-            parent_window = parent
-        answer = tkMessageBox.askyesno(message="Are you really sure you want to exit PyMod?", title="Exit PyMod?", parent=parent_window)
-        if answer:
-            self.main_window.destroy()
-
-
-    def execute_subprocess(self, commandline, new_stdout = subprocess.PIPE, new_stderr = subprocess.PIPE, new_shell = (sys.platform!="win32"), print_stdinfo = False, executing_modeller=False):
-        if print_stdinfo:
-            print "Executing the following command:", commandline
-        if not executing_modeller:
-            try:
-                subp = subprocess.Popen(commandline, stdout= new_stdout, stderr= new_stderr, shell= new_shell)
-                out_std, err_std = subp.communicate()
-                returncode = subp.returncode
-                if returncode != 0:
-                    raise Exception("Subprocess returned non-zero return code...")
-                if print_stdinfo:
-                    print "Stdout:", out_std
-            except Exception, e:
-                if print_stdinfo:
-                    print "Exception:", e
-                    print "Stderr:", err_std
-                raise Exception("An error occurred while running the child process.")
-        # Official PyMOL builds on Mac OS will crash if executing MODELLER through using the
-        # 'subprocess' module. For this reason, the 'os' module will be used instead.
-        else:
-            os.system(commandline)
-
-    def work_in_progress(self):
-        raise Exception("Work in progress...")
-
-
-    ###############################################################################################
-    # PROGRAMS PATH AND WORKSPACE MANAGMENT.                                                      #
-    ###############################################################################################
-
-    #################################################################
-    # Import modules.                                               #
-    #################################################################
-
-    def import_modeller(self):
-
-        # First check if systemwide MODELLER can be imported in PyMOL.
-        if not pmos.check_importable_modeller():
-            # If MODELLER can't be immediately imported, try to find the modlib directory import it.
-            modeller_path = None
-            if hasattr(self, "modeller"):
-                modeller_path = self.modeller.get_exe_file_path()
-            modeller_lib_path = pmos.find_modlib_path(modeller_path)
-            if modeller_lib_path:
-                sys.path.append(modeller_lib_path)
-
-        # After having searched for 'modlib', try to actually import MODELLER.
-        global importable_modeller
-        try:
-            global modeller
-            global complete_pdb
-            import modeller
-            import modeller.automodel
-            from modeller.scripts import complete_pdb
-            importable_modeller = True
-        except Exception, e:
-            print e
-            importable_modeller = False
-
-        # Updates MODELLER tool status.
-        if hasattr(self, "modeller"):
-            self.modeller.importable_modeller = importable_modeller
-
-
-    #################################################################
-    # Methods used to build the widgets diplayed in the PyMod       #
-    # Options window.                                               #
-    #################################################################
-
-    def show_pymod_options_window(self):
-        """
-        Builds a window that allows to modify some PyMod options.
-        """
-        # Builds the options window.
-        self.pymod_options_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-            title = "PyMod Options",
-            upper_frame_title = "Here you can modify options for PyMod",
-            submit_command = lambda: self.set_pymod_options_state(),
-            with_frame=True)
-        self.pymod_options_window.resizable(1,1)
-        self.pymod_options_window.geometry('580x600') # '500x600'
-
-        # This list will be populated inside "build_tool_options_frame()".
-        for single_tool in self.pymod_tools:
-            single_tool.display_options(self.pymod_options_window.midframe)
-            # If the tool list of parameter widgets has some alignable widgets, adds them to the
-            # option window list.
-            if single_tool.parameters_widgets_list != []:
-                for w in single_tool.parameters_widgets_list:
-                    self.pymod_options_window.add_widget_to_align(w)
-        self.pymod_options_window.align_widgets(25)
-
-
-    def set_pymod_options_state(self):
-        """
-        This function is called when the SUBMIT button is pressed in the PyMod options window.
-        """
-        old_projects_dir = self.pymod_plugin["pymod_dir_path"].get_value()
-        new_projects_dir = self.pymod_plugin["pymod_dir_path"].get_value_from_gui()
-        if not os.path.isdir(new_projects_dir):
-            title = "Configuration Error"
-            message = "The PyMod Projects Directory you specified ('%s') does not exist on your system. Please choose an existing directory." % (new_projects_dir)
-            self.show_error_message(title, message, parent_window=self.pymod_options_window)
-            return False
-
-        # Saves the changes to PyMod configuration file.
-        cfgfile = open(self.cfg_file_path, 'w')
-        pymod_config_data = {}
-        for tool in self.pymod_tools:
-            new_tool_parameters = {}
-            for parameter in tool.parameters:
-                new_tool_parameters.update({parameter.name: parameter.get_value_from_gui()})
-            new_tool_dict = {tool.name: new_tool_parameters}
-            pymod_config_data.update(new_tool_dict)
-        pickle.dump(pymod_config_data, cfgfile)
-        cfgfile.close()
-
-        # Then updates the values of the parameters of the tools contained in "self.pymod_tools"
-        # so that they can be used in the current PyMod session.
-        try:
-            # Prevents the user from changing the project directory during a session.
-            self.get_parameters_from_configuration_file()
-            if old_projects_dir != new_projects_dir:
-                title = "Configuration Updated"
-                message = "You changed PyMod projects directory, the new directory will be used the next time you launch PyMod."
-                self.show_warning_message(title, message, parent_window=self.pymod_options_window)
-            self.pymod_options_window.destroy()
-
-        except Exception,e:
-            self.show_configuration_file_error(e, "read")
-            self.main_window.destroy()
 
 
     #################################################################
@@ -1023,9 +785,10 @@ class PyMod:
                 shutil.rmtree(dir_to_remove_path)
 
 
-    #################################################################
-    # Workspaces.                                                   #
-    #################################################################
+    ###############################################################################################
+    # WORKSPACES.                                                                                 #
+    ###############################################################################################
+
     def workspace_save(self):
         pass
 
@@ -1034,6 +797,129 @@ class PyMod:
 
     def workspace_new(self):
         pass
+
+
+    ###############################################################################################
+    # INTERACTIONS WITH THE GUI.                                                                  #
+    ###############################################################################################
+
+    def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True, grid=False):
+        """
+        Displays error or warning messages and refreshes the sequence window.
+        """
+        if parent_window == None:
+            parent_window = self.main_window
+
+        if popup_type == "error":
+            tkMessageBox.showerror(title_to_show, message_to_show, parent=parent_window)
+        elif popup_type == "info":
+            tkMessageBox.showinfo(title_to_show, message_to_show, parent=parent_window)
+        elif popup_type == "warning":
+            tkMessageBox.showwarning(title_to_show, message_to_show, parent=parent_window)
+
+        if refresh:
+            self.deselect_all_sequences()
+        if grid:
+            self.gridder()
+
+
+    def show_info_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
+        self.show_popup_message("info",title_to_show,message_to_show,parent_window,refresh)
+
+    def show_warning_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
+        self.show_popup_message("warning",title_to_show,message_to_show,parent_window,refresh)
+
+    def show_error_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
+        self.show_popup_message("error",title_to_show,message_to_show,parent_window,refresh)
+
+
+    def general_error(self,e=''):
+        title = "Unknown Error"
+        message = "PyMod has experienced an unknown error:\n"+str(e)
+        self.show_error_message(title,message)
+
+
+    def confirm_close(self, parent=None):
+        """
+        Asks confirmation when the main window is closed by the user.
+        """
+        parent_window = None
+        if parent == None:
+            parent_window = self.main_window
+        else:
+            parent_window = parent
+        answer = tkMessageBox.askyesno(message="Are you really sure you want to exit PyMod?", title="Exit PyMod?", parent=parent_window)
+        if answer:
+            self.main_window.destroy()
+
+
+    def work_in_progress(self):
+        raise Exception("Work in progress...")
+
+
+    ###############################################################################################
+    # PROGRAMS PATH AND TOOLS MANAGMENT.                                                          #
+    ###############################################################################################
+
+    #################################################################
+    # Import modules.                                               #
+    #################################################################
+
+    def import_modeller(self):
+
+        # First check if systemwide MODELLER can be imported in PyMOL.
+        if not pmos.check_importable_modeller():
+            # If MODELLER can't be immediately imported, try to find the modlib directory import it.
+            modeller_path = None
+            if hasattr(self, "modeller"):
+                modeller_path = self.modeller.get_exe_file_path()
+            modeller_lib_path = pmos.find_modlib_path(modeller_path)
+            if modeller_lib_path:
+                sys.path.append(modeller_lib_path)
+
+        # After having searched for 'modlib', try to actually import MODELLER.
+        global importable_modeller
+        try:
+            global modeller
+            global complete_pdb
+            import modeller
+            import modeller.automodel
+            from modeller.scripts import complete_pdb
+            importable_modeller = True
+        except Exception, e:
+            print e
+            importable_modeller = False
+
+        # Updates MODELLER tool status.
+        if hasattr(self, "modeller"):
+            self.modeller.importable_modeller = importable_modeller
+
+
+    #################################################################
+    # Interactions with external tools.                             #
+    #################################################################
+
+    def execute_subprocess(self, commandline, new_stdout = subprocess.PIPE, new_stderr = subprocess.PIPE, new_shell = (sys.platform!="win32"), print_stdinfo = False, executing_modeller=False):
+        if print_stdinfo:
+            print "Executing the following command:", commandline
+        if not executing_modeller:
+            try:
+                subp = subprocess.Popen(commandline, stdout= new_stdout, stderr= new_stderr, shell= new_shell)
+                out_std, err_std = subp.communicate()
+                returncode = subp.returncode
+                if returncode != 0:
+                    raise Exception("Subprocess returned non-zero return code...")
+                if print_stdinfo:
+                    print "Stdout:", out_std
+            except Exception, e:
+                if print_stdinfo:
+                    print "Exception:", e
+                    print "Stderr:", err_std
+                raise Exception("An error occurred while running the child process.")
+        # Official PyMOL builds on Mac OS will crash if executing MODELLER through using the
+        # 'subprocess' module. For this reason, the 'os' module will be used instead.
+        else:
+            os.system(commandline)
 
 
     ###############################################################################################
@@ -1059,6 +945,153 @@ class PyMod:
         if grid:
             self.gridder()
         # TODO: use a decorator so that the methods may call gridder at the end.
+
+
+    #################################################################
+    # Build PyMod elements.                                         #
+    #################################################################
+
+    def build_pymod_element_from_seqrecord(self, seqrecord):
+        """
+        Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
+        to the it.
+        """
+        new_element = pmel.PyMod_sequence_element(str(seqrecord.seq), seqrecord.id, description=seqrecord.description)
+        return new_element
+
+
+    def build_pymod_element_from_hsp(self, hsp):
+        """
+        Gets a hsp dictionary containing a Biopython 'HSP' class object and returns a
+        'PyMod_element' object corresponding to the subject in the HSP.
+        """
+        # Gives them the query mother_index, to make them its children.
+        # TODO: use only Biopython objects.
+        hsp_header = hsp["title"] # record_header = self.correct_name(hsp["title"])
+        cs = pmel.PyMod_sequence_element(str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
+        return cs
+
+
+    def add_element_to_pymod(self, element, adjust_header=True, load_in_pymol=False, color=None):
+        """
+        Used to add elements to the pymod_elements_list. Once an element is added to children of the
+        'root_element' by this method, it will be displayed in the PyMod main window.
+        """
+        # Adds the element to the children of PyMod root element.
+        self.root_element.add_children(element)
+        # Sets its unique index.
+        element.unique_index = self.unique_index
+        self.unique_index += 1
+        # Adjust its header.
+        if adjust_header and not element.is_cluster(): # Cluster elements do not need their headers to be adjusted.
+            self.adjust_headers(element)
+        if color: # TODO.
+            element.my_color = color
+        # Builds for it some Tkinter widgets to show in PyMod main window.
+        self.main_window.add_pymod_element_widgets(element)
+
+        # Load its structure in PyMOL.
+        if element.has_structure() and load_in_pymol:
+            self.load_element_in_pymol(element)
+
+
+    def delete_element_from_pymod(self, element):
+        # TODO: place these in the right place.
+        if element.has_structure():
+            self.delete_pdb_file(element)
+        if element.is_mother():
+            children = element.get_children()
+            for c in children[:]:
+                self.delete_element_from_pymod(c)
+        # Actually delete the element.
+        element.remove_from_cluster()
+        self.main_window.delete_pymod_element_widgets(element)
+
+
+    def delete_pdb_file(self,element):
+        # If the sequence has a PDB file loaded inside PyMOL, then delete it.
+        try:
+            cmd.delete(element.get_pymol_object_name())
+        except:
+            pass
+
+
+    def add_new_cluster_to_pymod(self, cluster_type="generic", query=None, cluster_name=None, child_elements=[], algorithm=None, update_stars=True):
+        if not cluster_type in ("alignment", "blast-cluster", "generic"):
+            raise Exception("Invalid cluster type.")
+
+        #-----------------------------------------------------------------------------------
+        # Increase the global count of clusters of the type provided in the 'cluster_type' -
+        # argument.                                                                        -
+        #-----------------------------------------------------------------------------------
+        if cluster_type == "alignment":
+            self.alignment_count += 1
+        elif cluster_type == "blast-cluster":
+            self.blast_cluster_counter += 1
+        elif cluster_type == "generic":
+            self.new_clusters_counter += 1
+
+        #--------------------------------
+        # Sets the name of the cluster. -
+        #--------------------------------
+        if cluster_name == None:
+            if cluster_type == "alignment":
+                if pmdt.algorithms_full_names_dict.has_key(algorithm):
+                    algorithm_full_name = pmdt.algorithms_full_names_dict[algorithm]
+                else:
+                    algorithm_full_name = "Unknown"
+                cluster_name = self.set_alignment_element_name(algorithm_full_name, self.alignment_count)
+            elif cluster_type == "blast-cluster":
+                # TODO: what?
+                cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.get_compact_header())
+            elif cluster_type == "generic":
+                cluster_name = "New cluster %s" % (self.new_clusters_counter)
+
+        #----------------------
+        # Sets the algorithm. -
+        #----------------------
+        if cluster_type == "blast-cluster":
+            algorithm = "blast-pseudo-alignment"
+        elif cluster_type == "generic":
+            algorithm = "none"
+        elif algorithm == None:
+            algorithm = "?"
+
+        #----------------------------------------------------------------------
+        # Creates a cluster element and add the new cluster element to PyMod. -
+        #----------------------------------------------------------------------
+        cluster_element = pmel.PyMod_cluster_element(sequence="...", header=cluster_name,
+                                             description=None, color="white",
+                                             algorithm=algorithm, cluster_type=cluster_type,
+                                             cluster_id=self.alignment_count)
+        self.add_element_to_pymod(cluster_element)
+
+        # Add the children, if some were supplied in the argument.
+        if child_elements != []:
+            cluster_element.add_children(child_elements)
+            # Computes the stars of the new alignment element.
+            if update_stars:
+                self.update_stars(cluster_element)
+
+        # Sets the leader of the cluster.
+        if cluster_type == "blast-cluster" and query != None:
+            self.make_cluster_query(query)
+
+        return cluster_element
+
+
+    def set_alignment_element_name(self, alignment_description, alignment_id="?"):
+        """
+        Builds the name of a new alignment element. This name will be displayed on PyMod main
+        window.
+        """
+        alignment_name = "Alignment %s (%s)" % (alignment_id, alignment_description)
+        return alignment_name
+
+
+    def updates_blast_search_element_name(self, old_cluster_name, alignment_program, alignment_id="?"):
+        new_name = old_cluster_name # old_cluster_name.rpartition("with")[0] + "with %s)" % (alignment_program)
+        return new_name
 
 
     #################################################################
@@ -1177,84 +1210,6 @@ class PyMod:
     ###############################################################################################
 
     #################################################################
-    # Open files from PyMod.                                        #
-    #################################################################
-
-    def open_file_from_the_main_menu(self):
-        """
-        This method is called when using the 'File -> Open from File...' command in PyMod main menu.
-        """
-        # Creates a tkinter widget that lets the user select multiple files.
-        file_paths = askopenfilename(filetypes=pmdt.all_file_types_atl, multiple=True, parent=self.main_window)
-        # Loads each files in PyMod.
-        for single_file_path in pmos.get_askopenfilename_tuple(file_paths):
-            extension = os.path.splitext(single_file_path)[1].replace(".","").lower()
-            try:
-                if extension in ("fasta", "fa"):
-                    self.open_sequence_file(single_file_path, "fasta")
-                elif extension == "gp":
-                    self.open_sequence_file(single_file_path, "genbank")
-                elif extension in ("pdb", "ent"):
-                    self.open_structure_file(single_file_path, extension)
-                else:
-                    pass
-            except PyModInvalidFile, e:
-                title = "File Type Error"
-                message = "The selected File is not a valid %s." % (pmdt.supported_sequence_file_types[extension])
-                self.show_error_message(title, message)
-        self.gridder()
-
-
-    def choose_alignment_file(self):
-        """
-        Lets users choose an alignment file.
-        """
-        # Creates a tkinter widget that lets the user select multiple files.
-        alignment_file_path = askopenfilename(filetypes=pmdt.alignment_file_formats_atl, multiple=False,parent=self.main_window)
-        if not alignment_file_path: # if alignment_file_path == "":
-            return (None, None)
-        # Finds the right extension.
-        extension = os.path.splitext(alignment_file_path)[1].replace(".","")
-        # TODO: use dictionaries built in pymod_vars.
-        if extension == "fasta":
-            pass
-        elif extension in ("aln", "clu"):
-            extension = "clustal"
-        elif extension in ("sto","sth"):
-            extension = "stockholm"
-        # Unknown format.
-        else:
-            title = "Format Error"
-            message = "Unknown alignment file format: %s" % (extension)
-            self.show_error_message(title,message)
-            return (None, None)
-        return alignment_file_path, extension
-
-
-    def open_alignment_from_main_menu(self):
-        """
-        Lets users import in Pymod an alignment stored in an external file.
-        """
-        openfilename, extension = self.choose_alignment_file()
-        if not None in (openfilename, extension):
-            self.build_cluster_from_alignment_file(openfilename, extension)
-        self.gridder(update_menus=True)
-
-
-    def choose_structure_file(self):
-        """
-        Lets users choose a strcture file.
-        """
-        # Creates a tkinter widget that lets the user select multiple files.
-        openfilename = askopenfilename(filetypes=pmdt.all_structure_file_types_atl, multiple=False,parent=self.main_window)
-        if openfilename == "":
-            return (None, None)
-        # Finds the right extension.
-        extension = os.path.splitext(os.path.basename(openfilename))[1].replace(".","")
-        return openfilename, extension
-
-
-    #################################################################
     # Check correct files formats.                                  #
     #################################################################
 
@@ -1364,156 +1319,47 @@ class PyMod:
         return pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
 
 
-    def fetch_pdb_files(self, mode, target_selection):
+    #################################################################
+    # Open files dialogs from PyMod.                                #
+    #################################################################
+
+    def choose_alignment_file(self):
         """
-        Function for downloading a PDB file from the sequences retrived from BLAST.
+        Lets users choose an alignment file.
         """
-        pass
-        # # Builds a list of structures to be fetched.
-        # self.structures_to_fetch = []
-        # if mode == "single":
-        #     self.structures_to_fetch.append(target_selection)
-        # elif mode == "selection":
-        #     self.structures_to_fetch.extend(self.get_selected_sequences())
-        #
-        # # Let the user choose the way in which to retrieve the structures.
-        # import_all_text = 'Import all chains'
-        # import_single_text = 'Import only the hit sequences fragments'
-        # self.import_mode_choices = {import_single_text: "single-chain", import_all_text: "multiple-chains"}
-        # self.fetch_pdb_dialog = Pmw.MessageDialog(self.main_window,
-        #     title = 'Import Options',
-        #     message_text = (
-        #     "Please select the 3D structure import mode:\n\n"+
-        #     "- Import in PyMod the structure of every chain of the PDB files.\n\n"+
-        #     "- Import in PyMod only the structure of the hit sequences fragments identified by (PSI-)BLAST."
-        #     ),
-        #     buttons = (import_all_text, import_single_text) )
-        # self.fetch_pdb_dialog.component("message").configure(justify="left")
-        # self.fetch_pdb_dialog.configure(command=self.fetch_pdb_files_state)
+        # Creates a tkinter widget that lets the user select multiple files.
+        alignment_file_path = askopenfilename(filetypes=pmdt.alignment_file_formats_atl, multiple=False,parent=self.main_window)
+        if not alignment_file_path: # if alignment_file_path == "":
+            return (None, None)
+        # Finds the right extension.
+        extension = os.path.splitext(alignment_file_path)[1].replace(".","")
+        # TODO: use dictionaries built in pymod_vars.
+        if extension == "fasta":
+            pass
+        elif extension in ("aln", "clu"):
+            extension = "clustal"
+        elif extension in ("sto","sth"):
+            extension = "stockholm"
+        # Unknown format.
+        else:
+            title = "Format Error"
+            message = "Unknown alignment file format: %s" % (extension)
+            self.show_error_message(title,message)
+            return (None, None)
+        return alignment_file_path, extension
 
 
-    # TODO!
-    def fetch_pdb_files_state(self, dialog_choice):
-        pass
-        # self.fetch_pdb_dialog.withdraw()
-        # # Interrupt the process if users close the dialog window.
-        # if not dialog_choice:
-        #     return None
-        # import_mode = self.import_mode_choices[dialog_choice]
-        #
-        # # Begins to actually fetch the PDB files.
-        # for element in self.structures_to_fetch:
-        #     element_header = element.my_header
-        #     if element_header.split("|")[2] == "pdb":
-        #         pdb_code = element_header.split("|")[3]
-        #         if element_header.split("|")[4] != "":
-        #             pdb_chain = element_header.split("|")[4][0]
-        #         else:
-        #             pdb_chain = None
-        #             import_mode = "multiple-chains"
-        #     elif element_header.split("|")[4] == "pdb":
-        #         pdb_code=element_header.split("|")[5]
-        #         if element_header.split("|")[6][0] != "":
-        #             pdb_chain = element_header.split("|")[6][0]
-        #         else:
-        #             pdb_chain = None
-        #             mport_mode = "multiple-chains"
-        #
-        #     zipped_file = None
-        #
-        #     # Retrieve the PDB file from the internet.
-        #     try:
-        #         zipped_file = urllib.urlretrieve('http://www.rcsb.org/pdb/files/'+ pdb_code + '.pdb.gz')[0]
-        #     except:
-        #         title = "Connection Error"
-        #         message = "Can not access to the PDB database.\nPlease check your Internet access."
-        #         self.show_error_message(title,message)
-        #         return False
-        #
-        #     open_zipped_file = gzip.open(zipped_file) # Uncompress the file while reading
-        #     new_name = pdb_code + '.pdb' # Form the pdb output name
-        #     pdb_file_shortcut = os.path.join(self.structures_directory, new_name)
-        #     saved_file = open(pdb_file_shortcut, 'w')
-        #     saved_file.write(open_zipped_file.read()) # Write pdb file
-        #     open_zipped_file.close()
-        #     saved_file.close()
-        #
-        #     # Builds a 'Parsed_pdb_file' object.
-        #     pdb_file = Parsed_pdb_file(os.path.abspath(pdb_file_shortcut))
-        #     # Start parsing the PDB file.
-        #     pdb_file.parse_pdb_file()
-        #
-        #     # Load in PyMod only the chain corresponding to the hit sequence and adjust its legth to
-        #     # the region identified by BLAST.
-        #     if import_mode == "single-chain":
-        #         if not self.associate_structure(pdb_file, pdb_chain, element):
-        #             self.show_associate_structure_error()
-        #
-        #     # Load each chain found in the PDB file where the 3D structure of the hit sequence is
-        #     # present. This is actually like opening a new PDB file with the 'open_structure_file()'
-        #     # method, except that in this case, the chains not corresponging to the hit sequence
-        #     # are colored in gray.
-        #     elif import_mode == "multiple-chains":
-        #         # Builds 'Pymod_elements' objects for each chain present in the PDB file.
-        #         pdb_file.build_structure_objects(add_to_pymod_pdb_list = True)
-        #         if pdb_chain:
-        #             # Actually adds as mothers the PyMod elements to the 'pymod_elements_list'.
-        #             for chain_id in pdb_file.get_chains_ids():
-        #                 new_element = pdb_file.get_chain_pymod_element(chain_id)
-        #                 if chain_id != pdb_chain:
-        #                     self.add_element_to_pymod(new_element, "mother", color="gray")
-        #                 else:
-        #                     # Deletes the original hit sequence retrieved by BLAST and replaces it with
-        #                     # a new element with an associated structure loaded in PyMOL.
-        #                     self.delete_element_from_pymod(element)
-        #                     self.add_element_to_pymod(new_element, "mother")
-        #                 self.load_element_in_pymol(new_element)
-        #         else:
-        #             for chain_id in pdb_file.get_chains_ids():
-        #                 new_element = pdb_file.get_chain_pymod_element(chain_id)
-        #                 self.add_element_to_pymod(new_element, "mother")
-        #                 self.load_element_in_pymol(new_element)
-        #             self.delete_element_from_pymod(element)
-        #
-        # self.gridder()
-
-
-    ###############################################################################################
-    # INTERACTIONS WITH PYMOL.                                                                    #
-    ###############################################################################################
-
-    def load_element_in_pymol(self, element, mode = None):
+    def choose_structure_file(self):
         """
-        Loads the PDB structure of the chain into PyMol.
+        Lets users choose a strcture file.
         """
-        file_to_load = element.get_structure_file()
-        pymol_object_name = element.get_pymol_object_name()
-        cmd.load(file_to_load, pymol_object_name)
-        # chain_root_name = element.build_chain_selector_for_pymol()
-        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
-        # cmd.load(file_name_to_load)
-        # cmd.select("last_prot", chain_root_name)
-        # cmd.hide("everything", "last_prot")
-        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
-        # if mode == "model":
-        #     cmd.color("white", "last_prot")
-        # else:
-        #     cmd.color(element.my_color, "last_prot")
-        # cmd.util.cnc("last_prot") # Colors by atom.
-        # cmd.center('last_prot')
-        # cmd.zoom('last_prot')
-        # cmd.delete("last_prot")
-
-
-    def center_chain_in_pymol(self, pymod_element):
-        cmd.center(pymod_element.get_pymol_object_name())
-
-    def hide_chain_in_pymol(self, pymod_element):
-        # Use enable or disable?
-        cmd.disable(pymod_element.get_pymol_object_name())
-
-    def show_chain_in_pymol(self, pymod_element):
-        cmd.enable(pymod_element.get_pymol_object_name())
+        # Creates a tkinter widget that lets the user select multiple files.
+        openfilename = askopenfilename(filetypes=pmdt.all_structure_file_types_atl, multiple=False,parent=self.main_window)
+        if openfilename == "":
+            return (None, None)
+        # Finds the right extension.
+        extension = os.path.splitext(os.path.basename(openfilename))[1].replace(".","")
+        return openfilename, extension
 
 
     ###############################################################################################
@@ -1602,12 +1448,276 @@ class PyMod:
             self.add_element_to_pymod(duplicated_element)
 
 
-    def delete_pdb_file(self,element):
-        # If the sequence has a PDB file loaded inside PyMOL, then delete it.
-        try:
-            cmd.delete(element.get_pymol_object_name())
-        except:
-            pass
+    #################################################################
+    # Clusters.                                                     #
+    #################################################################
+
+    def adjust_aligned_elements_length(self, elements, remove_right_indels=True):
+        if len(set([len(e.my_sequence) for e in elements])) == 1:
+            return False
+        # First remove indels at the end of the sequences.
+        if remove_right_indels:
+            for e in elements:
+                e.my_sequence = str(e.my_sequence).rstrip("-")
+        # Then pad each sequence with the right number of indels to make them of the same length as
+        # the longest sequence.
+        max_length = max([len(e.my_sequence) for e in elements])
+        for e in elements:
+            e.my_sequence = str(e.my_sequence).ljust(max_length,"-")
+            # e.set_sequence(str(e.my_sequence).ljust(max_length,"-"), permissive=False)
+
+
+    def update_cluster_sequences(self, cluster_element):
+        """
+        Updates the sequences of a cluster when some sequences are removed or added from the
+        cluster.
+        """
+        children = cluster_element.get_children()
+        if len(children) > 1:
+            self.adjust_aligned_elements_length(children) # TODO: insert in update_stars?
+            self.update_stars(cluster_element)
+            for c in cluster_element.get_children():
+                self.main_window.update_widgets(c)
+            self.main_window.update_widgets(cluster_element)
+        else:
+            if len(children) == 1:
+                self.extract_element_from_cluster(children[0])
+            self.delete_element_from_pymod(cluster_element)
+
+
+    def update_stars(self, cluster_element):
+        stars = pmsm.compute_stars(cluster_element.get_children())
+        cluster_element.my_sequence = stars
+
+
+    def remove_gap_only_columns(self, cluster_element):
+        """
+        Remove the columns containing only gaps in the child elements of a PyMod cluster element.
+        """
+        children = cluster_element.get_children()
+        all_gaps_columns = []
+        columns_to_keep = []
+        print [len(c.my_sequence) for c in children]
+        for i in range(0, len(children[0].my_sequence)):
+            if pmsm.all_gaps_column([c.my_sequence[i] for c in children]):
+                all_gaps_columns.append(i)
+        for child in children:
+            seq = "".join([t[1] for t in enumerate(child.my_sequence) if not t[0] in all_gaps_columns])
+            child.set_sequence(seq)
+
+
+    def extract_selection_to_new_cluster(self):
+        selected_sequences = self.get_selected_sequences()
+        original_cluster_index = self.get_pymod_element_index_in_container(selected_sequences[0].mother) + 1
+        new_cluster = self.add_new_cluster_to_pymod(cluster_type="generic", child_elements=selected_sequences, algorithm="extracted")
+        self.change_pymod_element_list_index(new_cluster, original_cluster_index)
+        self.gridder(update_clusters=True, update_menus=True)
+
+
+    #################################################################
+    # Transfer alignment files.                                     #
+    #################################################################
+
+    def transfer_alignment(self, alignment_element):
+        """
+        Changes the sequences of the elements contained in a PyMod cluster according to the
+        information presente in an externally supplied file (chosen by users through a file diaolog)
+        containing the same sequences aligned in a different way. Right now it supports transfer
+        only for sequences having the exactly same sequences in PyMod and in the external alignment.
+        """
+        # Let users choose the external alignment file.
+        openfilename, extension = self.choose_alignment_file()
+        if None in (openfilename, extension):
+            return False
+
+        # Sequences in the aligment currently loaded into PyMod.
+        aligned_elements = alignment_element.get_children()[:]
+
+        # Sequences in the alignment files.
+        fh = open(openfilename, "rU")
+        external_records = list(SeqIO.parse(fh, extension))
+        fh.close()
+
+        if len(external_records) < len(aligned_elements):
+            title = "Transfer error"
+            message = "'%s' has more sequences (%s) than the alignment in '%s' (%s) and the 'Transfer Alignment' function can't be used in this situation." % (alignment_element.my_header, len(aligned_elements), openfilename, len(external_records))
+            self.show_error_message(title,message)
+            return False
+
+        correspondance_list = []
+        # First try to find sequences that are identical (same sequence and same lenght) in both
+        # alignments.
+        for element in aligned_elements[:]:
+            identity_matches = []
+            for record in external_records:
+                if str(element.my_sequence).replace("-","") == str(record.seq).replace("-",""):
+                    match_dict = {"target-seq":element, "external-seq": record, "identity": True}
+                    identity_matches.append(match_dict)
+            if len(identity_matches) > 0:
+                correspondance_list.append(identity_matches[0])
+                aligned_elements.remove(identity_matches[0]["target-seq"])
+                external_records.remove(identity_matches[0]["external-seq"])
+
+        # Then try to find similar sequences among the two alignments. Right now this is not
+        # implemented.
+        # ...
+
+        if not len(aligned_elements) == 0:
+            title = "Transfer error"
+            message = "Not every sequence in the target alignment has a corresponding sequence in the external alignment."
+            self.show_error_message(title,message)
+            return False
+
+        # Finally transfer the sequences.
+        for match in correspondance_list[:]:
+            if match["identity"]:
+                match["target-seq"].set_sequence(str(match["external-seq"].seq))
+                correspondance_list.remove(match)
+
+        self.gridder(update_clusters=True)
+
+
+    def delete_cluster_dialog(self, cluster_element):
+        title = "Delete Cluster?"
+        message = "Are you sure you want to delete %s?" % (cluster_element.my_header)
+        remove_cluster_choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
+        if not remove_cluster_choice:
+            return None
+        title = "Delete Sequences?"
+        message = "Would you like to delete all the sequences contained in the %s cluster? By selecting 'No', you will only extract them from the cluster." % (cluster_element.my_header)
+        remove_children_choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
+
+        # Delete all the sequences.
+        if remove_children_choice:
+            self.delete_element_from_pymod(cluster_element)
+        # Delete only the cluster element and extract the sequences.
+        else:
+            children = cluster_element.get_children()
+            for c in reversed(children[:]):
+                self.extract_element_from_cluster(c)
+            self.delete_element_from_pymod(cluster_element)
+
+        self.gridder(update_menus=True)
+
+
+    #################################################################
+    # Import PDB files.                                             #
+    #################################################################
+
+    def fetch_pdb_files_from_popup_menu(self, mode, target_selection):
+        self.fetch_pdb_files(mode, target_selection)
+
+
+    def fetch_pdb_files(self, mode, target_selection):
+        """
+        Function for downloading a PDB file from the sequences retrived from BLAST.
+        """
+        # Builds a list of structures to be fetched.
+        self.structures_to_fetch = []
+        if mode == "single":
+            self.structures_to_fetch.append(target_selection)
+        elif mode == "selection":
+            self.structures_to_fetch.extend(self.get_selected_sequences())
+        # Let the user choose the way in which to retrieve the structures.
+        import_all_text = 'Import all chains'
+        import_single_text = 'Import only the hit sequences fragments'
+        self.import_mode_choices = {import_single_text: "single-chain", import_all_text: "multiple-chains"}
+        self.fetch_pdb_dialog = Pmw.MessageDialog(self.main_window,
+            title = 'Import Options',
+            message_text = (
+            "Please select the 3D structure import mode:\n\n"+
+            "- Import in PyMod the structure of every chain of the PDB files.\n\n"+
+            "- Import in PyMod only the structure of the hit sequences fragments identified by (PSI-)BLAST."
+            ),
+            buttons = (import_all_text, import_single_text) )
+        self.fetch_pdb_dialog.component("message").configure(justify="left")
+        self.fetch_pdb_dialog.configure(command=self.fetch_pdb_files_state)
+
+
+    def fetch_pdb_files_state(self, dialog_choice):
+        raise Exception("TODO")
+
+        # self.fetch_pdb_dialog.withdraw()
+        # # Interrupt the process if users close the dialog window.
+        # if not dialog_choice:
+        #     return None
+        # import_mode = self.import_mode_choices[dialog_choice]
+        #
+        # # Begins to actually fetch the PDB files.
+        # for element in self.structures_to_fetch:
+        #     element_header = element.my_header
+        #     if element_header.split("|")[2] == "pdb":
+        #         pdb_code = element_header.split("|")[3]
+        #         if element_header.split("|")[4] != "":
+        #             pdb_chain = element_header.split("|")[4][0]
+        #         else:
+        #             pdb_chain = None
+        #             import_mode = "multiple-chains"
+        #     elif element_header.split("|")[4] == "pdb":
+        #         pdb_code=element_header.split("|")[5]
+        #         if element_header.split("|")[6][0] != "":
+        #             pdb_chain = element_header.split("|")[6][0]
+        #         else:
+        #             pdb_chain = None
+        #             mport_mode = "multiple-chains"
+        #
+        #     zipped_file = None
+        #
+        #     # Retrieve the PDB file from the internet.
+        #     try:
+        #         zipped_file = urllib.urlretrieve('http://www.rcsb.org/pdb/files/'+ pdb_code + '.pdb.gz')[0]
+        #     except:
+        #         title = "Connection Error"
+        #         message = "Can not access to the PDB database.\nPlease check your Internet access."
+        #         self.show_error_message(title,message)
+        #         return False
+        #
+        #     open_zipped_file = gzip.open(zipped_file) # Uncompress the file while reading
+        #     new_name = pdb_code + '.pdb' # Form the pdb output name
+        #     pdb_file_shortcut = os.path.join(self.structures_directory, new_name)
+        #     saved_file = open(pdb_file_shortcut, 'w')
+        #     saved_file.write(open_zipped_file.read()) # Write pdb file
+        #     open_zipped_file.close()
+        #     saved_file.close()
+        #
+        #     # Builds a 'Parsed_pdb_file' object.
+        #     pdb_file = Parsed_pdb_file(os.path.abspath(pdb_file_shortcut))
+        #     # Start parsing the PDB file.
+        #     pdb_file.parse_pdb_file()
+        #
+        #     # Load in PyMod only the chain corresponding to the hit sequence and adjust its legth to
+        #     # the region identified by BLAST.
+        #     if import_mode == "single-chain":
+        #         if not self.associate_structure(pdb_file, pdb_chain, element):
+        #             self.show_associate_structure_error()
+        #
+        #     # Load each chain found in the PDB file where the 3D structure of the hit sequence is
+        #     # present. This is actually like opening a new PDB file with the 'open_structure_file()'
+        #     # method, except that in this case, the chains not corresponging to the hit sequence
+        #     # are colored in gray.
+        #     elif import_mode == "multiple-chains":
+        #         # Builds 'Pymod_elements' objects for each chain present in the PDB file.
+        #         pdb_file.build_structure_objects(add_to_pymod_pdb_list = True)
+        #         if pdb_chain:
+        #             # Actually adds as mothers the PyMod elements to the 'pymod_elements_list'.
+        #             for chain_id in pdb_file.get_chains_ids():
+        #                 new_element = pdb_file.get_chain_pymod_element(chain_id)
+        #                 if chain_id != pdb_chain:
+        #                     self.add_element_to_pymod(new_element, "mother", color="gray")
+        #                 else:
+        #                     # Deletes the original hit sequence retrieved by BLAST and replaces it with
+        #                     # a new element with an associated structure loaded in PyMOL.
+        #                     self.delete_element_from_pymod(element)
+        #                     self.add_element_to_pymod(new_element, "mother")
+        #                 self.load_element_in_pymol(new_element)
+        #         else:
+        #             for chain_id in pdb_file.get_chains_ids():
+        #                 new_element = pdb_file.get_chain_pymod_element(chain_id)
+        #                 self.add_element_to_pymod(new_element, "mother")
+        #                 self.load_element_in_pymol(new_element)
+        #             self.delete_element_from_pymod(element)
+        #
+        # self.gridder()
 
 
     def associate_structure_from_popup_menu(self, target_element):
@@ -1784,278 +1894,54 @@ class PyMod:
         #     self.import_from_pymol_window.destroy()
 
 
+    def color_struct(self):
+        if self.color_index > len(pmdt.regular_colours) - 1:
+            self.color_index=0
+        color_index_to_return = self.color_index
+        self.color_index += 1
+        return pmdt.regular_colours[color_index_to_return]
+
+
     def show_pdb_info(self):
         self.work_in_progress()
 
 
-    #############
-    # Clusters. #
-    #############
+    ###############################################################################################
+    # INTERACTIONS WITH PYMOL.                                                                    #
+    ###############################################################################################
 
-    def extract_selection_to_new_cluster(self):
-        selected_sequences = self.get_selected_sequences()
-        original_cluster_index = self.get_pymod_element_index_in_container(selected_sequences[0].mother) + 1
-        new_cluster = self.add_new_cluster_to_pymod(cluster_type="generic", child_elements=selected_sequences, algorithm="extracted")
-        self.change_pymod_element_list_index(new_cluster, original_cluster_index)
-        self.gridder(update_clusters=True, update_menus=True)
-
-
-    #################################################################
-    # Build PyMod elements.                                         #
-    #################################################################
-
-    def build_pymod_element_from_seqrecord(self, seqrecord):
+    def load_element_in_pymol(self, element, mode = None):
         """
-        Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
-        to the it.
+        Loads the PDB structure of the chain into PyMol.
         """
-        new_element = pmel.PyMod_sequence_element(str(seqrecord.seq), seqrecord.id, description=seqrecord.description)
-        return new_element
+        file_to_load = element.get_structure_file()
+        pymol_object_name = element.get_pymol_object_name()
+        cmd.load(file_to_load, pymol_object_name)
+        # chain_root_name = element.build_chain_selector_for_pymol()
+        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
+        # cmd.load(file_name_to_load)
+        # cmd.select("last_prot", chain_root_name)
+        # cmd.hide("everything", "last_prot")
+        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
+        # if mode == "model":
+        #     cmd.color("white", "last_prot")
+        # else:
+        #     cmd.color(element.my_color, "last_prot")
+        # cmd.util.cnc("last_prot") # Colors by atom.
+        # cmd.center('last_prot')
+        # cmd.zoom('last_prot')
+        # cmd.delete("last_prot")
 
 
-    def build_pymod_element_from_hsp(self, hsp):
-        """
-        Gets a hsp dictionary containing a Biopython 'HSP' class object and returns a
-        'PyMod_element' object corresponding to the subject in the HSP.
-        """
-        # Gives them the query mother_index, to make them its children.
-        # TODO: use only Biopython objects.
-        hsp_header = hsp["title"] # record_header = self.correct_name(hsp["title"])
-        cs = pmel.PyMod_sequence_element(str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
-        return cs
+    def center_chain_in_pymol(self, pymod_element):
+        cmd.center(pymod_element.get_pymol_object_name())
 
+    def hide_chain_in_pymol(self, pymod_element):
+        # Use enable or disable?
+        cmd.disable(pymod_element.get_pymol_object_name())
 
-    def add_element_to_pymod(self, element, adjust_header=True, load_in_pymol=False, color=None):
-        """
-        Used to add elements to the pymod_elements_list. Once an element is added to children of the
-        'root_element' by this method, it will be displayed in the PyMod main window.
-        """
-        # Adds the element to the children of PyMod root element.
-        self.root_element.add_children(element)
-        # Sets its unique index.
-        element.unique_index = self.unique_index
-        self.unique_index += 1
-        # Adjust its header.
-        if adjust_header and not element.is_cluster(): # Cluster elements do not need their headers to be adjusted.
-            self.adjust_headers(element)
-        if color: # TODO.
-            element.my_color = color
-        # Builds for it some Tkinter widgets to show in PyMod main window.
-        self.main_window.add_pymod_element_widgets(element)
-
-        # Load its structure in PyMOL.
-        if element.has_structure() and load_in_pymol:
-            self.load_element_in_pymol(element)
-
-
-    def delete_element_from_pymod(self, element):
-        # TODO: place these in the right place.
-        if element.has_structure():
-            self.delete_pdb_file(element)
-        if element.is_mother():
-            children = element.get_children()
-            for c in children[:]:
-                self.delete_element_from_pymod(c)
-        # Actually delete the element.
-        element.remove_from_cluster()
-        self.main_window.delete_pymod_element_widgets(element)
-
-
-    def add_new_cluster_to_pymod(self, cluster_type="generic", query=None, cluster_name=None, child_elements=[], algorithm=None, update_stars=True):
-        if not cluster_type in ("alignment", "blast-cluster", "generic"):
-            raise Exception("Invalid cluster type.")
-
-        #-----------------------------------------------------------------------------------
-        # Increase the global count of clusters of the type provided in the 'cluster_type' -
-        # argument.                                                                        -
-        #-----------------------------------------------------------------------------------
-        if cluster_type == "alignment":
-            self.alignment_count += 1
-        elif cluster_type == "blast-cluster":
-            self.blast_cluster_counter += 1
-        elif cluster_type == "generic":
-            self.new_clusters_counter += 1
-
-        #--------------------------------
-        # Sets the name of the cluster. -
-        #--------------------------------
-        if cluster_name == None:
-            if cluster_type == "alignment":
-                if pmdt.algorithms_full_names_dict.has_key(algorithm):
-                    algorithm_full_name = pmdt.algorithms_full_names_dict[algorithm]
-                else:
-                    algorithm_full_name = "Unknown"
-                cluster_name = self.set_alignment_element_name(algorithm_full_name, self.alignment_count)
-            elif cluster_type == "blast-cluster":
-                # TODO: what?
-                cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.get_compact_header())
-            elif cluster_type == "generic":
-                cluster_name = "New cluster %s" % (self.new_clusters_counter)
-
-        #----------------------
-        # Sets the algorithm. -
-        #----------------------
-        if cluster_type == "blast-cluster":
-            algorithm = "blast-pseudo-alignment"
-        elif cluster_type == "generic":
-            algorithm = "none"
-        elif algorithm == None:
-            algorithm = "?"
-
-        #----------------------------------------------------------------------
-        # Creates a cluster element and add the new cluster element to PyMod. -
-        #----------------------------------------------------------------------
-        cluster_element = pmel.PyMod_cluster_element(sequence="...", header=cluster_name,
-                                             description=None, color="white",
-                                             algorithm=algorithm, cluster_type=cluster_type,
-                                             cluster_id=self.alignment_count)
-        self.add_element_to_pymod(cluster_element)
-
-        # Add the children, if some were supplied in the argument.
-        if child_elements != []:
-            cluster_element.add_children(child_elements)
-            # Computes the stars of the new alignment element.
-            if update_stars:
-                self.update_stars(cluster_element)
-
-        # Sets the leader of the cluster.
-        if cluster_type == "blast-cluster" and query != None:
-            self.make_cluster_query(query)
-
-        return cluster_element
-
-
-    def set_alignment_element_name(self, alignment_description, alignment_id="?"):
-        """
-        Builds the name of a new alignment element. This name will be displayed on PyMod main
-        window.
-        """
-        alignment_name = "Alignment %s (%s)" % (alignment_id, alignment_description)
-        return alignment_name
-
-
-    def updates_blast_search_element_name(self, old_cluster_name, alignment_program, alignment_id="?"):
-        new_name = old_cluster_name # old_cluster_name.rpartition("with")[0] + "with %s)" % (alignment_program)
-        return new_name
-
-
-    #################################################################
-    # Saving files.                                                 #
-    #################################################################
-
-    def save_all_files_from_main_menu(self):
-        """
-        Saves all files in a single FASTA file.
-        """
-        if len(self.pymod_elements_list) != 0:
-            self.save_selection(mode="all")
-        else:
-            self.show_error_message("Selection Error","There aren't any sequences currently loaded in PyMod.")
-
-
-    def sequence_save_dialog(self, element):
-        """
-        Save a single sequence to a file.
-        """
-        # Ask to remove indels.
-        remove_indels_choice = False
-        if "-" in element.my_sequence:
-            remove_indels_choice = tkMessageBox.askyesno(message="Would you like to remove indels from the sequence when saving it to a file?", title="Save File", parent=self.main_window)
-        # Choose the file path.
-        filepath=asksaveasfilename(filetypes=[("fasta","*.fasta")],parent=self.main_window)
-        # Actually saves the file.
-        if not filepath == "":
-            dirpath = os.path.dirname(filepath)
-            filename = os.path.splitext(os.path.basename(filepath))[0]
-            self.build_sequences_file([element], filename, file_format="fasta", remove_indels=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
-
-
-    def save_selection_dialog(self, mode="selection"):
-        """
-        Save selection in a single file.
-        """
-        # Builds the selection.
-        selection = None
-        if mode == "selection":
-            selection = self.get_selected_sequences()
-        elif mode == "all":
-            selection = self.get_all_sequences()
-        # Ask users if they want to include indels in the sequences to save.
-        remove_indels_choice = False
-        for e in selection:
-            if "-" in e.my_sequence:
-                remove_indels_choice = tkMessageBox.askyesno(message="Would you like to remove indels from the sequences when saving them to a file?", title="Save Selection", parent=self.main_window)
-                break
-        # Ask users to chose a directory where to save the files.
-        filepath=asksaveasfilename(filetypes=[("fasta","*.fasta")],parent=self.main_window)
-        if not filepath == "":
-            dirpath = os.path.dirname(filepath)
-            filename = os.path.splitext(os.path.basename(filepath))[0]
-            self.build_sequences_file(selection, filename, file_format="fasta", remove_indels=remove_indels_choice, same_length=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
-
-
-    def alignment_save_dialog(self, alignment_element):
-        """
-        Lets the user choose the path to which an alignment file is going to be saved, and saves
-        an alignment file there.
-        """
-        save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = pmdt.alignment_file_formats_atl, parent=self.main_window)
-        alignment_file_name, extension = os.path.splitext(os.path.basename(save_file_full_path))
-        extension = extension.replace(".","")
-
-        if save_file_full_path != "":
-            # The get all the aligned elements.
-            aligned_elements = alignment_element.get_children()
-
-            # Saves a file with all the sequences in the project "Alignments" directory.
-            if extension == "fasta":
-                self.save_alignment_fasta_file(alignment_file_name, aligned_elements)
-            elif extension == "aln":
-                self.build_sequences_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
-            elif extension == "sto":
-                self.build_sequences_file(aligned_elements, alignment_file_name, file_format="stockholm", remove_indels=False)
-            else:
-                title = "Format Error"
-                message = "Unknown alignment file format: %s" % (extension)
-                self.show_error_message(title, message)
-                return
-
-            # Moves the saved file to the path chosen by the user.
-            try:
-                old_path = os.path.join(self.alignments_directory, alignment_file_name + "." + extension)
-                os.rename(old_path, save_file_full_path)
-            except:
-                title = "File Error"
-                message = "Could not save the alignment file to path: %s" % (save_file_full_path)
-                self.show_error_message(title, message)
-
-        # save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = pmdt.alignment_file_formats_atl, parent=pymod.main_window)
-        # alignment_file_name, extension = os.path.splitext(os.path.basename(save_file_full_path))
-        # extension = extension.replace(".","")
-        #
-        # if save_file_full_path != "":
-        #     # The get all the aligned elements.
-        #     aligned_elements = self.get_children(alignment_element)
-        #
-        #     # Saves a file with all the sequences in the project "Alignments" directory.
-        #     if extension == "fasta":
-        #         self.save_alignment_fasta_file(alignment_file_name, aligned_elements)
-        #     elif extension == "aln":
-        #         self.build_sequences_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
-        #     else:
-        #         title = "Format Error"
-        #         message = "Unknown alignment file format: %s" % (extension)
-        #         self.show_error_message(title, message)
-        #         return
-        #
-        #     # Moves the saved file to the path chosen by the user.
-        #     try:
-        #         old_path = os.path.join(self.alignments_directory, alignment_file_name + "." + extension)
-        #         os.rename(old_path, save_file_full_path)
-        #     except:
-        #         title = "File Error"
-        #         message = "Could not save the alignment file to path: %s" % (save_file_full_path)
-        #         self.show_error_message(title, message)
+    def show_chain_in_pymol(self, pymod_element):
+        cmd.enable(pymod_element.get_pymol_object_name())
 
 
     ###############################################################################################
@@ -2211,171 +2097,6 @@ class PyMod:
 
 
     ###############################################################################################
-    # OTHER.                                                                                      #
-    ###############################################################################################
-
-    #################################################################
-    # Add new sequences.                                            #
-    #################################################################
-
-    def raw_seq_input(self):
-        """
-        Launched when the user wants to add a new sequence by directly typing it into a Text entry.
-        """
-        pass
-        # def show_menu(e):
-        #     w = e.widget
-        #     the_menu.entryconfigure("Paste",
-        #     command=lambda: w.event_generate("<<Paste>>"))
-        #     the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
-        #
-        # # This is called when the SUBMIT button packed below is pressed.
-        # def submit():
-        #     def special_match(strg, search=re.compile(r'[^A-Z-]').search):
-        #         return not bool(search(strg))
-        #     def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
-        #         return not bool(search2(strg))
-        #     sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
-        #     if special_match(sequence) and len(sequence):
-        #         if len(seq_name.get()) and name_match(seq_name.get()):
-        #             c = PyMod_element(sequence, seq_name.get(),
-        #                 element_type="sequence")
-        #             self.add_element_to_pymod(c,"mother")
-        #             self.raw_seq_window.destroy()
-        #             self.gridder()
-        #         else:
-        #             title = 'Name Error'
-        #             message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
-        #             self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-        #     else:
-        #         title = 'Sequence Error'
-        #         message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
-        #         self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-        #
-        # self.raw_seq_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-        #     title = "Add Raw Sequence",
-        #     upper_frame_title = "Type or Paste your Sequence",
-        #     submit_command = submit)
-        #
-        # L1 = Label(self.raw_seq_window.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
-        # L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
-        #
-        # # Creates an Entry for the name of the new sequence.
-        # seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
-        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.shared_components.fixed_width_font)
-        # seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
-        # seq_name.focus_set()
-        # seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
-        #
-        # L2 = Label(self.raw_seq_window.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
-        # L2.grid( row=1, column=0, sticky="ne", ipadx=0, padx=5)
-        #
-        # scrollbar = Scrollbar(self.raw_seq_window.midframe)
-        # scrollbar.grid(row=1, column=2, sticky="ns")
-        #
-        # # Creates an Entry widget for the sequence.
-        # textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
-        #               font = "%s 12" % pmgi.shared_components.fixed_width_font, height=10,
-        #               bd=0, foreground = 'black',
-        #               background = 'white', selectbackground='black',
-        #               selectforeground='white', width = 60)
-        # textarea.config(state=NORMAL)
-        # textarea.tag_config("normal", foreground="black")
-        # textarea.grid( row=1, column=1, sticky="nw", padx=0)
-        # textarea.bind("<Button-3><ButtonRelease-3>", show_menu)
-        # scrollbar.config(command=textarea.yview)
-        #
-        # the_menu = Menu(seq_name, tearoff=0)
-        # the_menu.add_command(label="Paste")
-
-
-    #################################################################
-    # Transfer alignment files.                                     #
-    #################################################################
-
-    def transfer_alignment(self, alignment_element):
-        """
-        Changes the sequences of the elements contained in a PyMod cluster according to the
-        information presente in an externally supplied file (chosen by users through a file diaolog)
-        containing the same sequences aligned in a different way. Right now it supports transfer
-        only for sequences having the exactly same sequences in PyMod and in the external alignment.
-        """
-        # Let users choose the external alignment file.
-        openfilename, extension = self.choose_alignment_file()
-        if None in (openfilename, extension):
-            return False
-
-        # Sequences in the aligment currently loaded into PyMod.
-        aligned_elements = alignment_element.get_children()[:]
-
-        # Sequences in the alignment files.
-        fh = open(openfilename, "rU")
-        external_records = list(SeqIO.parse(fh, extension))
-        fh.close()
-
-        if len(external_records) < len(aligned_elements):
-            title = "Transfer error"
-            message = "'%s' has more sequences (%s) than the alignment in '%s' (%s) and the 'Transfer Alignment' function can't be used in this situation." % (alignment_element.my_header, len(aligned_elements), openfilename, len(external_records))
-            self.show_error_message(title,message)
-            return False
-
-        correspondance_list = []
-        # First try to find sequences that are identical (same sequence and same lenght) in both
-        # alignments.
-        for element in aligned_elements[:]:
-            identity_matches = []
-            for record in external_records:
-                if str(element.my_sequence).replace("-","") == str(record.seq).replace("-",""):
-                    match_dict = {"target-seq":element, "external-seq": record, "identity": True}
-                    identity_matches.append(match_dict)
-            if len(identity_matches) > 0:
-                correspondance_list.append(identity_matches[0])
-                aligned_elements.remove(identity_matches[0]["target-seq"])
-                external_records.remove(identity_matches[0]["external-seq"])
-
-        # Then try to find similar sequences among the two alignments. Right now this is not
-        # implemented.
-        # ...
-
-        if not len(aligned_elements) == 0:
-            title = "Transfer error"
-            message = "Not every sequence in the target alignment has a corresponding sequence in the external alignment."
-            self.show_error_message(title,message)
-            return False
-
-        # Finally transfer the sequences.
-        for match in correspondance_list[:]:
-            if match["identity"]:
-                match["target-seq"].set_sequence(str(match["external-seq"].seq))
-                correspondance_list.remove(match)
-
-        self.gridder(update_clusters=True)
-
-
-    def delete_cluster_dialog(self, cluster_element):
-        title = "Delete Cluster?"
-        message = "Are you sure you want to delete %s?" % (cluster_element.my_header)
-        remove_cluster_choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
-        if not remove_cluster_choice:
-            return None
-        title = "Delete Sequences?"
-        message = "Would you like to delete all the sequences contained in the %s cluster? By selecting 'No', you will only extract them from the cluster." % (cluster_element.my_header)
-        remove_children_choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
-
-        # Delete all the sequences.
-        if remove_children_choice:
-            self.delete_element_from_pymod(cluster_element)
-        # Delete only the cluster element and extract the sequences.
-        else:
-            children = cluster_element.get_children()
-            for c in reversed(children[:]):
-                self.extract_element_from_cluster(c)
-            self.delete_element_from_pymod(cluster_element)
-
-        self.gridder(update_menus=True)
-
-
-    ###############################################################################################
     # HEADER AND SEQUENCES MANIPULATION.                                                          #
     ###############################################################################################
 
@@ -2423,83 +2144,6 @@ class PyMod:
             return self.get_new_name(new_name, n+1, name_root, list_to_check)
         else:
             return name
-
-
-    #################################################################
-    # Sequences.                                                    #
-    #################################################################
-
-    def adjust_aligned_elements_length(self, elements, remove_right_indels=True):
-        if len(set([len(e.my_sequence) for e in elements])) == 1:
-            return False
-        # First remove indels at the end of the sequences.
-        if remove_right_indels:
-            for e in elements:
-                e.my_sequence = str(e.my_sequence).rstrip("-")
-        # Then pad each sequence with the right number of indels to make them of the same length as
-        # the longest sequence.
-        max_length = max([len(e.my_sequence) for e in elements])
-        for e in elements:
-            e.my_sequence = str(e.my_sequence).ljust(max_length,"-")
-            # e.set_sequence(str(e.my_sequence).ljust(max_length,"-"), permissive=False)
-
-
-    def update_cluster_sequences(self, cluster_element):
-        """
-        Updates the sequences of a cluster when some sequences are removed or added from the
-        cluster.
-        """
-        children = cluster_element.get_children()
-        if len(children) > 1:
-            self.adjust_aligned_elements_length(children) # TODO: insert in update_stars?
-            self.update_stars(cluster_element)
-            for c in cluster_element.get_children():
-                self.main_window.update_widgets(c)
-            self.main_window.update_widgets(cluster_element)
-        else:
-            if len(children) == 1:
-                self.extract_element_from_cluster(children[0])
-            self.delete_element_from_pymod(cluster_element)
-
-
-    def update_stars(self, cluster_element):
-        stars = pmsm.compute_stars(cluster_element.get_children())
-        cluster_element.my_sequence = stars
-
-
-    def remove_gap_only_columns(self, cluster_element):
-        """
-        Remove the columns containing only gaps in the child elements of a PyMod cluster element.
-        """
-        children = cluster_element.get_children()
-        all_gaps_columns = []
-        columns_to_keep = []
-        print [len(c.my_sequence) for c in children]
-        for i in range(0, len(children[0].my_sequence)):
-            if pmsm.all_gaps_column([c.my_sequence[i] for c in children]):
-                all_gaps_columns.append(i)
-        for child in children:
-            seq = "".join([t[1] for t in enumerate(child.my_sequence) if not t[0] in all_gaps_columns])
-            child.set_sequence(seq)
-
-
-    def get_polymer_type(self, sequence):
-        polymer_type = "protein"
-        nucleotides = [nt for nt in pmdt.nucleic_acids_dictionary.keys()]
-        list_of_three_letter_codes = [r.three_letter_code for r in sequence]
-        for res in list_of_three_letter_codes:
-            if res in nucleotides:
-                polymer_type = "nucleic-acid"
-                break
-        return polymer_type
-
-
-    def color_struct(self):
-        if self.color_index > len(pmdt.regular_colours) - 1:
-            self.color_index=0
-        color_index_to_return = self.color_index
-        self.color_index += 1
-        return pmdt.regular_colours[color_index_to_return]
 
 
     ###############################################################################################
@@ -2625,57 +2269,397 @@ class PyMod:
 
 
     ###############################################################################################
-    # SELECTION MENU COMMANDS.                                                                    #
+    # FILES MENU COMMANDS.                                                                        #
     ###############################################################################################
 
-    def select_all_from_main_menu(self):
-        self.select_all_sequences()
+    def open_file_from_the_main_menu(self):
+        """
+        This method is called when using the 'File -> Open from File...' command in PyMod main menu.
+        """
+        # Creates a tkinter widget that lets the user select multiple files.
+        file_paths = askopenfilename(filetypes=pmdt.all_file_types_atl, multiple=True, parent=self.main_window)
+        # Loads each files in PyMod.
+        for single_file_path in pmos.get_askopenfilename_tuple(file_paths):
+            extension = os.path.splitext(single_file_path)[1].replace(".","").lower()
+            try:
+                if extension in ("fasta", "fa"):
+                    self.open_sequence_file(single_file_path, "fasta")
+                elif extension == "gp":
+                    self.open_sequence_file(single_file_path, "genbank")
+                elif extension in ("pdb", "ent"):
+                    self.open_structure_file(single_file_path, extension)
+                else:
+                    pass
+            except PyModInvalidFile, e:
+                title = "File Type Error"
+                message = "The selected File is not a valid %s." % (pmdt.supported_sequence_file_types[extension])
+                self.show_error_message(title, message)
+        self.gridder()
 
-    def select_all_sequences(self):
-        for element in self.get_all_sequences():
-            if not element.selected:
-                self.main_window.toggle_element(element)
 
-    def deselect_all_from_main_menu(self):
-        self.deselect_all_sequences()
-
-    def deselect_all_sequences(self):
-        for element in self.get_all_sequences():
-            if element.selected:
-                self.main_window.toggle_element(element)
+    def open_alignment_from_main_menu(self):
+        """
+        Lets users import in Pymod an alignment stored in an external file.
+        """
+        openfilename, extension = self.choose_alignment_file()
+        if not None in (openfilename, extension):
+            self.build_cluster_from_alignment_file(openfilename, extension)
+        self.gridder(update_menus=True)
 
 
-    def show_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     element.show_chain_in_pymol()
+    #################################################################
+    # Add new sequences.                                            #
+    #################################################################
+
+    def raw_seq_input(self):
+        """
+        Launched when the user wants to add a new sequence by directly typing it into a Text entry.
+        """
         pass
+        # def show_menu(e):
+        #     w = e.widget
+        #     the_menu.entryconfigure("Paste",
+        #     command=lambda: w.event_generate("<<Paste>>"))
+        #     the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
+        #
+        # # This is called when the SUBMIT button packed below is pressed.
+        # def submit():
+        #     def special_match(strg, search=re.compile(r'[^A-Z-]').search):
+        #         return not bool(search(strg))
+        #     def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
+        #         return not bool(search2(strg))
+        #     sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
+        #     if special_match(sequence) and len(sequence):
+        #         if len(seq_name.get()) and name_match(seq_name.get()):
+        #             c = PyMod_element(sequence, seq_name.get(),
+        #                 element_type="sequence")
+        #             self.add_element_to_pymod(c,"mother")
+        #             self.raw_seq_window.destroy()
+        #             self.gridder()
+        #         else:
+        #             title = 'Name Error'
+        #             message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
+        #             self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
+        #     else:
+        #         title = 'Sequence Error'
+        #         message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
+        #         self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
+        #
+        # self.raw_seq_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
+        #     title = "Add Raw Sequence",
+        #     upper_frame_title = "Type or Paste your Sequence",
+        #     submit_command = submit)
+        #
+        # L1 = Label(self.raw_seq_window.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
+        # L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
+        #
+        # # Creates an Entry for the name of the new sequence.
+        # seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
+        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.shared_components.fixed_width_font)
+        # seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
+        # seq_name.focus_set()
+        # seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
+        #
+        # L2 = Label(self.raw_seq_window.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
+        # L2.grid( row=1, column=0, sticky="ne", ipadx=0, padx=5)
+        #
+        # scrollbar = Scrollbar(self.raw_seq_window.midframe)
+        # scrollbar.grid(row=1, column=2, sticky="ns")
+        #
+        # # Creates an Entry widget for the sequence.
+        # textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
+        #               font = "%s 12" % pmgi.shared_components.fixed_width_font, height=10,
+        #               bd=0, foreground = 'black',
+        #               background = 'white', selectbackground='black',
+        #               selectforeground='white', width = 60)
+        # textarea.config(state=NORMAL)
+        # textarea.tag_config("normal", foreground="black")
+        # textarea.grid( row=1, column=1, sticky="nw", padx=0)
+        # textarea.bind("<Button-3><ButtonRelease-3>", show_menu)
+        # scrollbar.config(command=textarea.yview)
+        #
+        # the_menu = Menu(seq_name, tearoff=0)
+        # the_menu.add_command(label="Paste")
 
-    def hide_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     element.hide_chain_in_pymol()
-        pass
 
-    def select_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     if not element.selected:
-        #         element.toggle_element()
-        pass
+    #################################################################
+    # Saving files.                                                 #
+    #################################################################
 
-    def deselect_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     if element.selected:
-        #         element.toggle_element()
-        pass
+    def save_all_files_from_main_menu(self):
+        """
+        Saves all files in a single FASTA file.
+        """
+        if len(self.pymod_elements_list) != 0:
+            self.save_selection(mode="all")
+        else:
+            self.show_error_message("Selection Error","There aren't any sequences currently loaded in PyMod.")
 
-    def expand_all_clusters_from_main_menu(self):
-        # for element in self.get_cluster_elements():
-        #     element.expand_cluster()
-        pass
 
-    def collapse_all_clusters_from_main_menu(self):
-        # for element in self.get_cluster_elements():
-        #     element.collapse_cluster()
-        pass
+    def sequence_save_dialog(self, element):
+        """
+        Save a single sequence to a file.
+        """
+        # Ask to remove indels.
+        remove_indels_choice = False
+        if "-" in element.my_sequence:
+            remove_indels_choice = tkMessageBox.askyesno(message="Would you like to remove indels from the sequence when saving it to a file?", title="Save File", parent=self.main_window)
+        # Choose the file path.
+        filepath=asksaveasfilename(filetypes=[("fasta","*.fasta")],parent=self.main_window)
+        # Actually saves the file.
+        if not filepath == "":
+            dirpath = os.path.dirname(filepath)
+            filename = os.path.splitext(os.path.basename(filepath))[0]
+            self.build_sequences_file([element], filename, file_format="fasta", remove_indels=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
+
+
+    def save_selection_dialog(self, mode="selection"):
+        """
+        Save selection in a single file.
+        """
+        # Builds the selection.
+        selection = None
+        if mode == "selection":
+            selection = self.get_selected_sequences()
+        elif mode == "all":
+            selection = self.get_all_sequences()
+        # Ask users if they want to include indels in the sequences to save.
+        remove_indels_choice = False
+        for e in selection:
+            if "-" in e.my_sequence:
+                remove_indels_choice = tkMessageBox.askyesno(message="Would you like to remove indels from the sequences when saving them to a file?", title="Save Selection", parent=self.main_window)
+                break
+        # Ask users to chose a directory where to save the files.
+        filepath=asksaveasfilename(filetypes=[("fasta","*.fasta")],parent=self.main_window)
+        if not filepath == "":
+            dirpath = os.path.dirname(filepath)
+            filename = os.path.splitext(os.path.basename(filepath))[0]
+            self.build_sequences_file(selection, filename, file_format="fasta", remove_indels=remove_indels_choice, same_length=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
+
+
+    def alignment_save_dialog(self, alignment_element):
+        """
+        Lets the user choose the path to which an alignment file is going to be saved, and saves
+        an alignment file there.
+        """
+        save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = pmdt.alignment_file_formats_atl, parent=self.main_window)
+        alignment_file_name, extension = os.path.splitext(os.path.basename(save_file_full_path))
+        extension = extension.replace(".","")
+
+        if save_file_full_path != "":
+            # The get all the aligned elements.
+            aligned_elements = alignment_element.get_children()
+
+            # Saves a file with all the sequences in the project "Alignments" directory.
+            if extension == "fasta":
+                self.save_alignment_fasta_file(alignment_file_name, aligned_elements)
+            elif extension == "aln":
+                self.build_sequences_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
+            elif extension == "sto":
+                self.build_sequences_file(aligned_elements, alignment_file_name, file_format="stockholm", remove_indels=False)
+            else:
+                title = "Format Error"
+                message = "Unknown alignment file format: %s" % (extension)
+                self.show_error_message(title, message)
+                return
+
+            # Moves the saved file to the path chosen by the user.
+            try:
+                old_path = os.path.join(self.alignments_directory, alignment_file_name + "." + extension)
+                os.rename(old_path, save_file_full_path)
+            except:
+                title = "File Error"
+                message = "Could not save the alignment file to path: %s" % (save_file_full_path)
+                self.show_error_message(title, message)
+
+        # save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = pmdt.alignment_file_formats_atl, parent=pymod.main_window)
+        # alignment_file_name, extension = os.path.splitext(os.path.basename(save_file_full_path))
+        # extension = extension.replace(".","")
+        #
+        # if save_file_full_path != "":
+        #     # The get all the aligned elements.
+        #     aligned_elements = self.get_children(alignment_element)
+        #
+        #     # Saves a file with all the sequences in the project "Alignments" directory.
+        #     if extension == "fasta":
+        #         self.save_alignment_fasta_file(alignment_file_name, aligned_elements)
+        #     elif extension == "aln":
+        #         self.build_sequences_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
+        #     else:
+        #         title = "Format Error"
+        #         message = "Unknown alignment file format: %s" % (extension)
+        #         self.show_error_message(title, message)
+        #         return
+        #
+        #     # Moves the saved file to the path chosen by the user.
+        #     try:
+        #         old_path = os.path.join(self.alignments_directory, alignment_file_name + "." + extension)
+        #         os.rename(old_path, save_file_full_path)
+        #     except:
+        #         title = "File Error"
+        #         message = "Could not save the alignment file to path: %s" % (save_file_full_path)
+        #         self.show_error_message(title, message)
+
+
+    ###############################################################################################
+    # SIMILARITY SEARCHES.                                                                        #
+    ###############################################################################################
+
+    def launch_blast_algorithm(self, blast_version):
+        """
+        Called when BLAST or PSI-BLAST is launched from the main menu.
+        """
+        if blast_version == "blast":
+            blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self)
+        elif blast_version == "psi-blast":
+            blast_search = pmptc.similarity_searches_protocols.PSI_BLAST_search(self)
+        blast_search.launch_from_gui()
+
+
+    ###############################################################################################
+    # ALIGNMENT BUILDING.                                                                         #
+    ###############################################################################################
+
+    def launch_alignment_from_the_main_menu(self, program, strategy):
+        """
+        Launched from the 'Sequence', 'Structure Alignment' or 'Profile Alignment' from the submenus
+        of the main window.
+        """
+        self.launch_alignment_program(program, strategy)
+
+
+    def launch_alignment_program(self, program, strategy):
+        # TODO: use a 'selected_elements' arguments.
+        # Regular.
+        if strategy == "regular":
+            # Sequence alignments.
+            if program == "clustalw":
+                a = pmptc.alignment_protocols.Clustalw_regular_alignment(self)
+            elif program == "clustalo":
+                a = pmptc.alignment_protocols.Clustalomega_regular_alignment(self)
+            elif program == "muscle":
+                a = pmptc.alignment_protocols.MUSCLE_regular_alignment(self)
+            elif program == "salign-seq":
+                a = pmptc.alignment_protocols.SALIGN_seq_regular_alignment(self)
+            # Structural alignments.
+            elif program == "ce":
+                a = pmptc.alignment_protocols.CEalign_regular_alignment(self)
+            elif program == "salign-str":
+                a = pmptc.alignment_protocols.SALIGN_str_regular_alignment(self)
+        # Profile.
+        elif strategy == "profile":
+            if program == "clustalw":
+                a = pmptc.alignment_protocols.Clustalw_profile_alignment(self)
+            elif program == "clustalo":
+                a = pmptc.alignment_protocols.Clustalomega_profile_alignment(self)
+            elif program == "salign-seq":
+                a = pmptc.alignment_protocols.SALIGN_seq_profile_alignment(self)
+
+        a.launch_alignment_program()
+
+
+    ###############################################################################################
+    # STRUCTURAL ANALYSIS TOOLS.                                                                  #
+    ###############################################################################################
+
+    def assign_secondary_structure(self, element):
+        if element.has_structure():
+            sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment(self, element)
+            sec_str_assignment.assign_secondary_structure()
+
+
+    def dope_from_main_menu(self):
+        """
+        Called when users decide calculate DOPE of a structure loaded in PyMod.
+        """
+        dope_assesment = pmptc.structural_analysis_protocols.DOPE_assesment(self, self.get_selected_sequences())
+        dope_assesment.launch_from_gui()
+
+#     def ramachandran_plot(self):
+#         """
+#         PROCHEK style Ramachandran Plot.
+#         """
+#         pass
+
+
+    def launch_psipred_from_main_menu(self):
+        """
+        Called when users decide to predict the secondary structure of a sequence using PSIPRED.
+        """
+        psipred_protocol = pmptc.structural_analysis_protocols.PSIPRED_prediction(self, self.get_selected_sequences())
+        psipred_protocol.launch_from_gui()
+
+
+    # TODO: superpose.
+
+
+    ###############################################################################################
+    # PYMOD OPTIONS WINDOW.                                                                       #
+    ###############################################################################################
+
+    def show_pymod_options_window(self):
+        """
+        Builds a window that allows to modify some PyMod options.
+        """
+        # Builds the options window.
+        self.pymod_options_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
+            title = "PyMod Options",
+            upper_frame_title = "Here you can modify options for PyMod",
+            submit_command = lambda: self.set_pymod_options_state(),
+            with_frame=True)
+        self.pymod_options_window.resizable(1,1)
+        self.pymod_options_window.geometry('580x600') # '500x600'
+
+        # This list will be populated inside "build_tool_options_frame()".
+        for single_tool in self.pymod_tools:
+            single_tool.display_options(self.pymod_options_window.midframe)
+            # If the tool list of parameter widgets has some alignable widgets, adds them to the
+            # option window list.
+            if single_tool.parameters_widgets_list != []:
+                for w in single_tool.parameters_widgets_list:
+                    self.pymod_options_window.add_widget_to_align(w)
+        self.pymod_options_window.align_widgets(25)
+
+
+    def set_pymod_options_state(self):
+        """
+        This function is called when the SUBMIT button is pressed in the PyMod options window.
+        """
+        old_projects_dir = self.pymod_plugin["pymod_dir_path"].get_value()
+        new_projects_dir = self.pymod_plugin["pymod_dir_path"].get_value_from_gui()
+        if not os.path.isdir(new_projects_dir):
+            title = "Configuration Error"
+            message = "The PyMod Projects Directory you specified ('%s') does not exist on your system. Please choose an existing directory." % (new_projects_dir)
+            self.show_error_message(title, message, parent_window=self.pymod_options_window)
+            return False
+
+        # Saves the changes to PyMod configuration file.
+        cfgfile = open(self.cfg_file_path, 'w')
+        pymod_config_data = {}
+        for tool in self.pymod_tools:
+            new_tool_parameters = {}
+            for parameter in tool.parameters:
+                new_tool_parameters.update({parameter.name: parameter.get_value_from_gui()})
+            new_tool_dict = {tool.name: new_tool_parameters}
+            pymod_config_data.update(new_tool_dict)
+        pickle.dump(pymod_config_data, cfgfile)
+        cfgfile.close()
+
+        # Then updates the values of the parameters of the tools contained in "self.pymod_tools"
+        # so that they can be used in the current PyMod session.
+        try:
+            # Prevents the user from changing the project directory during a session.
+            self.get_parameters_from_configuration_file()
+            if old_projects_dir != new_projects_dir:
+                title = "Configuration Updated"
+                message = "You changed PyMod projects directory, the new directory will be used the next time you launch PyMod."
+                self.show_warning_message(title, message, parent_window=self.pymod_options_window)
+            self.pymod_options_window.destroy()
+
+        except Exception,e:
+            self.show_configuration_file_error(e, "read")
+            self.main_window.destroy()
+
 
     ###############################################################################################
     # ALIGNMENT MENU AND ITS BEHAVIOUR.                                                           #
@@ -2688,17 +2672,17 @@ class PyMod:
 
     def launch_campo_from_main_menu(self, pymod_cluster):
         campo = pmptc.evolutionary_analysis_protocols.CAMPO_analysis(self, pymod_cluster)
-        campo.perform_analysis()
+        campo.launch_from_gui()
 
 
     def launch_weblogo_from_main_menu(self, pymod_cluster):
         weblogo = pmptc.evolutionary_analysis_protocols.WebLogo_analysis(self, pymod_cluster)
-        weblogo.perform_analysis()
+        weblogo.launch_from_gui()
 
 
     def launch_espript_from_main_menu(self, pymod_cluster):
         espript = pmptc.evolutionary_analysis_protocols.ESPript_analysis(self, pymod_cluster)
-        espript.perform_analysis()
+        espript.launch_from_gui()
 
 
     #################################################################
@@ -2859,13 +2843,13 @@ class PyMod:
         menu.
         """
         tree_building = pmptc.evolutionary_analysis_protocols.Tree_building(self, alignment_element)
-        tree_building.build_tree()
+        tree_building.launch_from_gui()
 
 
-    # ###############################################################################################
-    # # MODELS MENU AND ITS BEHAVIOUR.                                                              #
-    # ###############################################################################################
-    #
+    ###############################################################################################
+    # MODELS MENU AND ITS BEHAVIOUR.                                                              #
+    ###############################################################################################
+
     # def show_session_profile(self, modeling_session):
     #     """
     #     Shows a DOPE profile of a modeling session.
@@ -2903,145 +2887,122 @@ class PyMod:
 
 
     ###############################################################################################
-    # SIMILARITY SEARCHES.                                                                        #
+    # SELECTION MENU COMMANDS.                                                                    #
     ###############################################################################################
 
-    ###############################################################################################
-    # BLAST.                                                                                      #
-    ###############################################################################################
+    def select_all_from_main_menu(self):
+        self.select_all_sequences()
 
-    def launch_blast_algorithm(self, blast_version):
-        """
-        Called when BLAST or PSI-BLAST is launched from the main menu.
-        """
-        if blast_version == "blast":
-            blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self)
-        elif blast_version == "psi-blast":
-            blast_search = pmptc.similarity_searches_protocols.PSI_BLAST_search(self)
-        blast_search.launch_from_gui()
+    def select_all_sequences(self):
+        for element in self.get_all_sequences():
+            if not element.selected:
+                self.main_window.toggle_element(element)
 
+    def deselect_all_from_main_menu(self):
+        self.deselect_all_sequences()
 
-
-    ###############################################################################################
-    # ALIGNMENT BUILDING.                                                                         #
-    ###############################################################################################
-
-    def launch_alignment_from_the_main_menu(self, program, strategy):
-        """
-        Launched from the 'Sequence', 'Structure Alignment' or 'Profile Alignment' from the submenus
-        of the main window.
-        """
-        self.launch_alignment_program(program, strategy)
+    def deselect_all_sequences(self):
+        for element in self.get_all_sequences():
+            if element.selected:
+                self.main_window.toggle_element(element)
 
 
-    def launch_alignment_program(self, program, strategy):
-        # TODO: use a 'selected_elements' arguments.
-        # Regular.
-        if strategy == "regular":
-            # Sequence alignments.
-            if program == "clustalw":
-                a = pmptc.alignment_protocols.Clustalw_regular_alignment(self)
-            elif program == "clustalo":
-                a = pmptc.alignment_protocols.Clustalomega_regular_alignment(self)
-            elif program == "muscle":
-                a = pmptc.alignment_protocols.MUSCLE_regular_alignment(self)
-            elif program == "salign-seq":
-                a = pmptc.alignment_protocols.SALIGN_seq_regular_alignment(self)
-            # Structural alignments.
-            elif program == "ce":
-                a = pmptc.alignment_protocols.CEalign_regular_alignment(self)
-            elif program == "salign-str":
-                a = pmptc.alignment_protocols.SALIGN_str_regular_alignment(self)
-        # Profile.
-        elif strategy == "profile":
-            if program == "clustalw":
-                a = pmptc.alignment_protocols.Clustalw_profile_alignment(self)
-            elif program == "clustalo":
-                a = pmptc.alignment_protocols.Clustalomega_profile_alignment(self)
-            elif program == "salign-seq":
-                a = pmptc.alignment_protocols.SALIGN_seq_profile_alignment(self)
+    def show_all_structures_from_main_menu(self):
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     element.show_chain_in_pymol()
+        pass
 
-        a.launch_alignment_program()
+    def hide_all_structures_from_main_menu(self):
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     element.hide_chain_in_pymol()
+        pass
+
+    def select_all_structures_from_main_menu(self):
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     if not element.selected:
+        #         element.toggle_element()
+        pass
+
+    def deselect_all_structures_from_main_menu(self):
+        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
+        #     if element.selected:
+        #         element.toggle_element()
+        pass
+
+    def expand_all_clusters_from_main_menu(self):
+        # for element in self.get_cluster_elements():
+        #     element.expand_cluster()
+        pass
+
+    def collapse_all_clusters_from_main_menu(self):
+        # for element in self.get_cluster_elements():
+        #     element.collapse_cluster()
+        pass
 
 
     ###############################################################################################
-    # STRUCTURAL ANALYSIS TOOLS.                                                                  #
+    # DISPLAY MENU COMMANDS.                                                                      #
     ###############################################################################################
 
-    def dope_from_main_menu(self):
-        """
-        Called when users decide calculate DOPE of a structure loaded in PyMod.
-        """
-        dope_assesment = pmptc.structural_analysis_protocols.DOPE_assesment(self, self.get_selected_sequences())
-        dope_assesment.launch_from_gui()
 
-#     #################################################################
-#     # Ramachandran plot.                                            #
-#     #################################################################
-#
-#     def ramachandran_plot(self):
-#         """
-#         PROCHEK style Ramachandran Plot.
-#         """
-#         pass
+    ###############################################################################################
+    # HELP MENU COMMANDS.                                                                         #
+    ###############################################################################################
 
-
-    #################################################################
-    # Secondary structure assignment.                               #
-    #################################################################
-
-    def assign_secondary_structure(self, element):
-        if element.has_structure():
-            sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment(self, element)
-            sec_str_assignment.assign_secondary_structure()
+    def show_about_dialog(self):
+        Pmw.aboutversion(self.pymod_version + "." + self.pymod_revision)
+        Pmw.aboutcopyright('Copyright (C): 2016 Giacomo Janson, Chengxin Zhang,\nAlessandro Paiardini')
+        Pmw.aboutcontact(
+            'For information on PyMod %s visit:\n' % (self.pymod_version) +
+            '  http://schubert.bio.uniroma1.it/pymod/documentation.html\n\n' +
+            'Or send us an email at:\n' +
+            '  giacomo.janson@uniroma1.it'
+        )
+        self.about = Pmw.AboutDialog(self.main_window, applicationname = self.pymod_plugin_name)
+        self.about.show()
 
 
-    #################################################################
-    # Run PSIPRED.                                                  #
-    #################################################################
-
-    def launch_psipred_from_main_menu(self):
-        """
-        Called when users decide to predict the secondary structure of a sequence using PSIPRED.
-        """
-        psipred_protocol = pmptc.structural_analysis_protocols.PSIPRED_prediction(self, self.get_selected_sequences())
-        psipred_protocol.launch_from_gui()
+    def open_online_documentation(self):
+        webbrowser.open("http://schubert.bio.uniroma1.it/pymod/documentation.html")
 
 
-#     #################################################################
-#     # Superpose.                                                    #
-#     #################################################################
-#
-#     def superpose(self):
-#         """
-#         Called from the main menu. This will superpose to a 'fixed' structure (the first one in the
-#         selection) one or more 'mobile' structures.
-#         """
-#         correct_selection = False
-#         structures_to_superpose = self.get_selected_sequences()
-#         if len(structures_to_superpose) >= 2:
-#             if not False in [e.has_structure() for e in structures_to_superpose]:
-#                 correct_selection = True
-#         if correct_selection:
-#             for i in range(1, len(structures_to_superpose)):
-#                 sel1 = structures_to_superpose[0].build_chain_selector_for_pymol()
-#                 sel2 = structures_to_superpose[i].build_chain_selector_for_pymol()
-#                 self.superpose_in_pymol(sel2, sel1)
-#         else:
-#             self.show_error_message("Selection Error","Please select at least two structures before superposing")
-#
-#
-#     def superpose_in_pymol(self, selector_1, selector_2, save_superposed_structure=True):
-#         """
-#         align mobile, target
-#         """
-#         if hasattr(cmd,"super"): # super is sequence-independent
-#             cmd.super(selector_1, selector_2)
-#             # cmd.cealign(target=selector_1, mobile=selector_2)
-#         else: # PyMOL 0.99 does not have cmd.super
-#             cmd.align(selector_1, selector_2)
-#         if save_superposed_structure:
-#             cmd.save(os.path.join(self.structures_directory, selector_1+".pdb"), selector_1)
+    def launch_pymod_update(self):
+        # Gets the latest release number from network.
+        return None
+        try:
+            update_found = pmup.check_for_updates(self.pymod_version, self.pymod_revision)
+        except Exception, e:
+            self.show_error_message("Connection Error", "Can not obtain the latest PyMod version number beacause of the following error: '%s'" % e)
+            return False
+
+        if not update_found:
+            self.show_warning_message("Update Canceled", "Your PyMod version (%s.%s) is already up to date." % (self.pymod_version, self.pymod_revision))
+            return False
+
+        # Ask for update confirmation.
+        title = "Update PyMod?"
+        message = "Would you like to update your current PyMod version (%s.%s) to the latest stable one available online (%s)? You will need to restart PyMOL in order to use the new version." % (self.pymod_version, self.pymod_revision, update_found)
+        answer = tkMessageBox.askyesno(title, message, parent=self.main_window)
+        if not answer:
+            return False
+
+        # Fetches the latest stable version files of PyMod.
+        try:
+            plugin_zipfile_temp_name = pmup.fetch_plugin_zipfile()
+        except Exception, e:
+            self.show_error_message("Connection Error", "Can not fetch the latest PyMod files beacause of the following error: '%s'" % e)
+            return False
+
+        if not plugin_zipfile_temp_name:
+            return False
+
+        # Installs the new PyMod version.
+        pymod_plugin_dir = os.path.dirname(os.path.dirname(__file__))
+        update_results = pmup.update_pymod(plugin_zipfile_temp_name, pymod_plugin_dir)
+        if update_results[0]:
+            self.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
+        else:
+            self.show_error_message("Update Failed", update_results[1])
 
 
 ###################################################################################################

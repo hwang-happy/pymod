@@ -908,3 +908,39 @@ class DOPE_assesment(PyMod_protocol):
 #         self.submit=Button(self.lowerframe, text="SUBMIT", command=state,
 #             relief="raised", borderwidth="3", bg="black", fg="white")
 #         self.submit.pack()
+
+
+#     #################################################################
+#     # Superpose.                                                    #
+#     #################################################################
+#
+#     def superpose(self):
+#         """
+#         Called from the main menu. This will superpose to a 'fixed' structure (the first one in the
+#         selection) one or more 'mobile' structures.
+#         """
+#         correct_selection = False
+#         structures_to_superpose = self.get_selected_sequences()
+#         if len(structures_to_superpose) >= 2:
+#             if not False in [e.has_structure() for e in structures_to_superpose]:
+#                 correct_selection = True
+#         if correct_selection:
+#             for i in range(1, len(structures_to_superpose)):
+#                 sel1 = structures_to_superpose[0].build_chain_selector_for_pymol()
+#                 sel2 = structures_to_superpose[i].build_chain_selector_for_pymol()
+#                 self.superpose_in_pymol(sel2, sel1)
+#         else:
+#             self.show_error_message("Selection Error","Please select at least two structures before superposing")
+#
+#
+#     def superpose_in_pymol(self, selector_1, selector_2, save_superposed_structure=True):
+#         """
+#         align mobile, target
+#         """
+#         if hasattr(cmd,"super"): # super is sequence-independent
+#             cmd.super(selector_1, selector_2)
+#             # cmd.cealign(target=selector_1, mobile=selector_2)
+#         else: # PyMOL 0.99 does not have cmd.super
+#             cmd.align(selector_1, selector_2)
+#         if save_superposed_structure:
+#             cmd.save(os.path.join(self.structures_directory, selector_1+".pdb"), selector_1)

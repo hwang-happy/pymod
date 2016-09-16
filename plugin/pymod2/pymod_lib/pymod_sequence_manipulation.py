@@ -213,6 +213,17 @@ def check_correct_sequence(sequence, remove_indels=True):
         return True
 
 
+def get_polymer_type(sequence):
+    polymer_type = "protein"
+    nucleotides = [nt for nt in pmdt.nucleic_acids_dictionary.keys()]
+    list_of_three_letter_codes = [r.three_letter_code for r in sequence]
+    for res in list_of_three_letter_codes:
+        if res in nucleotides:
+            polymer_type = "nucleic-acid"
+            break
+    return polymer_type
+
+
 ###################################################################################################
 # HEADERS MANIPULATION.                                                                           #
 ###################################################################################################

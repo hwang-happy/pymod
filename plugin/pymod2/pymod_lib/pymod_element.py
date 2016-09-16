@@ -511,7 +511,13 @@ class PyMod_sequence_element(PyMod_element):
         return bool(self.dope_scores)
 
     def pdb_is_fetchable(self):
-        return False
+        try:
+            if self.my_header.split("|")[2]=="pdb" or self.my_header.split("|")[4]=="pdb":
+                return True
+            else:
+                return False
+        except:
+            return False
 
 
 class PyMod_polypeptide_element(PyMod_sequence_element):
