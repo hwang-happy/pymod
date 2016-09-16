@@ -3,11 +3,11 @@
 #     - add raw sequence.
 #     - headers formatting.
 #     - structure appearence and colors.
+#     - fetch and associate structures.
 #     - reimplement the collapsed clusters features.
 #     - Ramachandran plot.
 #     - superpose.
 #     - RMSD part.
-#     - structure fetching.
 #     - reimplement the rest.
 
 #     - remove the appendix "protocol" from all the procol classes names.
@@ -2572,10 +2572,10 @@ class PyMod:
         """
         Called when users decide calculate DOPE of a structure loaded in PyMod.
         """
-        dope_assesment = pmptc.structural_analysis_protocols.DOPE_assesment(self, self.get_selected_sequences())
+        dope_assesment = pmptc.structural_analysis_protocols.DOPE_assesment(self)
         dope_assesment.launch_from_gui()
 
-#     def ramachandran_plot(self):
+#     def ramachandran_plot(self): # TODO.
 #         """
 #         PROCHEK style Ramachandran Plot.
 #         """
@@ -2586,11 +2586,22 @@ class PyMod:
         """
         Called when users decide to predict the secondary structure of a sequence using PSIPRED.
         """
-        psipred_protocol = pmptc.structural_analysis_protocols.PSIPRED_prediction(self, self.get_selected_sequences())
+        psipred_protocol = pmptc.structural_analysis_protocols.PSIPRED_prediction(self)
         psipred_protocol.launch_from_gui()
 
 
     # TODO: superpose.
+
+
+    ###############################################################################################
+    # MODELING.                                                                                   #
+    ###############################################################################################
+
+    def launch_modeller_from_main_menu(self):
+        reload(pmptc)
+        reload(pmptc.modeling_protocols)
+        modeller_session = pmptc.modeling_protocols.MODELLER_homology_modeling(self)
+        modeller_session.launch_from_gui()
 
 
     ###############################################################################################

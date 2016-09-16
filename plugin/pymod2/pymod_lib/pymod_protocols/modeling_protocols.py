@@ -1,135 +1,145 @@
-#     ################################################################################################
-#     # HOMOLOGY MODELING.                                                                           #
-#     ################################################################################################
-#
-#     def launch_modeller_from_main_menu(self):
-#         """
-#         This method is called when the "MODELLER" option is clicked in the "Tools" menu.
-#         """
-#         # Try to find if Modeller is installed on the user's computer.
-#         if self.modeller.can_be_launched():
-#
-#             # Get the selected sequences to see if there is a correct selection.
-#             selected_sequences = self.get_selected_sequences()
-#
-#             # First check if at least one sequence is selected.
-#             if len(selected_sequences) > 0:
-#
-#                 # Checks if all the selected sequences can be used to build a model.
-#                 if not False in [s.can_be_modeled() for s in selected_sequences]:
-#
-#                     # Checks that all the selected sequences are currently aligned to some other
-#                     # sequence (aligned sequences should always have .is_child == True). Only
-#                     # sequences aligned to some template can be modeled.
-#                     if not False in [e.is_child for e in selected_sequences]:
-#
-#                         # Using the 'build_cluster_list()' method build the
-#                         # 'self.involved_cluster_elements_list' just like when performing an alignment.
-#                         self.build_cluster_lists()
-#
-#                         # This will contain a list of 'Modeling_cluster' objects. These objects will
-#                         # be used from now on to store all the informations on who to build models.
-#                         self.modeling_clusters_list = []
-#
-#                         # Checks other conditions in each cluster (that is, checks if there is only
-#                         # one target sequence selected per cluster and if it is aligned to some
-#                         # suitable template).
-#                         correct_selection_in_clusters = False
-#                         for cluster_element in self.involved_cluster_elements_list:
-#                             if self.check_correct_modeling_selection_in_cluster(cluster_element):
-#                                 # If the selection for the cluster is correct, it builds a
-#                                 # 'Modeling_cluster' object and stores it in the
-#                                 # 'self.modeling_clusters_list'.
-#                                 mco = Modeling_cluster(cluster_element)
-#                                 self.modeling_clusters_list.append(mco)
-#                                 correct_selection_in_clusters = True
-#                             else:
-#                                 correct_selection_in_clusters = False
-#                                 # Stops if there is just one cluster with an incorrect selection.
-#                                 break
-#
-#                         # Proceeds only if every modeling clusters has a correct selection.
-#                         if correct_selection_in_clusters:
-#                             # If there is only one cluster involved.
-#                             if len(self.modeling_clusters_list) == 1:
-#                                 self.build_modeling_window()
-#
-#                             # Multiple chains modeling requires the identification of "template
-#                             # complexes" and additional controls.
-#                             else:
-#                                 # This will build the 'self.template_complex_list'.
-#                                 self.initialize_multichain_modeling()
-#                                 # Proceeds only if there are is at least one suitable "template
-#                                 # complex".
-#                                 if len(self.template_complex_list) > 0:
-#                                     # Finally builds the modeling window.
-#                                     self.build_modeling_window()
-#                                 else:
-#                                     title = "Selection Error"
-#                                     message = "There isn't any suitable 'Template Complexes' to perform multiple chain homology modeling."
-#                                     self.show_error_message(title,message)
-#                     else:
-#                         title = "Selection Error"
-#                         message = "Please select only target sequences that are currently aligned to some structure."
-#                         self.show_error_message(title,message)
-#                 else:
-#                     title = "Selection Error"
-#                     message = "Please select only sequences that do not have a structure loaded in PyMOL."
-#                     self.show_error_message(title,message)
-#             else:
-#                 title = "Selection Error"
-#                 message = "Please select at least one target sequence to use Modeller."
-#                 self.show_error_message(title,message)
-#
-#         # If MODELLER is not istalled.
-#         else:
-#             self.modeller.exe_not_found()
-#
-#
-#     def check_correct_modeling_selection_in_cluster(self,cluster_element):
-#         """
-#         This will check if there is only one target sequence selected per cluster and if it is
-#         currently aligned to some suitable template.
-#         """
-#         # This will be set as True only if all the necessaries conditions are met.
-#         correct_selection = False
-#
-#         # Checks that only one sequence per cluster is selected.
-#         if not self.check_only_one_selected_child_per_cluster(cluster_element):
-#             title = "Selection Error"
-#             message = "Please select only one target sequence in the following cluster: %s" % (cluster_element.my_header)
-#             self.show_error_message(title,message)
-#             return False
-#
-#         # This will be needed to inform the user about which cluster has an incorrect selection.
-#         target_name = None
-#         templates_temp_list = []
-#         # Look if there is at least one suitable template aligned to the target sequence.
-#         for sequence in self.get_children(cluster_element):
-#             if not sequence.selected and sequence.has_structure() and sequence.is_model != True:
-#                 templates_temp_list.append(sequence)
-#             # Takes the name of the target sequence.
-#             if sequence.selected:
-#                 target_name = sequence.my_header
-#
-#         # Checks if some templates have been found.
-#         if len(templates_temp_list) > 0:
-#             # Checks the presence of nucleic acids templates: currently they are not
-#             # supported by PyMOd.
-#             if "nucleic-acid" in [t.polymer_type for t in templates_temp_list]:
-#                 title = "Selection Error"
-#                 message = "Template '%s' is a nucleic acid chain. PyMod currently does not support nucleic acid templates, so the modelization cannot be performed." % (t.my_header)
-#                 self.show_error_message(title,message)
-#                 return False
-#             else:
-#                 return True
-#         else:
-#             title = "Selection Error"
-#             message = "The target sequence %s in the following cluster is currently not aligned to any PDB structure." % (target_name)
-#             self.show_error_message(title,message)
-#             return False
-#
-#
+import os
+import sys
+
+from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
+
+###################################################################################################
+# HOMOLOGY MODELING.                                                                              #
+###################################################################################################
+
+class MODELLER_homology_modeling(PyMod_protocol):
+
+    def __init__(self, pymod):
+        PyMod_protocol.__init__(self, pymod)
+        self.run_modeller_internally = self.pymod.modeller.run_internally()
+
+
+    def launch_from_gui(self):
+        """
+        This method is called when the "MODELLER" option is clicked in the "Tools" menu.
+        """
+
+        # Try to find if Modeller is installed on the user's computer.
+        if not self.pymod.modeller.can_be_launched():
+            self.pymod.modeller.exe_not_found()
+            return None
+
+        # Get the selected sequences to see if there is a correct selection.
+        selected_sequences = self.pymod.get_selected_sequences()
+
+        # First check if at least one sequence is selected.
+        if not len(selected_sequences) > 0:
+            title = "Selection Error"
+            message = "Please select at least one target sequence to use MODELLER."
+            self.pymod.show_error_message(title,message)
+            return None
+
+        # Checks if all the selected sequences can be used to build a model.
+        if False in [s.can_be_modeled() for s in selected_sequences]:
+            title = "Selection Error"
+            message = "Please select only sequences that do not have a structure loaded in PyMOL."
+            self.pymod.show_error_message(title,message)
+            return None
+
+        # Checks that all the selected sequences are currently aligned to some other sequence
+        # (aligned sequences are always 'children'). Only sequences aligned to some template can be
+        # modeled.
+        if False in [e.is_child() for e in selected_sequences]:
+            title = "Selection Error"
+            message = "Please select only target sequences that are currently aligned to some structure."
+            self.pymod.show_error_message(title,message)
+            return None
+
+        # Using the 'build_cluster_list()' method build the
+        # 'self.involved_cluster_elements_list' just like when performing an alignment.
+        self.build_cluster_lists()
+
+        # This will contain a list of 'Modeling_cluster' objects. These objects will
+        # be used from now on to store all the informations on who to build models.
+        self.modeling_clusters_list = []
+
+        # Checks other conditions in each cluster (that is, checks if there is only one target
+        # sequence selected per cluster and if it is aligned to some suitable template).
+        correct_selection_in_clusters = False
+        for cluster_element in self.involved_clusters_list:
+            if self.check_correct_modeling_selection_in_cluster(cluster_element):
+                # If the selection for the cluster is correct, it builds a
+                # 'Modeling_cluster' object and stores it in the
+                # 'self.modeling_clusters_list'.
+                mco = Modeling_cluster(cluster_element)
+                self.modeling_clusters_list.append(mco)
+                correct_selection_in_clusters = True
+            else:
+                correct_selection_in_clusters = False
+                # Stops if there is just one cluster with an incorrect selection.
+                break
+
+        # Proceeds only if every modeling clusters has a correct selection.
+        if correct_selection_in_clusters:
+            # If there is only one cluster involved.
+            if len(self.modeling_clusters_list) == 1:
+                self.build_modeling_window()
+
+            # Multiple chains modeling requires the identification of "template
+            # complexes" and additional controls.
+            else:
+                # This will build the 'self.template_complex_list'.
+                self.initialize_multichain_modeling()
+                # Proceeds only if there are is at least one suitable "template
+                # complex".
+                if len(self.template_complex_list) > 0:
+                    # Finally builds the modeling window.
+                    self.build_modeling_window()
+                else:
+                    title = "Selection Error"
+                    message = "There isn't any suitable 'Template Complexes' to perform multiple chain homology modeling."
+                    self.pymod.show_error_message(title,message)
+        else:
+            pass
+
+
+    def check_correct_modeling_selection_in_cluster(self,cluster_element):
+        """
+        This will check if there is only one target sequence selected per cluster and if it is
+        currently aligned to some suitable template.
+        """
+
+        # Checks that only one sequence per cluster is selected.
+        if not self.pymod.check_only_one_selected_child_per_cluster(cluster_element):
+            title = "Selection Error"
+            message = "Please select only one target sequence in the following cluster: %s" % (cluster_element.my_header)
+            self.pymod.show_error_message(title,message)
+            return False
+
+        # This will be needed to inform the user about which cluster has an incorrect selection.
+        target_name = None
+        templates_temp_list = []
+        # Look if there is at least one suitable template aligned to the target sequence.
+        for sequence in self.get_children(cluster_element):
+            if not sequence.selected and sequence.has_structure() and sequence.is_model != True:
+                templates_temp_list.append(sequence)
+            # Takes the name of the target sequence.
+            if sequence.selected:
+                target_name = sequence.my_header
+
+        # Checks if some templates have been found.
+        if len(templates_temp_list) > 0:
+            # Checks the presence of nucleic acids templates: currently they are not
+            # supported by PyMOd.
+            if "nucleic-acid" in [t.polymer_type for t in templates_temp_list]:
+                title = "Selection Error"
+                message = "Template '%s' is a nucleic acid chain. PyMod currently does not support nucleic acid templates, so the modelization cannot be performed." % (t.my_header)
+                self.pymod.show_error_message(title,message)
+                return False
+            else:
+                return True
+        else:
+            title = "Selection Error"
+            message = "The target sequence %s in the following cluster is currently not aligned to any PDB structure." % (target_name)
+            self.pymod.show_error_message(title,message)
+            return False
+
+
 #     def initialize_multichain_modeling(self):
 #         """
 #         This method will prepare data needed to perform multichain modeling. It will:
@@ -501,7 +511,7 @@
 #             # "Please Fill all the Fields"
 #             title = "Input Error"
 #             message = self.modelization_parameters_error
-#             self.show_error_message(title, message, self.modeling_window, refresh=False)
+#             self.pymod.show_error_message(title, message, self.modeling_window, refresh=False)
 #             return False
 #         self.exclude_hetatms = self.exclude_heteroatoms_rds.getvalue()
 #         self.optimization_level = self.optimization_level_rds.getvalue()
@@ -553,7 +563,7 @@
 #         # Start setting options for MODELLER.
 #         # -----
 #         #------------------------------------------------------------
-#         if self.modeller.run_internally():
+#         if self.run_modeller_internally:
 #             modeller.log.verbose()
 #             env = modeller.environ()
 #             env.io.atom_files_directory = []
@@ -574,7 +584,7 @@
 #             print >> self.modeller_script, "\n"
 #             print >> self.modeller_script, "modeller.log.verbose()"
 #             print >> self.modeller_script, "env = modeller.environ()"
-#             if not self.modeller.run_internally():
+#             if not self.run_modeller_internally:
 #                 env = None
 #             print >> self.modeller_script, "env.io.atom_files_directory = []"
 #             print >> self.modeller_script, "env.io.atom_files_directory.append(str('%s/%s'))" % (self.current_project_directory_full_path, self.structures_directory)
@@ -590,7 +600,7 @@
 #         if self.exclude_hetatms == "No":
 #             # Use hetatm by default in this case.
 #             #--------------------------------------------------------
-#             if self.modeller.run_internally():
+#             if self.run_modeller_internally:
 #                 env.io.hetatm = True
 #             #--------------------------------------------------------
 #             use_hetatm = True
@@ -603,13 +613,13 @@
 #                         break
 #             if found_water:
 #                 #----------------------------------------------------
-#                 if self.modeller.run_internally():
+#                 if self.run_modeller_internally:
 #                     env.io.water = True
 #                 #----------------------------------------------------
 #                 use_water = True
 #             else:
 #                 #----------------------------------------------------
-#                 if self.modeller.run_internally():
+#                 if self.run_modeller_internally:
 #                     env.io.water = False
 #                 #----------------------------------------------------
 #                 use_water = False
@@ -624,7 +634,7 @@
 #         # If the user doesn't want to include hetero-atoms and water.
 #         else:
 #             #--------------------------------------------------------
-#             if self.modeller.run_internally():
+#             if self.run_modeller_internally:
 #                 env.io.hetatm = False
 #                 env.io.water = False
 #             #--------------------------------------------------------
@@ -645,7 +655,7 @@
 #         #   - build multichain models with symmetries restraints
 #         #   - rename the chains in multichain models
 #         #------------------------------------------------------------
-#         if self.modeller.run_internally():
+#         if self.run_modeller_internally:
 #             class MyModel(modeller.automodel.automodel):
 #                 pass
 #         #------------------------------------------------------------
@@ -671,7 +681,7 @@
 #                 # engaged in a disulfied bridge in a "reduced" state.
 #                 else:
 #                     #------------------------------------------------
-#                     if self.modeller.run_internally():
+#                     if self.run_modeller_internally:
 #                         # This will not create any dsbs in the model by not disulfide patching.
 #                         def default_patches(self, aln):
 #                             pass
@@ -694,7 +704,7 @@
 #             self.all_user_defined_dsb = [sel.user_defined_disulfide_bridges for sel in self.disulfides_frame.user_dsb_selector_list]
 #
 #         #------------------------------------------------------------
-#         if self.modeller.run_internally():
+#         if self.run_modeller_internally:
 #             def special_patches(self, aln):
 #
 #                 # When building a multichain model it uses the special patches method to rename the
@@ -816,7 +826,7 @@
 #                     list_of_symmetry_restraints.append(s)
 #
 #                 #----------------------------------------------------
-#                 if self.modeller.run_internally():
+#                 if self.run_modeller_internally:
 #                     def special_restraints(self, aln):
 #                         # Constrain chains to be identical (but only restrain
 #                         # the C-alpha atoms, to reduce the number of interatomic distances
@@ -857,7 +867,7 @@
 #         # Creates the "a" object to perform the modelization.
 #         # ---
 #         #------------------------------------------------------------
-#         if self.modeller.run_internally():
+#         if self.run_modeller_internally:
 #             a = MyModel(env,
 #                         alnfile = os.path.join(model_subdir, "align-multiple.ali"), # alignment filename
 #                         knowns = tuple(self.all_templates_namelist),                # codes of the templates
@@ -882,7 +892,7 @@
 #
 #         if self.optimization_level == "Low":
 #             #--------------------------------------------------------
-#             if self.modeller.run_internally():
+#             if self.run_modeller_internally:
 #                 # Low VTFM optimization:
 #                 a.library_schedule = modeller.automodel.autosched.very_fast
 #                 # Low MD optimization:
@@ -897,7 +907,7 @@
 #
 #         elif self.optimization_level == "Mid":
 #             #--------------------------------------------------------
-#             if self.modeller.run_internally():
+#             if self.run_modeller_internally:
 #                 # Thorough VTFM optimization:
 #                 a.library_schedule = modeller.automodel.autosched.fast
 #                 a.max_var_iterations = 300
@@ -917,7 +927,7 @@
 #
 #         elif self.optimization_level == "High":
 #             #--------------------------------------------------------
-#             if self.modeller.run_internally():
+#             if self.run_modeller_internally:
 #                 # Very thorough VTFM optimization:
 #                 a.library_schedule = modeller.automodel.autosched.slow
 #                 a.max_var_iterations = 300
@@ -947,7 +957,7 @@
 #             print >> self.modeller_script, "a.ending_model = " + str(self.ending_model_number)
 #             print >> self.modeller_script, "a.make()"
 #             # Saves an output file that will be red by PyMod when MODELLER is executed externally.
-#             if not self.modeller.run_internally():
+#             if not self.run_modeller_internally:
 #                 print >> self.modeller_script, "\n###################################"
 #                 print >> self.modeller_script, "# Needed to run MODELLER externally from PyMOL."
 #                 print >> self.modeller_script, "modeller_outputs_file = open('modeller_saved_outputs.txt','w')"
@@ -960,8 +970,8 @@
 #                 print >> self.modeller_script, "modeller_outputs_file.close()"
 #             self.modeller_script.close()
 #
-#         if not self.modeller.run_internally():
-#             cline=self.modeller.get_exe_file_path() + " my_model.py"
+#         if not self.run_modeller_internally:
+#             cline=self.pymod.modeller.get_exe_file_path() + " my_model.py"
 #             self.execute_subprocess(cline)
 #             # Builds the 'a.outputs' when MODELLER was executed externally by reading an output file
 #             # that was generated in the MODELLER script that was executed externally from PyMOL.
@@ -974,7 +984,7 @@
 #         #############################################################
 #
 #         #------------------------------------------------------------
-#         if self.modeller.run_internally():
+#         if self.run_modeller_internally:
 #             a.starting_model = 1 # index of the first model
 #             a.ending_model = int(self.ending_model_number) # index of the last model
 #             # This is the method that launches the modl building phase.

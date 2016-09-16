@@ -7,13 +7,35 @@ class PyMod_protocol:
     """
     A base class for PyMod protocols.
     """
+    
     def __init__(self, pymod):
         self.pymod = pymod
+
 
     def get_pymod_elements(self, pymod_elements):
         if pymod_elements == None:
             pymod_elements = self.pymod.get_selected_sequences()
         return pymod_elements
+
+
+    def build_cluster_lists(self):
+        """
+        This will build the self.involved_clusters_list, which will contain the elements
+        belonging to cluster that were either selected entirely or with at least one selected child.
+        """
+        # A list that will contain all the clusters that have at least one selected element.
+        self.involved_clusters_list = []
+        for e in self.pymod.get_selected_elements():
+            if not e.mother in self.involved_clusters_list:
+                self.involved_clusters_list.append(e.mother)
+        if self.pymod.root_element in self.involved_clusters_list:
+            self.involved_clusters_list.remove(self.pymod.root_element)
+
+        # A list that will contain all the clusters that have all of their sequences selected.
+        self.selected_clusters_list = self.pymod.get_selected_clusters()
+
+        # A list that will contain all the selected sequences in the root level of PyMod.
+        self.selected_root_sequences_list = set([s for s in self.pymod.get_selected_sequences() if s.mother == self.pymod.root_element])
 
 
 class PSI_BLAST_common:

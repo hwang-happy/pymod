@@ -519,6 +519,24 @@ class PyMod_sequence_element(PyMod_element):
         except:
             return False
 
+    def can_be_modeled(self):
+        r = False
+        # Exlude cluster elements (alignments and BLAST-searches).
+        if not self.is_cluster():
+            r = True
+        # TODO.
+        #    if self.has_structure():
+        #        # If the element have as a structure a model, than it can be used to build new models.
+        #        if self.is_model:
+        #            r = True
+        #        else:
+        #            r = False
+        #    # The element is a primary sequence imported by the user.
+        #    else:
+        #        r = True
+
+        return r
+
 
 class PyMod_polypeptide_element(PyMod_sequence_element):
     pass
