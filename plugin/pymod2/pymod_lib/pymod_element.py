@@ -457,6 +457,15 @@ class PyMod_sequence_element(PyMod_element):
     def get_standard_residues(self):
         return filter(lambda r: r.is_polymer_residue() and not r.is_modified_residue(), self.residues)
 
+    def get_heteroresidues(self, exclude_water=True):
+        return filter(lambda r: r.is_heteroresidue(exclude_water=exclude_water), self.residues)
+
+    def get_waters(self):
+        return filter(lambda r: r.is_water(), self.residues)
+
+    def has_waters(self):
+        return len(self.get_waters()) > 0
+
 
     ###############################################################################################
     # Header related.                                                                             #
@@ -537,6 +546,9 @@ class PyMod_sequence_element(PyMod_element):
 
         return r
 
+    def is_suitable_template(self):
+        return self.has_structure() # TODO: and sequence.is_model != True:
+
 
 class PyMod_polypeptide_element(PyMod_sequence_element):
     pass
@@ -577,7 +589,13 @@ class PyMod_residue:
             return False
 
     def is_standard_residue(self):
-        return None # TODO.
+        return not self.is_heteroresidue() # TODO.
+
+    def is_heteroresidue(self, exclude_water=True):
+        if exclude_water:
+            return issubclass(self.__class__, PyMod_heteroresidue) and not self.is_water()
+        else:
+            return issubclass(self.__class__, PyMod_heteroresidue)
 
     def is_water(self):
         return isinstance(self, PyMod_water_molecule)
@@ -612,16 +630,16 @@ class PyMod_residue:
 
 
 class PyMod_heteroresidue(PyMod_residue):
-    pass
+    hetres_type = "?"
 
 class PyMod_ligand(PyMod_heteroresidue):
-    pass
+    hetres_type = "ligand"
 
 class PyMod_modified_residue(PyMod_heteroresidue):
-    pass
+    hetres_type = "modified residue"
 
 class PyMod_water_molecule(PyMod_heteroresidue):
-    pass
+    hetres_type = "water"
 
 
 # class PDB_residue:

@@ -181,9 +181,6 @@ class PyMod:
         # This will contain ojects of the 'Modeling_session' class in order to build the 'Models'
         # submenu on the plugin's main menu.
         self.modeling_session_list = []
-        # The maximum number of models that Modeler can produce at the same time.
-        self.max_models_per_session = 100
-        self.multiple_chains_models_name = "MyMultiModel"
 
         # PSIPRED.
         self.psipred_directory = "psipred"
@@ -750,9 +747,6 @@ class PyMod:
 
     def create_models_directory(self):
         self.create_subdirectory(self.models_directory)
-
-    def create_model_subdirectory(self, model_subdirectory):
-        self.create_subdirectory(model_subdirectory)
 
     def create_structures_directory(self):
         self.create_subdirectory(self.structures_directory)
