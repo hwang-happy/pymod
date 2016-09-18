@@ -708,17 +708,23 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
-        # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min.fasta"), "fasta")
-        # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
-        # self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"))
-        self.open_sequence_file(os.path.join(seqs_dir,"fetch_pdb.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
-        self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
+        if 0:
+            # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min.fasta"), "fasta")
+            # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
+            # self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"))
+            self.open_sequence_file(os.path.join(seqs_dir,"fetch_pdb.fasta"))
+            self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
+            self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
+            # self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
+            # self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
+            self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
+            # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
+            self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
+            
+        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
+        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
+        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
+        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
 
         self.gridder(update_clusters=True, update_menus=True)
 

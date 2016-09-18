@@ -1,9 +1,20 @@
+# TODO
+#   - build a log file on all platforms.
+#   - implement single chain modeling mode.
+#   - implement saving of modeling sessions.
+#   - reimplement disulfides and change the restraints the 'Disulfides' tab to 'Restraints'.
+#   - reimplement all.
+#   - remove leeafs, saakura.
+
 import os
 import sys
+import shutil
 
 from Tkinter import *
 import tkMessageBox
 import Pmw
+
+import Bio.SeqIO
 
 try:
     import modeller
@@ -12,6 +23,7 @@ try:
 except:
     pass
 
+import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_sequence_manipulation as pmsm
 import pymod_lib.pymod_gui as pmgi
@@ -21,7 +33,22 @@ from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
 # HOMOLOGY MODELING.                                                                              #
 ###################################################################################################
 
-class MODELLER_homology_modeling(PyMod_protocol):
+class Modeling_session:
+    use_hetatm_in_session = False
+    use_water_in_session = False
+    modeling_directory = ""
+
+    def set_hetatm_use(self, state):
+        Modeling_session.use_hetatm_in_session = state
+
+    def set_water_use(self, state):
+        Modeling_session.use_water_in_session = state
+
+    def set_modeling_directory(self, path):
+        Modeling_session.modeling_directory = path
+
+
+class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
     # The maximum number of models that Modeler can produce at the same time.
     max_models_per_session = 100
@@ -511,9 +538,10 @@ class MODELLER_homology_modeling(PyMod_protocol):
         contains the code to instruct Modeller on how to perform the modelization.
         """
 
-        #------------------------------------------------
-        # Takes input supplied by users though the GUI. -
-        #------------------------------------------------
+        #-----------------------------------------------------------------------------------
+        # Takes input supplied by users though the GUI and sets the names of sequences and -
+        # template which will be used by MODELLER.                                         -
+        #-----------------------------------------------------------------------------------
         self.get_modeling_options_from_gui()
 
         # Starts the modeling process only if the user has supplied correct parameters.
@@ -522,9 +550,6 @@ class MODELLER_homology_modeling(PyMod_protocol):
             title = "Input Error"
             self.pymod.show_error_message(title, self.modelization_parameters_error, self.modeling_window, refresh=False)
             return None
-
-        # Sets the names of sequences and template which will be used by MODELLER.
-        self.set_modeller_names()
 
         # The modeling window can be destroyed.
         self.modeling_window.destroy()
@@ -568,7 +593,6 @@ class MODELLER_homology_modeling(PyMod_protocol):
 
         # If the user wants to include hetero-atoms and water molecules.
         if self.use_hetatm_in_session:
-
             #--------------------------------------------------------
             if self.run_modeller_internally:
                 env.io.hetatm = True
@@ -595,12 +619,11 @@ class MODELLER_homology_modeling(PyMod_protocol):
         else:
             pass
 
-
         #-------------------------------------------------------
         # Creates a file with the alignment in the PIR format. -
         #-------------------------------------------------------
         # leafs!
-        self.build_pir_align_file(os.path.join(model_subdir,"align-multiple.ali"), use_hetatm=self.use_hetatm_in_session, use_water=self.use_water_in_session)
+        self.build_pir_align_file()
 
 #         # ---
 #         # Defines a custom class to use some additional Modeller features.
@@ -1143,6 +1166,12 @@ class MODELLER_homology_modeling(PyMod_protocol):
 #         self.show_table(**assessment_table_args)
 #         self.show_dope_plot(session_plot_data)
 
+        self.finish_modeling_session()
+
+
+    def finish_modeling_session(self):
+        os.chdir(self.pymod.current_project_directory_full_path)
+
 
     #################################################################
     # Prepares input for MODELLER.                                  #
@@ -1153,47 +1182,56 @@ class MODELLER_homology_modeling(PyMod_protocol):
         Add to the 'Modeling_clusters' objects information about which templates to use according to
         the parameters supplied by users.
         """
-        # Get options from the 'Options' tab.
+        #--------------------------------------
+        # Get options from the 'Options' tab. -
+        #--------------------------------------
         self.exclude_hetatms = self.exclude_heteroatoms_rds.getvalue()
         self.optimization_level = self.optimization_level_rds.getvalue()
         self.superpose_to_templates = self.superpose_models_to_templates_rds.getvalue()
         self.color_by_dope_choice = self.color_models_rds.getvalue()
 
-        # Gets options for each modeling cluster.
+        #------------------------------------------
+        # Gets options for each modeling cluster. -
+        #------------------------------------------
         for modeling_cluster in self.modeling_clusters_list:
             # Begins a for cycle that is going to get the structures to be used as templates.
             modeling_cluster.initialize()
-            for suitable_template, structure_frame in zip(modeling_cluster.suitable_templates_list, modeling_cluster.structure_frame_list):
-                # Gets the values of each template checkbutton (it will be 0 if the structure was
-                # not selected or 1 if it was selected): selects only structures that were selected
-                # by the user to be used as templates.
-                if structure_frame.use_as_template_var.get() == 1:
-                    # Adds some information about the modeling options to the elements.
-                    template_options_dict = {
-                        "seq_min": 1,
-                        "seq_max": 10000,
-                        # For every selected structure takes the HETRES option.
-                        "hetres_option": structure_frame.hetres_options_var.get(),
-                        # And the values of each HETRES checkbutton.
-                        "hetres_map": map(lambda var_e: var_e.get(), structure_frame.structure_hetres_states),
-                        # Do the same with the water checkbutton.
-                        "water_state": structure_frame.water_state.get()}
+            modeling_cluster.set_options_from_gui()
 
-                    # Populate each modeling_cluster "template_list" with the elements selected by
-                    # the user from the "suitable_templates_list".
-                    modeling_cluster.add_new_template(pymod_element= suitable_template, template_options = template_options_dict)
-
-        # Check if hetatms have to be used.
-        if self.exclude_hetatms == "No":
-            self.use_hetatm_in_session = False
+        #------------------------------------
+        # Check if hetatms have to be used. -
+        #------------------------------------
+        if self.exclude_hetatms == "Yes":
+            self.set_hetatm_use(False)
         else:
-            self.use_hetatm_in_session = True
+            self.set_hetatm_use(True)
             # Check if water molecules have to be included in the modeling session.
-            self.use_water_in_session = False
-            for modeling_cluster in self.modeling_clusters_list:
-                if modeling_cluster.use_water_in_cluster():
-                    self.use_water_in_session = True
-                    break
+            self.set_water_use(True in [mc.use_water_in_cluster() for mc in self.modeling_clusters_list])
+
+        #------------------------------------------------------------------------------------------
+        # Builds a list with the "knowns" for MODELLER and sets the name of the target sequences. -
+        #------------------------------------------------------------------------------------------
+        self.all_templates_namelist = []
+        self.modeller_target_name = ""
+
+        # If there is only one chain to model.
+        if not self.multiple_chain_mode:
+            self.all_templates_namelist = self.modeling_clusters_list[0].get_template_nameslist()
+            self.modeller_target_name = self.modeling_clusters_list[0].target_name
+
+        # For multiple chains modeling.
+        else:
+            raise Exception("multichain")
+            # for mc in self.modeling_clusters_list:
+            #     for t_i,t in enumerate(mc.templates_list):
+            #         if t.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
+            #             # Includes the "template complex" name only once.
+            #             if t.structure.original_pdb_file_name[:-4] not in self.all_templates_namelist:
+            #                 self.all_templates_namelist.append(t.structure.original_pdb_file_name[:-4])
+            #         else:
+            #             self.all_templates_namelist.append(mc.templates_namelist[t_i])
+            # self.modeller_target_name = self.multiple_chains_models_name
+
 
 
     def check_all_modelization_parameters(self):
@@ -1318,36 +1356,14 @@ class MODELLER_homology_modeling(PyMod_protocol):
 #         return correct_symmetry_vars
 
 
-    def set_modeller_names(self):
-        """
-        Builds a list with the "knowns" for MODELLER and sets the name of the target sequences.
-        """
-        self.all_templates_namelist = []
-        self.modeller_target_name = ""
-
-        # If there is only one chain to model.
-        if len(self.modeling_clusters_list) == 1:
-            self.all_templates_namelist = self.modeling_clusters_list[0].templates_namelist
-            self.modeller_target_name = self.modeling_clusters_list[0].target_name
-
-        # For multiple chains modeling.
-        elif self.multiple_chain_mode:
-            raise Exception("multichain")
-            # for mc in self.modeling_clusters_list:
-            #     for t_i,t in enumerate(mc.templates_list):
-            #         if t.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
-            #             # Includes the "template complex" name only once.
-            #             if t.structure.original_pdb_file_name[:-4] not in self.all_templates_namelist:
-            #                 self.all_templates_namelist.append(t.structure.original_pdb_file_name[:-4])
-            #         else:
-            #             self.all_templates_namelist.append(mc.templates_namelist[t_i])
-            # self.modeller_target_name = self.multiple_chains_models_name
-
-
     def prepare_modeling_session_files(self, modeller_output_dir_path=None):
         """
         Prepares the directory where MODELLER's output will be generated and moves into it.
         """
+
+        #--------------------------------------------------------------------------
+        # Build a directory where all the modeling session files will be located. -
+        #--------------------------------------------------------------------------
         if not modeller_output_dir_path:
             # The absolute path of the models directory.
             models_dir = os.path.join(self.pymod.current_project_directory_full_path, self.pymod.models_directory)
@@ -1356,12 +1372,22 @@ class MODELLER_homology_modeling(PyMod_protocol):
             # The absolute path of the model subdirectory.
             modeller_output_dir_path = os.path.join(models_dir, model_subdir_name)
 
-        self.modeller_output_dir_path = modeller_output_dir_path
-        os.mkdir(self.modeller_output_dir_path)
+        self.set_modeling_directory(modeller_output_dir_path)
+        os.mkdir(self.modeling_directory)
 
+        #---------------------------------------------------------------------
+        # Copy the structure files of the templates in the output directory. -
+        #---------------------------------------------------------------------
+        for modeling_cluster in self.modeling_clusters_list:
+            modeling_cluster.prepare_template_files()
+
+        #--------------------------------------------------------------------
+        # Chenages the current working directory to the modeling directory. -
+        #--------------------------------------------------------------------
         # The current directory has to be changed beacause in Modeller the user can't change the
         # output directory, it has to be the current directory.
-        os.chdir(self.modeller_output_dir_path)
+        # TODO: store the current path.
+        os.chdir(self.modeling_directory)
 
 
     ########################################################
@@ -1369,397 +1395,139 @@ class MODELLER_homology_modeling(PyMod_protocol):
     ########################################################
 
     # leafs!
-    def build_pir_align_file(alignment_file_path, use_hetatm=False, use_water=False):
+    def build_pir_align_file(self):
         """
         This function creates alignments in a PIR format: this is entirely rewrtitten from the
         original PyMod version.
         """
-        pass
+        pir_align_file_handle = open(os.path.join(self.modeling_directory, "align-multiple.ali"), "w")
+        for (mc_i,modeling_cluster) in enumerate(self.modeling_clusters_list):
+            for template in modeling_cluster.templates_list:
 
-    # # ---
-    # # This function creates alignments in a PIR format: this is entirely rewrtitten from the
-    # # original PyMod version.
-    # # The custom sequence object should already contain all the info created inside this method.
-    # # NOTE! The really useful rjust() or ljust() string methods could be used here for making
-    # # the code much more compact!
-    # # ---
-    # def pir_align(self, alignment_file_name, hetatm=False, water=False):
-    #
-    #     fn=open(alignment_file_name, "w")
-    #
-    #     for (mc_i,mc) in enumerate(self.modeling_clusters_list):
-    #
-    #         # Finds the longest sequence among the templates and the target.
-    #         # NOTE: Remove this, there should not be a need for it.
-    #         maximum_length = max([len(t.my_sequence) for t in mc.templates_list[:]+[mc.target]])
-    #         maximum_water_molecules_number = max([len(t.get_waters()) for t in mc.templates_list])
-    #
-    #         # This is going to contain all the template sequences, because they are going to be used in
-    #         # order to insert "modified residues" in the target sequence.
-    #         complete_template_list = []
-    #         # This list is needed for the same purpose.
-    #         all_modified_residues_positions = []
-    #
-    #         # Finds the template selected to include water molecules (there can be at most one per
-    #         # modeling cluster).
-    #         if water:
-    #             for (i,t) in enumerate(mc.templates_list):
-    #                 if t.structure.water_state == 1:
-    #                     mc.set_water_molecules_number(len(t.get_waters()))
-    #                     mc.use_water_in_cluster = True
-    #                     if (self.multiple_chain_mode and
-    #                         t.structure.original_pdb_file_name == self.template_complex.pdb_file_name):
-    #                         mc.use_template_complex_waters = True
-    #                     else:
-    #                         mc.use_template_complex_waters = False
-    #                     break
-    #
-    #         # ---
-    #         # Starts by building the template sequences.
-    #         # ---
-    #         for (i,template) in enumerate(mc.templates_list):
-    #             # Adjust hetres options according to the user's preferences.
-    #             if template.structure.hetres_option != 2:
-    #                 for (k,h) in enumerate(template.structure.hetres_map):
-    #                     # If the user selected the "Use all heteroatomic residues" use all hetres for this
-    #                     # template.
-    #                     if template.structure.hetres_option == 1:
-    #                         template.structure.hetres_map[k] = 1
-    #                     # Don't use any hetres if the user selected "Do not use any heteroatomic residue".
-    #                     elif template.structure.hetres_option == 3:
-    #                         template.structure.hetres_map[k] = 0
-    #
-    #             # The sequence to be printed on the alignment file.
-    #             template_sequence = str(template.my_sequence)
-    #
-    #             # Not really necessary.
-    #             if len(template_sequence) < maximum_length:
-    #                 template_sequence += "-"*(maximum_length-len(template_sequence))
-    #
-    #             # ---
-    #             # Part for the modified residues.
-    #             # ---
-    #
-    #             # Modified residues position in the alignment.
-    #             modified_residues_positions = []
-    #
-    #             # Converts the sequence in a list to change the correspodding residues in "."s or "-"s.
-    #             template_sequence_list = list(template_sequence)
-    #             # Mark modified residues as "."
-    #             for (k,res) in enumerate(template.structure.pdb_chain_sequence):
-    #                 if res.residue_type == "het" and res.hetres_type == "modified-residue":
-    #                     het_position_in_alignment = pmsm.get_residue_id_in_aligned_sequence(template_sequence,res.id)
-    #                     modified_residues_positions.append(het_position_in_alignment)
-    #                     # If the user want to use HETRES ("env.io.hetatm = True"), includes "."
-    #                     # characters for modified residues.
-    #                     if hetatm == True:
-    #                         template_sequence_list[het_position_in_alignment] = "."
-    #                     # If the user doens't want to use HETRES ("env.io.hetatm = False"), marks
-    #                     # modified residues as "-". Modeller wants modified residues to be marked as
-    #                     # "-" when "env.io.hetatm = False".
-    #                     else:
-    #                         template_sequence_list[het_position_in_alignment] = "-"
-    #
-    #             # Reconverts the list in a string.
-    #             template_sequence = "".join(template_sequence_list)
-    #             all_modified_residues_positions.append(modified_residues_positions)
-    #
-    #             # ---
-    #             # Part for the sequence limits residues.
-    #             # ---
-    #             # Adjust the template sequences according to the limits supplied by the user through the
-    #             # "From - To" entries.
-    #             template_sequence = list(template_sequence)
-    #             for (k,position) in enumerate(template_sequence):
-    #                 if k < template.structure.seq_min - 1 or k > template.structure.seq_max - 1:
-    #                     # Converts residues out of the interval chosen by the user in "-" characters
-    #                     # so that Modeller doesn't see them.
-    #                     template_sequence[k] = "-"
-    #             template_sequence = "".join(template_sequence)
-    #
-    #             # ---
-    #             # Part for ligand hetres and water molecules.
-    #             # ---
-    #             template_ligands_sequence = ""
-    #             if hetatm == True:
-    #                for (j,t) in enumerate(mc.templates_list):
-    #                     # These lists are going to contain the checkbox states of HETRES in order to
-    #                     # include at the end of the alignment the right number and combination of "."
-    #                     # and "-".
-    #                     # This is going to contain the checkbox of "ligands" HETRES
-    #                     ligands = []
-    #                     # Right now t.hetres_map contains the HETRES checkbox states, for example
-    #                     # something like: [0, 0, 1, 0].
-    #                     for (k,h) in enumerate(t.structure.hetero_residues):
-    #                         if (h.hetres_type == "ligand"):
-    #                             ligands.append(t.structure.hetres_map[k])
-    #                     for li,h in enumerate(ligands):
-    #                         # If the template is the right one.
-    #                         if j == i:
-    #                             template_ligands_sequence += "."
-    #                         # If it is not the right one adds as many gaps for each HETRES found
-    #                         # in the other templates.
-    #                         else:
-    #                             template_ligands_sequence += "-"
-    #
-    #             # Include water molecules in the alignment. Each water molecule count as a residue and
-    #             # is indicated with a "w".
-    #             template_water_sequence = ""
-    #             if water:
-    #                 if self.multiple_chain_mode and template.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
-    #                         template_water_sequence += "w"*template.structure.water_molecules_count
-    #                 else:
-    #                     if mc.use_water_in_cluster:
-    #                         if template.structure.water_state == 1:
-    #                             template_water_sequence += "w"*template.structure.water_molecules_count
-    #                         else:
-    #                             template_water_sequence += "-"*mc.water_molecules_number
-    #
-    #             complete_template_list.append(template_sequence)
-    #             # Sets the sequence
-    #             pir_template = PIR_alignment_sequence(template_sequence,template_ligands_sequence,template_water_sequence)
-    #             template.set_pir_alignment_sequence(pir_template)
-    #
-    #         # ---
-    #         # Target.
-    #         # ---
-    #         target_sequence = mc.target.my_sequence
-    #         # Adjust to the longest sequence.
-    #         if len(target_sequence) < maximum_length:
-    #             target_sequence += "-"*(maximum_length-len(target_sequence))
-    #         target_ligands_sequence = ""
-    #         target_water_sequence = ""
-    #         # Adds HETRES.
-    #         if hetatm == True:
-    #             # Adds modified residues if they were selected.
-    #             # Make it better, it creates strange residues if more than one template in the alignment
-    #             # has in the same position a modified residue...
-    #             for (i,template_sequence) in enumerate(complete_template_list):
-    #                 # [[hetres],[state]] it has as many elements as hetres in that template.
-    #                 single_template_hetres = []
-    #                 # Gets from the checkbox states maps only the ??? belonging to modified residues.
-    #                 for (k,h) in enumerate(mc.templates_list[i].structure.hetres_map):
-    #                     if mc.templates_list[i].structure.hetero_residues[k].hetres_type == "modified-residue":
-    #                         single_template_hetres.append([mc.templates_list[i].structure.hetero_residues[k] , mc.templates_list[i].structure.hetres_map[k]])
-    #                 # Sets a "-" or "." character in the target sequence for each modified residue.
-    #                 for (k,t) in enumerate(single_template_hetres):
-    #                     # Converts the sequence in a list to change the correspodding residues.
-    #                     target_sequence = list(target_sequence)
-    #                     for mr in all_modified_residues_positions[i]:
-    #                          # If the checkbox was selected.
-    #                          if t[1] == 1:
-    #                              for (x,residue) in enumerate(target_sequence):
-    #                                  if residue != "-" or residue != ".":
-    #                                      target_sequence[mr] = "."
-    #                     # Reconverts the list in a string.
-    #                     target_sequence = "".join(target_sequence)
-    #
-    #             # Adds ligands if they were selected by the user.
-    #             for t in mc.templates_list:
-    #                 for (i,h) in enumerate(t.structure.hetero_residues):
-    #                     if h.hetres_type == "ligand":
-    #                         if t.structure.hetres_map[i] == 1:
-    #                             target_ligands_sequence +="."
-    #                         else:
-    #                             target_ligands_sequence +="-"
-    #
-    #         # Includes water molecules if some template was selected to include them.
-    #         if water and mc.use_water_in_cluster:
-    #             target_water_sequence += "w"*mc.water_molecules_number
-    #
-    #         pir_target = PIR_alignment_sequence(target_sequence,target_ligands_sequence,target_water_sequence)
-    #         mc.target.set_pir_alignment_sequence(pir_target)
-    #
-    #     # template_block = reduce(lambda x,y: x+"/"+y, complete_template_list)
-    #
-    #     #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    #
-    #     # ---
-    #     # Single chain models.
-    #     # ---
-    #     if len(self.modeling_clusters_list) == 1:
-    #
-    #         # First write to the file the template blocks.
-    #         mc = self.modeling_clusters_list[0]
-    #         for (i,template) in enumerate(mc.templates_list):
-    #
-    #             # Writes the first line of the template. Modeller does not like names with ":" character
-    #             # but they have been removed when populating self.templates_namelist.
-    #             template_code = mc.templates_namelist[i]
-    #             template_chain = template.structure.pdb_chain_id
-    #             print >> fn , ">P1;"+template_code
-    #             print >> fn , "structure:%s:.:%s:.:%s::::" % (template_code,template_chain,template_chain)
-    #             # Print one the alignment file 60 characters-long lines.
-    #             template_sequence = self.get_pir_formatted_sequence(template.pir_alignment_sequence.get_single_chain(use_hetres = hetatm, use_water = mc.use_water_in_cluster))
-    #             print >> fn, template_sequence
-    #
-    #         # There is still a problem with multiple templates and modified residues.
-    #         # Then writes the target block.
-    #         print >> fn , ">P1;"+self.modeller_target_name# mc.target_name
-    #         print >> fn , "sequence:"+self.modeller_target_name+":.:.:.:.::::"
-    #         target_sequence = self.get_pir_formatted_sequence(mc.target.pir_alignment_sequence.get_single_chain(use_hetres = hetatm, use_water = mc.use_water_in_cluster))
-    #         print >> fn, target_sequence
-    #         mc.set_block_index(0)
-    #
-    #     # ---
-    #     # Mulitple chains models.
-    #     # ---
-    #     elif self.multiple_chain_mode:
-    #
-    #         # First find the right order of the modeling clusters.
-    #         modeling_cluster_new_index = 0
-    #         for (c_i,chain) in enumerate(self.template_complex.chains_list):
-    #             for mc in self.modeling_clusters_list:
-    #                 for t in mc.templates_list:
-    #                     if t.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
-    #                         if t.structure.pdb_chain_id == chain:
-    #                             mc.set_block_index(c_i) # modeling_cluster_new_index)
-    #                             mc.set_model_chain_id(t.structure.pdb_chain_id)
-    #                             # template_complex_chains.append(chain)
-    #                             modeling_cluster_new_index += 1
-    #
-    #         # ---
-    #         # Builds the block structure.
-    #         # ---
-    #         segment_structure_to_print = []
-    #         for segment in self.template_complex.segment_structure:
-    #             if segment[1] == "A":
-    #                 segment_structure_to_print.append(segment)
-    #             elif segment[1] == "H" and hetatm:
-    #                 segment_structure_to_print.append(segment)
-    #             elif segment[1] == "W" and water:
-    #                 segment_structure_to_print.append(segment)
-    #
-    #         ogb = Original_Block()
-    #         # Template complex segments.
-    #         for segment in segment_structure_to_print:
-    #             chain = self.template_complex.get_chain_by_id(segment[0])
-    #             modeling_cluster = None
-    #             for mc in self.modeling_clusters_list:
-    #                 if chain in mc.templates_list:
-    #                     modeling_cluster = mc
-    #                     break
-    #             sg = Segment(segment,modeling_cluster)
-    #             ogb.add_segment(sg)
-    #         # Extra hetatms segments.
-    #         for mc in sorted(self.modeling_clusters_list, key = lambda mc:mc.block_index):
-    #             if mc.has_ligands() and not mc.template_complex_chain_has_ligands():
-    #                 sg = Segment((None,"H"),mc)
-    #                 ogb.add_segment(sg)
-    #         # Extra water segments.
-    #         for mc in sorted(self.modeling_clusters_list, key = lambda mc:mc.block_index):
-    #             if mc.use_water_in_cluster and not mc.use_template_complex_waters:
-    #                 sg = Segment((None,"W"),mc)
-    #                 ogb.add_segment(sg)
-    #
-    #         # Now generates the blocks.
-    #         list_of_blocks = []
-    #         # Template complex block.
-    #         list_of_blocks.append(ogb.generate_template_complex_block(self.template_complex))
-    #
-    #         # Other templates.
-    #         for mc in self.modeling_clusters_list:
-    #             for t_i, t in enumerate(mc.templates_list):
-    #                 if t.structure.original_pdb_file_name != self.template_complex.pdb_file_name:
-    #                     list_of_blocks.append(ogb.generate_additional_template_block(t))
-    #         # Target.
-    #         list_of_blocks.append(ogb.generate_target_block())
-    #         self.target_segment_list = ogb.get_target_segment_list()
-    #
-    #         # Prints the whole alignment file.
-    #         for bl in list_of_blocks:
-    #             print >> fn, bl.first_line
-    #             print >> fn, bl.second_line
-    #             print >> fn, self.get_pir_formatted_sequence(reduce(lambda s1,s2: s1+"/"+s2,bl.segment_list),multi=True)
-    #
-    #     #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    #
-    #     fn.close()
+                ############################################################
+                # Confronts the template sequences as seen by MODELLER and #
+                # as seen by PyMod.                                        #
+                ############################################################
+                seq_file = modeling_cluster.template_options_dict[template]["sequence_file"]
+                r = Bio.SeqIO.read(seq_file, "pir")
+                mod_seq = str(r.seq)
+                new_mod_seq = mod_seq
+                for p in mod_seq:
+                    if p not in pmdt.prot_standard_one_letter_set | set(("w",".")):
+                        new_mod_seq = new_mod_seq.replace(p,".")
+                pymod_seq = template.get_pir_sequence(use_hetatm=self.use_hetatm_in_session, use_water=self.use_hetatm_in_session)
+                if not mod_seq == pymod_seq:
+                    self.pymod.show_error_message("Sequence Mismatch", "PyMod does not know how MODELLER see the template sequences.")
+                    print "###"
+                    print template.my_header
+                    print "mod:", mod_seq
+                    print "mox:", new_mod_seq
+                    print "pym:", pymod_seq
+                ############################################################
+
+                #--------------------------------
+                # Write the template sequences. -
+                #--------------------------------
 
 
-    def get_pir_formatted_sequence(self,sequence,multi=False):
-        formatted_sequence = ""
-        for s in xrange(0,len(sequence),60):
-            # For all the lines except the last one.
-            if (len(sequence) - s) > 60:
-                formatted_sequence += sequence[s:s+60] + "\n"
-            # For the last line.
-            else:
-                if not multi:
-                    formatted_sequence += sequence[s:]+"*"+"\n"
-                else:
-                    formatted_sequence += sequence[s:]+"/*"+"\n"
-        return formatted_sequence
+    def get_aligned_pir_sequence(self, template, mod_template_sequence):
+        for i,mod_res in mod_template_sequence:
+            ali_id = self.get_id_in_custom_alignment(template, i)
+            last_position = 0
+            mod_ts_dict = {}
+            if ali_id:
+                mod_ts_dict.update({last_position, mod_res})
+                last_position += 1
+                
+
+    def get_id_in_custom_alignment(self, template, res_id):
+        return res_id
 
 
-    def get_model_number(self):
-        model_number = 0
-        if self.multiple_chain_mode:
-            model_number = self.multiple_chain_models_count
-        else:
-            model_number = self.modeling_clusters_list[0].target.models_count
-        return model_number
-
-    def increase_model_number(self):
-        if self.multiple_chain_mode:
-            self.multiple_chain_models_count += 1
-        else:
-            self.modeling_clusters_list[0].target.models_count += 1
+    # def get_pir_formatted_sequence(self,sequence,multi=False):
+    #     formatted_sequence = ""
+    #     for s in xrange(0,len(sequence),60):
+    #         # For all the lines except the last one.
+    #         if (len(sequence) - s) > 60:
+    #             formatted_sequence += sequence[s:s+60] + "\n"
+    #         # For the last line.
+    #         else:
+    #             if not multi:
+    #                 formatted_sequence += sequence[s:]+"*"+"\n"
+    #             else:
+    #                 formatted_sequence += sequence[s:]+"/*"+"\n"
+    #     return formatted_sequence
+    #
+    #
+    # def get_model_number(self):
+    #     model_number = 0
+    #     if self.multiple_chain_mode:
+    #         model_number = self.multiple_chain_models_count
+    #     else:
+    #         model_number = self.modeling_clusters_list[0].target.models_count
+    #     return model_number
+    #
+    # def increase_model_number(self):
+    #     if self.multiple_chain_mode:
+    #         self.multiple_chain_models_count += 1
+    #     else:
+    #         self.modeling_clusters_list[0].target.models_count += 1
 
 
 ###################################################################################################
 # Other classes.                                                                                  #
 ###################################################################################################
-class MODELLER_run:
 
-    def __init__(self, mode="both"):
-        self.mode = mode
-
-    def build_script_file(self, script_absolute_path):
-        self.script_absolute_path = script_absolute_path
-        self.modeller_script = open(self.script_absolute_path, "w")
-        self.modeller_script_content = ""
-
-    def add_command(self, line, tabs=0):
-        line = "    "*tabs + line + "\n"
-        self.modeller_script_content += line
-
-    def end_script(self):
-        print >> self.modeller_script, self.modeller_script_content
-        self.modeller_script.close()
-
-    def run_script(self):
-        if self.mode == "interal" or self.mode == "both":
-            print self.modeller_script_content
-            exec self.modeller_script_content
-        elif self.mode == "external":
-            execfile(self.script_absolute_path)
-
-    def change_stdout(self):
-        """
-        This is needed to create a log file also on Linux.
-        """
-        from cStringIO import StringIO
-        self.old_stdout = sys.stdout
-        self.mystdout = StringIO()
-        sys.stdout = self.mystdout
-
-    def revert_stdout_and_build_log_file(self):
-        """
-        Gets Modeller output text and prints it to a .log file.
-        """
-        sys.stdout = self.old_stdout
-        t = self.mystdout.getvalue()
-        f = open("modeller_log.txt","w")
-        f.write(t)
-        f.close()
+# class MODELLER_run:
+#
+#     def __init__(self, mode="both"):
+#         self.mode = mode
+#
+#     def build_script_file(self, script_absolute_path):
+#         self.script_absolute_path = script_absolute_path
+#         self.modeller_script = open(self.script_absolute_path, "w")
+#         self.modeller_script_content = ""
+#
+#     def add_command(self, line, tabs=0):
+#         line = "    "*tabs + line + "\n"
+#         self.modeller_script_content += line
+#
+#     def end_script(self):
+#         print >> self.modeller_script, self.modeller_script_content
+#         self.modeller_script.close()
+#
+#     def run_script(self):
+#         if self.mode == "interal" or self.mode == "both":
+#             print self.modeller_script_content
+#             exec self.modeller_script_content
+#         elif self.mode == "external":
+#             execfile(self.script_absolute_path)
+#
+#     def change_stdout(self):
+#         """
+#         This is needed to create a log file also on Linux.
+#         """
+#         from cStringIO import StringIO
+#         self.old_stdout = sys.stdout
+#         self.mystdout = StringIO()
+#         sys.stdout = self.mystdout
+#
+#     def revert_stdout_and_build_log_file(self):
+#         """
+#         Gets Modeller output text and prints it to a .log file.
+#         """
+#         sys.stdout = self.old_stdout
+#         t = self.mystdout.getvalue()
+#         f = open("modeller_log.txt","w")
+#         f.write(t)
+#         f.close()
 
 
 ###################################################################################################
 # Modeling clusters.                                                                              #
 ###################################################################################################
 
-class Modeling_cluster:
+class Modeling_cluster(Modeling_session):
 
     def __init__(self, cluster):
         self.cluster_element = cluster
@@ -1780,7 +1548,7 @@ class Modeling_cluster:
 
         self.water_molecules_count = 0
         # self.use_water_in_cluster = False
-        self.use_template_complex_waters = False
+        # self.use_template_complex_waters = False
 
         self.disulfides_frame = None
         self.target_with_cys = None
@@ -1789,14 +1557,14 @@ class Modeling_cluster:
         else:
             self.target_with_cys = False
 
-        self.symmetry_id = None
-        self.apply_symmetry_restraints = None
-
-        self.symmetry_var = None
-
-        self.dictionary = {}
-
-        self.model_elements_list = []
+        # self.symmetry_id = None
+        # self.apply_symmetry_restraints = None
+        #
+        # self.symmetry_var = None
+        #
+        # self.dictionary = {}
+        #
+        # self.model_elements_list = []
 
         ###################
         # New attributes. #
@@ -1808,18 +1576,44 @@ class Modeling_cluster:
     ################
 
     def initialize(self):
-        self.template_options_dict = {}
-        # Important list that is going to contain informations about the templates.
         self.templates_list = []
-        # This list will be used to inform Modeller about which are the "known" sequences.
-        # It will contain the headers of the templates.
-        self.templates_namelist = []
+        # Important dictionary that is going to contain informations about the templates.
+        self.template_options_dict = {}
+        # self.templates_namelist = []
+
+
+    def set_options_from_gui(self):
+        template_count = 0
+        for suitable_template, structure_frame in zip(self.suitable_templates_list, self.structure_frame_list):
+            # Gets the values of each template checkbutton (it will be 0 if the structure was
+            # not selected or 1 if it was selected): selects only structures that were selected
+            # by the user to be used as templates.
+            if structure_frame.use_as_template_var.get() == 1:
+                # Adds some information about the modeling options to the elements.
+                template_options_dict = {
+                    "id": template_count,
+                    "seq_min": 1, "seq_max": 10000,
+                    # For every selected structure takes the HETRES option.
+                    "hetres_option": structure_frame.hetres_options_var.get(),
+                    # And the values of each HETRES checkbutton.
+                    "hetres_map": map(lambda var_e: var_e.get(), structure_frame.structure_hetres_states),
+                    # Do the same with the water checkbutton.
+                    "water_state": structure_frame.water_state.get(),
+                    "structure_file": None, "sequence_file": None,
+                    "modeller_name": None}
+
+                # Populate each modeling_cluster "template_list" with the elements selected by
+                # the user from the "suitable_templates_list".
+                self.add_new_template(pymod_element= suitable_template, template_options = template_options_dict)
+                template_count += 1
 
 
     def add_new_template(self, pymod_element, template_options):
         self.templates_list.append(pymod_element)
-        self.templates_namelist.append(self.get_template_modeller_name(pymod_element))
+        # This list will be used to inform Modeller about which are the "known" sequences.
+        # It will contain the headers of the templates.
         self.template_options_dict.update({pymod_element: template_options})
+        self.template_options_dict[pymod_element]["modeller_name"] = self.get_template_modeller_name(pymod_element)
 
 
     def get_template_modeller_name(self, pymod_element):
@@ -1834,23 +1628,53 @@ class Modeling_cluster:
         # right files.
 
 
+    def get_template_nameslist(self):
+        ordered_keys = sorted(self.template_options_dict.keys(), key=lambda k:self.template_options_dict[k]["id"])
+        return [self.template_options_dict[k]["modeller_name"] for k in ordered_keys]
+
+
     def use_water_in_cluster(self):
-        found_water =  False
-        for t in enumerate(self.templates_list):
-            if self.template_options_dict[t]["water_state"] == 1:
-                found_water = True
-                break
+        found_water = 1 in [self.template_options_dict[t]["water_state"] for t in self.templates_list]
         return found_water
+
+
+    def prepare_template_files(self):
+        for template in self.templates_list:
+            # Copy the templates structure files in the modeling directory.
+            template_str_file = template.get_structure_file()
+            copied_template_str_file = os.path.basename(template_str_file)
+            shutil.copy(template_str_file, os.path.join(self.modeling_directory, copied_template_str_file))
+            self.template_options_dict[template]["structure_file"] = copied_template_str_file
+            # Build a sequence file for the templates.
+            self.build_modeller_sequence_file(template)
+
+
+    def build_modeller_sequence_file(self, template):
+        env = modeller.environ()
+        modeller.log.none()
+        if self.use_hetatm_in_session:
+            env.io.hetatm = True
+            if self.use_water_in_session:
+                env.io.water = True
+        structure_file_name = self.template_options_dict[template]["structure_file"]
+        structure_file_code = os.path.splitext(structure_file_name)[0]
+        mdl = modeller.model(env, file=os.path.join(self.modeling_directory, structure_file_name))
+        aln = modeller.alignment(env)
+        aln.append_model(mdl, align_codes=structure_file_code)
+        output_sequence_file = structure_file_code+'_aln.chn'
+        aln.write(file=os.path.join(self.modeling_directory, output_sequence_file))
+        self.template_options_dict[template]["sequence_file"] = output_sequence_file
 
 
     ################
     # Old methods. #
     ################
-    def set_block_index(self,index):
-        self.block_index = index
 
-    def set_water_molecules_number(self,n):
-        self.water_molecules_number = n
+    # def set_block_index(self,index):
+    #     self.block_index = index
+
+    # def set_water_molecules_number(self,n):
+    #     self.water_molecules_number = n
 
     def has_structures_with_disulfides(self):
         disulfides = None
@@ -1860,69 +1684,69 @@ class Modeling_cluster:
             disulfides = False
         return disulfides
 
-    def set_symmetry_id(self,symmetry_id):
-        self.symmetry_id = symmetry_id
-
-    def set_model_chain_id(self,chain_index):
-        self.model_chain_id = chain_index
-
-    def set_symmetry_var(self,symmetry_var):
-        self.symmetry_var = symmetry_var
-
-    def get_template_complex_chain(self):
-        """
-        Returns the 'PyMod_element' object if the template complex chain of this modeling cluster.
-        """
-        c = None
-        for t in self.templates_list:
-            if t in pymod.template_complex.clusterseq_elements:
-                c = t
-                break
-        return c
-
-    def has_ligands(self):
-        ligands = False
-        for t in self.templates_list:
-            ligand_count = len([h for h in t.structure.hetero_residues if h.hetres_type == "ligand"])
-            if ligand_count > 0:
-                ligands = True
-                break
-        return ligands
-
-    def template_complex_chain_has_ligands(self):
-        ligands = False
-        for t in self.templates_list:
-            if t in pymod.template_complex.clusterseq_elements:
-                ligand_count = len([h for h in t.structure.hetero_residues if h.hetres_type == "ligand"])
-                if ligand_count > 0:
-                    ligands = True
-                break
-        return ligands
-
-    def switch_hetres_checkbutton_states(self,het_radio_button_state):
-        for sf in self.structure_frame_list:
-            # Activate.
-            if het_radio_button_state == 1:
-                sf.hetres_radiobutton_state = 1
-                sf.activate_water_checkbutton()
-                if sf.number_of_hetres > 0:
-                    sf.activate_het_checkbuttons()
-            # Inactivate.
-            if het_radio_button_state == 0:
-                sf.hetres_radiobutton_state = 0
-                sf.inactivate_water_checkbutton()
-                if sf.number_of_hetres > 0:
-                    sf.inactivate_het_checkbuttons()
-
-    def adjust_model_elements_sequence(self, remove_gaps = False):
-        self.backup_target_sequence = None
-        if not remove_gaps:
-            self.backup_target_sequence = self.target.my_sequence
-        else:
-            self.backup_target_sequence = str(self.target.my_sequence).replace("-","")
-        for model_element in self.model_elements_list:
-            if model_element.unique_index != self.target.unique_index:
-                model_element.my_sequence = self.backup_target_sequence
+    # def set_symmetry_id(self,symmetry_id):
+    #     self.symmetry_id = symmetry_id
+    #
+    # def set_model_chain_id(self,chain_index):
+    #     self.model_chain_id = chain_index
+    #
+    # def set_symmetry_var(self,symmetry_var):
+    #     self.symmetry_var = symmetry_var
+    #
+    # def get_template_complex_chain(self):
+    #     """
+    #     Returns the 'PyMod_element' object if the template complex chain of this modeling cluster.
+    #     """
+    #     c = None
+    #     for t in self.templates_list:
+    #         if t in pymod.template_complex.clusterseq_elements:
+    #             c = t
+    #             break
+    #     return c
+    #
+    # def has_ligands(self):
+    #     ligands = False
+    #     for t in self.templates_list:
+    #         ligand_count = len([h for h in t.structure.hetero_residues if h.hetres_type == "ligand"])
+    #         if ligand_count > 0:
+    #             ligands = True
+    #             break
+    #     return ligands
+    #
+    # def template_complex_chain_has_ligands(self):
+    #     ligands = False
+    #     for t in self.templates_list:
+    #         if t in pymod.template_complex.clusterseq_elements:
+    #             ligand_count = len([h for h in t.structure.hetero_residues if h.hetres_type == "ligand"])
+    #             if ligand_count > 0:
+    #                 ligands = True
+    #             break
+    #     return ligands
+    #
+    # def switch_hetres_checkbutton_states(self,het_radio_button_state):
+    #     for sf in self.structure_frame_list:
+    #         # Activate.
+    #         if het_radio_button_state == 1:
+    #             sf.hetres_radiobutton_state = 1
+    #             sf.activate_water_checkbutton()
+    #             if sf.number_of_hetres > 0:
+    #                 sf.activate_het_checkbuttons()
+    #         # Inactivate.
+    #         if het_radio_button_state == 0:
+    #             sf.hetres_radiobutton_state = 0
+    #             sf.inactivate_water_checkbutton()
+    #             if sf.number_of_hetres > 0:
+    #                 sf.inactivate_het_checkbuttons()
+    #
+    # def adjust_model_elements_sequence(self, remove_gaps = False):
+    #     self.backup_target_sequence = None
+    #     if not remove_gaps:
+    #         self.backup_target_sequence = self.target.my_sequence
+    #     else:
+    #         self.backup_target_sequence = str(self.target.my_sequence).replace("-","")
+    #     for model_element in self.model_elements_list:
+    #         if model_element.unique_index != self.target.unique_index:
+    #             model_element.my_sequence = self.backup_target_sequence
 
 # # ---
 # # PIR alignment class.
@@ -2552,10 +2376,11 @@ class Disulfides_frame:
         least one template with a dsb.
         """
         self.templates_with_dsb = False
-        for mc in self.pymod_object.modeling_clusters_list:
-            if mc.pymod_element.has_structures_with_disulfides():
-                self.templates_with_dsb = True
-                break
+        # TODO.
+        # for mc in self.pymod_object.modeling_clusters_list:
+        #     if mc.pymod_element.has_structures_with_disulfides():
+        #         self.templates_with_dsb = True
+        #         break
         return self.templates_with_dsb
 
 
@@ -2589,9 +2414,9 @@ class Disulfides_frame:
             self.use_template_dsb_rad_frame = Frame(self.template_dsb_frame)
             self.use_template_dsb_rad_frame.grid(row=2, column=0, sticky = "w")
             # Radiobuttons.
-            self.use_template_dsb_rad1 = Radiobutton(self.use_template_dsb_rad_frame, text="Yes", variable=self.use_template_dsb_var, value=1, padx=20,command=self.activate_template_dsb_frame, **modeling_window_rb_big)
+            self.use_template_dsb_rad1 = Radiobutton(self.use_template_dsb_rad_frame, text="Yes", variable=self.use_template_dsb_var, value=1, padx=20,command=self.activate_template_dsb_frame, **pmgi.shared_components.modeling_window_rb_big)
             self.use_template_dsb_rad1.grid(row=0, column=0, sticky = "w")
-            self.use_template_dsb_rad2 = Radiobutton(self.use_template_dsb_rad_frame, text="No", variable=self.use_template_dsb_var, value=0, padx=20,command=self.inactivate_template_dsb_frame, **modeling_window_rb_big)
+            self.use_template_dsb_rad2 = Radiobutton(self.use_template_dsb_rad_frame, text="No", variable=self.use_template_dsb_var, value=0, padx=20,command=self.inactivate_template_dsb_frame, **pmgi.shared_components.modeling_window_rb_big)
             self.use_template_dsb_rad2.grid(row=0, column=1, sticky = "w")
             # Button for displaying the list of disulfide bridges found in the templates.
             self.toggle_template_frame = Frame(self.template_dsb_frame,bg="black")
@@ -2716,10 +2541,10 @@ class Disulfides_frame:
         self.use_user_defined_dsb_rad_frame.grid(row=2, column=0, sticky = "w")
 
         # Radiobuttons.
-        self.use_user_defined_dsb_rad1 = Radiobutton(self.use_user_defined_dsb_rad_frame, text="Yes", variable=self.use_user_defined_dsb_var, value=1,padx = 20,command=self.activate_combo_box_frame, **modeling_window_rb_big)
+        self.use_user_defined_dsb_rad1 = Radiobutton(self.use_user_defined_dsb_rad_frame, text="Yes", variable=self.use_user_defined_dsb_var, value=1,padx = 20,command=self.activate_combo_box_frame, **pmgi.shared_components.modeling_window_rb_big)
         self.use_user_defined_dsb_rad1.grid(row=0, column=0, sticky = "w")
 
-        self.use_user_defined_dsb_rad2 = Radiobutton(self.use_user_defined_dsb_rad_frame, text="No", variable=self.use_user_defined_dsb_var, value=0, padx = 20,command=self.inactivate_combo_box_frame, **modeling_window_rb_big)
+        self.use_user_defined_dsb_rad2 = Radiobutton(self.use_user_defined_dsb_rad_frame, text="No", variable=self.use_user_defined_dsb_var, value=0, padx = 20,command=self.inactivate_combo_box_frame, **pmgi.shared_components.modeling_window_rb_big)
         self.use_user_defined_dsb_rad2.grid(row=0, column=1, sticky = "w")
 
         # Frame where comboboxes and buttons for user defined disulfides are going to be placed.
@@ -2767,10 +2592,10 @@ class Disulfides_frame:
         self.use_auto_dsb_rad_frame.grid(row=2, column=0, sticky = "w")
 
         # Radiobuttons.
-        self.auto_dsb_rad1 = Radiobutton(self.use_auto_dsb_rad_frame, text="Yes", variable=self.auto_dsb_var, value=1, padx = 20,command=self.activate_auto_dsb,**modeling_window_rb_big)
+        self.auto_dsb_rad1 = Radiobutton(self.use_auto_dsb_rad_frame, text="Yes", variable=self.auto_dsb_var, value=1, padx = 20,command=self.activate_auto_dsb,**pmgi.shared_components.modeling_window_rb_big)
         self.auto_dsb_rad1.grid(row=0, column=0, sticky = "w")
 
-        self.auto_dsb_rad2 = Radiobutton(self.use_auto_dsb_rad_frame, text="No", variable=self.auto_dsb_var, value=0,padx = 20, command=self.inactivate_auto_dsb,**modeling_window_rb_big)
+        self.auto_dsb_rad2 = Radiobutton(self.use_auto_dsb_rad_frame, text="No", variable=self.auto_dsb_var, value=0,padx = 20, command=self.inactivate_auto_dsb,**pmgi.shared_components.modeling_window_rb_big)
         self.auto_dsb_rad2.grid(row=0, column=1, sticky = "w")
 
 
@@ -2985,7 +2810,7 @@ class User_disulfide_combo:
         self.update_scrollable_cys_list()
 
         # "Add" button.
-        self.new_disulfides_button = Button(self.target_widget, text="Add", command = self.press_add_button, **button_style_2)
+        self.new_disulfides_button = Button(self.target_widget, text="Add", command = self.press_add_button, **pmgi.shared_components.button_style_2)
         self.new_disulfides_button.grid(row = self.row, column = 2)
 
         User_disulfide_combo.id_counter += 1
@@ -3020,7 +2845,7 @@ class User_disulfide_combo:
         self.cys2_label.grid(row = self.row,column = 1)
 
         # Adds the "Remove" button.
-        self.remove_disulfides_button = Button(self.target_widget, text="Remove", command = self.press_remove_button, **button_style_2)
+        self.remove_disulfides_button = Button(self.target_widget, text="Remove", command = self.press_remove_button, **pmgi.shared_components.button_style_2)
         self.remove_disulfides_button.grid(row = self.row, column = 2,pady=(5,0))
 
 

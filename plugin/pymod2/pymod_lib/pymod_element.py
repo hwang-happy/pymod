@@ -466,6 +466,17 @@ class PyMod_sequence_element(PyMod_element):
     def has_waters(self):
         return len(self.get_waters()) > 0
 
+    def get_pir_sequence(self, use_hetatm=True, use_water=True):
+        pir_seq = ""
+        for res in self.residues:
+            if res.is_standard_residue():
+                pir_seq += res.one_letter_code
+            elif res.is_heteroresidue() and use_hetatm:
+                pir_seq += "."
+            elif res.is_water() and use_water:
+                pir_seq += "w"
+        return pir_seq
+
 
     ###############################################################################################
     # Header related.                                                                             #
@@ -589,7 +600,7 @@ class PyMod_residue:
             return False
 
     def is_standard_residue(self):
-        return not self.is_heteroresidue() # TODO.
+        return not self.is_heteroresidue(exclude_water=False) # TODO.
 
     def is_heteroresidue(self, exclude_water=True):
         if exclude_water:
