@@ -5,6 +5,7 @@
 #   - reimplement disulfides and change the restraints the 'Disulfides' tab to 'Restraints'.
 #   - reimplement all.
 #   - remove leeafs, saakura.
+#   - use the available topologies for those residues having them.
 
 import os
 import sys
@@ -1401,8 +1402,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         original PyMod version.
         """
         pir_align_file_handle = open(os.path.join(self.modeling_directory, "align-multiple.ali"), "w")
-        for (mc_i,modeling_cluster) in enumerate(self.modeling_clusters_list):
-            for template in modeling_cluster.templates_list:
+        for (mc_i, modeling_cluster) in enumerate(self.modeling_clusters_list):
+            for tmp_i, template in enumerate(modeling_cluster.templates_list):
 
                 ############################################################
                 # Confronts the template sequences as seen by MODELLER and #
@@ -1415,7 +1416,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 for p in mod_seq:
                     if p not in pmdt.prot_standard_one_letter_set | set(("w",".")):
                         new_mod_seq = new_mod_seq.replace(p,".")
-                pymod_seq = template.get_pir_sequence(use_hetatm=self.use_hetatm_in_session, use_water=self.use_hetatm_in_session)
+                pymod_seq = template.get_pir_sequence(use_hetatm=self.use_hetatm_in_session, use_water=self.use_water_in_session)
                 if not mod_seq == pymod_seq:
                     self.pymod.show_error_message("Sequence Mismatch", "PyMod does not know how MODELLER see the template sequences.")
                     print "###"
@@ -1425,40 +1426,91 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     print "pym:", pymod_seq
                 ############################################################
 
+                #----------------------------------------------------
+                # Takes the gaps in the aligned template sequences. -
+                #----------------------------------------------------
+
+                # Correct the insert index in order to include ligands and water molecules.
+                all_to_polymer_ids_dict = {}
+                for i, res in enumerate(template.get_polymer_residues()):
+                    all_to_polymer_ids_dict.update({i: res.index-i})
+
+                gaps_dict_list = []
+                building_new_gap = None
+                new_gap_length = 0
+                new_gap_insert_index = 0
+                res_counter = 0
+                for i, p in enumerate(template.my_sequence):
+                    if p == "-":
+                        if gaps_dict_list != []:
+                            building_new_gap = True
+                            new_gap_insert_index = res_counter # i
+                        if building_new_gap:
+                            new_gap_length += 1
+                        else:
+                            new_gap_insert_index = res_counter # i
+                            new_gap_length += 1
+                            building_new_gap = True
+                    else:
+                        if building_new_gap:
+                            gaps_dict_list.append({"length": new_gap_length, "insert_index": new_gap_insert_index + all_to_polymer_ids_dict[res_counter]})
+                            new_gap_length = 0
+                        building_new_gap = False
+                        res_counter += 1
+                if building_new_gap:
+                    new_gap_insert_index = res_counter # i
+                    gaps_dict_list.append({"length": new_gap_length, "insert_index": new_gap_insert_index + all_to_polymer_ids_dict[res_counter-1]})
+
+                pymod_seq_list = list(pymod_seq)
+                n_gaps = 0
+                for gd in gaps_dict_list:
+                    for g in range(0, gd["length"]):
+                        pymod_seq_list.insert(gd["insert_index"]+n_gaps,"-")
+                        n_gaps += 1
+                pymod_seq = "".join(pymod_seq_list)
+                print template.my_header
+                print "Old:", template.my_sequence
+                print "New:", pymod_seq
+
                 #--------------------------------
                 # Write the template sequences. -
                 #--------------------------------
 
+                # First write to the file the template blocks.
+                # for (i,template) in enumerate(mc.templates_list):
 
-    def get_aligned_pir_sequence(self, template, mod_template_sequence):
-        for i,mod_res in mod_template_sequence:
-            ali_id = self.get_id_in_custom_alignment(template, i)
-            last_position = 0
-            mod_ts_dict = {}
-            if ali_id:
-                mod_ts_dict.update({last_position, mod_res})
-                last_position += 1
-                
+                # Writes the first line of the template. Modeller does not like names with ":" character
+                # but they have been removed when populating self.templates_namelist.
+                template_code = modeling_cluster.template_options_dict[template]["modeller_name"]
+                template_chain = template.get_structure_chain_id()
+                print >> pir_align_file_handle , ">P1;"+template_code
+                print >> pir_align_file_handle , "structure:%s:.:%s:.:%s::::" % (template_code,template_chain,template_chain)
+                # Print one the alignment file 60 characters-long lines.
+                template_sequence = self.get_pir_formatted_sequence(pymod_seq)
+                print >> pir_align_file_handle, template_sequence
 
-    def get_id_in_custom_alignment(self, template, res_id):
-        return res_id
+            # Then writes the target block.
+            print >> pir_align_file_handle , ">P1;"+self.modeller_target_name # mc.target_name
+            print >> pir_align_file_handle , "sequence:"+self.modeller_target_name+":.:.:.:.::::"
+            target_sequence = self.get_pir_formatted_sequence(modeling_cluster.target.my_sequence)
+            print >> pir_align_file_handle, target_sequence
 
 
-    # def get_pir_formatted_sequence(self,sequence,multi=False):
-    #     formatted_sequence = ""
-    #     for s in xrange(0,len(sequence),60):
-    #         # For all the lines except the last one.
-    #         if (len(sequence) - s) > 60:
-    #             formatted_sequence += sequence[s:s+60] + "\n"
-    #         # For the last line.
-    #         else:
-    #             if not multi:
-    #                 formatted_sequence += sequence[s:]+"*"+"\n"
-    #             else:
-    #                 formatted_sequence += sequence[s:]+"/*"+"\n"
-    #     return formatted_sequence
-    #
-    #
+    def get_pir_formatted_sequence(self,sequence,multi=False):
+        formatted_sequence = ""
+        for s in xrange(0,len(sequence),60):
+            # For all the lines except the last one.
+            if (len(sequence) - s) > 60:
+                formatted_sequence += sequence[s:s+60] + "\n"
+            # For the last line.
+            else:
+                if not multi:
+                    formatted_sequence += sequence[s:]+"*"+"\n"
+                else:
+                    formatted_sequence += sequence[s:]+"/*"+"\n"
+        return formatted_sequence
+
+
     # def get_model_number(self):
     #     model_number = 0
     #     if self.multiple_chain_mode:

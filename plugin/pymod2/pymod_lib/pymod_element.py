@@ -1,3 +1,6 @@
+# TODO:
+#   - check the attributes and methods that are actually used in the rest of the plugin.
+
 import pymod_vars as pmdt
 import pymod_sequence_manipulation as pmsm
 
@@ -381,11 +384,17 @@ class PyMod_sequence_element(PyMod_element):
                 res.db_index = i + 1
             res.pymod_element = self
 
-
-    def get_residue_by_index(self, index, aligned_sequence_index=False):
+    # leafs!
+    def get_residue_by_index(self, index, aligned_sequence_index=False, only_polymer=True):
+        """
+        Returns a residue having the index provided in the 'index' argument in the sequence.
+        """
         if aligned_sequence_index:
             index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
-        return self.residues[index] # self.residues[index]
+        if only_polymer:
+            return self.get_polymer_residues()[index]
+        else:
+            return self.residues[index] # self.residues[index]
 
 
     ###############################################################################################
@@ -453,6 +462,9 @@ class PyMod_sequence_element(PyMod_element):
 
     def get_polymer_residues(self):
         return filter(lambda r: r.is_polymer_residue(), self.residues)
+
+    def get_polymer_sequence_string(self):
+        return "".join([res.one_letter_code for res in self.get_polymer_residues()])
 
     def get_standard_residues(self):
         return filter(lambda r: r.is_polymer_residue() and not r.is_modified_residue(), self.residues)
@@ -638,6 +650,16 @@ class PyMod_residue:
         #     #     /1UBI_Chain_A//A/LEU`43/CA
         #     #     1UBI_Chain_A and resi 43
         return "%s and resi %s" % (self.pymod_element.get_pymol_object_name(), self.db_index)
+
+
+    def get_id_in_aligned_sequence(self):
+        res_counter = 0
+        for i, p in enumerate(self.pymod_element.my_sequence):
+            if p != "-":
+                if self.index == res_counter:
+                    return i
+                res_counter += 1
+        return None
 
 
 class PyMod_heteroresidue(PyMod_residue):
