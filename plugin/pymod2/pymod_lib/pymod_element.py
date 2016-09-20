@@ -384,18 +384,6 @@ class PyMod_sequence_element(PyMod_element):
                 res.db_index = i + 1
             res.pymod_element = self
 
-    # leafs!
-    def get_residue_by_index(self, index, aligned_sequence_index=False, only_polymer=True):
-        """
-        Returns a residue having the index provided in the 'index' argument in the sequence.
-        """
-        if aligned_sequence_index:
-            index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
-        if only_polymer:
-            return self.get_polymer_residues()[index]
-        else:
-            return self.residues[index] # self.residues[index]
-
 
     ###############################################################################################
     # Sequence related.                                                                           #
@@ -478,6 +466,20 @@ class PyMod_sequence_element(PyMod_element):
     def has_waters(self):
         return len(self.get_waters()) > 0
 
+    def get_residues(self, ligands=False, modified_residues=True, water=False):
+        list_of_residues = []
+        for res in self.residues:
+            if res.is_standard_residue():
+                list_of_residues.append(res)
+            elif res.is_ligand() and ligands:
+                list_of_residues.append(res)
+            elif res.is_modified_residue() and modified_residues:
+                list_of_residues.append(res)
+            elif res.is_water() and water:
+                list_of_residues.append(res)
+        return list_of_residues
+
+
     def get_pir_sequence(self, use_hetatm=True, use_water=True):
         pir_seq = ""
         for res in self.residues:
@@ -488,6 +490,39 @@ class PyMod_sequence_element(PyMod_element):
             elif res.is_water() and use_water:
                 pir_seq += "w"
         return pir_seq
+
+
+    # leafs!
+    def get_residue_by_index(self, index, aligned_sequence_index=False, only_polymer=True):
+        """
+        Returns a residue having the index provided in the 'index' argument in the sequence.
+        """
+        if aligned_sequence_index:
+            index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
+        if only_polymer:
+            return self.get_polymer_residues()[index]
+        else:
+            return self.residues[index] # self.residues[index]
+
+
+    def get_next_residue_id(self, residue, aligned_sequence_index=False, only_polymer=True):
+        if only_polymer:
+            residues = self.get_polymer_residues()
+        else:
+            residues = self.residues
+        next_residue = None
+        for res in residues:
+            if res.index + 1 == residues.index:
+                next_residue = res
+                break
+
+        if not next_residue:
+            return -1
+        else:
+            if aligned_sequence_index:
+                return self.get_residue_by_index(next_residue.index, aligned_sequence_index=True, only_polymer=only_polymer)
+            else:
+                return next_residue.index
 
 
     ###############################################################################################

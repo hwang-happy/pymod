@@ -10,6 +10,7 @@
 import os
 import sys
 import shutil
+import subprocess
 
 from Tkinter import *
 import tkMessageBox
@@ -38,6 +39,7 @@ class Modeling_session:
     use_hetatm_in_session = False
     use_water_in_session = False
     modeling_directory = ""
+    pir_file_name = "align-multiple.ali"
 
     def set_hetatm_use(self, state):
         Modeling_session.use_hetatm_in_session = state
@@ -626,27 +628,28 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # leafs!
         self.build_pir_align_file()
 
-#         # ---
-#         # Defines a custom class to use some additional Modeller features.
-#         # ---
-#         # This class is going to be used to build the "a" object used to perform the actual
-#         # homology modelization. It is going to inherit everything from the automodel class
-#         # but is going to have dynamically redifined routines to make it possible to:
-#         #   - include user defined disulfide bridges in the model
-#         #   - exclude template disulfide bridges in the model
-#         #   - build multichain models with symmetries restraints
-#         #   - rename the chains in multichain models
-#         #------------------------------------------------------------
-#         if self.run_modeller_internally:
-#             class MyModel(modeller.automodel.automodel):
-#                 pass
-#         #------------------------------------------------------------
-#
-#         #############################################################
-#         if self.write_modeller_script:
-#             print >> self.modeller_script, "\n"+"class MyModel(modeller.automodel.automodel):"
-#         #############################################################
-#
+        #-------------------------------------------------------------------
+        # Defines a custom class to use some additional MODELLER features. -
+        #-------------------------------------------------------------------
+        # This class is going to be used to build the "a" object used to perform the actual
+        # homology modelization. It is going to inherit everything from the automodel class
+        # but is going to have dynamically redifined routines to make it possible to:
+        #   - include user defined disulfide bridges in the model
+        #   - exclude template disulfide bridges in the model
+        #   - build multichain models with symmetries restraints
+        #   - rename the chains in multichain models
+        #------------------------------------------------------------
+        if self.run_modeller_internally:
+            class MyModel(modeller.automodel.automodel):
+                pass
+        #------------------------------------------------------------
+
+        #############################################################
+        if self.write_modeller_script:
+            print >> self.modeller_script, "\n"+"class MyModel(modeller.automodel.automodel):"
+            print >> self.modeller_script, "\n"+"   pass" # TODO: remove.
+        #############################################################
+
 #         # ---
 #         # If there are some targets with at least two CYS residues, it decides whether to use
 #         # template disulfides or to let the CYS residues in a "reduced" state.
@@ -845,137 +848,136 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #             print >> self.modeller_script, "\n"+"        pass"+"\n"
 #         #############################################################
 #
-#         # ---
-#         # Creates the "a" object to perform the modelization.
-#         # ---
-#         #------------------------------------------------------------
-#         if self.run_modeller_internally:
-#             a = MyModel(env,
-#                         alnfile = os.path.join(model_subdir, "align-multiple.ali"), # alignment filename
-#                         knowns = tuple(self.all_templates_namelist),                # codes of the templates
-#                         sequence = self.modeller_target_name)                       # code of the target
-#                         #, assess_methods=(modeller.automodel.assess.DOPE))
-#         #------------------------------------------------------------
-#
-#         #############################################################
-#         if self.write_modeller_script:
-#             print >> self.modeller_script, "a =  MyModel("
-#             print >> self.modeller_script, "    env,"
-#             print >> self.modeller_script, "    alnfile =  'align-multiple.ali',"
-#             print >> self.modeller_script, "    knowns = " + repr(tuple(self.all_templates_namelist)) + ","
-#             print >> self.modeller_script, "    sequence = '%s')" % (self.modeller_target_name)
-#         #############################################################
-#
-#         # ---
-#         # Sets other Modeller options and finally build the model.
-#         # ---
-#         if self.optimization_level == "None":
-#             pass
-#
-#         if self.optimization_level == "Low":
-#             #--------------------------------------------------------
-#             if self.run_modeller_internally:
-#                 # Low VTFM optimization:
-#                 a.library_schedule = modeller.automodel.autosched.very_fast
-#                 # Low MD optimization:
-#                 a.md_level = modeller.automodel.refine.very_fast
-#             #--------------------------------------------------------
-#
-#             #########################################################
-#             if self.write_modeller_script:
-#                 print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.very_fast"
-#                 print >> self.modeller_script, "a.md_level = modeller.automodel.refine.very_fast"
-#             #########################################################
-#
-#         elif self.optimization_level == "Mid":
-#             #--------------------------------------------------------
-#             if self.run_modeller_internally:
-#                 # Thorough VTFM optimization:
-#                 a.library_schedule = modeller.automodel.autosched.fast
-#                 a.max_var_iterations = 300
-#                 # Thorough MD optimization:
-#                 a.md_level = modeller.automodel.refine.fast
-#                 # Repeat the whole cycle 2 times and do not stop unless obj.func. > 1E6
-#                 a.repeat_optimization = 2
-#             #--------------------------------------------------------
-#
-#             #########################################################
-#             if self.write_modeller_script:
-#                 print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.fast"
-#                 print >> self.modeller_script, "a.max_var_iterations = 300"
-#                 print >> self.modeller_script, "a.md_level = modeller.automodel.refine.fast"
-#                 print >> self.modeller_script, "a.repeat_optimization = 2"
-#             #########################################################
-#
-#         elif self.optimization_level == "High":
-#             #--------------------------------------------------------
-#             if self.run_modeller_internally:
-#                 # Very thorough VTFM optimization:
-#                 a.library_schedule = modeller.automodel.autosched.slow
-#                 a.max_var_iterations = 300
-#                 # Thorough MD optimization:
-#                 a.md_level = modeller.automodel.refine.slow
-#                 # Repeat the whole cycle 2 times and do not stop unless obj.func. > 1E6
-#                 a.repeat_optimization = 2
-#                 a.max_molpdf = 1e6
-#             #--------------------------------------------------------
-#
-#             #########################################################
-#             if self.write_modeller_script:
-#                 print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.slow"
-#                 print >> self.modeller_script, "a.max_var_iterations = 300"
-#                 print >> self.modeller_script, "a.md_level = modeller.automodel.refine.slow"
-#                 print >> self.modeller_script, "a.repeat_optimization = 2"
-#                 print >> self.modeller_script, "a.max_molpdf = 1e6"
-#             #########################################################
-#
-#         # ---
-#         # Determines how many models to build.
-#         # ---
-#
-#         #############################################################
-#         if self.write_modeller_script:
-#             print >> self.modeller_script, "a.starting_model= 1"
-#             print >> self.modeller_script, "a.ending_model = " + str(self.ending_model_number)
-#             print >> self.modeller_script, "a.make()"
-#             # Saves an output file that will be red by PyMod when MODELLER is executed externally.
-#             if not self.run_modeller_internally:
-#                 print >> self.modeller_script, "\n###################################"
-#                 print >> self.modeller_script, "# Needed to run MODELLER externally from PyMOL."
-#                 print >> self.modeller_script, "modeller_outputs_file = open('modeller_saved_outputs.txt','w')"
-#                 print >> self.modeller_script, "modeller_outputs_file.write('[')"
-#                 print >> self.modeller_script, "for model in a.outputs:"
-#                 print >> self.modeller_script, "    model_copy = model.copy()"
-#                 print >> self.modeller_script, "    model_copy.pop('pdfterms')"
-#                 print >> self.modeller_script, "    modeller_outputs_file.write('%s,' % (repr(model_copy)))"
-#                 print >> self.modeller_script, "modeller_outputs_file.write(']')"
-#                 print >> self.modeller_script, "modeller_outputs_file.close()"
-#             self.modeller_script.close()
-#
-#         if not self.run_modeller_internally:
-#             cline=self.pymod.modeller.get_exe_file_path() + " my_model.py"
-#             self.execute_subprocess(cline)
-#             # Builds the 'a.outputs' when MODELLER was executed externally by reading an output file
-#             # that was generated in the MODELLER script that was executed externally from PyMOL.
-#             modeller_outputs_file = open("modeller_saved_outputs.txt","r")
-#             class Empty_automodel:
-#                 outputs = None
-#             a = Empty_automodel()
-#             a.outputs = eval(modeller_outputs_file.readline())
-#             modeller_outputs_file.close()
-#         #############################################################
-#
-#         #------------------------------------------------------------
-#         if self.run_modeller_internally:
-#             a.starting_model = 1 # index of the first model
-#             a.ending_model = int(self.ending_model_number) # index of the last model
-#             # This is the method that launches the modl building phase.
-#             a.make()
-#         #------------------------------------------------------------
-#
-#         # Changes back the working directory to the project main directory.
-#         os.chdir(self.current_project_directory_full_path)
-#
+        #------------------------------------------------------
+        # Creates the "a" object to perform the modelization. -
+        #------------------------------------------------------
+
+        #------------------------------------------------------------
+        if self.run_modeller_internally:
+            a = MyModel(env,
+                        alnfile = self.pir_file_name, # alignment filename
+                        knowns = tuple(self.all_templates_namelist),                # codes of the templates
+                        sequence = self.modeller_target_name)                       # code of the target
+                        #, assess_methods=(modeller.automodel.assess.DOPE))
+        #------------------------------------------------------------
+
+        #############################################################
+        if self.write_modeller_script:
+            print >> self.modeller_script, "a =  MyModel("
+            print >> self.modeller_script, "    env,"
+            print >> self.modeller_script, "    alnfile =  '%s'," % self.pir_file_name
+            print >> self.modeller_script, "    knowns = " + repr(tuple(self.all_templates_namelist)) + ","
+            print >> self.modeller_script, "    sequence = '%s')" % (self.modeller_target_name)
+        #############################################################
+
+        #-----------------------------------------------------------
+        # Sets other Modeller options and finally build the model. -
+        #-----------------------------------------------------------
+
+        if self.optimization_level == "None":
+            pass
+
+        if self.optimization_level == "Low":
+            #--------------------------------------------------------
+            if self.run_modeller_internally:
+                # Low VTFM optimization:
+                a.library_schedule = modeller.automodel.autosched.very_fast
+                # Low MD optimization:
+                a.md_level = modeller.automodel.refine.very_fast
+            #--------------------------------------------------------
+
+            #########################################################
+            if self.write_modeller_script:
+                print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.very_fast"
+                print >> self.modeller_script, "a.md_level = modeller.automodel.refine.very_fast"
+            #########################################################
+
+        elif self.optimization_level == "Mid":
+            #--------------------------------------------------------
+            if self.run_modeller_internally:
+                # Thorough VTFM optimization:
+                a.library_schedule = modeller.automodel.autosched.fast
+                a.max_var_iterations = 300
+                # Thorough MD optimization:
+                a.md_level = modeller.automodel.refine.fast
+                # Repeat the whole cycle 2 times and do not stop unless obj.func. > 1E6
+                a.repeat_optimization = 2
+            #--------------------------------------------------------
+
+            #########################################################
+            if self.write_modeller_script:
+                print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.fast"
+                print >> self.modeller_script, "a.max_var_iterations = 300"
+                print >> self.modeller_script, "a.md_level = modeller.automodel.refine.fast"
+                print >> self.modeller_script, "a.repeat_optimization = 2"
+            #########################################################
+
+        elif self.optimization_level == "High":
+            #--------------------------------------------------------
+            if self.run_modeller_internally:
+                # Very thorough VTFM optimization:
+                a.library_schedule = modeller.automodel.autosched.slow
+                a.max_var_iterations = 300
+                # Thorough MD optimization:
+                a.md_level = modeller.automodel.refine.slow
+                # Repeat the whole cycle 2 times and do not stop unless obj.func. > 1E6
+                a.repeat_optimization = 2
+                a.max_molpdf = 1e6
+            #--------------------------------------------------------
+
+            #########################################################
+            if self.write_modeller_script:
+                print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.slow"
+                print >> self.modeller_script, "a.max_var_iterations = 300"
+                print >> self.modeller_script, "a.md_level = modeller.automodel.refine.slow"
+                print >> self.modeller_script, "a.repeat_optimization = 2"
+                print >> self.modeller_script, "a.max_molpdf = 1e6"
+            #########################################################
+
+        #---------------------------------------
+        # Determines how many models to build. -
+        #---------------------------------------
+
+        #############################################################
+        if self.write_modeller_script:
+            print >> self.modeller_script, "a.starting_model= 1"
+            print >> self.modeller_script, "a.ending_model = " + str(self.ending_model_number)
+            print >> self.modeller_script, "a.make()"
+            # Saves an output file that will be red by PyMod when MODELLER is executed externally.
+            if not self.run_modeller_internally:
+                print >> self.modeller_script, "\n###################################"
+                print >> self.modeller_script, "# Needed to run MODELLER externally from PyMOL."
+                print >> self.modeller_script, "modeller_outputs_file = open('modeller_saved_outputs.txt','w')"
+                print >> self.modeller_script, "modeller_outputs_file.write('[')"
+                print >> self.modeller_script, "for model in a.outputs:"
+                print >> self.modeller_script, "    model_copy = model.copy()"
+                print >> self.modeller_script, "    model_copy.pop('pdfterms')"
+                print >> self.modeller_script, "    modeller_outputs_file.write('%s,' % (repr(model_copy)))"
+                print >> self.modeller_script, "modeller_outputs_file.write(']')"
+                print >> self.modeller_script, "modeller_outputs_file.close()"
+            self.modeller_script.close()
+
+        if not self.run_modeller_internally:
+            cline=self.pymod.modeller.get_exe_file_path() + " my_model.py"
+            self.pymod.execute_subprocess(cline)
+            # Builds the 'a.outputs' when MODELLER was executed externally by reading an output file
+            # that was generated in the MODELLER script that was executed externally from PyMOL.
+            modeller_outputs_file = open("modeller_saved_outputs.txt","r")
+            class Empty_automodel:
+                outputs = None
+            a = Empty_automodel()
+            a.outputs = eval(modeller_outputs_file.readline())
+            modeller_outputs_file.close()
+        #############################################################
+
+        #------------------------------------------------------------
+        if self.run_modeller_internally:
+            a.starting_model = 1 # index of the first model
+            a.ending_model = int(self.ending_model_number) # index of the last model
+            # This is the method that launches the modl building phase.
+            a.make()
+        #------------------------------------------------------------
+
 #         # ---
 #         # Cycles through all models built by MODELLER to import them into PyMod and PyMOL.
 #         # ---
@@ -1167,6 +1169,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #         self.show_table(**assessment_table_args)
 #         self.show_dope_plot(session_plot_data)
 
+        # Changes back the working directory to the project main directory.
         self.finish_modeling_session()
 
 
@@ -1382,6 +1385,11 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         for modeling_cluster in self.modeling_clusters_list:
             modeling_cluster.prepare_template_files()
 
+        #---------------------------------------
+        # Prepares input and ouput file paths. -
+        #---------------------------------------
+        self.pir_file_path = os.path.join(self.modeling_directory, self.pir_file_name)
+
         #--------------------------------------------------------------------
         # Chenages the current working directory to the modeling directory. -
         #--------------------------------------------------------------------
@@ -1401,10 +1409,14 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         This function creates alignments in a PIR format: this is entirely rewrtitten from the
         original PyMod version.
         """
-        pir_align_file_handle = open(os.path.join(self.modeling_directory, "align-multiple.ali"), "w")
+        pir_align_file_handle = open(self.pir_file_path, "w")
+
+        #-------------------------------------------------------------------------------------
+        # Write the sequences as seen by MODELLER and checks if they are the same as seen by -
+        # PyMod.                                                                             -
+        #-------------------------------------------------------------------------------------
         for (mc_i, modeling_cluster) in enumerate(self.modeling_clusters_list):
             for tmp_i, template in enumerate(modeling_cluster.templates_list):
-
                 ############################################################
                 # Confronts the template sequences as seen by MODELLER and #
                 # as seen by PyMod.                                        #
@@ -1426,59 +1438,58 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     print "pym:", pymod_seq
                 ############################################################
 
-                #----------------------------------------------------
-                # Takes the gaps in the aligned template sequences. -
-                #----------------------------------------------------
+        #----------------------------------------------------------------------
+        # Starts to write the PIR sequence file needed by MODELLER for input. -
+        #----------------------------------------------------------------------
 
-                # Correct the insert index in order to include ligands and water molecules.
-                all_to_polymer_ids_dict = {}
-                for i, res in enumerate(template.get_polymer_residues()):
-                    all_to_polymer_ids_dict.update({i: res.index-i})
+        for (mc_i, modeling_cluster) in enumerate(self.modeling_clusters_list):
 
-                gaps_dict_list = []
-                building_new_gap = None
-                new_gap_length = 0
-                new_gap_insert_index = 0
-                res_counter = 0
-                for i, p in enumerate(template.my_sequence):
-                    if p == "-":
-                        if gaps_dict_list != []:
-                            building_new_gap = True
-                            new_gap_insert_index = res_counter # i
-                        if building_new_gap:
-                            new_gap_length += 1
-                        else:
-                            new_gap_insert_index = res_counter # i
-                            new_gap_length += 1
-                            building_new_gap = True
+            #-------------------------------------------------------------------------
+            # Get the ligands and water molecules in the sequences aligned in PyMod. -
+            #-------------------------------------------------------------------------
+            # TODO: modify for when using "exclude heteroatoms" options.
+            modeling_cluster.hetres_to_insert = []
+            for tmp_i, template in enumerate(modeling_cluster.templates_list):
+                for res in template.get_residues(ligands=self.use_hetatm_in_session, modified_residues=self.use_hetatm_in_session, water=self.use_water_in_session):
+                    if not res.is_polymer_residue():
+                        res_ali_insert_id = template.get_next_residue_id(res, aligned_sequence_index=True)
+                        modeling_cluster.hetres_to_insert.append((res_ali_insert_id, res.one_letter_code, template))
+
+            #------------------------------------------------------------------------
+            # Insert ligands and water molecules in the sequences aligned in PyMod. -
+            #------------------------------------------------------------------------
+            pir_sequence_id = 0
+            for template in modeling_cluster.templates_list:
+                modeling_cluster.pir_sequences_dict.update({
+                    template: {"list_seq": list(template.my_sequence),
+                                "pir_seq": None, "id":pir_sequence_id}})
+                pir_sequence_id += 1
+            modeling_cluster.pir_sequences_dict.update({
+                modeling_cluster.target: {"list_seq": list(modeling_cluster.target.my_sequence),
+                                          "pir_seq": None, "id":pir_sequence_id+1}})
+            # TODO: make a function to sort dicts having an "id" key.
+            for seq in sorted(modeling_cluster.pir_sequences_dict.keys(), key=lambda k: modeling_cluster.pir_sequences_dict[k]["id"]):
+                residue_to_insert_count = 0
+                for ri in modeling_cluster.hetres_to_insert:
+                    if seq == ri[2]:
+                        symbol_to_insert = ri[1]
+                        if symbol_to_insert == "x":
+                            symbol_to_insert = "."
                     else:
-                        if building_new_gap:
-                            gaps_dict_list.append({"length": new_gap_length, "insert_index": new_gap_insert_index + all_to_polymer_ids_dict[res_counter]})
-                            new_gap_length = 0
-                        building_new_gap = False
-                        res_counter += 1
-                if building_new_gap:
-                    new_gap_insert_index = res_counter # i
-                    gaps_dict_list.append({"length": new_gap_length, "insert_index": new_gap_insert_index + all_to_polymer_ids_dict[res_counter-1]})
+                        symbol_to_insert = "-"
+                    if ri[0] == -1:
+                        modeling_cluster.pir_sequences_dict[seq]["list_seq"].append(symbol_to_insert)
+                    else:
+                        modeling_cluster.pir_sequences_dict[seq]["list_seq"].insert(ri[0]+residue_to_insert_count, symbol_to_insert)
+                    residue_to_insert_count += 1
+                modeling_cluster.pir_sequences_dict[seq]["pir_seq"] = "".join(modeling_cluster.pir_sequences_dict[seq]["list_seq"])
 
-                pymod_seq_list = list(pymod_seq)
-                n_gaps = 0
-                for gd in gaps_dict_list:
-                    for g in range(0, gd["length"]):
-                        pymod_seq_list.insert(gd["insert_index"]+n_gaps,"-")
-                        n_gaps += 1
-                pymod_seq = "".join(pymod_seq_list)
-                print template.my_header
-                print "Old:", template.my_sequence
-                print "New:", pymod_seq
-
-                #--------------------------------
-                # Write the template sequences. -
-                #--------------------------------
-
+            #--------------------------------
+            # Write the template sequences. -
+            #--------------------------------
+            for template in modeling_cluster.templates_list:
                 # First write to the file the template blocks.
                 # for (i,template) in enumerate(mc.templates_list):
-
                 # Writes the first line of the template. Modeller does not like names with ":" character
                 # but they have been removed when populating self.templates_namelist.
                 template_code = modeling_cluster.template_options_dict[template]["modeller_name"]
@@ -1486,14 +1497,18 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 print >> pir_align_file_handle , ">P1;"+template_code
                 print >> pir_align_file_handle , "structure:%s:.:%s:.:%s::::" % (template_code,template_chain,template_chain)
                 # Print one the alignment file 60 characters-long lines.
-                template_sequence = self.get_pir_formatted_sequence(pymod_seq)
+                template_sequence = self.get_pir_formatted_sequence(modeling_cluster.pir_sequences_dict[template]["pir_seq"])
                 print >> pir_align_file_handle, template_sequence
 
             # Then writes the target block.
             print >> pir_align_file_handle , ">P1;"+self.modeller_target_name # mc.target_name
             print >> pir_align_file_handle , "sequence:"+self.modeller_target_name+":.:.:.:.::::"
-            target_sequence = self.get_pir_formatted_sequence(modeling_cluster.target.my_sequence)
+            target_sequence = self.get_pir_formatted_sequence(modeling_cluster.pir_sequences_dict[modeling_cluster.target]["pir_seq"])
             print >> pir_align_file_handle, target_sequence
+
+        pir_align_file_handle.close()
+
+        subprocess.call(['cat %s' % self.pir_file_path], shell=True)
 
 
     def get_pir_formatted_sequence(self,sequence,multi=False):
@@ -1623,6 +1638,8 @@ class Modeling_cluster(Modeling_session):
         ###################
 
 
+
+
     ################
     # New methods. #
     ################
@@ -1631,7 +1648,8 @@ class Modeling_cluster(Modeling_session):
         self.templates_list = []
         # Important dictionary that is going to contain informations about the templates.
         self.template_options_dict = {}
-        # self.templates_namelist = []
+        self.pir_sequences_dict = {}
+        self.hetres_to_insert = []
 
 
     def set_options_from_gui(self):
