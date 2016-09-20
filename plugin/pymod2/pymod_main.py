@@ -720,8 +720,9 @@ class PyMod:
             self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
             # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
             self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
-            
+
         self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
+        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
         self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
         self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
         self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
@@ -1298,7 +1299,7 @@ class PyMod:
     # Opening PDB files.                                            #
     #################################################################
 
-    def open_structure_file(self,pdb_file_full_path, file_format="pdb", grid=False):
+    def open_structure_file(self, pdb_file_full_path, file_format="pdb", grid=False):
         """
         Opens a PDB file (specified in 'pdb_file_full_path'), reads its content and imports in PyMod
         the sequences of the polypeptide chains and loads in PyMOL their 3D structures.
