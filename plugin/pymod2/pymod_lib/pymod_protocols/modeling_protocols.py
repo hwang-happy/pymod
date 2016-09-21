@@ -1,5 +1,7 @@
 # TODO
 #   - implement single chain modeling mode.
+#       - open multiple files with the same structure.
+#       - duplicate structures.
 #       - load the models new sequences and structures.
 #       - assessment.
 #   - build a log file on all platforms.
@@ -7,7 +9,8 @@
 #   - multiple chain modeling.
 #   - reimplement disulfides and change the restraints the 'Disulfides' tab to 'Restraints'.
 #   - reimplement all.
-#   - remove leeafs, saakura.
+#   - test with all kind of cases.
+#   - remove leeafs, saakura, ellaion.
 #   - use the available topologies for those residues having them.
 
 import os
@@ -1729,6 +1732,7 @@ class Modeling_cluster(Modeling_session):
 
 
     def build_modeller_sequence_file(self, template):
+        # From point 17 of https://salilab.org/modeller/manual/node38.html.
         env = modeller.environ()
         modeller.log.none()
         if self.use_hetatm_in_session:

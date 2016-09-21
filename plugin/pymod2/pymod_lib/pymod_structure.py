@@ -128,7 +128,7 @@ class Parsed_pdb_file:
             #---------------------------------------------------------
             # Save the chains and build the relative PyMod_elements. -
             #---------------------------------------------------------
-            parsed_chain["file_name"] = "%s_chain_%s.pdb" % (self.original_base_name,parsed_chain["pymod_id"])
+            parsed_chain["file_name"] = "%s_chain_%s.pdb" % (self.original_base_name, parsed_chain["pymod_id"])
             parsed_chain["file_path"] = os.path.join(self.output_directory, parsed_chain["file_name"])
             # Saves a PDB file with only the current chain of the first model of the structure.
             io=Bio.PDB.PDBIO()
@@ -136,10 +136,16 @@ class Parsed_pdb_file:
             io.save(parsed_chain["file_path"], Select_chain_and_first_model(parsed_chain["pymod_id"]))
 
             # Builds the new 'PyMod_structure'.
-            new_structure = PyMod_structure(parsed_chain["file_path"], chain_id = parsed_chain["pymod_id"])
+            new_structure = PyMod_structure(
+                chain_file_path=parsed_chain["file_path"],
+                chain_id = parsed_chain["pymod_id"])
             self.list_of_structure_objects.append(new_structure)
             # Builds the new 'PyMod_element'.
-            new_element = pmel.PyMod_sequence_element(residues=parsed_chain["residues"], header=parsed_chain["file_name"], structure = new_structure) #, residues=[])
+            new_element_header = os.path.splitext(parsed_chain["file_name"])[0]
+            new_element = pmel.PyMod_sequence_element(
+                residues=parsed_chain["residues"],
+                header=new_element_header,
+                structure = new_structure)
             self.list_of_pymod_elements.append(new_element)
 
         warnings.simplefilter("always")
@@ -192,19 +198,6 @@ def get_sequence_using_ppb(pdb_file_path, output_directory=""):
     # ppb = CaPPBuilder()
     # for pp in ppb.build_peptides(structure):
     #     print(pp.get_sequence())
-
-
-def get_modeller_sequence(pdb_file_path, output_directory=""):
-    # From point 17 of https://salilab.org/modeller/manual/node38.html.
-    log.none()
-    env = environ()
-    code = os.path.splitext(os.path.basename(pdb_file_path))[0]
-    env.io.hetatm = True
-    env.io.water = True
-    mdl = model(env, file=pdb_file_path)
-    aln = alignment(env)
-    aln.append_model(mdl, align_codes=code)
-    aln.write(file=os.path.join(output_directory,"test_modeller_"+code+'_aln.chn'))
 
 
 class PyMod_structure:

@@ -1,7 +1,6 @@
 # TODO:
-#     - MODELLER.
+#     - MODELLER, structures, files and headers formatting.
 #     - add raw sequence.
-#     - headers formatting.
 #     - structure appearence and colors.
 #     - fetch and associate structures.
 #     - reimplement the collapsed clusters features.
@@ -723,6 +722,11 @@ class PyMod:
 
         self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
         self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
+        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
+        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
+        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
+        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
+        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
         self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
         self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
         self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
@@ -989,6 +993,7 @@ class PyMod:
         if color: # TODO.
             element.my_color = color
         # Builds for it some Tkinter widgets to show in PyMod main window.
+        # They will be gridded later.
         self.main_window.add_pymod_element_widgets(element)
 
         # Load its structure in PyMOL.
@@ -1044,7 +1049,7 @@ class PyMod:
                 cluster_name = self.set_alignment_element_name(algorithm_full_name, self.alignment_count)
             elif cluster_type == "blast-cluster":
                 # TODO: what?
-                cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.get_compact_header())
+                cluster_name = "%s cluster %s (query: %s)" % (algorithm, self.blast_cluster_counter, query.compact_header)
             elif cluster_type == "generic":
                 cluster_name = "New cluster %s" % (self.new_clusters_counter)
 
@@ -2105,46 +2110,69 @@ class PyMod:
     # Headers.                                                      #
     #################################################################
 
+    # elaion!
     def adjust_headers(self, pymod_element):
         """
         This methods renames PyMod elements. Checks if there are other elements in the
         'pymod_elements_list' that have the same name. If there are, then append to the name of
         the sequence a string to diversifity it as a copy.
         """
-        self.adjust_header(pymod_element)
-        self.adjust_compact_header(pymod_element)
+        # First sets the 'my_header_root' attribute.
+        self.set_header_root(pymod_element)
+        # The sets the 'compact_header' attribute and gets a prefix to enumerate copies of an
+        # element.
+        self.set_compact_headers(pymod_element)
+        # Finally sets the 'my_header' attribute.
+        self.set_header(pymod_element)
 
-
-    def adjust_header(self, pymod_element):
-        self.correct_header_root(pymod_element)
-        self.correct_header(pymod_element)
-
-    def correct_header_root(self, pymod_element):
+    def set_header_root(self, pymod_element, header=None):
+        """
+        Adjust the 'my_header' string of a 'PyMod_element'.
+        """
         pymod_element.my_header_root = pmsm.get_header_string(pymod_element.original_header)
 
-    def correct_header(self, pymod_element):
-        """
-        This function allows to rename a sequence with the same name (needed by ClustalW to work
-        properly). Checks if there are other elements in the pymod_elements_list that have the same
-        name. If there are, then append to the name of the sequence a string to diversifity it as a
-        copy.
-        """
-        pymod_element.my_header = self.get_new_name(pymod_element.my_header_root, list_to_check=[e.my_header for e in self.get_pymod_elements_list() if e != pymod_element])
+    def set_compact_headers(self, pymod_element, header=None):
+        pymod_element.compact_header_root = pmsm.get_compact_header_string(pymod_element.my_header_root)
+        list_to_check=[e.compact_header for e in self.get_pymod_elements_list() if e != pymod_element]
+        names_tuple = self.get_new_name(pymod_element.compact_header_root, list_to_check=list_to_check, get_tuple=True)
+        pymod_element.compact_header_prefix = names_tuple[0]
+        pymod_element.compact_header = names_tuple[1]
 
+    def set_header(self, pymod_element, header=None):
+        pymod_element.my_header = pymod_element.compact_header_prefix + pymod_element.my_header_root # pymod_element.compact_header_prefix+pymod_element.my_header_root
 
-    def adjust_compact_header(self, pymod_element):
-        pymod_element.compact_header_root = pmsm.get_compact_header_string(pymod_element.my_header)
-        pymod_element.compact_header = pymod_element.compact_header_root
+    def get_new_name(self, name, list_to_check=[], get_tuple=False):
+        new_name_tuple = self._get_new_name_tuple(name, list_to_check=list_to_check)
+        if new_name_tuple[0] == 0:
+            name_to_return = name
+        else:
+            name_to_return = "%s_%s" % (new_name_tuple[0], name)
+        if not get_tuple:
+            return name_to_return
+        else:
+            if new_name_tuple[0] == 0:
+                return ("", name_to_return)
+            else:
+                return ("%s_" % new_name_tuple[0], name_to_return)
 
-
-    def get_new_name(self, name, n=1, name_root=None, list_to_check=[]):
+    def _get_new_name_tuple(self, name, n=0, name_root=None, list_to_check=[]): # n=1
         if name_root == None:
             name_root = name
-        if name in [e for e in list_to_check]:
-            new_name = str(n)+"_"+name_root
-            return self.get_new_name(new_name, n+1, name_root, list_to_check)
+        if name in list_to_check:
+            new_name = "%s_%s" % (str(n+1), name_root)
+            return self._get_new_name_tuple(new_name, n+1, name_root, list_to_check)
         else:
-            return name
+            return (n, name)
+
+
+    # def get_new_name(self, name, n=1, name_root=None, list_to_check=[]): # n=0
+    #     if name_root == None:
+    #         name_root = name
+    #     if name in list_to_check:
+    #         new_name = "%s_%s" % (str(n), name_root)
+    #         return self.get_new_name(new_name, n+1, name_root, list_to_check)
+    #     else:
+    #         return name
 
 
     ###############################################################################################
@@ -2730,7 +2758,7 @@ class PyMod:
         # Build the list of sequences names.
         sequences_names = []
         for e in aligned_elements:
-            sequences_names.append(e.get_compact_header())
+            sequences_names.append(e.compact_header)
 
         title = 'Identity matrix for ' + alignment_element.my_header
         self.show_table(sequences_names, sequences_names, identity_matrix, title)
@@ -2766,7 +2794,7 @@ class PyMod:
         # # Build the list of sequences names.
         # sequences_names = []
         # for e in aligned_elements:
-        #     sequences_names.append(e.get_compact_header())
+        #     sequences_names.append(e.compact_header)
         #
         # title = 'RMSD matrix for ' + alignment_element.my_header
         # self.show_table(sequences_names, sequences_names, rmsd_matrix_to_display, title)

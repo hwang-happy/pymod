@@ -210,7 +210,7 @@ class Generic_BLAST_search(PyMod_protocol):
         # Exit the whole process if no hits were found.
         if len(self.blast_record.alignments) == 0:
             blast_version = pmdt.algorithms_full_names_dict[self.blast_version]
-            self.show_warning_message("%s Message", "No hits weew found for %s for %s." % (blast_version, blast_version, self.blast_query_element.get_compact_header()))
+            self.show_warning_message("%s Message", "No hits weew found for %s for %s." % (blast_version, blast_version, self.blast_query_element.compact_header))
             return False
         else:
             # Returns 'True' if some hits were found.
@@ -239,7 +239,7 @@ class Generic_BLAST_search(PyMod_protocol):
 
 
     def get_blast_output_basename(self):
-        basename = (pmos.clean_file_name(self.blast_query_element.get_compact_header()) + "_" +
+        basename = (pmos.clean_file_name(self.blast_query_element.compact_header) + "_" +
                     pmdt.algorithms_full_names_dict[self.blast_version] + "_" +
                     "search_%s" % (self.pymod.blast_cluster_counter + 1) )
         return basename
@@ -287,7 +287,7 @@ class Generic_BLAST_search(PyMod_protocol):
         # An upper frame.
         self.blast_results_up_frame = Frame(self.blast_results_main, borderwidth=5, background='black', relief='groove', pady=15)
         self.blast_results_up_frame.pack(side = TOP, expand = NO, fill = X, ipadx = 3, ipady = 3)
-        title_text = "%s Output for: %s\nPlease Select the Sequences to Import" % (version_full_name, self.blast_query_element.get_compact_header())
+        title_text = "%s Output for: %s\nPlease Select the Sequences to Import" % (version_full_name, self.blast_query_element.compact_header)
         self.blast_message = Label(self.blast_results_up_frame, font = "comic 12", height = 1,
                                    text= title_text, background='black', fg='white', pady = 2)
         self.blast_message.pack(ipady=10)

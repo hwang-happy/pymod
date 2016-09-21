@@ -1316,7 +1316,7 @@ class Clustal_regular_alignment(Regular_sequence_alignment):
             new_dnd_file_lines = []
             for line in dnd_file_lines:
                 for m in re.findall(pmdt.unique_index_header_regex, line):
-                    line = line.replace(m, self.elements_to_align_dict[m].get_compact_header())
+                    line = line.replace(m, self.elements_to_align_dict[m].my_header)
                 new_dnd_file_lines.append(line)
             dnd_file_handler = open(new_dnd_file_path, "w")
             for line in new_dnd_file_lines:

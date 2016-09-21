@@ -737,7 +737,7 @@ class DOPE_assesment(PyMod_protocol):
             # Prepares the data.
             dope_plot_data.append({"dope_scores": element_dope_scores,
                                    "additional_data": residue_additional_data,
-                                   "label": element.get_compact_header()})# element.my_header[0:15]})
+                                   "label": element.compact_header})# element.my_header[0:15]})
 
         return dope_plot_data
 

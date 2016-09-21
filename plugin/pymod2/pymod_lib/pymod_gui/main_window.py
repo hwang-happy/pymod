@@ -1118,7 +1118,8 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
 
     def update_title(self):
-        self.header_entry_var.set(self.pymod_element.my_header)
+        # elaion!
+        self.header_entry_var.set(self.pymod_element.compact_header)
 
 
     #################################################################

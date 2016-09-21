@@ -53,6 +53,7 @@ class PyMod_element:
 
         self.compact_header = header
         self.compact_header_root = header
+        self.compact_header_prefix = ""
 
         # Sets the 'my_sequence' attribute. The primary sequence of an element. If the sequence is
         # changed or aligned by the user, it will be modified to include indels.
@@ -212,10 +213,6 @@ class PyMod_element:
     #################################################################
     # Headers formatting.                                           #
     #################################################################
-
-    def get_compact_header(self):
-        return self.my_header
-
 
     def get_unique_index_header(self):
         return pmdt.unique_index_header_formatted % self.unique_index
@@ -431,17 +428,6 @@ class PyMod_sequence_element(PyMod_element):
     #         self.my_sequence = pymod.correct_sequence(sequence)
     #     else:
     #         self.my_sequence = sequence
-    #
-    # def set_header_name(self, header, adjust_header=True):
-    #     if adjust_header:
-    #         self.my_header_fix = pymod.build_header_string(header)
-    #         # Just the header. This will be displayed in PyMod main window.
-    #         self.my_header = pymod.correct_name(self.my_header_fix)
-    #     else:
-    #         self.my_header_fix = header
-    #         self.my_header = header
-    #     # A compact header.
-    #     self.compact_header = self.get_compact_header(self.my_header)
     ################################
 
     ###############################################################################################
