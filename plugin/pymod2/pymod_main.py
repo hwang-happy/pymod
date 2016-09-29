@@ -8,6 +8,11 @@
 #     - superpose.
 #     - RMSD part.
 #     - reimplement the rest.
+#     - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
+#     - integrate the modifications made in the stable branch.
+#       - temp directory.
+#       - control the sequences.
+#       - models refinement.
 
 #     - remove the appendix "protocol" from all the procol classes names.
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
@@ -172,7 +177,7 @@ class PyMod:
 
         # Models.
         self.models_directory = "models"
-        self.models_subdirectory = "model"
+        self.models_subdirectory = "modeling_session"
         # Attributes that will keep track of how many models the user builds in a PyMod session.
         self.performed_modeling_count = 0
         # This will keep track of how many multiple chains models the user builds in a PyMod session.
@@ -707,29 +712,30 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
-        if 0:
+        if 1:
             # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min.fasta"), "fasta")
             # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
             # self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"))
-            self.open_sequence_file(os.path.join(seqs_dir,"fetch_pdb.fasta"))
-            self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
+            # self.open_sequence_file(os.path.join(seqs_dir,"fetch_pdb.fasta"))
+            self.open_sequence_file(os.path.join(seqs_dir,"1UBI_mut.fasta"))
             self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
+            self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
             # self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
             # self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
-            self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
             # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
-            self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
+            # self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
+            # self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
 
-        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
-        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
-        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
-        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
-        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
-        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
-        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
-        self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
-        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
-        self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
+        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
+        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
+        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
+        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
+        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
+        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
+        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
+        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
+        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
+        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
 
         self.gridder(update_clusters=True, update_menus=True)
 
@@ -1306,23 +1312,17 @@ class PyMod:
 
     def open_structure_file(self, pdb_file_full_path, file_format="pdb", grid=False):
         """
-        Opens a PDB file (specified in 'pdb_file_full_path'), reads its content and imports in PyMod
+        Opens a PDB file (specified in 'pdb_file_full_path'), reads its content, imports in PyMod
         the sequences of the polypeptide chains and loads in PyMOL their 3D structures.
         """
-        reload(pmstr) # TODO: to remove.
         if not self.is_valid_structure_file(pdb_file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
-        p = self.build_parsed_pdb_file(pdb_file_full_path)
+        p = pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
         if hasattr(p,"get_pymod_elements"):
-            pymod_elements = p.get_pymod_elements()
-            for element in pymod_elements:
+            for element in p.get_pymod_elements():
                 self.add_element_to_pymod(element, load_in_pymol=True, color="red") # TODO: change the color part.
         if grid:
             self.gridder()
-
-
-    def build_parsed_pdb_file(self, pdb_file_full_path):
-        return pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
 
 
     #################################################################
@@ -2592,17 +2592,16 @@ class PyMod:
     ###############################################################################################
 
     def assign_secondary_structure(self, element):
-        if element.has_structure():
-            sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment(self, element)
-            sec_str_assignment.assign_secondary_structure()
+        sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment(self, element)
+        sec_str_assignment.assign_secondary_structure()
 
 
     def dope_from_main_menu(self):
         """
         Called when users decide calculate DOPE of a structure loaded in PyMod.
         """
-        dope_assesment = pmptc.structural_analysis_protocols.DOPE_assesment(self)
-        dope_assesment.launch_from_gui()
+        dope_assessment = pmptc.structural_analysis_protocols.DOPE_assessment(self)
+        dope_assessment.launch_from_gui()
 
 #     def ramachandran_plot(self): # TODO.
 #         """

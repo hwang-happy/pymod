@@ -1,13 +1,16 @@
 import os
 import shutil
 
+import pymol
+from pymol import cmd, stored
+
 import pymod_lib.pymod_os_specific as pmos
 
 class PyMod_protocol:
     """
     A base class for PyMod protocols.
     """
-    
+
     def __init__(self, pymod):
         self.pymod = pymod
 
@@ -36,6 +39,24 @@ class PyMod_protocol:
 
         # A list that will contain all the selected sequences in the root level of PyMod.
         self.selected_root_sequences_list = set([s for s in self.pymod.get_selected_sequences() if s.mother == self.pymod.root_element])
+
+
+    ###############################################################################################
+    # PyMOL related methods.                                                                      #
+    ###############################################################################################
+
+    def superpose_in_pymol(self, mobile_selection, fixed_selection, save_superposed_structure=True, output_directory=None):
+        """
+        Superpose 'mobile' to 'fixed' in PyMOL.
+        """
+        if not output_directory:
+            output_directory = self.pymod.structures_directory
+        if hasattr(cmd, "super"): # 'super' is sequence-independent.
+            cmd.super(mobile_selection, fixed_selection)
+        else: # PyMOL 0.99 does not have 'cmd.super'.
+            cmd.align(mobile_selection, fixed_selection)
+        if save_superposed_structure:
+            cmd.save(os.path.join(output_directory, mobile_selection+".pdb"), mobile_selection)
 
 
 class PSI_BLAST_common:

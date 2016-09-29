@@ -470,7 +470,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
 # DOPE PROFILES.                                                                                  #
 ###################################################################################################
 
-class DOPE_assesment(PyMod_protocol):
+class DOPE_assessment(PyMod_protocol):
     """
     Compute the DOPE (Discrete optimized protein energy) of a polypeptidic chain using MODELLER.
     """
@@ -479,6 +479,7 @@ class DOPE_assesment(PyMod_protocol):
         PyMod_protocol.__init__(self, pymod)
         self.selected_sequences = self.get_pymod_elements(selected_sequences)
         self.dope_scores_dict = {}
+        self.assessed_structures_list = [] # TODO: this is redundant with 'dope_scores_dict'.
 
 
     def launch_from_gui(self):
@@ -530,7 +531,7 @@ class DOPE_assesment(PyMod_protocol):
         #--------------------------------------------------------------------------
         # Assigns to each residue of a corresponding color according to its DOPE. -
         #--------------------------------------------------------------------------
-        self.assign_dope_items(self.selected_sequences)
+        self.assign_dope_items()
 
         #----------------------
         # Color the elements. -
@@ -565,6 +566,7 @@ class DOPE_assesment(PyMod_protocol):
         # 'element'.
         dope_scores = self.get_dope_profile(e_profile_file_shortcut)
         self.dope_scores_dict.update({element:dope_scores})
+        self.assessed_structures_list.append(element)
 
 
     def compute_dope_of_structure_file(self, str_file_path, profile_file_path, env=None, run_internally=True, modeller_path=None, run_externally_command=None):
@@ -645,9 +647,9 @@ class DOPE_assesment(PyMod_protocol):
         return vals
 
 
-    def assign_dope_items(self, selection):
+    def assign_dope_items(self):
         # Retain only the DOPE values for residues of the chain (standard and modified residues).
-        for chain_element in selection:
+        for chain_element in self.assessed_structures_list:
             filtered_chain_dope_scores = []
             all_chain_dope_scores = self.dope_scores_dict[chain_element]
             for res, score in zip(chain_element.residues, all_chain_dope_scores):
@@ -656,14 +658,14 @@ class DOPE_assesment(PyMod_protocol):
             self.dope_scores_dict[chain_element] = filtered_chain_dope_scores
         # Builds a list of all DOPE values of the residues in the selection.
         ldope = []
-        for chain_element in selection:
+        for chain_element in self.assessed_structures_list:
             ldope.extend(self.dope_scores_dict[chain_element])
         # Takes the min and max values among all the selected residues.
         min_value = min(ldope)
         max_value = max(ldope)
         # An array with the equally sapced limits generated with the list above.
         bins = numpy.array(numpy.linspace(min_value, max_value, num=10))
-        for chain_element in selection:
+        for chain_element in self.assessed_structures_list:
             # An array with all the DOPE values of a single chain in the selection.
             adope = numpy.array(self.dope_scores_dict[chain_element])
             # An array with the id of the bins where those values reside.
@@ -741,7 +743,7 @@ class DOPE_assesment(PyMod_protocol):
 
         return dope_plot_data
 
-
+    
     def show_dope_plot(self, selection_dope_plot_data):
         x_label_text = None
         message_bar_text_on_update = None
@@ -933,14 +935,3 @@ class DOPE_assesment(PyMod_protocol):
 #             self.show_error_message("Selection Error","Please select at least two structures before superposing")
 #
 #
-#     def superpose_in_pymol(self, selector_1, selector_2, save_superposed_structure=True):
-#         """
-#         align mobile, target
-#         """
-#         if hasattr(cmd,"super"): # super is sequence-independent
-#             cmd.super(selector_1, selector_2)
-#             # cmd.cealign(target=selector_1, mobile=selector_2)
-#         else: # PyMOL 0.99 does not have cmd.super
-#             cmd.align(selector_1, selector_2)
-#         if save_superposed_structure:
-#             cmd.save(os.path.join(self.structures_directory, selector_1+".pdb"), selector_1)

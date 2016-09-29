@@ -324,6 +324,8 @@ class PyMod_sequence_element(PyMod_element):
         # Structural information. -
         #--------------------------
         self.structure = structure
+        self.models_count = 0
+        self.loop_models_count = 0
 
         #----------------------------------------
         # Builds the residues and the sequence. -

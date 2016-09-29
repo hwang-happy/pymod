@@ -13,8 +13,8 @@ import pymol
 from pymol import cmd
 
 import pymod_lib.pymod_sequence_manipulation as pmsm
-from pymod_lib.pymod_gui import shared_components as gui_shared_components
 import pymod_lib.pymod_vars as pmdt
+from pymod_lib.pymod_gui import shared_components
 
 import time
 import random
@@ -31,7 +31,7 @@ class PyMod_main_window_mixin:
 
     pymod = None
     dict_of_elements_widgets = {}
-    sequence_font_type = gui_shared_components.fixed_width_font
+    sequence_font_type = shared_components.fixed_width_font
     sequence_font_size = 10 # 12 TODO.
     sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 12".
     bg_color = "black"
@@ -1118,8 +1118,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
 
     def update_title(self):
-        # elaion!
-        self.header_entry_var.set(self.pymod_element.compact_header)
+        self.header_entry_var.set(self.pymod_element.my_header)
 
 
     #################################################################

@@ -41,13 +41,17 @@ class Parsed_pdb_file:
 
     counter = 0
 
-    def __init__(self, pdb_file_path, output_directory=""):
+    def __init__(self, pdb_file_path, output_directory="", new_file_name=None):
 
         st1 = time.time()
 
         self.output_directory = output_directory
         self.original_pdb_file_path = pdb_file_path
         self.original_base_name = os.path.splitext(os.path.basename(self.original_pdb_file_path))[0]
+        if not new_file_name:
+            self.structure_file_name = self.original_base_name
+        else:
+            self.structure_file_name = os.path.splitext(os.path.basename(new_file_name))[0]
 
         self.list_of_pymod_elements = []
         self.list_of_structure_objects = []
@@ -55,7 +59,7 @@ class Parsed_pdb_file:
         #-------------------------------------------------------------
         # Copies the orginal structure file in the output directory. -
         #-------------------------------------------------------------
-        copied_file_path = os.path.join(self.output_directory, os.path.basename(self.original_pdb_file_path))
+        copied_file_path = os.path.join(self.output_directory, self.structure_file_name+".pdb")
         if not os.path.isfile(copied_file_path):
             shutil.copy(self.original_pdb_file_path, copied_file_path)
 
@@ -128,7 +132,7 @@ class Parsed_pdb_file:
             #---------------------------------------------------------
             # Save the chains and build the relative PyMod_elements. -
             #---------------------------------------------------------
-            parsed_chain["file_name"] = "%s_chain_%s.pdb" % (self.original_base_name, parsed_chain["pymod_id"])
+            parsed_chain["file_name"] = "%s_chain_%s.pdb" % (self.structure_file_name, parsed_chain["pymod_id"])
             parsed_chain["file_path"] = os.path.join(self.output_directory, parsed_chain["file_name"])
             # Saves a PDB file with only the current chain of the first model of the structure.
             io=Bio.PDB.PDBIO()
@@ -175,29 +179,29 @@ class Parsed_pdb_file:
         return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
 
 
-def get_sequence_using_ppb(pdb_file_path, output_directory=""):
-    warnings.simplefilter("ignore")
-    # Creates a biopython pdb object and starts to take informations from it.
-    fh = open(pdb_file_path, "rU")
-    parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure("some_code", fh) # TODO: insert a code.
-    warnings.simplefilter("always")
-    code = os.path.splitext(os.path.basename(pdb_file_path))[0]
-    ppb = PPBuilder()
-    seq = ""
-    for pp in ppb.build_peptides(parsed_biopython_structure, aa_only=False):
-        s = ""
-        for r in pp:
-            if Bio.PDB.Polypeptide.is_aa(r.get_resname()):
-                s+=str(r.get_resname())
-            else:
-                s+="X"
-        seq += s
-    return seq
-
-    # # Using CA-CA
-    # ppb = CaPPBuilder()
-    # for pp in ppb.build_peptides(structure):
-    #     print(pp.get_sequence())
+# def get_sequence_using_ppb(pdb_file_path, output_directory=""):
+#     warnings.simplefilter("ignore")
+#     # Creates a biopython pdb object and starts to take informations from it.
+#     fh = open(pdb_file_path, "rU")
+#     parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure("some_code", fh) # TODO: insert a code.
+#     warnings.simplefilter("always")
+#     code = os.path.splitext(os.path.basename(pdb_file_path))[0]
+#     ppb = PPBuilder()
+#     seq = ""
+#     for pp in ppb.build_peptides(parsed_biopython_structure, aa_only=False):
+#         s = ""
+#         for r in pp:
+#             if Bio.PDB.Polypeptide.is_aa(r.get_resname()):
+#                 s+=str(r.get_resname())
+#             else:
+#                 s+="X"
+#         seq += s
+#     return seq
+#
+#     # # Using CA-CA
+#     # ppb = CaPPBuilder()
+#     # for pp in ppb.build_peptides(structure):
+#     #     print(pp.get_sequence())
 
 
 class PyMod_structure:
