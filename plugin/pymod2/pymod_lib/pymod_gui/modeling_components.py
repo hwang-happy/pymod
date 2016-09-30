@@ -102,39 +102,35 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         # If the user choose to build a multiple chain model, it displays an additional option to
         # let the user choose his/her "template complex".
         if self.modeling_protocol.multiple_chain_mode:
-            raise Exception("multichain")
-            # # An additional frame for the "template complex" selection.
-            # self.template_complex_selection_frame = Frame(self.main_frame_interior,borderwidth=0, background='black', relief='groove', pady=15)
-            # self.template_complex_selection_frame.pack(side="top", anchor="w")
-            # self.template_complex_selection_label=Label(self.template_complex_selection_frame, text= "Template Complex selection: ", **shared_components.modeling_window_title_style)
-            # self.template_complex_selection_label.grid(row=0, column=0,sticky = W+N)
-            #
-            # # The user can choose the "template complex" with some Radiobuttons.
-            # self.template_complex_var = StringVar()
-            # # Initialize by default with the first PDB in the list.
-            # self.template_complex_var.set(self.template_complex_list[0])
-            #
-            # # Display some information to explain what is a "template complex".
-            # information = (
-            # "Select the PDB file containing the complex on which you would like to base the building\n"+
-            # "of your multiple chain model. The relative orientation in space and the interfaces of\n"+
-            # "your model's chains will be based on the architecture of the Template Complex.")
-            #
-            # self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **shared_components.modeling_window_explanation)
-            # self.template_complex_message.grid(row=1, column=0, sticky = "w")
-            #
-            # for (tc_i,tc) in enumerate(self.template_complex_list):
-            #     tcb = Radiobutton(self.template_complex_selection_frame, text=tc, variable=self.template_complex_var, value=tc, **shared_components.modeling_window_rb_big)
-            #     tcb.grid(row=tc_i+2, column=0, sticky = "w",padx=(20,0))
+            # An additional frame for the "template complex" selection.
+            self.template_complex_selection_frame = Frame(self.main_frame_interior,borderwidth=0, background='black', relief='groove', pady=15)
+            self.template_complex_selection_frame.pack(side="top", anchor="w")
+            self.template_complex_selection_label=Label(self.template_complex_selection_frame, text= "Template Complex selection: ", **shared_components.modeling_window_title_style)
+            self.template_complex_selection_label.grid(row=0, column=0,sticky = W+N)
+
+            # The user can choose the "template complex" with some Radiobuttons.
+            self.template_complex_var = StringVar()
+            # Initialize by default with the first PDB in the list.
+            self.template_complex_var.set(self.modeling_protocol.template_complex_list[0])
+
+            # Display some information to explain what is a "template complex".
+            information = (
+            "Select the PDB file containing the complex on which you would like to base the building\n"+
+            "of your multiple chain model. The relative orientation in space and the interfaces of\n"+
+            "your model's chains will be based on the architecture of the Template Complex.")
+
+            self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **shared_components.modeling_window_explanation)
+            self.template_complex_message.grid(row=1, column=0, sticky = "w")
+
+            for (tc_i,tc) in enumerate(self.modeling_protocol.template_complex_list):
+                tcb = Radiobutton(self.template_complex_selection_frame, text=tc, variable=self.template_complex_var, value=tc, **shared_components.modeling_window_rb_big)
+                tcb.grid(row=tc_i+2, column=0, sticky = "w",padx=(20,0))
 
         # Builds a frame for each modeling_cluster.
         for (i, modeling_cluster) in enumerate(self.modeling_protocol.modeling_clusters_list):
-
             if self.modeling_protocol.multiple_chain_mode:
-                raise Exception("multichain")
-                # spacer_frame = Frame(self.main_frame_interior, background='black',height = 2,bd=1,relief=GROOVE)
-                # spacer_frame.pack(side="top", padx = 20, anchor="w", fill="x")
-
+                spacer_frame = Frame(self.main_frame_interior, background='black',height = 2,bd=1,relief=GROOVE)
+                spacer_frame.pack(side="top", padx = 20, anchor="w", fill="x")
             # A frame that will contain all the widgets necessary to choose the templates for a
             # single target sequence.
             modeling_cluster_frame = Frame(self.main_frame_interior, borderwidth=0, background='black', relief='groove', pady=5, padx=0)
@@ -153,24 +149,20 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             additional_options_frame = Frame(modeling_cluster_frame, **shared_components.target_box_style)
             show_additional_options = False
             if self.modeling_protocol.multiple_chain_mode:
-                raise Exception("multichain")
-                # # Use symmetry restraints option.
-                # if modeling_cluster.symmetry_id != None:
-                #     symmetry_frame = Frame(additional_options_frame,background='black',bd=0,relief=GROOVE)
-                #     symmetry_frame.pack(side=LEFT)
-                #
-                #     symmetry_label = Label(symmetry_frame, text= "Use simmetry restraints for this chain:", **shared_components.shared_components.modeling_window_option_style)
-                #     symmetry_label.grid(row=0, column=0,sticky= N+W)
-                #     use_symmetry_var = IntVar()
-                #     symmetry_chk = Checkbutton(symmetry_frame, text="", variable=use_symmetry_var, **shared_components.modeling_window_checkbutton)
-                #     symmetry_chk.grid(row=0, column=1,sticky= N+W)
-                #
-                #     symmetry_information = "Show Info"
-                #     symmetry_info = Button(symmetry_frame, text=symmetry_information, command= lambda: self.show_symmetry_info(modeling_cluster), relief="raised",borderwidth=0, bg="black", highlightbackground='black', fg="white", pady = 0, anchor = "w")
-                #     symmetry_info.grid(row=0, column=2,sticky= N+W)
-                #     modeling_cluster.set_symmetry_var(use_symmetry_var)
-                #
-                #     show_additional_options = True
+                # Use symmetry restraints option.
+                if modeling_cluster.symmetry_restraints_id != None:
+                    symmetry_frame = Frame(additional_options_frame,background='black',bd=0,relief=GROOVE)
+                    symmetry_frame.pack(side=LEFT)
+                    symmetry_label = Label(symmetry_frame, text= "Use simmetry restraints for this chain:", **shared_components.modeling_window_option_style)
+                    symmetry_label.grid(row=0, column=0,sticky= N+W)
+                    use_symmetry_var = IntVar()
+                    symmetry_chk = Checkbutton(symmetry_frame, text="", variable=use_symmetry_var, **shared_components.modeling_window_checkbutton)
+                    symmetry_chk.grid(row=0, column=1,sticky= N+W)
+                    symmetry_information = "Show Info"
+                    symmetry_info = Button(symmetry_frame, text=symmetry_information, command= lambda: self.show_symmetry_info(modeling_cluster), relief="raised",borderwidth=0, bg="black", highlightbackground='black', fg="white", pady = 0, anchor = "w")
+                    symmetry_info.grid(row=0, column=2,sticky= N+W)
+                    modeling_cluster.symmetry_restraints_var = use_symmetry_var
+                    show_additional_options = True
 
             if show_additional_options:
                 additional_options_label.pack(side="top", anchor="w")
@@ -183,7 +175,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             modeling_cluster.structure_frame_list = []
             for (si,structure) in enumerate(modeling_cluster.suitable_templates_list):
                 # This object is not a tkinter one, but contains as attributes many of them.
-                structure_frame = Structure_frame(self, structure,modeling_cluster.target,modeling_cluster_frame,si,i)
+                structure_frame = Structure_frame(self, structure, modeling_cluster.target,modeling_cluster_frame,si,i)
                 # Builds a frame for each template structure.
                 structure_frame.build_frame()
                 # Append the current "structure_frame" to the list of the current modeling cluster.
@@ -205,7 +197,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         """
         Displays informations about which target sequence shares the same sequence of other targets.
         """
-        mc_list = self.symmetry_restraints_groups.get_group_by_id(modeling_cluster.symmetry_id).list_of_clusters
+        mc_list = self.symmetry_restraints_groups.get_group_by_id(modeling_cluster.symmetry_restraints_id).list_of_clusters
         mc_list = filter(lambda x: not x is modeling_cluster ,mc_list)
         message1 = "The target '%s' shares the same sequence with these other targets:" % (modeling_cluster.target_name)
         seqs = reduce(lambda x,y: x+",\n"+y, [mc.target_name for mc in mc_list])

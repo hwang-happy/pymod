@@ -537,8 +537,8 @@ class PyMod_sequence_element(PyMod_element):
 
 
     @check_structure
-    def get_structure_file(self, name_only=False, strip_extension=False):
-        return self.structure.get_file(name_only=name_only, strip_extension=strip_extension)
+    def get_structure_file(self, name_only=False, strip_extension=False, original_structure_file=False):
+        return self.structure.get_file(name_only=name_only, strip_extension=strip_extension, original_structure_file=original_structure_file)
 
 
     @check_structure

@@ -1,13 +1,7 @@
 # TODO
-#   - implement single chain modeling mode.
-#       - open multiple files with the same structure.
-#       - duplicate structures.
-#       - load the models new sequences and structures.
-#       - adjust the name of the models.
-#       - assessment.
+#   - multiple chain modeling.
 #   - build a log file on all platforms.
 #   - implement saving of modeling sessions.
-#   - multiple chain modeling.
 #   - reimplement disulfides and change the restraints the 'Disulfides' tab to 'Restraints'.
 #   - reimplement all.
 #   - test with all kind of cases.
@@ -171,79 +165,67 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # Multiple chains modeling requires the identification of "template complexes" and
         # additional controls.
         else:
-            raise Exception("multichain")
-        #     # This will build the 'self.template_complex_list'.
-        #     self.initialize_multichain_modeling()
-        #     # Proceeds only if there are is at least one suitable "template
-        #     # complex".
-        #     if len(self.template_complex_list) > 0:
-        #         # Finally builds the modeling window.
-        #         self.build_modeling_window()
-        #     else:
-        #         title = "Selection Error"
-        #         message = "There isn't any suitable 'Template Complexes' to perform multiple chain homology modeling."
-        #         self.pymod.show_error_message(title,message)
+            # This will build the 'self.template_complex_list'.
+            self.initialize_multichain_modeling()
+            # Proceeds only if there are is at least one suitable "template complex".
+            if len(self.template_complex_list) > 0:
+                # Finally builds the modeling window.
+                self.build_modeling_window()
+            else:
+                title = "Selection Error"
+                message = "There aren't any suitable 'Template Complexes' to perform multiple chain homology modeling."
+                self.pymod.show_error_message(title,message)
 
 
-#     def initialize_multichain_modeling(self):
-#         """
-#         This method will prepare data needed to perform multichain modeling. It will:
-#             - identify suitable template complexes
-#             - check if there are target sequences with the same sequence, so that symmetry restraints
-#               can be applied to them when using Modeller.
-#         """
-#         # ---
-#         # Generates modeling clusters dictionaries.
-#         # ---
-#         # They will be needed to check if a suitable "template complex" can be used. A cluster with
-#         # the following templates:
-#         #     - 1HHO_Chain:A, 2DN2_Chain:A, 2DN2_Chain:B
-#         # will generate a dictionary with the following structure:
-#         #     - {"1HHO.pdb":1, "2DN2.pdb":2}
-#         # The keys are the original PDB files, and the values are the number of chains in the cluster
-#         # which belong to that PDB structure.
-#         for mc in self.modeling_clusters_list:
-#             for t in mc.suitable_templates_list:
-#                 if t.structure.original_pdb_file_name in mc.dictionary.keys():
-#                     mc.dictionary[t.structure.original_pdb_file_name] += 1
-#                 else:
-#                     mc.dictionary.update({t.structure.original_pdb_file_name:1})
-#
-#         # ---
-#         # Checks if there are suitable "template complexes".
-#         # ---
-#         # A "teplate complex" is available only if in each selected cluster there is at least ONE
-#         # chain coming from the same original PDB file. For example, with these two cluster:
-#         #     - cluster 1: <1HHO_Chain:A>, 2DN2_Chain:A
-#         #     - cluster 2: <1HHO_Chain:B>, 3EOK_Chain:A
-#         # the "template complex" is 1HHO.
-#         codes_per_cluster = []
-#         for mc in self.modeling_clusters_list:
-#             codes_per_cluster.append(set([k for k in mc.dictionary.keys()]))
-#         self.template_complex_list = list(set.intersection(*codes_per_cluster))
-#         self.template_complex_list.sort() # Sorts the list alphabetically.
-#
-#         # ---
-#         # Checks if there are some target chains with the same sequence, so that the user may apply
-#         # symmetry restraints to them.
-#         # ---
-#         # Builds a Symmetry_restraints_groups object that is going to be used to keep track of
-#         # modeling clusters that have a target sequence with the same sequence.
-#         self.symmetry_restraints_groups = Symmetry_restraints_groups_list()
-#         for mc in self.modeling_clusters_list:
-#             seq = str(mc.target.my_sequence).replace("-","")
-#             # Adds a "symmetry restraints group" for each group of target sequences that share the
-#             # exact same sequence.
-#             if not seq in [g.id for g in self.symmetry_restraints_groups.get_groups()]:
-#                 self.symmetry_restraints_groups.add_group(seq)
-#             self.symmetry_restraints_groups.get_group_by_id(seq).add_cluster(mc)
-#         # Also assigns "symmetry ids" to each modeling cluster.
-#         for mc in self.modeling_clusters_list:
-#             seq = str(mc.target.my_sequence).replace("-","")
-#             if seq in [g.id for g in self.symmetry_restraints_groups.get_groups(min_number_of_sequences=2)]:
-#                 mc.set_symmetry_id(seq)
-#             else:
-#                 mc.set_symmetry_id(None)
+    def initialize_multichain_modeling(self):
+        """
+        This method will prepare data needed to perform multichain modeling. It will:
+            - identify suitable template complexes
+            - check if there are target sequences with the same sequence, so that symmetry restraints
+              can be applied to them when using Modeller.
+        """
+        #--------------------------------------------
+        # Generates modeling clusters dictionaries. -
+        #--------------------------------------------
+        for mc in self.modeling_clusters_list:
+            mc.build_structure_chains_dict()
+
+        #--------------------------------------------------
+        # Builds a list of suitable "template complexes". -
+        #--------------------------------------------------
+        # A "teplate complex" is available only if in each selected cluster there is at least ONE
+        # chain coming from the same original PDB file. For example, with these two cluster:
+        #     - cluster 1: <1HHO_Chain:A>, 2DN2_Chain:A
+        #     - cluster 2: <1HHO_Chain:B>, 3EOK_Chain:A
+        # the "template complex" is 1HHO.
+        codes_per_cluster = []
+        for mc in self.modeling_clusters_list:
+            codes_per_cluster.append(set([k for k in mc.structure_chains_dict.keys()]))
+        self.template_complex_list = list(set.intersection(*codes_per_cluster))
+        self.template_complex_list.sort() # Sorts the list alphabetically.
+
+        #--------------------------------------------------------------------------------------
+        # Checks if there are some target chains with the same sequence, so that the user may -
+        # apply symmetry restraints to them.                                                  -
+        #--------------------------------------------------------------------------------------
+        # Builds a 'Symmetry_restraints_groups' object that is going to be used to keep track of
+        # modeling clusters that have a target sequence with the same sequence.
+        self.symmetry_restraints_groups = Symmetry_restraints_groups_list()
+        for mc in self.modeling_clusters_list:
+            seq = str(mc.target.my_sequence).replace("-","")
+            # Adds a "symmetry restraints group" for each group of target sequences that share the
+            # exact same sequence.
+            if not seq in [g.id for g in self.symmetry_restraints_groups.get_groups()]:
+                self.symmetry_restraints_groups.add_group(seq)
+            self.symmetry_restraints_groups.get_group_by_id(seq).add_cluster(mc)
+        # Also assigns "symmetry ids" to each modeling cluster.
+        for mc in self.modeling_clusters_list:
+            seq = str(mc.target.my_sequence).replace("-","")
+            if seq in [g.id for g in self.symmetry_restraints_groups.get_groups(min_number_of_sequences=2)]:
+                mc.symmetry_restraints_id = seq
+            else:
+                mc.symmetry_restraints_id = None
+
 
     def build_modeling_window(self):
         """
@@ -508,7 +490,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #                 for srg in groups_to_use:
 #                     list_of_chains = []
 #                     for mcl in srg.list_of_clusters:
-#                         if mcl.symmetry_var.get() == 1:
+#                         if mcl.symmetry_restraints_var.get() == 1:
 #                             list_of_chains.append(mcl.model_chain_id)
 #                     list_of_groups.append(list_of_chains)
 #
@@ -978,17 +960,16 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         # For multiple chains modeling.
         else:
-            raise Exception("multichain")
-            # for mc in self.modeling_clusters_list:
-            #     for t_i,t in enumerate(mc.templates_list):
-            #         if t.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
-            #             # Includes the "template complex" name only once.
-            #             if t.structure.original_pdb_file_name[:-4] not in self.all_templates_namelist:
-            #                 self.all_templates_namelist.append(t.structure.original_pdb_file_name[:-4])
-            #         else:
-            #             self.all_templates_namelist.append(mc.templates_namelist[t_i])
-            # self.modeller_target_name = self.multiple_chains_models_name
-
+            # leafs!
+            for mc in self.modeling_clusters_list:
+                for t_i,t in enumerate(mc.templates_list):
+                    if t.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
+                        # Includes the "template complex" name only once.
+                        if t.structure.original_pdb_file_name[:-4] not in self.all_templates_namelist:
+                            self.all_templates_namelist.append(t.structure.original_pdb_file_name[:-4])
+                    else:
+                        self.all_templates_namelist.append(mc.templates_namelist[t_i])
+            self.modeller_target_name = self.multiple_chains_models_name
 
 
     def check_all_modelization_parameters(self):
@@ -1100,7 +1081,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #     def check_symmetry_vars(self):
 #         correct_symmetry_vars = True
 #         for srg in self.symmetry_restraints_groups.get_groups(min_number_of_sequences=2):
-#             si = len([mc for mc in srg.list_of_clusters if mc.symmetry_var.get() == 1])
+#             si = len([mc for mc in srg.list_of_clusters if mc.symmetry_restraints_var.get() == 1])
 #             if si == 1:
 #                 correct_symmetry_vars = False
 #                 self.modelization_parameters_error = "In order to impose symmetry restraints you need select the 'Apply symmetry restraints' option for at least two targets with the same sequence (you selected this option only for target '%s')." % (mc.target_name)
@@ -1383,25 +1364,40 @@ class Modeling_cluster(Modeling_session):
         else:
             self.target_with_cys = False
 
-        # self.symmetry_id = None
-        # self.apply_symmetry_restraints = None
-        #
-        # self.symmetry_var = None
-        #
-        # self.dictionary = {}
-        #
-        self.model_elements_list = []
 
-        ###################
-        # New attributes. #
-        ###################
-
+        self.structure_chains_dict = {}
+        # Index of the modeling cluster.
         self.block_index = 0
+        self.symmetry_restraints_id = None
+        self.symmetry_restraints_var = None
+        # self.apply_symmetry_restraints = None
+
+        # List of the elements representing the models built in a session.
+        self.model_elements_list = []
 
 
     ################
     # New methods. #
     ################
+
+    def build_structure_chains_dict(self):
+        """
+        Generates modeling clusters dictionaries.
+        They will be needed to check if a suitable "template complex" can be used. A cluster with
+        the following templates:
+            - 1HHO_Chain:A, 2DN2_Chain:A, 2DN2_Chain:B
+        will generate a dictionary with the following structure:
+            - {"1HHO.pdb":1, "2DN2.pdb":2}
+        The keys are the original PDB files, and the values are the number of chains in the cluster
+        which belong to that PDB structure.
+        """
+        for t in self.suitable_templates_list:
+            template_original_file = t.get_structure_file(name_only=True, original_structure_file=True)
+            if template_original_file in self.structure_chains_dict.keys():
+                self.structure_chains_dict[template_original_file] += 1
+            else:
+                self.structure_chains_dict.update({template_original_file:1})
+
 
     def initialize(self):
         self.templates_list = []
@@ -1514,15 +1510,9 @@ class Modeling_cluster(Modeling_session):
             disulfides = False
         return disulfides
 
-    # def set_symmetry_id(self,symmetry_id):
-    #     self.symmetry_id = symmetry_id
-    #
     # def set_model_chain_id(self,chain_index):
     #     self.model_chain_id = chain_index
-    #
-    # def set_symmetry_var(self,symmetry_var):
-    #     self.symmetry_var = symmetry_var
-    #
+
     # def get_template_complex_chain(self):
     #     """
     #     Returns the 'PyMod_element' object if the template complex chain of this modeling cluster.
@@ -1849,46 +1839,53 @@ class Modeling_cluster(Modeling_session):
 #         self.chain_id = chain_id
 #
 #
-# # -----
-# # This class will be used to store a list of Symmetry_restraint_group objects.
-# # -----
-# class Symmetry_restraints_groups_list:
-#
-#     def __init__(self):
-#         self.list_of_groups = []
-#
-#     # Returns a list of Symmetry_restraints_group objects that contain at least the number of
-#     # sequences specified in the argument.
-#     def get_groups(self, min_number_of_sequences=0):
-#         return [g for g in self.list_of_groups if len(g.list_of_clusters) >= min_number_of_sequences]
-#
-#     def add_group(self,symmetry_id):
-#         srg = Symmetry_restraints_group(symmetry_id)
-#         self.list_of_groups.append(srg)
-#
-#     def get_group_by_id(self,symmetry_id):
-#         for g in self.list_of_groups:
-#             if g.id == symmetry_id:
-#                 return g
-#
-# # -----
-# # When performing multichain modeling, this will be used to identify a "symmetry restraints group",
-# # a group of target sequences that share the exact same sequence. By keeping track of these groups,
-# # PyMod can let the user apply symmetry restraints to those chains when using Modeller.
-# # -----
-# class Symmetry_restraints_group:
-#     def __init__(self,symmetry_id):
-#         # The "id" is just the target sequence stripped of all indels.
-#         self.id = symmetry_id
-#         # This will contain a list of Modeling_cluster objects that contain a target sequence
-#         # with the same sequence as the "id".
-#         self.list_of_clusters = []
-#         # This will be set to True if the user decides to apply symmetry restraints to this group
-#         # of target sequences.
-#         self.use = False
-#     # Adds a Modeling_cluster object to the group list_of_clusters.
-#     def add_cluster(self, modeling_cluster):
-#         self.list_of_clusters.append(modeling_cluster)
+
+class Symmetry_restraints_groups_list:
+    """
+    This class will be used to store a list of Symmetry_restraint_group objects.
+    """
+    def __init__(self):
+        self.list_of_groups = []
+
+    def get_groups(self, min_number_of_sequences=0):
+        """
+        Returns a list of Symmetry_restraints_group objects that contain at least the number of
+        sequences specified in the argument.
+        """
+        return [g for g in self.list_of_groups if len(g.list_of_clusters) >= min_number_of_sequences]
+
+    def add_group(self,symmetry_id):
+        srg = Symmetry_restraints_group(symmetry_id)
+        self.list_of_groups.append(srg)
+
+    def get_group_by_id(self,symmetry_id):
+        for g in self.list_of_groups:
+            if g.id == symmetry_id:
+                return g
+
+
+class Symmetry_restraints_group:
+    """
+    When performing multichain modeling, this will be used to identify a "symmetry restraints
+    group", a group of target sequences that share the exact same sequence. By keeping track of
+    these groups, PyMod can let the user apply symmetry restraints to those chains when using
+    MODELLER.
+    """
+    def __init__(self,symmetry_id):
+        # The "id" is just the target sequence stripped of all indels.
+        self.id = symmetry_id
+        # This will contain a list of Modeling_cluster objects that contain a target sequence
+        # with the same sequence as the "id".
+        self.list_of_clusters = []
+        # This will be set to True if the user decides to apply symmetry restraints to this group
+        # of target sequences.
+        self.use = False
+
+    def add_cluster(self, modeling_cluster):
+        """
+        Adds a Modeling_cluster object to the group list_of_clusters.
+        """
+        self.list_of_clusters.append(modeling_cluster)
 
 
 class Modeling_session_information:

@@ -142,7 +142,8 @@ class Parsed_pdb_file:
             # Builds the new 'PyMod_structure'.
             new_structure = PyMod_structure(
                 chain_file_path=parsed_chain["file_path"],
-                chain_id = parsed_chain["pymod_id"])
+                chain_id = parsed_chain["pymod_id"],
+                original_structure_file_path=self.original_pdb_file_path)
             self.list_of_structure_objects.append(new_structure)
             # Builds the new 'PyMod_element'.
             new_element_header = os.path.splitext(parsed_chain["file_name"])[0]
@@ -206,12 +207,17 @@ class Parsed_pdb_file:
 
 class PyMod_structure:
 
-    def __init__(self, chain_file_path, chain_id):
-        self.original_chain_file_path = chain_file_path
+    def __init__(self, chain_file_path, chain_id, original_structure_file_path):
+        self.initial_chain_file_path = chain_file_path
+        self.current_chain_file_path = self.initial_chain_file_path
         self.chain_id = chain_id
+        self.original_structure_file_path = original_structure_file_path
 
-    def get_file(self, name_only=False, strip_extension=False):
-        result = self.original_chain_file_path
+    def get_file(self, name_only=False, strip_extension=False, original_structure_file=False):
+        if original_structure_file:
+            result = self.original_structure_file_path
+        else:
+            result = self.current_chain_file_path
         if name_only:
             result = os.path.basename(result)
         if strip_extension:
@@ -222,23 +228,4 @@ class PyMod_structure:
         return self.chain_id
 
     def get_pymol_object_name(self):
-        return os.path.splitext(os.path.basename(self.original_chain_file_path))[0]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-pass
+        return os.path.splitext(os.path.basename(self.current_chain_file_path))[0]

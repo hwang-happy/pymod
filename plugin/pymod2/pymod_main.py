@@ -1,5 +1,8 @@
 # TODO:
-#     - MODELLER, structures, files and headers formatting.
+#     - MODELLER
+#     - structures, files and headers formatting.
+#     - open multiple files with the same structure.
+#     - duplicate structures.
 #     - add raw sequence.
 #     - structure appearence and colors.
 #     - fetch and associate structures.
@@ -14,11 +17,9 @@
 #       - control the sequences.
 #       - models refinement.
 
-#     - remove the appendix "protocol" from all the procol classes names.
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
 #     - add an "export to .phy file" option when showing distance trees.
-#     - add a similar option for distance matrices.
-#     - add a similar option for an homology modeling session results.
+#     - add a similar option for distance matrices, dope profiles and assessment tables.
 #     - reimplement the "Display" submenu in the main menu.
 
 ###########################################################################
@@ -713,37 +714,16 @@ class PyMod:
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
         if 1:
-            # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min.fasta"), "fasta")
-            # self.build_cluster_from_alignment_file(os.path.join(seqs_dir, "pfam_min2.fasta"), "fasta")
-            # self.open_sequence_file(os.path.join(seqs_dir,"cxcr3_mod.fasta"))
-            # self.open_sequence_file(os.path.join(seqs_dir,"fetch_pdb.fasta"))
-            self.open_sequence_file(os.path.join(seqs_dir,"1UBI_mut.fasta"))
-            self.open_structure_file(os.path.join(seqs_dir,"structures/1UBI.pdb"))
-            self.open_structure_file(os.path.join(seqs_dir,"structures/1GNU.pdb"))
-            # self.open_structure_file(os.path.join(seqs_dir,"structures/5cek.pdb"))
-            # self.open_structure_file(os.path.join(seqs_dir,"structures/3cqw.pdb"))
-            # self.open_structure_file(os.path.join(seqs_dir,"structures/4cfe.pdb"))
-            # self.open_structure_file(os.path.join(seqs_dir,"structures/3uc3.pdb"))
-            # self.open_structure_file(os.path.join(seqs_dir,"structures/3oe0.pdb"))
-
-        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
-        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
-        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU7.fasta")
-        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/Q96RU8.fasta")
-        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
-        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
-        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
-        # self.open_sequence_file("/home/giacomo/Dropbox/ricerche/tribbles/sequences/trib3_psk.fasta")
-        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cek.pdb")
-        # self.open_structure_file("/home/giacomo/Dropbox/ricerche/tribbles/structures/5cem.pdb")
-
+            self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
+            self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
+            self.open_structure_file(os.path.join(seqs_dir,"modeling/1oas.pdb"))
         self.gridder(update_clusters=True, update_menus=True)
 
-        # # Alignments.
-        # if 0:
-        #     for i in range(0,3):
-        #         self.root_element.list_of_children[i].selected = True
-        #     self.launch_alignment_program("clustalw", "regular-alignment")
+        # Alignments.
+        if 0:
+            for i in range(0,3):
+                self.root_element.list_of_children[i].selected = True
+            self.launch_alignment_program("clustalw", "regular-alignment")
 
 
     #################################################################
@@ -2558,11 +2538,15 @@ class PyMod:
     # MODELING.                                                                                   #
     ###############################################################################################
 
-    def launch_modeller_from_main_menu(self):
+    def launch_modeller_hm_from_main_menu(self):
         reload(pmptc)
         reload(pmptc.modeling_protocols)
         modeller_session = pmptc.modeling_protocols.MODELLER_homology_modeling(self)
         modeller_session.launch_from_gui()
+
+
+    def launch_modeller_lr_from_main_menu(self):
+        raise Exception("loops")
 
 
     ###############################################################################################
