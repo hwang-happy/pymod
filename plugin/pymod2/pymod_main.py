@@ -1020,7 +1020,7 @@ class PyMod:
         self.main_window.delete_pymod_element_widgets(element)
 
 
-    def delete_pdb_file(self,element):
+    def delete_pdb_file(self, element):
         # If the sequence has a PDB file loaded inside PyMOL, then delete it.
         try:
             cmd.delete(element.get_pymol_object_name())
@@ -1423,11 +1423,6 @@ class PyMod:
         sub_button.pack()
 
 
-    def update_element_sequence(self, pymod_element, new_sequence, permissive=False):
-        pymod_element.set_sequence(new_sequence, permissive=permissive)
-        self.main_window.update_widgets(pymod_element)
-
-
     def duplicate_sequence(self, element_to_duplicate):
         if element_to_duplicate.has_structure():
             raise Exception("TODO")
@@ -1482,9 +1477,6 @@ class PyMod:
         if len(children) > 1:
             self.adjust_aligned_elements_length(children) # TODO: insert in update_stars?
             self.update_stars(cluster_element)
-            for c in cluster_element.get_children():
-                self.main_window.update_widgets(c)
-            self.main_window.update_widgets(cluster_element)
         else:
             if len(children) == 1:
                 self.extract_element_from_cluster(children[0])
@@ -1954,76 +1946,17 @@ class PyMod:
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False, update_element_text=False, clear_selection=False, update_clusters=False, update_menus=False):
-        # TODO: put it into pymod_main_window?
+    def gridder(self, set_grid_index_only=False, update_element_text=False, color_elements = False, clear_selection=False, update_clusters=False, update_menus=False):
         """
-        Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
+        Grids the PyMod elements widgets in PyMod main window.
         """
-        #---------------------------------------
-        # Update clusters elements appearance. -
-        #---------------------------------------
-        if update_clusters:
-            for cluster in self.get_cluster_elements():
-                self.update_cluster_sequences(cluster)
-
-        ###################################################
-        if DEBUG and 0: # TODO: remove.
-            def print_element(element, level):
-                print "    "*level + "- " + element.my_header
-            def print_recursively(element, level=0):
-                if element.is_mother():
-                    print_element(element, level)
-                    for c in element.get_children():
-                        print_recursively(c, level=level+1)
-                else:
-                    print_element(element, level)
-            print_recursively(self.root_element)
-        ###################################################
-
-        #-------------------------------------------------------------------------
-        # Assigns the grid indices and grids the widgets with their new indices. -
-        #-------------------------------------------------------------------------
-        self.grid_row_index = 0
-        self.grid_column_index = 0
-        for pymod_element in self.root_element.get_children():
-            self.grid_descendants(pymod_element, set_grid_index_only, update_element_text=update_element_text)
-            self.grid_row_index += 1
-
-        #---------------------------------------------
-        # Updates other components of the PyMod GUI. -
-        #---------------------------------------------
-        if clear_selection:
-            self.deselect_all_sequences()
-
-        if update_menus:
-            self.main_window.build_alignment_submenu()
-            # self.build_models_submenu()
-
-
-    def grid_descendants(self, pymod_element, set_grid_index_only=False, update_element_text=True):
-        """
-        Grid a single element and all its descendants.
-        """
-        if pymod_element.is_mother():
-            self.grid_column_index += 1
-            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text)
-            if self.main_window.dict_of_elements_widgets[pymod_element].show_children:
-                for child_element in pymod_element.get_children():
-                    self.grid_descendants(child_element, set_grid_index_only, update_element_text=update_element_text)
-            self.grid_column_index -= 1
-        else:
-            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text)
-
-
-    def grid_element(self, pymod_element, set_grid_index_only=False, update_element_text=True):
-        """
-        Grids a single element.
-        """
-        self.main_window.set_grid_row_index(pymod_element, self.grid_row_index)
-        self.main_window.set_grid_column_index(pymod_element, self.grid_column_index)
-        self.grid_row_index += 1
-        if not set_grid_index_only:
-            self.main_window.show_widgets(pymod_element, update_element_text=update_element_text)
+        self.main_window.gridder(
+            set_grid_index_only=set_grid_index_only,
+            update_element_text=update_element_text,
+            color_elements = color_elements,
+            clear_selection=clear_selection,
+            update_clusters=update_clusters,
+            update_menus=update_menus)
 
 
     #########################################

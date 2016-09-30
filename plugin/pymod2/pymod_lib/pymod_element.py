@@ -480,7 +480,6 @@ class PyMod_sequence_element(PyMod_element):
         return pir_seq
 
 
-    # leafs!
     def get_residue_by_index(self, index, aligned_sequence_index=False, only_polymer=True):
         """
         Returns a residue having the index provided in the 'index' argument in the sequence.

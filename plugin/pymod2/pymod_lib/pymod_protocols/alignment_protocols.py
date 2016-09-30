@@ -257,7 +257,7 @@ class Alignment_protocol(PyMod_protocol):
         # Alignment objects built using different algorithms, store different additional data.
         self.update_additional_information()
 
-        self.pymod.gridder(clear_selection=True, update_clusters=True, update_menus=True)
+        self.pymod.gridder(clear_selection=True, update_clusters=True, update_menus=True, update_element_text=True, color_elements=True)
 
 
     def update_aligned_sequences(self):
@@ -280,9 +280,9 @@ class Alignment_protocol(PyMod_protocol):
 
     def update_aligned_sequences_inserting_modres(self, replace_modres_symbol=None):
         """
-        When saving alignments from PyMOL object built using cealign, PyMOL removes
-        heteroresidues. This code will be needed to reinsert them in the aligned sequences
-        parsed from the alignment output file built by PyMOL.
+        When saving alignments from PyMOL object built using cealign, PyMOL removes heteroresidues.
+        This code will be needed to reinsert them in the aligned sequences parsed from the alignment
+        output file built by PyMOL.
         """
         # Gets from an alignment file the aligned sequences.
         input_handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")

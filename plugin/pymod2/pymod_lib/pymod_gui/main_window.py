@@ -1,6 +1,3 @@
-# TODO:
-#     - order the methods among the classes and the main mixin.
-
 from Tkinter import *
 from tkFileDialog import *
 import tkMessageBox
@@ -43,6 +40,82 @@ class PyMod_main_window_mixin:
     sequence_name_bar = None
     residue_bar = None
 
+    #################################################################
+    # Gridding system.                                              #
+    #################################################################
+
+    def gridder(self, set_grid_index_only=False, update_element_text=False, color_elements = False, clear_selection=False, update_clusters=False, update_menus=False):
+        """
+        Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
+        """
+        # TODO: to make it faster, use an 'elements_to_update' argument, so that only those elements
+        #       will be colored and edited (however all elements will be gridded).
+        #---------------------------------------
+        # Update clusters elements appearance. -
+        #---------------------------------------
+        if update_clusters:
+            for cluster in self.pymod.get_cluster_elements():
+                self.pymod.update_cluster_sequences(cluster)
+
+        ###################################################
+        if 0: # TODO: remove.
+            def print_element(element, level):
+                print "    "*level + "- " + element.my_header
+            def print_recursively(element, level=0):
+                if element.is_mother():
+                    print_element(element, level)
+                    for c in element.get_children():
+                        print_recursively(c, level=level+1)
+                else:
+                    print_element(element, level)
+            print_recursively(self.pymod.root_element)
+        ###################################################
+
+        #-------------------------------------------------------------------------
+        # Assigns the grid indices and grids the widgets with their new indices. -
+        #-------------------------------------------------------------------------
+        self.global_grid_row_index = 0
+        self.global_grid_column_index = 0
+        for pymod_element in self.pymod.root_element.get_children():
+            self.grid_descendants(pymod_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+            self.global_grid_row_index += 1
+
+        #---------------------------------------------
+        # Updates other components of the PyMod GUI. -
+        #---------------------------------------------
+        if clear_selection:
+            self.pymod.deselect_all_sequences()
+
+        if update_menus:
+            self.pymod.main_window.build_alignment_submenu()
+            # self.pymod.build_models_submenu() # TODO.
+
+
+    def grid_descendants(self, pymod_element, set_grid_index_only=False, update_element_text=False, color_elements=False):
+        """
+        Grid a single element and all its descendants.
+        """
+        if pymod_element.is_mother():
+            self.global_grid_column_index += 1
+            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+            if self.dict_of_elements_widgets[pymod_element].show_children:
+                for child_element in pymod_element.get_children():
+                    self.grid_descendants(child_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+            self.global_grid_column_index -= 1
+        else:
+            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+
+
+    def grid_element(self, pymod_element, set_grid_index_only=False, update_element_text=False, color_elements=False):
+        """
+        Grids a single element.
+        """
+        self.set_grid_row_index(pymod_element, self.global_grid_row_index)
+        self.set_grid_column_index(pymod_element, self.global_grid_column_index)
+        self.global_grid_row_index += 1
+        if not set_grid_index_only:
+            self.show_widgets(pymod_element, update_element_text=update_element_text, color_elements=color_elements)
+
 
     #################################################################
     # Display widgets in the PyMod main window.                     #
@@ -58,7 +131,7 @@ class PyMod_main_window_mixin:
         pymod_element_widgets_group.grid_column_index = grid_column_index
 
 
-    def show_widgets(self, pymod_element, update_element_text=False):
+    def show_widgets(self, pymod_element, update_element_text=False, color_elements=False):
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
 
         #--------------------
@@ -91,13 +164,15 @@ class PyMod_main_window_mixin:
         pymod_element_widgets_group.sequence_text.grid(column=10, # pymod_element_widgets_group.grid_column_index+1,
                                                        row = pymod_element_widgets_group.grid_row_index,
                                                        sticky='nw')
+        if color_elements:
+            self.color_element(pymod_element, color_pdb=False)
 
 
-    def update_widgets(self, pymod_element):
-        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
-        pymod_element_widgets_group.sequence_text.update_text()
-        pymod_element_widgets_group.header_entry.update_title()
-        self.color_element(pymod_element, color_pdb=False)
+    # def update_widgets(self, pymod_element):
+    #     pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
+    #     pymod_element_widgets_group.sequence_text.update_text()
+    #     pymod_element_widgets_group.header_entry.update_title()
+    #     self.color_element(pymod_element, color_pdb=False)
 
 
     def hide_widgets(self, pymod_element, target="all"):

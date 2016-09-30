@@ -277,15 +277,15 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # Prepares the directory where MODELLER's output will be generated and moves into it.
         self.prepare_modeling_session_files()
 
-        #######################################
-        # Start setting options for MODELLER. #
-        #######################################
+        #############################################################
+        # Start setting options for MODELLER.                       #
+        #############################################################
 
         #------------------------
         # Sets the environment. -
         #------------------------
 
-        #------------------------------------------------------------
+        # Internal --------------------------------------------------
         if self.run_modeller_internally:
             modeller.log.verbose()
             env = modeller.environ()
@@ -293,7 +293,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             env.io.atom_files_directory.append(".")
         #------------------------------------------------------------
 
-        #------------------------------------------------------------
+        # External --------------------------------------------------
         if self.write_modeller_script:
             self.modeller_script = open("my_model.py", "w")
             print >> self.modeller_script, "import modeller"
@@ -313,27 +313,27 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         # If the user wants to include hetero-atoms and water molecules.
         if self.use_hetatm_in_session:
-            #--------------------------------------------------------
+            # Internal ----------------------------------------------
             if self.run_modeller_internally:
                 env.io.hetatm = True
             #--------------------------------------------------------
 
-            #########################################################
+            # External ----------------------------------------------
             if self.write_modeller_script:
                 print >> self.modeller_script, "env.io.hetatm = True"
-            #########################################################
+            #--------------------------------------------------------
 
             # Use water only if the user choosed to include water molecules from some template.
             if self.use_water_in_session:
-                #----------------------------------------------------
+                # Internal ------------------------------------------
                 if self.run_modeller_internally:
                     env.io.water = True
                 #----------------------------------------------------
 
-                #####################################################
+                # External ------------------------------------------
                 if self.write_modeller_script:
                     print >> self.modeller_script, "env.io.water = True"
-                #####################################################
+                #----------------------------------------------------
 
         # If the user doesn't want to include hetero-atoms and water.
         else:
@@ -342,7 +342,6 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #-------------------------------------------------------
         # Creates a file with the alignment in the PIR format. -
         #-------------------------------------------------------
-        # leafs!
         self.build_pir_align_file()
 
         #-------------------------------------------------------------------
@@ -355,17 +354,17 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #   - exclude template disulfide bridges in the model
         #   - build multichain models with symmetries restraints
         #   - rename the chains in multichain models
-        #------------------------------------------------------------
+        # Internal --------------------------------------------------
         if self.run_modeller_internally:
             class MyModel(modeller.automodel.automodel):
                 pass
         #------------------------------------------------------------
 
-        #############################################################
+        # External --------------------------------------------------
         if self.write_modeller_script:
             print >> self.modeller_script, "\n"+"class MyModel(modeller.automodel.automodel):"
             print >> self.modeller_script, "\n"+"   pass" # TODO: remove.
-        #############################################################
+        #------------------------------------------------------------
 
 #         # ---
 #         # If there are some targets with at least two CYS residues, it decides whether to use
@@ -382,22 +381,22 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #                 # Don't use template dsbs: leave the model CYS residues that in the template are
 #                 # engaged in a disulfied bridge in a "reduced" state.
 #                 else:
-#                     #------------------------------------------------
+#                     # Internal ------------------------------------------
 #                     if self.run_modeller_internally:
 #                         # This will not create any dsbs in the model by not disulfide patching.
 #                         def default_patches(self, aln):
 #                             pass
 #                         # Dynamically assigns the method.
 #                         setattr(MyModel, 'default_patches', default_patches)
-#                     #------------------------------------------------
+#                     #----------------------------------------------------
 #
-#                     #################################################
+#                     # External ------------------------------------------
 #                     # Or write it to the modeller script.
 #                     if self.write_modeller_script:
 #                         print >> self.modeller_script, "\n"
 #                         print >> self.modeller_script, "    def default_patches(self,aln):"
 #                         print >> self.modeller_script, "        pass"+"\n"
-#                     #################################################
+#                     #----------------------------------------------------
 #         # ---
 #         # Part for multichain models and user defined disulfide bridges, which requires to
 #         # the special_patches() method override.
@@ -405,7 +404,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #         if self.check_targets_with_cys():
 #             self.all_user_defined_dsb = [sel.user_defined_disulfide_bridges for sel in self.disulfides_frame.user_dsb_selector_list]
 #
-#         #------------------------------------------------------------
+#         # Internal --------------------------------------------------
 #         if self.run_modeller_internally:
 #             def special_patches(self, aln):
 #
@@ -464,7 +463,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #             setattr(MyModel, 'special_patches', special_patches)
 #         #------------------------------------------------------------
 #
-#         #############################################################
+#         # External --------------------------------------------------
 #         if self.write_modeller_script:
 #             print >> self.modeller_script, "    def special_patches(self, aln):"
 #             if self.multiple_chain_mode:
@@ -496,7 +495,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #                             print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.residues['%s'], self.residues['%s']))" % (cys1,cys2)
 #                 if self.disulfides_frame.auto_dsb_var.get():
 #                     print >> self.modeller_script, "        self.patch_ss()"
-#         #############################################################
+#         #------------------------------------------------------------
 #
 #         # ---
 #         # Apply simmetry restraints to target chains that have the same sequence.
@@ -527,7 +526,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #                             s.append([i1,i2])
 #                     list_of_symmetry_restraints.append(s)
 #
-#                 #----------------------------------------------------
+#                 # Internal ----------------------------------------------
 #                 if self.run_modeller_internally:
 #                     def special_restraints(self, aln):
 #                         # Constrain chains to be identical (but only restrain
@@ -547,7 +546,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #                     setattr(MyModel, 'user_after_single_model', user_after_single_model)
 #                 #----------------------------------------------------
 #
-#                 #####################################################
+#                 # External ----------------------------------------------
 #                 if self.write_modeller_script:
 #                     print >> self.modeller_script, "    def special_restraints(self, aln):"
 #                     for si,symmetry_restraints_group in enumerate(list_of_symmetry_restraints):
@@ -558,18 +557,18 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 #                              print >> self.modeller_script, "        self.restraints.symmetry.append(modeller.symmetry(s1, s2, 1.0))"
 #                     print >> self.modeller_script, "\n"+"    def user_after_single_model(self):"
 #                     print >> self.modeller_script, "        self.restraints.symmetry.report(1.0)"
-#                 #####################################################
+#                 #--------------------------------------------------------
 #
-#         #############################################################
+#         # External --------------------------------------------------
 #         if self.write_modeller_script:
 #             print >> self.modeller_script, "\n"+"        pass"+"\n"
-#         #############################################################
+#         #------------------------------------------------------------
 #
         #------------------------------------------------------
         # Creates the "a" object to perform the modelization. -
         #------------------------------------------------------
 
-        #------------------------------------------------------------
+        # Internal --------------------------------------------------
         if self.run_modeller_internally:
             a = MyModel(env,
                         alnfile = self.pir_file_name, # alignment filename
@@ -578,24 +577,24 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                         #, assess_methods=(modeller.automodel.assess.DOPE))
         #------------------------------------------------------------
 
-        #############################################################
+        # External --------------------------------------------------
         if self.write_modeller_script:
             print >> self.modeller_script, "a =  MyModel("
             print >> self.modeller_script, "    env,"
             print >> self.modeller_script, "    alnfile =  '%s'," % self.pir_file_name
             print >> self.modeller_script, "    knowns = " + repr(tuple(self.all_templates_namelist)) + ","
             print >> self.modeller_script, "    sequence = '%s')" % (self.modeller_target_name)
-        #############################################################
+        #------------------------------------------------------------
 
-        #-----------------------------------------------------------
-        # Sets other Modeller options and finally build the model. -
-        #-----------------------------------------------------------
+        #------------------------------------------------
+        # Sets the level of refinment and optimization. -
+        #------------------------------------------------
 
         if self.optimization_level == "None":
             pass
 
         if self.optimization_level == "Low":
-            #--------------------------------------------------------
+            # Internal ----------------------------------------------
             if self.run_modeller_internally:
                 # Low VTFM optimization:
                 a.library_schedule = modeller.automodel.autosched.very_fast
@@ -603,14 +602,14 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 a.md_level = modeller.automodel.refine.very_fast
             #--------------------------------------------------------
 
-            #########################################################
+            # External ----------------------------------------------
             if self.write_modeller_script:
                 print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.very_fast"
                 print >> self.modeller_script, "a.md_level = modeller.automodel.refine.very_fast"
-            #########################################################
+            #--------------------------------------------------------
 
         elif self.optimization_level == "Mid":
-            #--------------------------------------------------------
+            # Internal ----------------------------------------------
             if self.run_modeller_internally:
                 # Thorough VTFM optimization:
                 a.library_schedule = modeller.automodel.autosched.fast
@@ -621,16 +620,16 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 a.repeat_optimization = 2
             #--------------------------------------------------------
 
-            #########################################################
+            # External ----------------------------------------------
             if self.write_modeller_script:
                 print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.fast"
                 print >> self.modeller_script, "a.max_var_iterations = 300"
                 print >> self.modeller_script, "a.md_level = modeller.automodel.refine.fast"
                 print >> self.modeller_script, "a.repeat_optimization = 2"
-            #########################################################
+            #--------------------------------------------------------
 
         elif self.optimization_level == "High":
-            #--------------------------------------------------------
+            # Internal ----------------------------------------------
             if self.run_modeller_internally:
                 # Very thorough VTFM optimization:
                 a.library_schedule = modeller.automodel.autosched.slow
@@ -642,20 +641,20 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 a.max_molpdf = 1e6
             #--------------------------------------------------------
 
-            #########################################################
+            # External ----------------------------------------------
             if self.write_modeller_script:
                 print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.slow"
                 print >> self.modeller_script, "a.max_var_iterations = 300"
                 print >> self.modeller_script, "a.md_level = modeller.automodel.refine.slow"
                 print >> self.modeller_script, "a.repeat_optimization = 2"
                 print >> self.modeller_script, "a.max_molpdf = 1e6"
-            #########################################################
+            #--------------------------------------------------------
 
         #---------------------------------------
         # Determines how many models to build. -
         #---------------------------------------
 
-        #############################################################
+        # External --------------------------------------------------
         if self.write_modeller_script:
             print >> self.modeller_script, "a.starting_model= 1"
             print >> self.modeller_script, "a.ending_model = " + str(self.ending_model_number)
@@ -686,9 +685,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             # Gets the a.outputs data.
             a.outputs = eval(modeller_outputs_file.readline())
             modeller_outputs_file.close()
-        #############################################################
-
         #------------------------------------------------------------
+
+        # Internal --------------------------------------------------
         if self.run_modeller_internally:
             a.starting_model = 1 # index of the first model
             a.ending_model = int(self.ending_model_number) # index of the last model
@@ -815,15 +814,17 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             model_file_number += 1
             self.increase_model_number()
 
-        #####################################
-        # Quality assessment of the models. #
-        #####################################
+        #############################################################
+        # Quality assessment of the models.                         #
+        #############################################################
 
         # Starts to build the 'current_modeling_session' which will be used to build a new item on
         # the 'Models' submenu on the main window.
         current_modeling_session = Modeling_session_information(self.pymod.performed_modeling_count + 1)
 
-        # Create DOPE profile for each separated model built in this session.
+        #----------------------------------------------------------------------
+        # Create DOPE profile for each separated model built in this session. -
+        #----------------------------------------------------------------------
         for model in a.outputs:
             fmo = Full_model(os.path.join(self.modeling_directory, model['name']))
             fmo.model_profile = [] # single_model_profile
@@ -843,7 +844,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # chain 'B' will be put just after the end of the profile of chain 'A'.
         session_plot_data = []
         alignment_lenght = 0
-        all_assessed_structures_list = []
+        self.all_assessed_structures_list = []
         for mc in sorted(self.modeling_clusters_list, key = lambda mc: mc.block_index):
             mc.adjust_model_elements_sequence()
             # Computes the DOPE profile of the templates.
@@ -854,13 +855,13 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 for fmo in current_modeling_session.full_models:
                     fmo.model_profile.append(template_dope_data[0])
                 session_plot_data.append(template_dope_data[0])
-                all_assessed_structures_list.append(template)
+                self.all_assessed_structures_list.append(template)
             # Computes the DOPE profile of the models.
             for model_element, fmo in zip(mc.model_elements_list, current_modeling_session.full_models):
                 model_dope_data = session_dope_protocol.prepare_dope_plot_data([model_element], start_from=alignment_lenght, mode="multiple")
                 fmo.model_profile.append(model_dope_data[0])
                 session_plot_data.append(model_dope_data[0])
-                all_assessed_structures_list.append(model_element)
+                self.all_assessed_structures_list.append(model_element)
             alignment_lenght += len(mc.target.my_sequence)
 
         #------------------------------------------------------------------------------------
@@ -889,32 +890,41 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             assessment_data.append([obj_funct_value, dope_score])
             fmo.assessment_data = [obj_funct_value, dope_score]
 
-        # Prepares data to show a table with objective function values and DOPE scores for each
-        # model.
+        #----------------------------------------------------------------------------------------
+        # Prepares data to show a table with objective function values and DOPE scores for each -
+        # model.                                                                                -
+        #----------------------------------------------------------------------------------------
         assessment_table_args = {"column_headers": column_headers, "row_headers": list_of_models_names, "data_array": assessment_data, "title": "Assessment of Models", "number_of_tabs": 4, "width": 850, "height" :420, "rowheader_width": 25}
         current_modeling_session.assessment_table_data = assessment_table_args
         current_modeling_session.session_profile = session_plot_data
         self.pymod.modeling_session_list.append(current_modeling_session)
 
-        # Finally shows the table and the previously built DOPE profile comprising DOPE curves
-        # of every model and templates.
+        #---------------------------------------------------------------------------------------
+        # Finally shows the table and the previously built DOPE profile comprising DOPE curves -
+        # of every model and templates.                                                        -
+        #---------------------------------------------------------------------------------------
         self.pymod.show_table(**assessment_table_args)
         session_dope_protocol.show_dope_plot(session_plot_data)
 
-        #------------------------------------------------------------------
-        # Colors the models and templates according to their DOPE values. -
-        #------------------------------------------------------------------
-        if self.color_models_by_choice == "DOPE Score":
-            for element in all_assessed_structures_list:
-                self.pymod.main_window.color_element_by_dope(element)
-
-        # Changes back the working directory to the project main directory.
+        #--------------------------------------------------------------------
+        # Changes back the working directory to the project main directory. -
+        #--------------------------------------------------------------------
         self.finish_modeling_session(successful = True)
 
 
     def finish_modeling_session(self, successful=False):
-        self.pymod.gridder(update_menus=True, clear_selection=True)
+        # Displayes the models in PyMod main window, if some were built.
+        self.pymod.gridder(update_menus=True, clear_selection=True, update_element_text=successful)
+        # Colors the models and templates according to their DOPE values. -
+        if successful:
+            for element in self.all_assessed_structures_list:
+                if self.color_models_by_choice == "DOPE Score":
+                    self.pymod.main_window.color_element_by_dope(element)
+                else:
+                    pass
+        # Moves back to the current project directory.
         os.chdir(self.pymod.current_project_directory_full_path)
+        # Increases modeling count.
         if successful:
             self.pymod.performed_modeling_count += 1
 
@@ -1543,15 +1553,14 @@ class Modeling_cluster(Modeling_session):
     #             break
     #     return ligands
 
-    def adjust_model_elements_sequence(self, remove_gaps = False):
-        self.backup_target_sequence = None
-        if not remove_gaps:
-            self.backup_target_sequence = self.target.my_sequence
-        else:
-            self.backup_target_sequence = str(self.target.my_sequence).replace("-","")
+    def adjust_model_elements_sequence(self):
+        self.backup_target_sequence = self.target.my_sequence
         for model_element in self.model_elements_list:
-            if model_element.unique_index != self.target.unique_index:
+            if model_element != self.target:
                 model_element.my_sequence = self.backup_target_sequence
+            print "#################################"
+            print model_element.my_sequence
+
 
 # # ---
 # # PIR alignment class.
