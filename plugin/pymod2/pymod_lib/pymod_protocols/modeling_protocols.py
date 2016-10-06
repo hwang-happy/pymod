@@ -4,8 +4,13 @@
 #   - implement saving of modeling sessions.
 #   - reimplement disulfides and change the restraints the 'Disulfides' tab to 'Restraints'.
 #   - reimplement all.
+#   - implement the master branch modifications (refinement and optimization).
 #   - test with all kind of cases.
+#       - hetatms, refinement levels, disulfides, internal and external, models menu, multiple
+#         templates.
+#   - implement Structure_file class. elaion!
 #   - implement loop modeling, after having built reimplemented everything.
+#   - save modeling sessions (and also build a well done MODELLER script).
 #   - remove leeafs, saakura, ellaion.
 #   - use the available topologies for those residues having them.
 
@@ -41,6 +46,9 @@ import pymod_lib.pymod_gui as pmgi
 ###################################################################################################
 
 class Modeling_session:
+    """
+    Mixin class to represent a modeling session.
+    """
     use_hetatm_in_session = False
     use_water_in_session = False
     modeling_directory = ""
@@ -57,6 +65,9 @@ class Modeling_session:
 
 
 class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
+    """
+    Class to represent an homology model building session with MODELLER.
+    """
 
     # The maximum number of models that Modeler can produce at the same time.
     max_models_per_session = 1000
@@ -239,6 +250,13 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         This method is called when the 'SUBMIT' button in the modelization window is pressed. It
         contains the code to instruct Modeller on how to perform the modelization.
         """
+        try:
+            self._perform_modelization()
+        except Exception, e:
+            self.modeling_session_failure(e)
+
+
+    def _perform_modelization(self):
 
         #-----------------------------------------------------------------------------------
         # Takes input supplied by users though the GUI and sets the names of sequences and -
@@ -247,7 +265,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         self.get_modeling_options_from_gui()
 
         # Starts the modeling process only if the user has supplied correct parameters.
-        if not self.check_all_modelization_parameters():
+        if not self.check_all_modeling_parameters():
             # "Please Fill all the Fields"
             title = "Input Error"
             self.pymod.show_error_message(title, self.modelization_parameters_error, self.modeling_window, refresh=False)
@@ -687,7 +705,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         ####################################################################################
         self.models_file_name_dictionary = {}
         model_file_number = 1
-        # leafs!
+
         for model in a.outputs:
 
             #-------------------------------------------------------------------------------------
@@ -894,6 +912,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         self.finish_modeling_session(successful = True)
 
 
+    # TODO: merge the two methods below in only one.
     def finish_modeling_session(self, successful=False):
         # Displayes the models in PyMod main window, if some were built.
         self.pymod.gridder(update_menus=True, clear_selection=True, update_element_text=successful)
@@ -904,11 +923,23 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     self.pymod.main_window.color_element_by_dope(element)
                 else:
                     pass
-        # Moves back to the current project directory.
+            # Moves back to the current project directory.
+            os.chdir(self.pymod.current_project_directory_full_path)
+            # Increases modeling count.
+            if successful:
+                self.pymod.performed_modeling_count += 1
+
+
+    def modeling_session_failure(self, error_message):
+        try:
+            title = "Modeling Session Error"
+            message = "PyMod has encountered the following error while running MODELLER: %s" % error_message
+            self.pymod.show_error_message(title, message)
+            if os.path.isdir(self.modeling_directory):
+                shutil.rmtree(self.modeling_directory)
+        except:
+            self.pymod.show_error_message("Modeling Session Error", "PyMod has encountered an unknown error in the modeling session: %s" % error_message)
         os.chdir(self.pymod.current_project_directory_full_path)
-        # Increases modeling count.
-        if successful:
-            self.pymod.performed_modeling_count += 1
 
 
     #################################################################
@@ -960,19 +991,25 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         # For multiple chains modeling.
         else:
-            # leafs!
+            # First finds the PDB_file object of the "template complex" selected by the user.
+            self.template_complex = None
+            self.template_complex_name = self.modeling_window.template_complex_var.get()
+            self.template_complex_script_name = self.template_complex_name[:-4]
             for mc in self.modeling_clusters_list:
-                for t_i,t in enumerate(mc.templates_list):
-                    if t.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
-                        # Includes the "template complex" name only once.
-                        if t.structure.original_pdb_file_name[:-4] not in self.all_templates_namelist:
-                            self.all_templates_namelist.append(t.structure.original_pdb_file_name[:-4])
+                for t in mc.templates_list:
+                    # Includes the "template complex" name only once.
+                    if self.chain_is_from_template_complex(t) and not self.template_complex_script_name in self.all_templates_namelist:
+                        self.all_templates_namelist.append(self.template_complex_script_name)
                     else:
-                        self.all_templates_namelist.append(mc.templates_namelist[t_i])
+                        self.all_templates_namelist.append(mc.template_options_dict[t]["modeller_name"])
             self.modeller_target_name = self.multiple_chains_models_name
 
 
-    def check_all_modelization_parameters(self):
+    def chain_is_from_template_complex(self, pymod_element): # elaion!
+        return pymod_element.get_structure_file(name_only=True, original_structure_file=True) == self.template_complex_name
+
+
+    def check_all_modeling_parameters(self):
         """
         This will be used before launching Modeller to check:
             - if the parameters of each modeling clusters are correct
@@ -994,40 +1031,30 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # If each "modeling cluster" has correct parameters, when performing multiple chain modeling,
         # there are other conditions that must be satisfied.
         if self.multiple_chain_mode:
-            raise Exception("multichain")
-            # # First finds the PDB_file object of the "template complex" selected by the user.
-            # self.template_complex = None
-            # for p in self.pdb_list:
-            #     if p.pdb_file_name == self.template_complex_var.get():
-            #         self.template_complex = p
-            #
-            # # Then perform additional controls for each modeling cluster and also get the list of
-            # # the "target complex" chains selected by the user.
-            # self.template_complex_selected_chain_list = []
-            # for mc in self.modeling_clusters_list:
-            #
-            #     # Gets the "template complex" chains selected in the current modeling cluster.
-            #     template_complex_selected_chains_in_cluster = []
-            #     for t in mc.templates_list:
-            #         if t.structure.original_pdb_file_name == self.template_complex.pdb_file_name:
-            #             template_complex_selected_chains_in_cluster.append(t.structure.pdb_chain_id)
-            #     self.template_complex_selected_chain_list.extend(template_complex_selected_chains_in_cluster)
-            #
-            #     # Check if the current cluster has a selected chain from the "target complex".
-            #     if len(template_complex_selected_chains_in_cluster) == 0:
-            #         self.modelization_parameters_error = "Please select AT LEAST one chain from the 'Template Complex' (%s) as a template for %s!" % (self.template_complex.pdb_file_name, mc.target_name)
-            #         return False
-            #
-            #     # Checks if in some cluster there is more than one selected template belonging to the
-            #     # "template complex". This is needed for because ONLY one chain belonging to the
-            #     # "template complex" can be selected by ther user in each cluster.
-            #     if len(template_complex_selected_chains_in_cluster) > 1:
-            #         self.modelization_parameters_error = "Please select ONLY one chain from the 'Template Complex' (%s) as template for %s!" % (self.template_complex.pdb_file_name, mc.target_name)
-            #         return False
-            #
-            # # Finally checks if the symmetries checkbuttons are selected properly.
-            # if not self.check_symmetry_vars():
-            #     return False
+            # Then perform additional controls for each modeling cluster and also get the list of
+            # the "target complex" chains selected by the user.
+            self.template_complex_selected_chain_list = []
+            for mc in self.modeling_clusters_list:
+                # Gets the "template complex" chains selected in the current modeling cluster.
+                template_complex_selected_chains_in_cluster = [t for t in mc.templates_list if self.chain_is_from_template_complex(t)]
+
+                # Check if the current cluster has a selected chain from the "target complex".
+                if len(template_complex_selected_chains_in_cluster) == 0:
+                    self.modelization_parameters_error = "Please select AT LEAST one chain from the 'Template Complex' (%s) as a template for %s!" % (self.template_complex.pdb_file_name, mc.target_name)
+                    return False
+
+                # Checks if in some cluster there is more than one selected template belonging to the
+                # "template complex". This is needed for because ONLY one chain belonging to the
+                # "template complex" can be selected by ther user in each cluster.
+                if len(template_complex_selected_chains_in_cluster) > 1:
+                    self.modelization_parameters_error = "Please select ONLY one chain from the 'Template Complex' (%s) as template for %s!" % (self.template_complex.pdb_file_name, mc.target_name)
+                    return False
+
+                self.template_complex_selected_chain_list.extend(template_complex_selected_chains_in_cluster)
+
+            # Finally checks if the symmetries checkbuttons are selected properly.
+            if not self.check_symmetry_restraints_vars():
+                return False
 
         # Returns 'True' only if all parameters are correct.
         return True
@@ -1078,19 +1105,22 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
     #     return True
 
 
-#     def check_symmetry_vars(self):
-#         correct_symmetry_vars = True
-#         for srg in self.symmetry_restraints_groups.get_groups(min_number_of_sequences=2):
-#             si = len([mc for mc in srg.list_of_clusters if mc.symmetry_restraints_var.get() == 1])
-#             if si == 1:
-#                 correct_symmetry_vars = False
-#                 self.modelization_parameters_error = "In order to impose symmetry restraints you need select the 'Apply symmetry restraints' option for at least two targets with the same sequence (you selected this option only for target '%s')." % (mc.target_name)
-#                 break
-#             elif si > 1:
-#                 srg.use = True
-#             else:
-#                 srg.use = False
-#         return correct_symmetry_vars
+    def check_symmetry_restraints_vars(self):
+        """
+        Check if symmetry restraints for multiple chain modeling can be applied.
+        """
+        correct_symmetry_vars = True
+        for srg in self.symmetry_restraints_groups.get_groups(min_number_of_sequences=2):
+            si = len([mc for mc in srg.list_of_clusters if mc.symmetry_restraints_var.get() == 1])
+            if si == 1:
+                correct_symmetry_vars = False
+                self.modelization_parameters_error = "In order to impose symmetry restraints you need select the 'Apply symmetry restraints' option for at least two targets with the same sequence (you selected this option only for target '%s')." % (mc.target_name)
+                break
+            elif si > 1:
+                srg.use = True
+            else:
+                srg.use = False
+        return correct_symmetry_vars
 
 
     def prepare_modeling_session_files(self, modeller_output_dir_path=None):
@@ -1118,7 +1148,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #---------------------------------------------------------------------
         for modeling_cluster in self.modeling_clusters_list:
             modeling_cluster.prepare_template_files()
-
+        # Prepares the template complex file.
+        if self.multiple_chain_mode:
+            pass
+            
         #---------------------------------------
         # Prepares input and ouput file paths. -
         #---------------------------------------
@@ -1137,7 +1170,6 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
     # Creates a file with the alignment in the PIR format. #
     ########################################################
 
-    # leafs!
     def build_pir_align_file(self):
         """
         This function creates alignments in a PIR format: this is entirely rewrtitten from the

@@ -229,3 +229,48 @@ class PyMod_structure:
 
     def get_pymol_object_name(self):
         return os.path.splitext(os.path.basename(self.current_chain_file_path))[0]
+
+
+###################################################################################################
+# Manipulation of structure files.                                                                #
+###################################################################################################
+
+class PDB_joiner:
+    """
+    A class to joins more than one PDB file in one single file. Example:
+        j = PDB_joiner(["file_chain_A.pdb", "file_chain_B.pdb"])
+        j.join()
+        j.write("output.pdb")
+    """
+
+    def __init__(self, list_of_structure_files):
+        self.list_of_structure_files = list_of_structure_files
+        self.output_file_lines = []
+        self.atom_counter = 1
+
+    def join(self):
+        for structure_file in self.list_of_structure_files:
+            sfh = open(structure_file, "r")
+            lines = [self._modify_atom_index(line) for line in sfh.readlines() if self._accept_atom_line(line)]
+            if lines[-1].startswith("ATOM"):
+                lines.append(self._build_ter_line(lines[-1]))
+            self.output_file_lines.extend(lines)
+
+    def write(self, output_file_path):
+        output_file_handle = open(output_file_path, "w")
+        output_file_handle.writelines(self.output_file_lines)
+        output_file_handle.close()
+
+    def _accept_atom_line(self, line):
+        return line.startswith("ATOM") or line.startswith("HETATM")
+
+    def _build_atom_line(self, line, new_atom_index):
+        return "%s%s%s" % (line[:6], str(new_atom_index).rjust(5), line[11:])
+
+    def _build_ter_line(self, last_atom_line):
+        return "TER   %s      %s" % (al[6:11], al[17:26])
+
+    def _modify_atom_index(self, line):
+        new_line = self._build_atom_line(line, self.atom_counter)
+        self.atom_counter += 1
+        return new_line

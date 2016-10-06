@@ -7,6 +7,7 @@
 #     - structure appearence and colors.
 #     - fetch and associate structures.
 #     - reimplement the collapsed clusters features.
+#     - rewrite the 'execute_subprocess' method.
 #     - Ramachandran plot.
 #     - superpose.
 #     - RMSD part.
