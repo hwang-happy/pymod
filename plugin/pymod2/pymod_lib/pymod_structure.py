@@ -237,10 +237,10 @@ class PyMod_structure:
 
 class PDB_joiner:
     """
-    A class to joins more than one PDB file in one single file. Example:
+    A class to joins more than one PDB file in one single file. Usage example:
         j = PDB_joiner(["file_chain_A.pdb", "file_chain_B.pdb"])
         j.join()
-        j.write("output.pdb")
+        j.write("file.pdb")
     """
 
     def __init__(self, list_of_structure_files):

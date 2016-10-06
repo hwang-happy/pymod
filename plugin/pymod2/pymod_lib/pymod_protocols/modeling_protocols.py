@@ -250,10 +250,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         This method is called when the 'SUBMIT' button in the modelization window is pressed. It
         contains the code to instruct Modeller on how to perform the modelization.
         """
-        try:
-            self._perform_modelization()
-        except Exception, e:
-            self.modeling_session_failure(e)
+        # try:
+        self._perform_modelization()
+        # except Exception, e:
+        #     self.modeling_session_failure(e)
 
 
     def _perform_modelization(self):
@@ -998,8 +998,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             for mc in self.modeling_clusters_list:
                 for t in mc.templates_list:
                     # Includes the "template complex" name only once.
-                    if self.chain_is_from_template_complex(t) and not self.template_complex_script_name in self.all_templates_namelist:
-                        self.all_templates_namelist.append(self.template_complex_script_name)
+                    if self.chain_is_from_template_complex(t):
+                        if not self.template_complex_script_name in self.all_templates_namelist:
+                            self.all_templates_namelist.append(self.template_complex_script_name)
                     else:
                         self.all_templates_namelist.append(mc.template_options_dict[t]["modeller_name"])
             self.modeller_target_name = self.multiple_chains_models_name
@@ -1033,7 +1034,6 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         if self.multiple_chain_mode:
             # Then perform additional controls for each modeling cluster and also get the list of
             # the "target complex" chains selected by the user.
-            self.template_complex_selected_chain_list = []
             for mc in self.modeling_clusters_list:
                 # Gets the "template complex" chains selected in the current modeling cluster.
                 template_complex_selected_chains_in_cluster = [t for t in mc.templates_list if self.chain_is_from_template_complex(t)]
@@ -1050,7 +1050,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     self.modelization_parameters_error = "Please select ONLY one chain from the 'Template Complex' (%s) as template for %s!" % (self.template_complex.pdb_file_name, mc.target_name)
                     return False
 
-                self.template_complex_selected_chain_list.extend(template_complex_selected_chains_in_cluster)
+                # Sets the template complex in the modeling cluster.
+                mc.set_template_complex_chain(template_complex_selected_chains_in_cluster[0])
 
             # Finally checks if the symmetries checkbuttons are selected properly.
             if not self.check_symmetry_restraints_vars():
@@ -1141,17 +1142,26 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         # Stores the path of the modeling directory.
         self.set_modeling_directory(modeller_output_dir_path)
-        os.mkdir(self.modeling_directory)
+        try: # TODO: temp.
+            os.mkdir(self.modeling_directory)
+        except:
+            pass
+        #-------------------------------------------------------------------------
+        # Prepares the structure files of the templates in the output directory. -
+        #-------------------------------------------------------------------------
 
-        #---------------------------------------------------------------------
-        # Copy the structure files of the templates in the output directory. -
-        #---------------------------------------------------------------------
-        for modeling_cluster in self.modeling_clusters_list:
-            modeling_cluster.prepare_template_files()
+        # Prepares the single chain templates files.
+        for mc in self.modeling_clusters_list:
+            mc.prepare_single_chains_template_files()
+
+        # leafs!
         # Prepares the template complex file.
         if self.multiple_chain_mode:
-            pass
-            
+            list_of_template_complex_files = [os.path.join(self.modeling_directory, t.get_structure_file(name_only=True)) for t in self.get_template_complex_chains()]
+            j = pmstr.PDB_joiner(list_of_template_complex_files)
+            j.join()
+            j.write(os.path.join(self.modeling_directory, self.template_complex_name))
+
         #---------------------------------------
         # Prepares input and ouput file paths. -
         #---------------------------------------
@@ -1166,10 +1176,15 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         os.chdir(self.modeling_directory)
 
 
+    def get_template_complex_chains(self):
+        return [mc.get_template_complex_chain() for mc in self.modeling_clusters_list]
+
+
     ########################################################
     # Creates a file with the alignment in the PIR format. #
     ########################################################
 
+    # leafs!
     def build_pir_align_file(self):
         """
         This function creates alignments in a PIR format: this is entirely rewrtitten from the
@@ -1188,8 +1203,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # as seen by PyMod.                                                                  #
         ######################################################################################
         for (mc_i, modeling_cluster) in enumerate(self.modeling_clusters_list):
-            for tmp_i, template in enumerate(modeling_cluster.templates_list):
-
+            for template in modeling_cluster.templates_list:
                 seq_file = modeling_cluster.template_options_dict[template]["sequence_file"]
                 r = Bio.SeqIO.read(seq_file, "pir")
                 mod_seq = str(r.seq)
@@ -1212,13 +1226,12 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #----------------------------------------------------------------------
 
         for (mc_i, modeling_cluster) in enumerate(self.modeling_clusters_list):
-
             #-------------------------------------------------------------------------
             # Get the ligands and water molecules in the sequences aligned in PyMod. -
             #-------------------------------------------------------------------------
             # TODO: modify for when using "exclude heteroatoms" options.
             modeling_cluster.hetres_to_insert = []
-            for tmp_i, template in enumerate(modeling_cluster.templates_list):
+            for template in modeling_cluster.templates_list:
                 for res in template.get_residues(ligands=self.use_hetatm_in_session, modified_residues=self.use_hetatm_in_session, water=self.use_water_in_session):
                     if not res.is_polymer_residue():
                         res_ali_insert_id = template.get_next_residue_id(res, aligned_sequence_index=True)
@@ -1457,7 +1470,8 @@ class Modeling_cluster(Modeling_session):
                     # Do the same with the water checkbutton.
                     "water_state": structure_frame.water_state.get(),
                     "structure_file": None, "sequence_file": None,
-                    "modeller_name": None}
+                    "modeller_name": None,
+                    "template_complex": False}
 
                 # Populate each modeling_cluster "template_list" with the elements selected by
                 # the user from the "suitable_templates_list".
@@ -1491,20 +1505,38 @@ class Modeling_cluster(Modeling_session):
 
 
     def use_water_in_cluster(self):
-        found_water = 1 in [self.template_options_dict[t]["water_state"] for t in self.templates_list]
-        return found_water
+        return 1 in [self.template_options_dict[t]["water_state"] for t in self.templates_list]
 
 
-    def prepare_template_files(self):
+    def set_template_complex_chain(self, template):
+        self.template_options_dict[template]["template_complex"] = True
+
+    def is_template_complex_chain(self, template):
+        """
+        Check if a template chain is part of the 'template complex'.
+        """
+        return self.template_options_dict[template]["template_complex"]
+
+    def get_template_complex_chain(self):
         for template in self.templates_list:
-            # Copy the templates structure files in the modeling directory.
-            template_str_file = template.get_structure_file()
-            copied_template_str_file = os.path.basename(template_str_file)
-            shutil.copy(template_str_file, os.path.join(self.modeling_directory, copied_template_str_file))
-            self.template_options_dict[template]["structure_file"] = copied_template_str_file
-            # Build a sequence file for the templates.
-            self.build_modeller_sequence_file(template)
+            if self.is_template_complex_chain(template):
+                return template
+        return None
 
+
+    def prepare_single_chains_template_files(self):
+        for template in self.templates_list:
+            # if not self.is_template_complex_chain(template):
+                self.prepare_template_files(template)
+
+    def prepare_template_files(self, template):
+        # Copy the templates structure files in the modeling directory.
+        template_str_file = template.get_structure_file()
+        copied_template_str_file = os.path.basename(template_str_file)
+        shutil.copy(template_str_file, os.path.join(self.modeling_directory, copied_template_str_file))
+        self.template_options_dict[template]["structure_file"] = copied_template_str_file
+        # Build a sequence file for the templates.
+        self.build_modeller_sequence_file(template)
 
     def build_modeller_sequence_file(self, template):
         # From point 17 of https://salilab.org/modeller/manual/node38.html.
