@@ -184,13 +184,17 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
                 modeling_cluster.structure_frame_list.append(structure_frame)
 
 
-    def switch_all_hetres_checkbutton_states(self,het_radio_button_state):
+    def switch_all_hetres_checkbutton_states(self, het_radio_button_state):
         """
         Launched when the user activates/inactivates the "Include HetAtoms" in the Options page in
         the modeling window.
         """
         for mc in self.modeling_protocol.modeling_clusters_list:
             self.switch_hetres_checkbutton_states(mc, het_radio_button_state)
+        if het_radio_button_state == 0:
+            self.exclude_heteroatoms_rds.setvalue("Yes")
+        elif het_radio_button_state == 1:
+            self.exclude_heteroatoms_rds.setvalue("No")
 
 
     def show_symmetry_info(self, modeling_cluster):
@@ -491,8 +495,9 @@ class Structure_frame(Modeling_window_mixin):
         Builds a frame for the Hetero-residues selection.
         """
         # This is going to contain the checkbox states of the HETRES of the structure.
-        self.structure_hetres_states  = []
+        self.structure_hetres_states = []
         self.structure_hetres_checkbuttons = []
+        self.structure_hetres_dict = {} # TODO: just use an ordered dict to substitute the three attributes above.
         # Hetero-residues frame
         self.hetres_frame = Frame(self.structure_frame, background='black', pady = Structure_frame.frames_padding)
         self.hetres_frame.grid(row=2, column=0,sticky = "w")
@@ -531,6 +536,7 @@ class Structure_frame(Modeling_window_mixin):
                 # Adds the single HETRES state to a list that contains the ones of the structure.
                 self.structure_hetres_states.append(single_hetres_state)
                 self.structure_hetres_checkbuttons.append(hetres_checkbutton)
+                self.structure_hetres_dict.update({hetres: single_hetres_state})
 
             self.do_not_use_hetres = Radiobutton(self.hetres_options_frame, text="Do not use any heteroatomic residue", variable=self.hetres_options_var, value=3,command=self.hide_select_single_hetres_frame, state=DISABLED, **shared_components.modeling_window_rb_small)
             self.do_not_use_hetres.grid(row=3, column=0, sticky = "w")
@@ -564,12 +570,12 @@ class Structure_frame(Modeling_window_mixin):
 
         # Checkbox for water
         # Variable with the state for including water molecules
-        self.water_state = IntVar()
-        self.water_state.set(0)
+        self.water_state_var = IntVar()
+        self.water_state_var.set(0)
         if self.structure_pymod_element.has_waters():
             n_water = len(self.structure_pymod_element.get_waters())
             self.text_for_water_checkbox = "%s water molecules" % (n_water)
-            self.water_checkbox = Checkbutton(self.water_frame, text=self.text_for_water_checkbox, variable=self.water_state, command= lambda x=self.id: self.click_on_water_checkbutton(x),state=DISABLED, **shared_components.modeling_window_checkbutton)
+            self.water_checkbox = Checkbutton(self.water_frame, text=self.text_for_water_checkbox, variable=self.water_state_var, command= lambda x=self.id: self.click_on_water_checkbutton(x),state=DISABLED, **shared_components.modeling_window_checkbutton)
             self.water_checkbox.grid(row=0, column=1, sticky = "w")
         else:
             self.no_water_label = Label(self.water_frame, text= "This structure has no water molecules", background='black', fg='gray45', anchor ="w")
@@ -585,6 +591,24 @@ class Structure_frame(Modeling_window_mixin):
         for sf in self.modeling_protocol.modeling_clusters_list[self.mc_id].structure_frame_list:
             if sf.id != self.id and sf.structure_pymod_element.has_waters():
                 sf.water_checkbox.deselect()
+
+
+    def get_template_hetres_dict(self):
+        """
+        Gets a dictionary that indicates which heteroresidue to include in the models.
+        """
+        template_hetres_dict = {}
+        for h in self.structure_hetres_dict.keys():
+            if self.hetres_options_var.get() == 1:
+                template_hetres_dict.update({h:1})
+            elif self.hetres_options_var.get() == 2:
+                template_hetres_dict.update({h:self.structure_hetres_dict[h].get()})
+            elif self.hetres_options_var.get() == 3:
+                template_hetres_dict.update({h:0})
+        for water in self.structure_pymod_element.get_waters():
+            template_hetres_dict.update({water:self.water_state_var.get()})
+        return template_hetres_dict
+
 
 
 class Disulfides_frame(Modeling_window_mixin):

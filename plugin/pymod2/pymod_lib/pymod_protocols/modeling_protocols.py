@@ -1,5 +1,8 @@
 # TODO
 #   - multiple chain modeling.
+#   - structures part (see pymod_main file).
+#   - subsitute the first model with actual target element and then put successive models outside
+#     target's cluster.
 #   - build a log file on all platforms.
 #   - implement saving of modeling sessions.
 #   - reimplement disulfides and change the restraints the 'Disulfides' tab to 'Restraints'.
@@ -983,6 +986,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #------------------------------------------------------------------------------------------
         self.all_templates_namelist = []
         self.modeller_target_name = ""
+        self.pir_sequences_dict = {}
+        self.pir_sequence_id = 0
 
         # If there is only one chain to model.
         if not self.multiple_chain_mode:
@@ -994,13 +999,13 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             # First finds the PDB_file object of the "template complex" selected by the user.
             self.template_complex = None
             self.template_complex_name = self.modeling_window.template_complex_var.get()
-            self.template_complex_script_name = self.template_complex_name[:-4]
+            self.template_complex_modeller_name = self.template_complex_name[:-4]
             for mc in self.modeling_clusters_list:
                 for t in mc.templates_list:
                     # Includes the "template complex" name only once.
                     if self.chain_is_from_template_complex(t):
-                        if not self.template_complex_script_name in self.all_templates_namelist:
-                            self.all_templates_namelist.append(self.template_complex_script_name)
+                        if not self.template_complex_modeller_name in self.all_templates_namelist:
+                            self.all_templates_namelist.append(self.template_complex_modeller_name)
                     else:
                         self.all_templates_namelist.append(mc.template_options_dict[t]["modeller_name"])
             self.modeller_target_name = self.multiple_chains_models_name
@@ -1154,7 +1159,6 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         for mc in self.modeling_clusters_list:
             mc.prepare_single_chains_template_files()
 
-        # leafs!
         # Prepares the template complex file.
         if self.multiple_chain_mode:
             list_of_template_complex_files = [os.path.join(self.modeling_directory, t.get_structure_file(name_only=True)) for t in self.get_template_complex_chains()]
@@ -1165,6 +1169,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #---------------------------------------
         # Prepares input and ouput file paths. -
         #---------------------------------------
+        # leafs!
         self.pir_file_path = os.path.join(self.modeling_directory, self.pir_file_name)
 
         #--------------------------------------------------------------------
@@ -1172,7 +1177,6 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #--------------------------------------------------------------------
         # The current directory has to be changed beacause in Modeller the user can't change the
         # output directory, it has to be the current directory.
-        # TODO: store the current path.
         os.chdir(self.modeling_directory)
 
 
@@ -1184,14 +1188,12 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
     # Creates a file with the alignment in the PIR format. #
     ########################################################
 
-    # leafs!
     def build_pir_align_file(self):
         """
-        This function creates alignments in a PIR format: this is entirely rewrtitten from the
+        This function creates alignments in a PIR format: this is entirely rewritten from the
         original PyMod version.
         """
         pir_align_file_handle = open(self.pir_file_path, "w")
-
 
         #-------------------------------------------------------------------------------------
         # Write the sequences as seen by MODELLER and checks if they are the same as seen by -
@@ -1202,7 +1204,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # Confronts the template sequences as seen by MODELLER and                           #
         # as seen by PyMod.                                                                  #
         ######################################################################################
-        for (mc_i, modeling_cluster) in enumerate(self.modeling_clusters_list):
+        for modeling_cluster in self.modeling_clusters_list:
             for template in modeling_cluster.templates_list:
                 seq_file = modeling_cluster.template_options_dict[template]["sequence_file"]
                 r = Bio.SeqIO.read(seq_file, "pir")
@@ -1219,79 +1221,123 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     print "mod:", mod_seq
                     print "mox:", new_mod_seq
                     print "pym:", pymod_seq
+            # TODO: also use the template complex.
         ######################################################################################
 
         #----------------------------------------------------------------------
         # Starts to write the PIR sequence file needed by MODELLER for input. -
         #----------------------------------------------------------------------
-
-        for (mc_i, modeling_cluster) in enumerate(self.modeling_clusters_list):
-            #-------------------------------------------------------------------------
-            # Get the ligands and water molecules in the sequences aligned in PyMod. -
-            #-------------------------------------------------------------------------
-            # TODO: modify for when using "exclude heteroatoms" options.
-            modeling_cluster.hetres_to_insert = []
+        self.hetres_to_use = []
+        for modeling_cluster in self.modeling_clusters_list:
+            #---------------------------------------------------------------
+            # Get the heteroresidues and water molecules of the templates. -
+            #---------------------------------------------------------------
             for template in modeling_cluster.templates_list:
-                for res in template.get_residues(ligands=self.use_hetatm_in_session, modified_residues=self.use_hetatm_in_session, water=self.use_water_in_session):
+                for res in template.get_residues(standard=False, ligands=self.use_hetatm_in_session, modified_residues=self.use_hetatm_in_session, water=self.use_water_in_session):
+                    hetres_dict = {
+                         "residue": res, "use_hetres": modeling_cluster.template_options_dict[template]["hetres_dict"][res],
+                         "insert_index": None, "modified_residue": None,
+                         "template": template, "modeling_cluster": modeling_cluster}
                     if not res.is_polymer_residue():
-                        res_ali_insert_id = template.get_next_residue_id(res, aligned_sequence_index=True)
-                        modeling_cluster.hetres_to_insert.append((res_ali_insert_id, res.one_letter_code, template))
+                        hetres_dict["insert_index"] = template.get_next_residue_id(res, aligned_sequence_index=True)
+                        hetres_dict["modified_residue"] = False
+                    else:
+                        hetres_dict["insert_index"] = res.get_id_in_aligned_sequence()
+                        hetres_dict["modified_residue"] = True
+                    self.hetres_to_use.append(hetres_dict)
+            # raise Exception("TEST")
 
             #------------------------------------------------------------------------
             # Insert ligands and water molecules in the sequences aligned in PyMod. -
             #------------------------------------------------------------------------
-            pir_sequence_id = 0
+            # Build the templates pir sequences.
             for template in modeling_cluster.templates_list:
-                modeling_cluster.pir_sequences_dict.update({
-                    template: {"list_seq": list(template.my_sequence),
-                                "pir_seq": None, "id":pir_sequence_id}})
-                pir_sequence_id += 1
-            modeling_cluster.pir_sequences_dict.update({
-                modeling_cluster.target: {"list_seq": list(modeling_cluster.target.my_sequence),
-                                          "pir_seq": None, "id":pir_sequence_id+1}})
-            # TODO: make a function to sort dicts having an "id" key.
-            for seq in sorted(modeling_cluster.pir_sequences_dict.keys(), key=lambda k: modeling_cluster.pir_sequences_dict[k]["id"]):
-                residue_to_insert_count = 0
-                for ri in modeling_cluster.hetres_to_insert:
-                    if seq == ri[2]:
-                        symbol_to_insert = ri[1]
-                        if symbol_to_insert == "x":
-                            symbol_to_insert = "."
-                    else:
-                        symbol_to_insert = "-"
-                    if ri[0] == -1:
-                        modeling_cluster.pir_sequences_dict[seq]["list_seq"].append(symbol_to_insert)
-                    else:
-                        modeling_cluster.pir_sequences_dict[seq]["list_seq"].insert(ri[0]+residue_to_insert_count, symbol_to_insert)
-                    residue_to_insert_count += 1
-                modeling_cluster.pir_sequences_dict[seq]["pir_seq"] = "".join(modeling_cluster.pir_sequences_dict[seq]["list_seq"])
+                self.pir_sequences_dict.update({
+                    template: {"list_seq": self.get_pir_list(template.my_sequence),
+                               "pir_seq": None, "id":self.pir_sequence_id}})
+                self.pir_sequence_id += 1
+            # Build the targets pir sequences.
+            self.pir_sequences_dict.update({
+                modeling_cluster.target: {"list_seq": self.get_pir_list(modeling_cluster.target.my_sequence),
+                                          "pir_seq": None, "id":self.pir_sequence_id+1}})
 
-            #--------------------------------
-            # Write the template sequences. -
-            #--------------------------------
+        # Update the sequences.
+        self.pir_hetres_code_dict = {"x":".", "w":"w"}
+        # TODO: make a function to sort dicts having an "id" key. MAKE THIS BETTER.
+        for seq in sorted(self.pir_sequences_dict.keys(), key=lambda k: self.pir_sequences_dict[k]["id"]):
+            residue_to_insert_count = 0
+            for modeling_cluster in self.modeling_clusters_list:
+                for ri in filter(lambda r: r["modeling_cluster"] == modeling_cluster, self.hetres_to_use):
+                    # Ligands and water molecules.
+                    if not ri["modified_residue"]:
+                        # Choose the symbol to use for the heteroresidue.
+                        if seq == ri["template"]:
+                            symbol_to_insert = self.pir_hetres_code_dict[ri["residue"].one_letter_code]
+                        elif seq == modeling_cluster.target:
+                            if ri["use_hetres"]:
+                                symbol_to_insert = self.pir_hetres_code_dict[ri["residue"].one_letter_code]
+                            else:
+                                symbol_to_insert = "-"
+                        else:
+                            symbol_to_insert = "-"
+                        # Actually inserts the ligand/water molecule in the PIR alignment.
+                        if ri["insert_index"] == -1:
+                            self.pir_sequences_dict[seq]["list_seq"].append(symbol_to_insert)
+                        else:
+                            self.pir_sequences_dict[seq]["list_seq"].insert(ri["insert_index"]+residue_to_insert_count, symbol_to_insert)
+                        # for h in filter(lambda r: r["modeling_cluster"] == modeling_cluster, self.hetres_to_use):
+                        #     if h["insert_index"] > ri["insert_index"] and h != ri:
+                        #         h["insert_index"] += 1
+                        residue_to_insert_count += 1
+                    # Modified residues.
+                    else:
+                        if seq == modeling_cluster.target and ri["use_hetres"]:
+                            self.pir_sequences_dict[seq]["list_seq"][ri["insert_index"]] = "!"
+
+        # Builds the updated PIR sequences.
+        for seq in self.pir_sequences_dict.keys():
+            self.pir_sequences_dict[seq]["pir_seq"] = "".join(self.pir_sequences_dict[seq]["list_seq"])
+
+        #############################################################
+        # leafs!
+        #--------------------------------
+        # Write the template sequences. -
+        #--------------------------------
+
+        # First write the template complex block.
+        if self.multiple_chain_mode:
+            raise Exception("multi")
+            # print >> pir_align_file_handle, ">P1;%s" % self.template_complex_modeller_name
+            # print >> pir_align_file_handle, "structure:%s:.:.:.:.::::" % self.template_complex_modeller_name # TODO: (template_code,template_chain,template_chain)
+            # tc_pir_string
+            # for template_complex_chain in self.get_template_complex_chains():
+            #     tc_pir_string += ""
+
+        # Then write the single chains template blocks.
+        for modeling_cluster in self.modeling_clusters_list:
             for template in modeling_cluster.templates_list:
-                # First write to the file the template blocks.
-                # for (i,template) in enumerate(mc.templates_list):
-                # Writes the first line of the template. Modeller does not like names with ":" character
-                # but they have been removed when populating self.templates_namelist.
+                # Writes the first line of the template.
                 template_code = modeling_cluster.template_options_dict[template]["modeller_name"]
                 template_chain = template.get_structure_chain_id()
-                print >> pir_align_file_handle , ">P1;"+template_code
+                print >> pir_align_file_handle , ">P1;%s" % template_code
                 print >> pir_align_file_handle , "structure:%s:.:%s:.:%s::::" % (template_code,template_chain,template_chain)
                 # Print one the alignment file 60 characters-long lines.
-                template_sequence = self.get_pir_formatted_sequence(modeling_cluster.pir_sequences_dict[template]["pir_seq"])
+                template_sequence = self.get_pir_formatted_sequence(self.pir_sequences_dict[template]["pir_seq"])
                 print >> pir_align_file_handle, template_sequence
 
-            # Then writes the target block.
-            print >> pir_align_file_handle , ">P1;"+self.modeller_target_name # mc.target_name
-            print >> pir_align_file_handle , "sequence:"+self.modeller_target_name+":.:.:.:.::::"
-            target_sequence = self.get_pir_formatted_sequence(modeling_cluster.pir_sequences_dict[modeling_cluster.target]["pir_seq"])
-            print >> pir_align_file_handle, target_sequence
+        # Finally write the target block.
+        print >> pir_align_file_handle , ">P1;%s" % self.modeller_target_name # mc.target_name
+        print >> pir_align_file_handle , "sequence:%s:.:.:.:.::::" % self.modeller_target_name
+        target_sequence = self.get_pir_formatted_sequence(self.pir_sequences_dict[modeling_cluster.target]["pir_seq"])
+        print >> pir_align_file_handle, target_sequence
+        #############################################################
 
         pir_align_file_handle.close()
 
         # subprocess.call(['cat %s' % self.pir_file_path], shell=True)
 
+    def get_pir_list(self, sequence):
+        return map(lambda p: p.replace("X","m"), list(sequence))
 
     def get_pir_formatted_sequence(self,sequence,multi=False):
         formatted_sequence = ""
@@ -1448,7 +1494,6 @@ class Modeling_cluster(Modeling_session):
         self.templates_list = []
         # Important dictionary that is going to contain informations about the templates.
         self.template_options_dict = {}
-        self.pir_sequences_dict = {}
         self.hetres_to_insert = []
 
 
@@ -1463,12 +1508,10 @@ class Modeling_cluster(Modeling_session):
                 template_options_dict = {
                     "id": template_count,
                     "seq_min": 1, "seq_max": 10000,
-                    # For every selected structure takes the HETRES option.
-                    "hetres_option": structure_frame.hetres_options_var.get(),
-                    # And the values of each HETRES checkbutton.
-                    "hetres_map": map(lambda var_e: var_e.get(), structure_frame.structure_hetres_states),
+                    # For every selected structure takes the values of HETRES checkbutton.
+                    "hetres_dict": structure_frame.get_template_hetres_dict(),
                     # Do the same with the water checkbutton.
-                    "water_state": structure_frame.water_state.get(),
+                    "water_state": structure_frame.water_state_var.get(),
                     "structure_file": None, "sequence_file": None,
                     "modeller_name": None,
                     "template_complex": False}
@@ -1577,17 +1620,6 @@ class Modeling_cluster(Modeling_session):
     # def set_model_chain_id(self,chain_index):
     #     self.model_chain_id = chain_index
 
-    # def get_template_complex_chain(self):
-    #     """
-    #     Returns the 'PyMod_element' object if the template complex chain of this modeling cluster.
-    #     """
-    #     c = None
-    #     for t in self.templates_list:
-    #         if t in pymod.template_complex.clusterseq_elements:
-    #             c = t
-    #             break
-    #     return c
-    #
     # def has_ligands(self):
     #     ligands = False
     #     for t in self.templates_list:
@@ -1612,8 +1644,6 @@ class Modeling_cluster(Modeling_session):
         for model_element in self.model_elements_list:
             if model_element != self.target:
                 model_element.my_sequence = self.backup_target_sequence
-            print "#################################"
-            print model_element.my_sequence
 
 
 # # ---

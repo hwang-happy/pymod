@@ -120,7 +120,7 @@ class Parsed_pdb_file:
                         parsed_chain["residues"].append(pmel.PyMod_water_molecule(three_letter_code=resname, one_letter_code="w", db_index=pdb_position))
                     # For standard amminoacidic residues. Adds them to the primary sequence.
                     else:
-                        parsed_chain["residues"].append(pmel.PyMod_residue(three_letter_code=resname, one_letter_code=pmsm.three2one(resname), db_index=pdb_position))
+                        parsed_chain["residues"].append(pmel.PyMod_standard_residue(three_letter_code=resname, one_letter_code=pmsm.three2one(resname), db_index=pdb_position))
                 list_of_parsed_chains.append(parsed_chain)
 
             # Stops after having parsed the first "model" in the biopython "structure".

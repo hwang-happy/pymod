@@ -454,10 +454,10 @@ class PyMod_sequence_element(PyMod_element):
     def has_waters(self):
         return len(self.get_waters()) > 0
 
-    def get_residues(self, ligands=False, modified_residues=True, water=False):
+    def get_residues(self, standard=True, ligands=False, modified_residues=True, water=False):
         list_of_residues = []
         for res in self.residues:
-            if res.is_standard_residue():
+            if res.is_standard_residue() and standard:
                 list_of_residues.append(res)
             elif res.is_ligand() and ligands:
                 list_of_residues.append(res)
@@ -628,19 +628,10 @@ class PyMod_residue:
         """
         Check if the residue is part of a polymer chain, or a ligand molecule/atom.
         """
-        if not self.is_water() and not self.is_ligand():
-            return True
-        else:
-            return False
+        return not self.is_water() and not self.is_ligand()
 
     def is_standard_residue(self):
-        return not self.is_heteroresidue(exclude_water=False) # TODO.
-
-    def is_heteroresidue(self, exclude_water=True):
-        if exclude_water:
-            return issubclass(self.__class__, PyMod_heteroresidue) and not self.is_water()
-        else:
-            return issubclass(self.__class__, PyMod_heteroresidue)
+        return isinstance(self, PyMod_standard_residue)
 
     def is_water(self):
         return isinstance(self, PyMod_water_molecule)
@@ -650,6 +641,15 @@ class PyMod_residue:
 
     def is_modified_residue(self):
         return isinstance(self, PyMod_modified_residue)
+
+    def is_heteroresidue(self, exclude_water=True):
+        if exclude_water:
+            return self.is_non_water_heteroresidue()
+        else:
+            return issubclass(self.__class__, PyMod_heteroresidue)
+
+    def is_non_water_heteroresidue(self):
+        return issubclass(self.__class__, PyMod_heteroresidue) and not self.is_water()
 
 
     def check_structure(method):
@@ -676,13 +676,17 @@ class PyMod_residue:
 
     def get_id_in_aligned_sequence(self):
         res_counter = 0
+        index = self.pymod_element.get_polymer_residues().index(self)
         for i, p in enumerate(self.pymod_element.my_sequence):
             if p != "-":
-                if self.index == res_counter:
+                if index == res_counter:
                     return i
                 res_counter += 1
         return None
 
+
+class PyMod_standard_residue(PyMod_residue):
+    hetres_type = None
 
 class PyMod_heteroresidue(PyMod_residue):
     hetres_type = "?"

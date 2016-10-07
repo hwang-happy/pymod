@@ -715,9 +715,13 @@ class PyMod:
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
         if 1:
-            self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
-            self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
-            self.open_structure_file(os.path.join(seqs_dir,"modeling/1oas.pdb"))
+            self.open_sequence_file(os.path.join(seqs_dir,"modeling/th.fasta"))
+            self.open_structure_file(os.path.join(seqs_dir,"modeling/5dyt.pdb"))
+            # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
+            # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
+            # self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
+            # self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
+            # self.open_structure_file(os.path.join(seqs_dir,"modeling/1oas.pdb"))
         self.gridder(update_clusters=True, update_menus=True)
 
         # Alignments.
