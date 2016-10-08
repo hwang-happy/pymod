@@ -1,5 +1,8 @@
 # TODO:
-#     - MODELLER
+#     - MODELLER.
+#     - implement ordered dictionaries.
+#     - update BLAST clusters.
+#     - color the clusters after modifications.
 #     - structures, files and headers formatting.
 #     - open multiple files with the same structure.
 #     - duplicate structures.
@@ -17,6 +20,7 @@
 #       - temp directory.
 #       - control the sequences.
 #       - models refinement.
+#     - add the licence part to each file of the plugin.
 
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
 #     - add an "export to .phy file" option when showing distance trees.
@@ -714,14 +718,18 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
-        if 1:
-            self.open_sequence_file(os.path.join(seqs_dir,"modeling/th.fasta"))
-            self.open_structure_file(os.path.join(seqs_dir,"modeling/5dyt.pdb"))
-            # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
-            # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
-            # self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
-            # self.open_sequence_file(os.path.join(seqs_dir,"modeling/t2.fasta"))
-            # self.open_structure_file(os.path.join(seqs_dir,"modeling/1oas.pdb"))
+        # Dimer: complex case.
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
+        # CXCR4.
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
+        # Dimer: easy case.
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
         self.gridder(update_clusters=True, update_menus=True)
 
         # Alignments.

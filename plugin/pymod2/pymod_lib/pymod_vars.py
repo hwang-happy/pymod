@@ -407,6 +407,9 @@ mod_amino_acid_backbone_atoms = set(("N2","C1","C2"))
 
 modified_residue_one_letter = "X"
 ligand_one_letter = "x"
+water_one_letter = "w"
+
+pir_hetres_code_dict = {ligand_one_letter:".", water_one_letter:"w"}
 
 
 ###############################

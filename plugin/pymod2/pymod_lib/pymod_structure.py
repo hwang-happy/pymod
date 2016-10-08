@@ -274,3 +274,8 @@ class PDB_joiner:
         new_line = self._build_atom_line(line, self.atom_counter)
         self.atom_counter += 1
         return new_line
+
+def join_pdb_files(list_of_structure_files, output_file_path):
+    j = PDB_joiner(list_of_structure_files)
+    j.join()
+    j.write(output_file_path)

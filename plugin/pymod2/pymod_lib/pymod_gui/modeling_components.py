@@ -119,8 +119,8 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             "of your multiple chain model. The relative orientation in space and the interfaces of\n"+
             "your model's chains will be based on the architecture of the Template Complex.")
 
-            self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **shared_components.modeling_window_explanation)
-            self.template_complex_message.grid(row=1, column=0, sticky = "w")
+            # self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **shared_components.modeling_window_explanation)
+            # self.template_complex_message.grid(row=1, column=0, sticky = "w")
 
             for (tc_i,tc) in enumerate(self.modeling_protocol.template_complex_list):
                 tcb = Radiobutton(self.template_complex_selection_frame, text=tc, variable=self.template_complex_var, value=tc, **shared_components.modeling_window_rb_big)
@@ -201,7 +201,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         """
         Displays informations about which target sequence shares the same sequence of other targets.
         """
-        mc_list = self.symmetry_restraints_groups.get_group_by_id(modeling_cluster.symmetry_restraints_id).list_of_clusters
+        mc_list = self.modeling_protocol.symmetry_restraints_groups.get_group_by_id(modeling_cluster.symmetry_restraints_id).list_of_clusters
         mc_list = filter(lambda x: not x is modeling_cluster ,mc_list)
         message1 = "The target '%s' shares the same sequence with these other targets:" % (modeling_cluster.target_name)
         seqs = reduce(lambda x,y: x+",\n"+y, [mc.target_name for mc in mc_list])
