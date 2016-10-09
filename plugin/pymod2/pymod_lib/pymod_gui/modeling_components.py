@@ -232,7 +232,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         self.disulfides_frame = Disulfides_frame(self, self.disulfides_container)
         # If at least one cluster has a target with at least two CYS residues, then build the
         # disulfide page with all its options.
-        if self.check_targets_with_cys():
+        if self.modeling_protocol.check_targets_with_cys():
             self.disulfides_frame.build_template_dsb_frame()
             # User defined dsb. Each target is going to have a frame to define additional dsb.
             self.disulfides_frame.build_user_defined_dsb_frame()
@@ -241,17 +241,6 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             self.disulfides_frame.build_auto_dsb_frame()
         else:
             self.disulfides_frame.build_no_dsb_frame()
-
-
-    def check_targets_with_cys(self):
-        """
-        Check if there is at least one modeling cluster with a target sequence with at least two CYS
-        residues.
-        """
-        if True in [mc.target_with_cys for mc in self.modeling_protocol.modeling_clusters_list]:
-           return True
-        else:
-            return False
 
 
     def build_options_page(self):
@@ -724,14 +713,14 @@ class Disulfides_frame(Modeling_window_mixin):
         # Frame for template disulfides.
         self.template_disulfides_frame = Frame(self.template_dsb_frame, background='black', bd=1, relief = GROOVE, padx = 15, pady = 10)
         # Build a frame for every modeling cluster which have templates with disulfides.
-        for mci,mc in enumerate(filter(lambda x:x.pymod_element.has_structures_with_disulfides(),self.pymod_object.modeling_clusters_list)):
+        for mci, mc in enumerate(filter(lambda x:x.pymod_element.has_structures_with_disulfides(),self.pymod_object.modeling_clusters_list)):
             # A counter to iterate through all the template structures.
             frame_for_cluster_templates_dsb = Frame(self.template_disulfides_frame, background='black')
             frame_for_cluster_templates_dsb.grid(row=mci, column=0,sticky = "w", pady=(0,10))
             target_label = Label(frame_for_cluster_templates_dsb, text= "Template dsb for target " + mc.target_name, background='black', fg='red', anchor ="nw",font = "comic 9")
             target_label.grid(row=0, column=0, sticky = "w")
 
-            for ei,element in enumerate(filter(lambda x : x.structure.has_disulfides(), mc.structure_list)):
+            for ei, element in enumerate(filter(lambda x : x.has_disulfides(), mc.suitable_templates_list)):
                 disulfides_counter = 0
                 # Frame for each structure.
                 structure_frame_for_disulfides = Frame(frame_for_cluster_templates_dsb, background='black')

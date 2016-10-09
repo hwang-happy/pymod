@@ -4,16 +4,18 @@ import shutil
 import warnings
 import pymol
 from pymol import cmd
+import math
 import time
 
 import Bio.PDB
 from Bio.PDB.PDBIO import Select
+from Bio.PDB.Vector import calc_dihedral # Computes dihedral angles.
 import Bio.PDB.Polypeptide
 from Bio.PDB.Polypeptide import PPBuilder
 
-import pymod_sequence_manipulation as pmsm
-import pymod_element as pmel # Classes to represent sequences and alignments.
 import pymod_vars as pmdt
+import pymod_sequence_manipulation as pmsm
+import pymod_element as pmel
 
 
 class Select_chain_and_first_model(Select):
@@ -60,6 +62,7 @@ class Parsed_pdb_file:
         # Copies the orginal structure file in the output directory. -
         #-------------------------------------------------------------
         copied_file_path = os.path.join(self.output_directory, self.structure_file_name+".pdb")
+        # TODO: check this.
         if not os.path.isfile(copied_file_path):
             shutil.copy(self.original_pdb_file_path, copied_file_path)
 
@@ -74,8 +77,10 @@ class Parsed_pdb_file:
 
         # Creates a biopython pdb object and starts to take informations from it.
         warnings.simplefilter("ignore")
+
         fh = open(self.original_pdb_file_path, "rU")
         self.parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure("some_code", fh) # TODO: insert a code.
+        fh.close()
         list_of_parsed_chains = []
         # Starts to iterate through the models in the biopython object.
         for model in self.parsed_biopython_structure.get_list():
@@ -110,7 +115,7 @@ class Parsed_pdb_file:
                     if hetfield[0] == "H":
                         # Check if the current HETRES is a modres according to the info in the MODRES
                         # fields in the PDB file.
-                        if self.check_modified_residue(residue):
+                        if self._check_modified_residue(residue):
                             # If the HETRES is a "modified-residue".
                             parsed_chain["residues"].append(pmel.PyMod_modified_residue(three_letter_code=resname, one_letter_code=pmdt.modified_residue_one_letter, db_index=pdb_position))
                         else:
@@ -128,17 +133,16 @@ class Parsed_pdb_file:
             # models.
             break
 
+        #---------------------------------------------------------
+        # Save the chains and build the relative PyMod_elements. -
+        #---------------------------------------------------------
+        io=Bio.PDB.PDBIO()
+        io.set_structure(self.parsed_biopython_structure)
         for parsed_chain in list_of_parsed_chains:
-            #---------------------------------------------------------
-            # Save the chains and build the relative PyMod_elements. -
-            #---------------------------------------------------------
             parsed_chain["file_name"] = "%s_chain_%s.pdb" % (self.structure_file_name, parsed_chain["pymod_id"])
             parsed_chain["file_path"] = os.path.join(self.output_directory, parsed_chain["file_name"])
             # Saves a PDB file with only the current chain of the first model of the structure.
-            io=Bio.PDB.PDBIO()
-            io.set_structure(self.parsed_biopython_structure)
             io.save(parsed_chain["file_path"], Select_chain_and_first_model(parsed_chain["pymod_id"]))
-
             # Builds the new 'PyMod_structure'.
             new_structure = PyMod_structure(
                 chain_file_path=parsed_chain["file_path"],
@@ -163,7 +167,7 @@ class Parsed_pdb_file:
         #-------------------------------
         # Finds the disulfide bridges. -
         #-------------------------------
-        pass
+        self._assign_disulfide_bridges()
 
         st2 = time.time()
 
@@ -176,8 +180,16 @@ class Parsed_pdb_file:
         return self.list_of_pymod_elements
 
 
-    def check_modified_residue(self, residue):
+    def _check_modified_residue(self, residue):
+        # TODO: make this better.
         return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
+
+
+    def _assign_disulfide_bridges(self):
+        """
+        Assigns disulfide bridges to the PyMod elements built from the parsed structure file.
+        """
+        self.list_of_disulfides = get_disulfide_bridges_of_structure(self.parsed_biopython_structure)
 
 
 # def get_sequence_using_ppb(pdb_file_path, output_directory=""):
@@ -232,6 +244,60 @@ class PyMod_structure:
 
 
 ###################################################################################################
+# Analysis of structures.                                                                         #
+###################################################################################################
+
+class Disulfide_analyser:
+    """
+    Uses Biopython to find the disulfides bridges in the molecules in the parsed structure file.
+    """
+    # Parameters for disulfide bridges definition.
+    disulfide_min_sg_distance = 1.5
+    disulfide_max_sg_distance = 3.0
+    min_chi3_dihedral_value = math.pi/2.0 * 0.5
+    max_chi3_dihedral_value = math.pi/2.0 * 1.5
+
+    def __init__(self):
+        self.parsed_biopython_structure = None
+
+    def set_parsed_biopython_structure(self, parsed_biopython_structure):
+        self.parsed_biopython_structure = parsed_biopython_structure
+
+    def get_disulfide_bridges(self):
+        # Starts to iterate through the S gamma atoms in the biopython object.
+        list_of_sg_atoms = [atom for atom in list(self.parsed_biopython_structure.get_models())[0].get_atoms() if atom.id == "SG"]
+        self.list_of_disulfides = []
+        for si, atomi in enumerate(list_of_sg_atoms):
+            for sj, atomj in enumerate(list_of_sg_atoms[si:]):
+                if not atomi == atomj:
+                    # Gets the distance between two SG atoms.
+                    ij_distance = atomi - atomj
+                    # Filter for the distances.
+                    if ij_distance >= self.disulfide_min_sg_distance and ij_distance <= self.disulfide_max_sg_distance:
+                        # Computes the Cbi-Sgi-Sgj-Cbj dihedral angle (also called the chi3 angle).
+                        cbi_vector = atomi.get_parent()["CB"].get_vector()
+                        sgi_vector = atomi.get_vector()
+                        sgj_vector = atomj.get_vector()
+                        cbj_vector = atomj.get_parent()["CB"].get_vector()
+                        chi3_dihedral = calc_dihedral(cbi_vector, sgi_vector, sgj_vector, cbj_vector)
+                        chi3_dihedral = abs(chi3_dihedral)
+                        # Filters for chi3 angle values.
+                        if chi3_dihedral >= self.min_chi3_dihedral_value and chi3_dihedral <= self.max_chi3_dihedral_value:
+                            self.list_of_disulfides.append({"distance": ij_distance,
+                                                       "atomi": atomi, "atomj": atomj,
+                                                       "chi3_dihedral":chi3_dihedral*180.0/math.pi})
+        return self.list_of_disulfides
+
+def get_disulfide_bridges_of_structure(parsed_biopython_structure):
+    """
+    Quickly gets information about the disulfide bridges contained in a structure file.
+    """
+    dsba = Disulfide_analyser()
+    dsba.set_parsed_biopython_structure(parsed_biopython_structure)
+    return dsba.get_disulfide_bridges()
+
+
+###################################################################################################
 # Manipulation of structure files.                                                                #
 ###################################################################################################
 
@@ -276,6 +342,9 @@ class PDB_joiner:
         return new_line
 
 def join_pdb_files(list_of_structure_files, output_file_path):
+    """
+    Quickly joins several PDB files using the 'PDB_joiner' class.
+    """
     j = PDB_joiner(list_of_structure_files)
     j.join()
     j.write(output_file_path)

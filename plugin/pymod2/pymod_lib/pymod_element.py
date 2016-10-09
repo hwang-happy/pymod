@@ -529,6 +529,9 @@ class PyMod_sequence_element(PyMod_element):
 
 
     def check_structure(method):
+        """
+        Decorator method to check if PyMod_element object has a PyMod_structure object.
+        """
         def checker(self, **config):
             if not self.has_structure():
                 raise PyModMissingStructure("The element does not have a structure.")
@@ -550,6 +553,15 @@ class PyMod_sequence_element(PyMod_element):
     def get_pymol_object_name(self):
         return self.structure.get_pymol_object_name()
 
+
+    @check_structure
+    def has_disulfides(self):
+        return self.structure.get_pymol_object_name()
+
+
+    ###############################################################################################
+    # Annotation related.                                                                         #
+    ###############################################################################################
 
     def has_assigned_secondary_structure(self):
         return bool(self.assigned_secondary_structure)

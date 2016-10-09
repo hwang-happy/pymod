@@ -3,6 +3,7 @@
 #   - structures part (see pymod_main file).
 #   - subsitute the first model with actual target element and then put successive models outside
 #     target's cluster.
+#   - add 'show all' and 'hide all' commands on 'pymod_plot' windows.
 #   - include hydrogens.
 #   - build a log file on all platforms.
 #   - implement saving of modeling sessions.
@@ -370,45 +371,43 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             print >> self.modeller_script, "\n"+"   pass" # TODO: remove.
         #------------------------------------------------------------
 
-        # elaion!
-#         # ---
-#         # If there are some targets with at least two CYS residues, it decides whether to use
-#         # template disulfides or to let the CYS residues in a "reduced" state.
-#         # ---
-#         if self.check_targets_with_cys():
-#             # Decide to use template disulfides or not.
-#             if True in [mc.has_structures_with_disulfides() for mc in self.modeling_clusters_list]:
-#                 # If the user choosed to use templates disulfides bridges.
-#                 if self.disulfides_frame.use_template_dsb_var.get():
-#                     # Modeller will automatically use the patch_ss_templates() method of the
-#                     # automodel class.
-#                     pass
-#                 # Don't use template dsbs: leave the model CYS residues that in the template are
-#                 # engaged in a disulfied bridge in a "reduced" state.
-#                 else:
-#                     # Internal ------------------------------------------
-#                     if self.run_modeller_internally:
-#                         # This will not create any dsbs in the model by not disulfide patching.
-#                         def default_patches(self, aln):
-#                             pass
-#                         # Dynamically assigns the method.
-#                         setattr(MyModel, 'default_patches', default_patches)
-#                     #----------------------------------------------------
-#
-#                     # External ------------------------------------------
-#                     # Or write it to the modeller script.
-#                     if self.write_modeller_script:
-#                         print >> self.modeller_script, "\n"
-#                         print >> self.modeller_script, "    def default_patches(self,aln):"
-#                         print >> self.modeller_script, "        pass"+"\n"
-#                     #----------------------------------------------------
-#         # ---
-#         # Part for multichain models and user defined disulfide bridges, which requires to
-#         # the special_patches() method override.
-#         # ---
-#         if self.check_targets_with_cys():
-#             self.all_user_defined_dsb = [sel.user_defined_disulfide_bridges for sel in self.disulfides_frame.user_dsb_selector_list]
-#
+        #----------------------------------------------------------------------------------------
+        # If there are some targets with at least two CYS residues and also some templates with -
+        # disulfides, it decides whether to use template disulfides or to let the CYS residues  -
+        # in a "reduced" state.                                                                 -
+        #----------------------------------------------------------------------------------------
+        if self.check_targets_with_cys() and self.check_structures_with_disulfides():
+            # If the user choosed to use templates disulfides bridges.
+            if self.disulfides_frame.use_template_dsb_var.get():
+                # Modeller will automatically use the patch_ss_templates() method of the automodel
+                # class.
+                pass
+            # Don't use template dsbs: leave the model CYS residues that in the template are
+            # engaged in a dsb in a "reduced" state.
+            else:
+                # Internal ------------------------------------------
+                if self.run_modeller_internally:
+                    # This will not create any dsbs in the model by not disulfide patching.
+                    def default_patches(self, aln):
+                        pass
+                    # Dynamically assigns the method.
+                    setattr(MyModel, 'default_patches', default_patches)
+                #----------------------------------------------------
+
+                # External ------------------------------------------
+                if self.write_modeller_script:
+                    print >> self.modeller_script, "\n"
+                    print >> self.modeller_script, "    def default_patches(self,aln):"
+                    print >> self.modeller_script, "        pass"+"\n"
+                #----------------------------------------------------
+
+        # # ---
+        # # Part for multichain models and user defined disulfide bridges, which requires to
+        # # the special_patches() method override.
+        # # ---
+        # if self.check_targets_with_cys():
+        #     self.all_user_defined_dsb = [sel.user_defined_disulfide_bridges for sel in self.disulfides_frame.user_dsb_selector_list]
+
 #         # Internal --------------------------------------------------
 #         if self.run_modeller_internally:
 #             def special_patches(self, aln):
@@ -1131,6 +1130,20 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         return correct_symmetry_vars
 
 
+    def check_targets_with_cys(self):
+        """
+        Check if there is at least one modeling cluster with a target sequence with at least two CYS
+        residues.
+        """
+        return True in [mc.target_with_cys for mc in self.modeling_clusters_list]
+
+    def check_structures_with_disulfides(self):
+        """
+        Checks in all modeling clusters if there is at least one structure with a disulfide bridge.
+        """
+        return True in [mc.has_structures_with_disulfides() for mc in self.modeling_clusters_list]
+
+
     def prepare_modeling_session_files(self, modeller_output_dir_path=None):
         """
         Prepares the directory where MODELLER's output will be generated and moves into it.
@@ -1596,6 +1609,10 @@ class Modeling_cluster(Modeling_session):
         return filter(lambda t: not self.is_template_complex_chain(t), self.templates_list)
 
     def get_modeling_elements(self):
+        """
+        Returns a list with the 'PyMod_elements' objects of the target and the templates of the
+        modeling cluster.
+        """
         modeling_elements = self.templates_list[:]
         modeling_elements.insert(0, self.target)
         return modeling_elements
@@ -1644,12 +1661,8 @@ class Modeling_cluster(Modeling_session):
     #     self.water_molecules_number = n
 
     def has_structures_with_disulfides(self):
-        disulfides = None
-        if True in [e.structure.has_disulfides() for e in self.suitable_templates_list]:
-            disulfides = True
-        else:
-            disulfides = False
-        return disulfides
+        return True in [e.has_disulfides() for e in self.suitable_templates_list]
+
 
     # def set_model_chain_id(self,chain_index):
     #     self.model_chain_id = chain_index

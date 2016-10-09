@@ -730,6 +730,10 @@ class PyMod:
         self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        # Monomer disulfides.
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
+
         self.gridder(update_clusters=True, update_menus=True)
 
         # Alignments.
