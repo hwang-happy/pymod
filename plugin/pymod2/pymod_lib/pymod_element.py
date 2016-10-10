@@ -527,36 +527,50 @@ class PyMod_sequence_element(PyMod_element):
         else:
             return False
 
-
     def check_structure(method):
         """
         Decorator method to check if PyMod_element object has a PyMod_structure object.
         """
+        # TODO: modify this so that it can that multiple arguments.
         def checker(self, **config):
             if not self.has_structure():
                 raise PyModMissingStructure("The element does not have a structure.")
             return method(self, **config)
         return checker
 
-
     @check_structure
     def get_structure_file(self, name_only=False, strip_extension=False, original_structure_file=False):
         return self.structure.get_file(name_only=name_only, strip_extension=strip_extension, original_structure_file=original_structure_file)
-
 
     @check_structure
     def get_structure_chain_id(self):
         return self.structure.get_chain_id()
 
 
+    #################################################################
+    # PyMOL related.                                                #
+    #################################################################
+
     @check_structure
     def get_pymol_object_name(self):
         return self.structure.get_pymol_object_name()
 
 
+    #################################################################
+    # Structural features.                                          #
+    #################################################################
+
+    @check_structure
+    def get_disulfides(self):
+        return self.structure.disulfides_list
+
     @check_structure
     def has_disulfides(self):
-        return self.structure.get_pymol_object_name()
+        return self.structure.disulfides_list != []
+
+    @check_structure
+    def add_disulfide(self, disulfide=None):
+        self.structure.add_disulfide(disulfide)
 
 
     ###############################################################################################
