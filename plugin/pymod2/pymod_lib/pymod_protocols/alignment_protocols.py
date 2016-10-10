@@ -2182,8 +2182,7 @@ class CEalign_alignment:
 
     def update_aligned_sequences(self):
         if get_ce_mode() == "plugin":
-            self.update_aligned_sequences_with_modres(self)
-
+            self.update_aligned_sequences_with_modres()
         elif get_ce_mode() == "pymol":
             self.update_aligned_sequences_inserting_modres()
 

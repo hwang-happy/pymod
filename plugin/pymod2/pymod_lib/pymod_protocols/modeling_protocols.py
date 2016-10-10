@@ -255,8 +255,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         This method is called when the 'SUBMIT' button in the modelization window is pressed. It
         contains the code to instruct Modeller on how to perform the modelization.
         """
+        self._perform_modelization()
         try:
-            self._perform_modelization()
+            pass
         except Exception, e:
             self.modeling_session_failure(e)
 
@@ -328,7 +329,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 print >> self.modeller_script, "env.io.hetatm = True"
             #--------------------------------------------------------
 
-            # Use water only if the user choosed to include water molecules from some template.
+            # Use water only if the user chose to include water molecules from some template.
             if self.use_water_in_session:
                 # Internal ------------------------------------------
                 if self.run_modeller_internally:
@@ -377,17 +378,17 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # in a "reduced" state.                                                                 -
         #----------------------------------------------------------------------------------------
         if self.check_targets_with_cys() and self.check_structures_with_disulfides():
-            # If the user choosed to use templates disulfides bridges.
-            if self.disulfides_frame.use_template_dsb_var.get():
+            # If the user chose to use templates disulfides bridges.
+            if self.modeling_window.disulfides_frame.use_template_dsb_var.get():
                 # Modeller will automatically use the patch_ss_templates() method of the automodel
                 # class.
                 pass
-            # Don't use template dsbs: leave the model CYS residues that in the template are
-            # engaged in a dsb in a "reduced" state.
+            # Don't use template dsbs: this will not create any dsbs in the model by not disulfide
+            # patching and leave the model CYS residues that in the template are engaged in a dsb in
+            # a "reduced" state.
             else:
                 # Internal ------------------------------------------
                 if self.run_modeller_internally:
-                    # This will not create any dsbs in the model by not disulfide patching.
                     def default_patches(self, aln):
                         pass
                     # Dynamically assigns the method.
@@ -401,12 +402,12 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     print >> self.modeller_script, "        pass"+"\n"
                 #----------------------------------------------------
 
-        # # ---
-        # # Part for multichain models and user defined disulfide bridges, which requires to
-        # # the special_patches() method override.
-        # # ---
-        # if self.check_targets_with_cys():
-        #     self.all_user_defined_dsb = [sel.user_defined_disulfide_bridges for sel in self.disulfides_frame.user_dsb_selector_list]
+        #-----------------------------------------------------------------------------------
+        # Part for multichain models and user defined disulfide bridges, which requires to -
+        # the special_patches() method override.                                           -
+        #-----------------------------------------------------------------------------------
+        if self.check_targets_with_cys():
+            self.all_user_defined_dsb = self.modeling_window.get_user_dsb_list()
 
 #         # Internal --------------------------------------------------
 #         if self.run_modeller_internally:
@@ -1360,17 +1361,16 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                             # TODO: modify the insert index.
                             self.pir_sequences_dict[seq]["list_seq"][ri["insert_index"]] = "."
 
-    def get_chain_separator(self):
-        if self.multiple_chain_mode:
-            return "/"
-        else:
-            return ""
-
     def get_template_complex_chains(self):
         return [mc.get_template_complex_chain() for mc in self.modeling_clusters_list]
 
     def get_targets_list(self):
         return [mc.target for mc in self.modeling_clusters_list]
+
+
+    #@@@@@@@@@@@@@@@@@@@@@@@@@
+    # PIR alignment related. @
+    #@@@@@@@@@@@@@@@@@@@@@@@@@
 
     def get_pir_list(self, sequence):
         return map(lambda p: p.replace(pmdt.modified_residue_one_letter, "."), list(sequence))
@@ -1391,6 +1391,12 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 else:
                     formatted_sequence += sequence[s:]+"/*"+"\n"
         return formatted_sequence
+
+    def get_chain_separator(self):
+        if self.multiple_chain_mode:
+            return "/"
+        else:
+            return ""
 
 
     ###############################################################################################

@@ -11,6 +11,8 @@ from pymod_lib.pymod_gui import shared_components
 
 import pymod_lib.pymod_sequence_manipulation as pmsm
 
+# TODO:
+#   - remove pymod_object
 
 # TODO: make a base class for all kind of protocols window.
 class Modeling_window_mixin:
@@ -175,7 +177,8 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             modeling_cluster.structure_frame_list = []
             for (si,structure) in enumerate(modeling_cluster.suitable_templates_list):
                 # This object is not a tkinter one, but contains as attributes many of them.
-                structure_frame = Structure_frame(self, structure, modeling_cluster.target,modeling_cluster_frame,si,i)
+                structure_frame = Structure_frame(modeling_cluster_frame, structure, modeling_cluster.target, si, i)
+                structure_frame.pack(anchor="w",padx=30,pady=(0,5))
                 # Builds a frame for each template structure.
                 structure_frame.build_frame()
                 # Append the current "structure_frame" to the list of the current modeling cluster.
@@ -229,7 +232,8 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         self.disulfides_container.configure(bd=0,pady=20)
 
         # Part for the "Disulfides" page.
-        self.disulfides_frame = Disulfides_frame(self, self.disulfides_container)
+        self.disulfides_frame = Disulfides_frame(self.disulfides_container)
+        self.disulfides_frame.grid(row=0, column=0, sticky = "nw",pady=(0,5))
         # If at least one cluster has a target with at least two CYS residues, then build the
         # disulfide page with all its options.
         if self.modeling_protocol.check_targets_with_cys():
@@ -326,6 +330,14 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
                     sf.inactivate_het_checkbuttons()
 
 
+    ###############################################################################################
+    # Takes paramaters from the GUI.                                                              #
+    ###############################################################################################
+
+    def get_user_dsb_list(self):
+        return [sel.user_defined_disulfide_bridges for sel in self.disulfides_frame.user_dsb_selector_list]
+
+
 ###################################################################################################
 # Classes for the homology modeling window GUI.                                                   #
 ###################################################################################################
@@ -334,7 +346,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
 # Modeling window classes.                                          #
 #####################################################################
 
-class Structure_frame(Modeling_window_mixin):
+class Structure_frame(shared_components.PyMod_frame, Modeling_window_mixin):
     """
     A class to construct the template selection frame and to store all their tkinter widgets and
     information.
@@ -344,12 +356,11 @@ class Structure_frame(Modeling_window_mixin):
     template_options_style.update({"width": labels_width})
     frames_padding = 7
 
-    def __init__(self, pymod_object, structure_pymod_element,target_pymod_element,target_widget,structure_number, modeling_cluster_number):
-        # These will contain a Structure type object.
+    def __init__(self, parent, structure_pymod_element, target_pymod_element, structure_number, modeling_cluster_number, **configs):
+        shared_components.PyMod_frame.__init__(self, parent, **configs)
+        # These will contain a 'PyMod_sequence_element' type object.
         self.structure_pymod_element = structure_pymod_element
         self.target_pymod_element = target_pymod_element
-        # The widget in which to grid the structure Frame.
-        self.target_widget = target_widget
         # The int value that is passed in the for cycle in which the Structure_frame objects are
         # constructed. Identifies different Structure_frame objects.
         self.id = structure_number
@@ -358,15 +369,13 @@ class Structure_frame(Modeling_window_mixin):
         # then this value should be 1 (by default it is 1 because of the default state of the
         # radiobutton), when it is off, this vaule should be 0.
         self.hetres_radiocluster_button_state = 1
-        self.pymod_object = pymod_object
+        self.configure(**shared_components.target_box_style)
 
 
     def build_frame(self):
         """
         Builds a frame for each template structure and all its options.
         """
-        self.structure_frame = Frame(self.target_widget, **shared_components.target_box_style)
-        self.structure_frame.pack(anchor="w",padx=30,pady=(0,5))
         self.build_use_structure_frame()
         # self.build_sequence_limit_frame()
         self.build_hetres_frame()
@@ -378,14 +387,14 @@ class Structure_frame(Modeling_window_mixin):
         Builds a Frame which will contain the the checkbox for using the structure as a template.
         """
         # Use-structure frame
-        self.use_structure_frame = Frame(self.structure_frame, background='black', pady = Structure_frame.frames_padding)
+        self.use_structure_frame = Frame(self, background='black', pady = self.frames_padding)
         self.use_structure_frame.grid(row=0, column=0,sticky = "w")
 
         # Label for the structure
         self.template_title_lab = Label(self.use_structure_frame, text= "", **shared_components.template_title_options)
-        self.template_title_lab.pack(side = TOP, anchor="w",pady = (0, Structure_frame.frames_padding))
+        self.template_title_lab.pack(side = TOP, anchor="w",pady = (0, self.frames_padding))
 
-        self.lab=Label(self.use_structure_frame, text= "Use as Template: ",**Structure_frame.template_options_style)
+        self.lab=Label(self.use_structure_frame, text= "Use as Template: ",**self.template_options_style)
         self.lab.pack(side = LEFT)
 
         # Checkbutton for using the structure as a template.
@@ -462,7 +471,7 @@ class Structure_frame(Modeling_window_mixin):
         Frame for the sequence limits.
         """
         # From-to frame
-        self.limits_frame = Frame(self.structure_frame, background='black', pady = Structure_frame.frames_padding)
+        self.limits_frame = Frame(self, background='black', pady = self.frames_padding)
         self.limits_frame.grid(row=1, column=0,sticky = "w")
 
         # From label. The width is relative to the font size
@@ -488,10 +497,10 @@ class Structure_frame(Modeling_window_mixin):
         self.structure_hetres_checkbuttons = []
         self.structure_hetres_dict = {} # TODO: just use an ordered dict to substitute the three attributes above.
         # Hetero-residues frame
-        self.hetres_frame = Frame(self.structure_frame, background='black', pady = Structure_frame.frames_padding)
+        self.hetres_frame = Frame(self, background='black', pady = self.frames_padding)
         self.hetres_frame.grid(row=2, column=0,sticky = "w")
         # Label
-        self.hetres_label = Label(self.hetres_frame, text= "Hetero Residues: ", **Structure_frame.template_options_style)
+        self.hetres_label = Label(self.hetres_frame, text= "Hetero Residues: ", **self.template_options_style)
         self.hetres_label.grid(row=0, column=0, sticky = "nw")
         # Variable for the radiobuttons.
         self.hetres_options_var = IntVar()
@@ -538,12 +547,12 @@ class Structure_frame(Modeling_window_mixin):
 
     def show_select_single_hetres_frame(self):
         self.select_single_hetres_frame.grid(row=2, column=0, sticky = "w")
-        self.pymod_object.main_frame.reposition()
+        self.modeling_protocol.modeling_window.main_frame.reposition()
 
 
     def hide_select_single_hetres_frame(self):
         self.select_single_hetres_frame.grid_remove()
-        self.pymod_object.main_frame.reposition()
+        self.modeling_protocol.modeling_window.main_frame.reposition()
 
 
     def build_water_frame(self):
@@ -551,10 +560,10 @@ class Structure_frame(Modeling_window_mixin):
         Builds a frame for letting the user choose to include water molecules in the model.
         """
         # Frame for water
-        self.water_frame = Frame(self.structure_frame, background='black', pady = Structure_frame.frames_padding)
+        self.water_frame = Frame(self, background='black', pady = self.frames_padding)
         self.water_frame.grid(row=3, column=0,sticky = "w")
         # Label for water
-        self.water_label = Label(self.water_frame, text= "Include Water: ", **Structure_frame.template_options_style)
+        self.water_label = Label(self.water_frame, text= "Include Water: ", **self.template_options_style)
         self.water_label.grid(row=0, column=0, sticky = "w")
 
         # Checkbox for water
@@ -600,33 +609,15 @@ class Structure_frame(Modeling_window_mixin):
 
 
 
-class Disulfides_frame(Modeling_window_mixin):
+class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
     """
     A class to construct disulfide frame in the modeling window and to store all their information.
     """
     dsb_building_mode_label = shared_components.modeling_window_option_style.copy()
     dsb_building_mode_label.update({"padx": 20, "pady": 7})
 
-    def __init__(self, pymod_object, target_widget):
-        # The widget in which to build the frame.
-        self.target_widget = target_widget
-        self.main_disulfides_frame = Frame(self.target_widget, background='black')
-        self.main_disulfides_frame.grid(row=0, column=0, sticky = "nw",pady=(0,5))
-        self.pymod_object = pymod_object
-
-
-    def check_templates_with_dsb(self):
-        """
-        Checks if there are some templates with disulfide bridges. It returns True if there is at
-        least one template with a dsb.
-        """
-        self.templates_with_dsb = False
-        # TODO.
-        # for mc in self.pymod_object.modeling_clusters_list:
-        #     if mc.pymod_element.has_structures_with_disulfides():
-        #         self.templates_with_dsb = True
-        #         break
-        return self.templates_with_dsb
+    def __init__(self, parent, **configs):
+        shared_components.PyMod_frame.__init__(self, parent, **configs)
 
 
     def build_template_dsb_frame(self):
@@ -634,19 +625,19 @@ class Disulfides_frame(Modeling_window_mixin):
         Builds the top frame, for the templates disulfides.
         """
         # Label for the name of the target.
-        self.target_name_label = Label(self.main_disulfides_frame,text="Disulfide options",**shared_components.modeling_window_title_style)
+        self.target_name_label = Label(self,text="Disulfide options",**shared_components.modeling_window_title_style)
         self.target_name_label.grid(row=0, column=0, sticky = "nw")
 
         # The frame for template disulfides.
-        self.template_dsb_frame = Frame(self.main_disulfides_frame, background='black')
+        self.template_dsb_frame = Frame(self, background='black')
         self.template_dsb_frame.grid(row=1, column=0, sticky = "nw")
 
         # Label for the title.
-        self.templates_dsb_label = Label(self.template_dsb_frame, text= "Use template disulfides", **Disulfides_frame.dsb_building_mode_label)
+        self.templates_dsb_label = Label(self.template_dsb_frame, text= "Use template disulfides", **self.dsb_building_mode_label)
         self.templates_dsb_label.grid(row=0, column=0, sticky = "nw", pady=(0,0))
 
         # If there are some templates with disulfide bridges.
-        if self.check_templates_with_dsb():
+        if self.modeling_protocol.check_structures_with_disulfides():
             # Label for the information about the use of this feature.
             information = "Include disulfide bridges found in the structures in the Templates page."
             self.template_disulfides_information = Label(self.template_dsb_frame, text= information, **shared_components.modeling_window_explanation)
@@ -669,7 +660,7 @@ class Disulfides_frame(Modeling_window_mixin):
             toggle_template_dsb_text = "List of templates' disulfides (white: conserved in target, gray: not conserved):"
             self.toggle_template_dsb_label = Label(self.toggle_template_frame,text=toggle_template_dsb_text,bg="black", fg="white")
             self.toggle_template_dsb_label.grid(row = 0, column = 0,sticky = "w",padx = (0,10))
-            self.toggle_template_dsb_button = Button(self.toggle_template_frame,text="Show",command = self.show_template_dsb,**button_style_1)
+            self.toggle_template_dsb_button = Button(self.toggle_template_frame,text="Show",command = self.show_template_dsb,**shared_components.button_style_1)
             self.toggle_template_dsb_button.grid(row = 0, column = 1,sticky = "w")
             self.build_templates_disulfides_frame()
 
@@ -681,30 +672,38 @@ class Disulfides_frame(Modeling_window_mixin):
             self.template_disulfides_information.grid(row=1, column=0, sticky = "w")
 
 
-    # Called when the "Yes" radiobutton of the "Use template disulfide" option is pressed.
     def activate_template_dsb_frame(self):
+        """
+        Called when the "Yes" radiobutton of the "Use template disulfide" option is pressed.
+        """
         self.toggle_template_frame.grid(row = 3, column = 0,sticky = "w",padx = (30,0),pady = (5,0))
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
-    # Called when the "Show" button is pressed to show the list of the dsb of the templates.
     def show_template_dsb(self):
+        """
+        Called when the "Show" button is pressed to show the list of the dsb of the templates.
+        """
         self.template_disulfides_frame.grid(row=4, column=0,sticky = "w",padx = (30,0),pady = (5,0))
         self.toggle_template_dsb_button.configure(text="Hide",command = self.hide_template_dsb)
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
-    # Called when the "No" radiobutton of the "Use template disulfide" option is pressed.
-    # This is also called when the "Yes" radiobutton of the "Automatically build disulfides" is
-    # pressed.
     def inactivate_template_dsb_frame(self):
+        """
+        Called when the "No" radiobutton of the "Use template disulfide" option is pressed.
+        This is also called when the "Yes" radiobutton of the "Automatically build disulfides" is
+        pressed.
+        """
         self.toggle_template_frame.grid_remove()
         self.hide_template_dsb()
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
-    # Called when the "Show" button is pressed to hide the list of the dsb of the templates.
     def hide_template_dsb(self):
+        """
+        Called when the "Show" button is pressed to hide the list of the dsb of the templates.
+        """
         self.template_disulfides_frame.grid_remove()
         self.toggle_template_dsb_button.configure(text="Show",command = self.show_template_dsb)
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def build_templates_disulfides_frame(self):
         """
@@ -713,7 +712,7 @@ class Disulfides_frame(Modeling_window_mixin):
         # Frame for template disulfides.
         self.template_disulfides_frame = Frame(self.template_dsb_frame, background='black', bd=1, relief = GROOVE, padx = 15, pady = 10)
         # Build a frame for every modeling cluster which have templates with disulfides.
-        for mci, mc in enumerate(filter(lambda x:x.pymod_element.has_structures_with_disulfides(),self.pymod_object.modeling_clusters_list)):
+        for mci, mc in enumerate(filter(lambda mc: mc.has_structures_with_disulfides(), self.modeling_protocol.modeling_clusters_list)):
             # A counter to iterate through all the template structures.
             frame_for_cluster_templates_dsb = Frame(self.template_disulfides_frame, background='black')
             frame_for_cluster_templates_dsb.grid(row=mci, column=0,sticky = "w", pady=(0,10))
@@ -729,31 +728,30 @@ class Disulfides_frame(Modeling_window_mixin):
                 disulfides_label = Label(structure_frame_for_disulfides, text = element.my_header, background='black', fg='red', width = 14, anchor ="nw",bd = 0, relief = GROOVE,padx = 0)
                 disulfides_label.grid(row=0, column=0, sticky = "w")
                 # Begins a for cycle that is going to examine all disulfides bridges of the chain.
-                for dsb in element.structure.disulfides:
+                for dsb in element.get_disulfides():
                     # For now, display only intrachain bridges.
-                    if dsb.bridge_type == "intrachain":
+                    if dsb.type == "intrachain":
                         # Check if there are homologous CYS in the target according to the alignment.
                         # Take the target sequence.
                         target = mc.target.my_sequence
                         # CYS 1.
-                        cys1_alignment_position = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, dsb.cys1_seq_number)
+                        cys1_alignment_position = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, dsb.cys1_seq_index)
                         cys1_target_position = pmsm.get_residue_id_in_gapless_sequence(target,cys1_alignment_position) + 1
-                        cys1_is_conserved = pmsm.find_residue_conservation(element.my_sequence, target, dsb.cys1_seq_number)
+                        cys1_is_conserved = pmsm.find_residue_conservation(element.my_sequence, target, dsb.cys1_seq_index)
                         cys1_homologue_residue = target[cys1_alignment_position] # The corresponding residue in the target.
                         # CYS 2.
-                        cys2_alignment_position = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, dsb.cys2_seq_number)
+                        cys2_alignment_position = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, dsb.cys2_seq_index)
                         cys2_target_position = pmsm.get_residue_id_in_gapless_sequence(target,cys2_alignment_position) + 1
-                        cys2_is_conserved = pmsm.find_residue_conservation(element.my_sequence, target,dsb.cys2_seq_number)
+                        cys2_is_conserved = pmsm.find_residue_conservation(element.my_sequence, target,dsb.cys2_seq_index)
                         cys2_homologue_residue = target[cys2_alignment_position] # The corresponding residue in the target.
                         # If both CYS that form the disulfide in the template are conserved in the target.
                         if cys1_is_conserved and cys2_is_conserved:
                             # Prints also if the CYS are conserved in the target according to the
                             # alignment.
-                            label_text = "Template: C%s - C%s / Target: C%s - C%s" % (dsb.cys1_pdb_number, dsb.cys2_pdb_number, cys1_target_position, cys2_target_position)
+                            label_text = "Template: C%s - C%s / Target: C%s - C%s" % (dsb.cys1_pdb_index, dsb.cys2_pdb_index, cys1_target_position, cys2_target_position)
                             disulfide_label = Label(structure_frame_for_disulfides, text=label_text, background='black', foreground = "white")
-
                         else:
-                            label_text = "Template: C%s - C%s / Target: %c%s - %c%s" % (dsb.cys1_pdb_number,dsb.cys2_pdb_number, cys1_homologue_residue, cys1_target_position, cys2_homologue_residue, cys2_target_position)
+                            label_text = "Template: C%s - C%s / Target: %c%s - %c%s" % (dsb.cys1_pdb_index,dsb.cys2_pdb_index, cys1_homologue_residue, cys1_target_position, cys2_homologue_residue, cys2_target_position)
                             disulfide_label = Label(structure_frame_for_disulfides, text=label_text, background='black', foreground = "gray45")
                         disulfide_label.grid(row=disulfides_counter, column=1, sticky = "w")
                         disulfides_counter += 1
@@ -763,10 +761,10 @@ class Disulfides_frame(Modeling_window_mixin):
         """
         Builds the bottom frame, for the user-defined disulfides.
         """
-        self.user_defined_dsb_frame = Frame(self.main_disulfides_frame, background='black')
+        self.user_defined_dsb_frame = Frame(self, background='black')
         self.user_defined_dsb_frame.grid(row=2, column=0, sticky = "nw")
 
-        self.user_dsb_label = Label(self.user_defined_dsb_frame, text= "Create new disulfides", **Disulfides_frame.dsb_building_mode_label)
+        self.user_dsb_label = Label(self.user_defined_dsb_frame, text= "Create new disulfides", **self.dsb_building_mode_label)
         self.user_dsb_label.grid(row=0, column=0, sticky = "nw", pady=(20,0))
 
         information = "Define custom disulfide bridges to be included in the model. "
@@ -803,11 +801,11 @@ class Disulfides_frame(Modeling_window_mixin):
 
     def activate_combo_box_frame(self):
         self.user_defined_dsb_combo_box_frame.grid(row=3, column=0,sticky = "nw",padx = (30,0))
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def inactivate_combo_box_frame(self):
         self.user_defined_dsb_combo_box_frame.grid_remove()
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
     def build_auto_dsb_frame(self):
@@ -815,10 +813,10 @@ class Disulfides_frame(Modeling_window_mixin):
         Builds a frame to display the option to make Modeller automatically create all dsb of the
         model.
         """
-        self.auto_dsb_frame = Frame(self.main_disulfides_frame, background='black')
+        self.auto_dsb_frame = Frame(self, background='black')
         self.auto_dsb_frame.grid(row=3, column=0, sticky = "nw",pady=(0,25))
 
-        self.auto_dsb_label = Label(self.auto_dsb_frame, text= "Automatically build disulfides", **Disulfides_frame.dsb_building_mode_label)
+        self.auto_dsb_label = Label(self.auto_dsb_frame, text= "Automatically build disulfides", **self.dsb_building_mode_label)
         self.auto_dsb_label.grid(row=0, column=0, sticky = "nw", pady=(20,0))
 
         information = ("MODELLER will build a disulfide for every pair of cysteine if they are sufficently close in\n"+
@@ -846,7 +844,7 @@ class Disulfides_frame(Modeling_window_mixin):
 
     def activate_auto_dsb(self):
         # Inactivates the "use template dsb" radiobuttons and selects the "No" radiobutton.
-        if self.templates_with_dsb:
+        if self.modeling_protocol.check_structures_with_disulfides():
             self.use_template_dsb_rad2.select()
             self.use_template_dsb_rad1.configure(state=DISABLED)
             self.use_template_dsb_rad2.configure(state=DISABLED)
@@ -858,24 +856,24 @@ class Disulfides_frame(Modeling_window_mixin):
         self.use_user_defined_dsb_rad2.configure(state=DISABLED)
 
         self.user_defined_dsb_combo_box_frame.grid_remove()
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def inactivate_auto_dsb(self):
         # Reactivates the "use template dsb" and the "create new dsb" radiobuttons.
-        if self.templates_with_dsb:
+        if self.modeling_protocol.check_structures_with_disulfides():
             self.use_template_dsb_rad1.configure(state=NORMAL)
             self.use_template_dsb_rad2.configure(state=NORMAL)
 
         self.use_user_defined_dsb_rad1.configure(state=NORMAL)
         self.use_user_defined_dsb_rad2.configure(state=NORMAL)
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
     def build_no_dsb_frame(self):
         """
         Builds a frame that is displayed if the target sequence has less than 2 cys.
         """
-        self.no_dsb_frame = Frame(self.main_disulfides_frame, background='black')
+        self.no_dsb_frame = Frame(self, background='black')
         self.no_dsb_frame.grid(row=1, column=0, sticky = "nw")
 
         self.no_dsb_label = Label(self.no_dsb_frame,text= "No disulfide bridge can be built.", **shared_components.modeling_window_title_style)
@@ -900,24 +898,25 @@ class Disulfides_frame(Modeling_window_mixin):
             label_text = "Target " + modeling_cluster.target_name + " doesn't have at least two CYS residues."
         modeling_cluster_custom_dsb_label = Label(modeling_cluster_custom_dsb_frame,font = "comic 9", text=label_text, bg="black", fg= "red")
         modeling_cluster_custom_dsb_label.grid(row=0, column=0,sticky = "nw")
-        uds = User_dsb_selector(self.pymod_object, modeling_cluster,modeling_cluster_custom_dsb_frame)
+        uds = User_dsb_selector_frame(modeling_cluster_custom_dsb_frame, modeling_cluster)
+        uds.grid(row=1)
         uds.initialize_user_defined_dsb()
         self.user_dsb_selector_list.append(uds)
 
 
-class User_dsb_selector:
+class User_dsb_selector_frame(shared_components.PyMod_frame, Modeling_window_mixin):
     """
     Each modeling cluster will be used to build an object of this class. It will be used to let
     users define custom disulfides bridges in the model chains.
     """
-    def __init__(self, pymod_object, modeling_cluster, target_widget):
+    def __init__(self, parent, modeling_cluster, **configs):
         self.modeling_cluster = modeling_cluster
-        self.target_widget = target_widget
-        self.pymod_object = pymod_object
+        shared_components.PyMod_frame.__init__(self, parent, **configs)
 
-
-    # Build the initial row in the user-defined disulfide bridges frame.
     def initialize_user_defined_dsb(self):
+        """
+        Build the initial row in the user-defined disulfide bridges frame.
+        """
         # For the rows.
         self.user_disulfides_row_counter = 0
         self.target_list_of_cysteines = []
@@ -932,34 +931,33 @@ class User_dsb_selector:
         self.user_defined_disulfide_bridges = []
         # Builds an interface to let the user define additional dsb only for targets which have at
         # least two CYS residues.
-        if self.modeling_cluster.target_with_cys:
+        if self.modeling_cluster.target_with_cys: # TODO?
             for (k,r) in enumerate(str(self.target).replace("-","")):
                 if r == "C":
                     cys = {"position": k + 1,
                         "alignment-position": pmsm.get_residue_id_in_aligned_sequence(self.target,k),
                         "state":"free"}
                     self.target_list_of_cysteines.append(cys)
-            self.combobox_frame = Frame(self.target_widget,bg="black")
-            self.combobox_frame.grid(row=1)
+
             # If the target sequence has at least two cys, then creates the comboboxes.
-            first = User_disulfide_combo(self.pymod_object,
-                    self.user_disulfides_row_counter, self.target_list_of_cysteines,
-                    self.combobox_frame, self)
+            first = User_disulfide_combo(self, self.user_disulfides_row_counter, self.target_list_of_cysteines)
+            first.grid(row=self.user_disulfides_row_counter)
             self.list_of_disulfide_combos.append(first)
 
 
-    # This is called when the "Add" button to add a user-defined disulfide is pressed.
     def add_new_user_disulfide(self):
-
+        """
+        This is called when the "Add" button to add a user-defined disulfide is pressed.
+        """
         # Checks that both the comboboxes have been used to select a cys.
         if (self.list_of_disulfide_combos[-1].cys1_combobox.get() == "" or self.list_of_disulfide_combos[-1].cys2_combobox.get() == ""):
             txt = "You have to select two cysteines residue to define a disulfide bridge!"
-            tkMessageBox.showwarning("Warning", txt,parent=self.pymod_object.modeling_window)
+            tkMessageBox.showwarning("Warning", txt,parent=self.modeling_protocol.modeling_window)
 
         # Checks that the same cys has not been selected in both comboboxes.
         elif (self.list_of_disulfide_combos[-1].cys1_combobox.get() == self.list_of_disulfide_combos[-1].cys2_combobox.get()):
             txt = "You cannot select the same cysteine to form a disulfide bridge!"
-            tkMessageBox.showwarning("Message", txt,parent=self.pymod_object.modeling_window)
+            tkMessageBox.showwarning("Message", txt,parent=self.modeling_protocol.modeling_window)
 
         # Checks that the selected cys are not engaged in other bridges.
         # ...
@@ -969,12 +967,10 @@ class User_dsb_selector:
         else:
             self.user_disulfides_row_counter += 1
             # Adds the new row with comboboxes and an "Add" button.
-            new_ds_combo = User_disulfide_combo(
-                self.pymod_object,
+            new_ds_combo = User_disulfide_combo(self,
                 self.user_disulfides_row_counter,
-                self.target_list_of_cysteines,
-                self.combobox_frame,
-                self)
+                self.target_list_of_cysteines)
+            new_ds_combo.grid(row=self.user_disulfides_row_counter)
             # Activates the previous row and returns the name of the 2 selected cys.
             cysteines = self.list_of_disulfide_combos[-1].activate()
             # Finishes and adds the new row.
@@ -983,47 +979,46 @@ class User_dsb_selector:
             # used in the perform_modelization() method.
             self.user_defined_disulfide_bridges.append(cysteines)
             # self.print_user_ds_list()
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
-    # This is called when the "Remove" button is pressed.
-    def remove_user_disulfide(self,id_to_remove):
-        # Removes the right row of comboboxes.
-        for r in self.list_of_disulfide_combos:
-            if r.id == id_to_remove:
-                # Deactivate and get the right bridge to remove.
-                dsb_to_remove = r.deactivate()
-                # Finishes to adds the new row.
-                self.list_of_disulfide_combos.remove(r)
-                # Also removes the bridge from the self.user_defined_disulfide_bridges.
-                self.user_defined_disulfide_bridges.remove(dsb_to_remove)
-        self.pymod_object.disulfides_scrolled_frame.reposition()
+    def remove_user_disulfide(self, udc_to_remove):
+        """
+        This is called when the "Remove" button is pressed.
+        """
+        # Deactivate and get the right bridge to remove.
+        dsb_to_remove = udc_to_remove.deactivate()
+        # Finishes to adds the new row.
+        self.list_of_disulfide_combos.remove(udc_to_remove)
+        # Also removes the bridge from the self.user_defined_disulfide_bridges.
+        self.user_defined_disulfide_bridges.remove(dsb_to_remove)
+        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
-class User_disulfide_combo:
+class User_disulfide_combo(shared_components.PyMod_frame, Modeling_window_mixin):
     """
     Class for building in the 'Disulfide' page in the modeling window a "row" with two comboboxes and
     a button to add or remove a user defined disulfide bridge to be included in the model.
     """
+
     # This is used in the constructor when a new combobox row is created.
     id_counter = 0
+    # Row that is used in the grid method of the widget.
+    row = 0
 
-    def __init__(self,pymod_object,row,cys_list,target_widget,selector):
+    def __init__(self, parent, row, cys_list, **configs):
+        shared_components.PyMod_frame.__init__(self, parent, **configs)
         # Selected have the "Add" button, unselected have the "Remove" button.
         self.selected = False
         self.id = User_disulfide_combo.id_counter
         User_disulfide_combo.id_counter += 1
-        # Row that is used in the grid method of the widget.
-        self.row = row
         # The list of cysteines residues of the target sequence.
         self.cys_list = cys_list
         # The list of strings that is going to appear on the scrollable menus of the comboboxes.
         self.scrollable_cys_list = []
         for cys in self.cys_list:
             self.scrollable_cys_list.append("CYS" + str(cys["position"]))
-        self.target_widget = target_widget
-        self.pymod_object = pymod_object
-        self.selector = selector
+        self.selector = parent
         # Creates the first row with two comboboxes.
         self.create_combobox_row()
 
@@ -1033,7 +1028,7 @@ class User_disulfide_combo:
         """
         # First CYS combobox.
         self.cys1_combobox = Pmw.ComboBox(
-            self.target_widget, label_text = 'Select the first CYS:', labelpos = 'nw',
+            self, label_text = 'Select the first CYS:', labelpos = 'nw',
             selectioncommand = self.select_cys, scrolledlist_items = self.scrollable_cys_list,
             history = 0)
         # Make the combobox entries not editable.
@@ -1043,7 +1038,7 @@ class User_disulfide_combo:
 
         # Second CYS combobox.
         self.cys2_combobox = Pmw.ComboBox(
-            self.target_widget, label_text = 'Select the second CYS:', labelpos = 'nw',
+            self, label_text = 'Select the second CYS:', labelpos = 'nw',
             selectioncommand = self.select_cys, scrolledlist_items =self.scrollable_cys_list,
             history = 0)
         self.cys2_combobox.component("entryfield").component("entry").configure(
@@ -1055,18 +1050,24 @@ class User_disulfide_combo:
         self.update_scrollable_cys_list()
 
         # "Add" button.
-        self.new_disulfides_button = Button(self.target_widget, text="Add", command = self.press_add_button, **shared_components.button_style_2)
+        self.new_disulfides_button = Button(self, text="Add", command = self.press_add_button, **shared_components.button_style_2)
         self.new_disulfides_button.grid(row = self.row, column = 2)
 
         User_disulfide_combo.id_counter += 1
 
-    # This is launched by the combobox when some cys is selected.
-    # It should also be used to change the color of the cys according to their state.
+
     def select_cys(self,i):
+        """
+        This is launched by the combobox when some cys is selected.
+        It should also be used to change the color of the cys according to their state.
+        """
         pass
 
-    # Adjust the cysteine list to be displayed on the combobox with the right colors.
+
     def update_scrollable_cys_list(self):
+        """
+        Adjust the cysteine list to be displayed on the combobox with the right colors.
+        """
         # cys = {"position": seq_counter, "alignment-position":k, "state":"free"}
         for (i,cys) in enumerate(self.cys_list):
             if cys["state"] == "free":
@@ -1078,19 +1079,21 @@ class User_disulfide_combo:
             # There must also be a condition used to mark cys residues engaged in disulfides
             # present in the templates.
 
-    # Row with two labels and a "Remove button".
     def create_label_row(self):
+        """
+        Row with two labels and a "Remove" button.
+        """
         # Create dirst CYS label that tells which cys has been selected.
         cys_label_style = {"height" : 1, "background": 'black', "fg":'red', "anchor": "w", "padx": 20, "pady": 7}
-        self.cys1_label = Label(self.target_widget, text = self.text1, **cys_label_style)
+        self.cys1_label = Label(self, text = self.text1, **cys_label_style)
         self.cys1_label.grid(row = self.row,column = 0)
 
         # Second CYS label.
-        self.cys2_label = Label(self.target_widget, text = self.text2, **cys_label_style)
+        self.cys2_label = Label(self, text = self.text2, **cys_label_style)
         self.cys2_label.grid(row = self.row,column = 1)
 
         # Adds the "Remove" button.
-        self.remove_disulfides_button = Button(self.target_widget, text="Remove", command = self.press_remove_button, **shared_components.button_style_2)
+        self.remove_disulfides_button = Button(self, text="Remove", command = self.press_remove_button, **shared_components.button_style_2)
         self.remove_disulfides_button.grid(row = self.row, column = 2,pady=(5,0))
 
 
@@ -1117,7 +1120,7 @@ class User_disulfide_combo:
 
     def press_remove_button(self):
         # This is going to call the method below.
-        self.selector.remove_user_disulfide(self.id)
+        self.selector.remove_user_disulfide(self)
 
     def deactivate(self):
         """
@@ -1128,4 +1131,5 @@ class User_disulfide_combo:
         self.cys1_label.destroy()
         self.cys2_label.destroy()
         self.remove_disulfides_button.destroy()
+        self.destroy()
         return self.text1, self.text2

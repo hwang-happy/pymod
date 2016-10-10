@@ -1,6 +1,8 @@
 # TODO:
 #   - check the attributes and methods that are actually used in the rest of the plugin.
 
+import os
+
 import pymod_vars as pmdt
 import pymod_sequence_manipulation as pmsm
 
@@ -314,7 +316,7 @@ class PyMod_sequence_element(PyMod_element):
     appear on the left column or alignments elements.
     """
 
-    def __init__(self, sequence=None, header="", residues=None, structure = None, **configs):
+    def __init__(self, sequence=None, header="", residues=None, **configs):
         PyMod_element.__init__(self, header, **configs)
 
         # TODO: cleans up the sequence.
@@ -323,7 +325,7 @@ class PyMod_sequence_element(PyMod_element):
         #--------------------------
         # Structural information. -
         #--------------------------
-        self.structure = structure
+        self.initialize_structural_information()
         self.models_count = 0
         self.loop_models_count = 0
 
@@ -365,8 +367,8 @@ class PyMod_sequence_element(PyMod_element):
         self.residues = []
         for letter in self.my_sequence:
             if letter != "-":
-                self.residues.append(PyMod_residue(one_letter_code = letter,
-                                                   three_letter_code = pmdt.get_prot_one_to_three(letter)))
+                self.residues.append(PyMod_standard_residue(one_letter_code = letter,
+                                                            three_letter_code = pmdt.get_prot_one_to_three(letter)))
 
     def set_sequence_from_residues(self):
         my_sequence = ""
@@ -377,8 +379,12 @@ class PyMod_sequence_element(PyMod_element):
 
 
     def update_residues_information(self):
+        polymer_residue_count = 0
         for i,res in enumerate(self.residues):
-            res.index = i
+            res.index = i # Index considering also heteroresidues in the sequences.
+            res.seq_index =  polymer_residue_count # Index considering only the polymer sequence.
+            if res.is_polymer_residue():
+                polymer_residue_count += 1
             if res.db_index == None:
                 res.db_index = i + 1
             res.pymod_element = self
@@ -491,6 +497,16 @@ class PyMod_sequence_element(PyMod_element):
         else:
             return self.residues[index] # self.residues[index]
 
+    def get_residue_by_db_index(self, db_index):
+        for res in self.residues:
+            if res.db_index == db_index:
+                return res
+        raise Exception("No residue with db_index '' found." % db_index)
+
+    def get_residue_seq_id_from_db_id(self, db_index):
+        res = self.get_residue_by_db_index(db_index)
+        return res.seq_index
+
 
     def get_next_residue_id(self, residue, aligned_sequence_index=False, only_polymer=True):
         if only_polymer:
@@ -521,15 +537,40 @@ class PyMod_sequence_element(PyMod_element):
     # Structure related.                                                                          #
     ###############################################################################################
 
+    def initialize_structural_information(self):
+        """
+        Attributes to represent the 3D structure of a macromolecule within PyMod.
+        """
+        self.initial_chain_file_path = None
+        self.current_chain_file_path = None
+        self.chain_id = None
+        self.original_structure_file_path = None
+        self.disulfides_list = []
+        self.structure = None
+
+
+    def set_structure(self, chain_file_path, chain_id, original_structure_file_path):
+        self.initial_chain_file_path = chain_file_path
+        self.current_chain_file_path = self.initial_chain_file_path
+        self.chain_id = chain_id
+        self.original_structure_file_path = original_structure_file_path
+        self.structure = True
+
+
+    def remove_structure(self):
+        self.initialize_structural_information()
+
+
     def has_structure(self):
         if self.structure != None:
             return True
         else:
             return False
 
+
     def check_structure(method):
         """
-        Decorator method to check if PyMod_element object has a PyMod_structure object.
+        Decorator method to check if PyMod_element object hasn an associated 3D structure.
         """
         # TODO: modify this so that it can that multiple arguments.
         def checker(self, **config):
@@ -538,13 +579,23 @@ class PyMod_sequence_element(PyMod_element):
             return method(self, **config)
         return checker
 
+
     @check_structure
     def get_structure_file(self, name_only=False, strip_extension=False, original_structure_file=False):
-        return self.structure.get_file(name_only=name_only, strip_extension=strip_extension, original_structure_file=original_structure_file)
+        if original_structure_file:
+            result = self.original_structure_file_path
+        else:
+            result = self.current_chain_file_path
+        if name_only:
+            result = os.path.basename(result)
+        if strip_extension:
+            result = os.path.splitext(result)[0]
+        return result
+
 
     @check_structure
     def get_structure_chain_id(self):
-        return self.structure.get_chain_id()
+        return self.chain_id
 
 
     #################################################################
@@ -553,7 +604,7 @@ class PyMod_sequence_element(PyMod_element):
 
     @check_structure
     def get_pymol_object_name(self):
-        return self.structure.get_pymol_object_name()
+        return os.path.splitext(os.path.basename(self.current_chain_file_path))[0]
 
 
     #################################################################
@@ -562,15 +613,15 @@ class PyMod_sequence_element(PyMod_element):
 
     @check_structure
     def get_disulfides(self):
-        return self.structure.disulfides_list
+        return self.disulfides_list
 
     @check_structure
     def has_disulfides(self):
-        return self.structure.disulfides_list != []
+        return self.disulfides_list != []
 
     @check_structure
     def add_disulfide(self, disulfide=None):
-        self.structure.add_disulfide(disulfide)
+        self.disulfides_list.append(disulfide)
 
 
     ###############################################################################################
@@ -624,6 +675,7 @@ class PyMod_sequence_element(PyMod_element):
 class PyMod_polypeptide_element(PyMod_sequence_element):
     pass
 
+
 class PyMod_nucleic_acid_element(PyMod_sequence_element):
     pass
 
@@ -634,13 +686,14 @@ class PyMod_nucleic_acid_element(PyMod_sequence_element):
 
 class PyMod_residue:
 
-    def __init__(self, three_letter_code, one_letter_code, index=None, db_index=None):
+    def __init__(self, three_letter_code, one_letter_code, index=None, seq_index=None, db_index=None):
         self.three_letter_code = three_letter_code
         self.one_letter_code = one_letter_code
         self.full_name = three_letter_code
 
         self.index = index
-        self.db_index = db_index # index+1
+        self.seq_index = seq_index
+        self.db_index = db_index
 
         self.pymod_element = None
 
@@ -678,18 +731,6 @@ class PyMod_residue:
         return issubclass(self.__class__, PyMod_heteroresidue) and not self.is_water()
 
 
-    def check_structure(method):
-        """
-        Check if the corresponding PyMod element has a structure associated in PyMOL.
-        """
-        def checker(self):
-            if not self.pymod_element.has_structure():
-                raise PyModMissingStructure("The element to which the residue belongs does not have a structure.")
-            return method(self)
-        return checker
-
-
-    @check_structure
     def get_pymol_selector(self):
         """
         Gets the correspondig selector in PyMOL.
@@ -709,6 +750,9 @@ class PyMod_residue:
                     return i
                 res_counter += 1
         return None
+
+    def get_parent_structure_chain_id(self):
+        return self.pymod_element.get_structure_chain_id()
 
 
 class PyMod_standard_residue(PyMod_residue):

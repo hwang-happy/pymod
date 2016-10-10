@@ -40,6 +40,10 @@ class Select_chain_and_first_model(Select):
 
 
 class Parsed_pdb_file:
+    """
+    Class to represent a parsed PDB file, which information can be used to add
+    'PyMod_sequence_element' with structures to PyMod.
+    """
 
     counter = 0
     blank_chain_character = "X"
@@ -129,9 +133,8 @@ class Parsed_pdb_file:
                         parsed_chain["residues"].append(pmel.PyMod_standard_residue(three_letter_code=resname, one_letter_code=pmsm.three2one(resname), db_index=pdb_position))
                 list_of_parsed_chains.append(parsed_chain)
 
-            # Stops after having parsed the first "model" in the biopython "structure".
-            # This is needed to import only the first model of NMR files, which have multiple
-            # models.
+            # Stops after having parsed the first "model" in the biopython "structure". This is
+            # needed to import only the first model of multimodel files (such as NMR files).
             break
 
         #---------------------------------------------------------
@@ -145,17 +148,14 @@ class Parsed_pdb_file:
             # Saves a PDB file with only the current chain of the first model of the structure.
             io.save(parsed_chain["file_path"], Select_chain_and_first_model(parsed_chain["pymod_id"]))
             # Builds the new 'PyMod_structure'.
-            new_structure = PyMod_structure(
-                chain_file_path=parsed_chain["file_path"],
-                chain_id = parsed_chain["pymod_id"],
-                original_structure_file_path=self.original_pdb_file_path)
+            new_structure = {"chain_file_path":parsed_chain["file_path"],
+                             "chain_id": parsed_chain["pymod_id"],
+                             "original_structure_file_path":self.original_pdb_file_path}
             self.list_of_structure_objects.append(new_structure)
             # Builds the new 'PyMod_element'.
             new_element_header = os.path.splitext(parsed_chain["file_name"])[0]
-            new_element = pmel.PyMod_sequence_element(
-                residues=parsed_chain["residues"],
-                header=new_element_header,
-                structure = new_structure)
+            new_element = pmel.PyMod_sequence_element(residues=parsed_chain["residues"], header=new_element_header)
+            new_element.set_structure(**new_structure)
             self.list_of_pymod_elements.append(new_element)
 
         warnings.simplefilter("always")
@@ -200,14 +200,20 @@ class Parsed_pdb_file:
             dsb_chain_j = dsb["chain_j"]
             if dsb_chain_j == " ":
                 dsb_chain_j = self.blank_chain_character
+
             if dsb_chain_i == dsb_chain_j:
-                self._get_pymod_element_by_chain(dsb_chain_i).add_disulfide(disulfide=dsb)
+                chain_element = self._get_pymod_element_by_chain(dsb_chain_i)
+                new_dsb = Disulfide_bridge(cys1=dsb["residue_i"][1], cys2=dsb["residue_j"][1],
+                                           cys1_seq_index=chain_element.get_residue_seq_id_from_db_id(dsb["residue_i"][1]),
+                                           cys2_seq_index=chain_element.get_residue_seq_id_from_db_id(dsb["residue_j"][1]),
+                                           cys1_chain=dsb_chain_i, cys2_chain=dsb_chain_j,
+                                           distance=dsb["distance"], chi3_dihedral=dsb["chi3_dihedral"])
+                chain_element.add_disulfide(disulfide=new_dsb)
             else:
-                self._get_pymod_element_by_chain(dsb_chain_j).add_disulfide(disulfide=dsb)
-                self._get_pymod_element_by_chain(dsb_chain_i).add_disulfide(disulfide=dsb)
-            # new_dsb = Disulfide_bridge()
-            # self._get_pymod_element_by_chain(dsb_chain_j).add_disulfide
-            # self._get_pymod_element_by_chain(dsb_chain_i).add_disulfide
+                raise Exception("interchain")
+                # self._get_pymod_element_by_chain(dsb_chain_j).add_disulfide(disulfide=dsb)
+                # self._get_pymod_element_by_chain(dsb_chain_i).add_disulfide(disulfide=dsb)
+
 
     def _get_pymod_element_by_chain(self, chain_id):
         for e in self.list_of_pymod_elements:
@@ -241,71 +247,32 @@ class Parsed_pdb_file:
 #     #     print(pp.get_sequence())
 
 
-class PyMod_structure:
-
-    def __init__(self, chain_file_path, chain_id, original_structure_file_path):
-        self.initial_chain_file_path = chain_file_path
-        self.current_chain_file_path = self.initial_chain_file_path
-        self.chain_id = chain_id
-        self.original_structure_file_path = original_structure_file_path
-
-        # Disulfides.
-        self.disulfides_list = []
-
-    def get_file(self, name_only=False, strip_extension=False, original_structure_file=False):
-        if original_structure_file:
-            result = self.original_structure_file_path
-        else:
-            result = self.current_chain_file_path
-        if name_only:
-            result = os.path.basename(result)
-        if strip_extension:
-            result = os.path.splitext(result)[0]
-        return result
-
-    def get_chain_id(self):
-        return self.chain_id
-
-    def get_pymol_object_name(self):
-        return os.path.splitext(os.path.basename(self.current_chain_file_path))[0]
-
-    def add_disulfide(self, disulfide):
-        self.disulfides_list.append(disulfide)
-
-
 class Disulfide_bridge:
     """
     Class for disulfide bridges.
     """
-    def __init__(self, cys1=0, cys2=0, distance=0, chi3_dihedral=0, number_in_pdb=0):
-        #, disulfide_id = None):
+    def __init__(self, cys1=0, cys2=0, cys1_chain=None, cys2_chain=None, cys1_seq_index=0, cys2_seq_index=0, distance=0, chi3_dihedral=0):
 
         # The id of the first cysteine residue in the PDB file.
         self.cys1 = cys1
-        self.cys1_chain = None
+        self.cys1_chain = cys1_chain
         self.cys2 = cys2
-        self.cys2_chain = None
+        self.cys1_pdb_index = cys1
+        self.cys2_pdb_index = cys2
+        self.cys2_chain = cys2_chain
         self.distance = distance
-        self.chi3_dihedral = None
-        self.number_in_pdb = number_in_pdb
+        self.chi3_dihedral = chi3_dihedral
+        # This sets the number of the cysteine in the sequence created by Pymod. Most often it is
+        # different from the number from the PDB file.
+        self.cys1_seq_index = cys1_seq_index
+        self.cys2_seq_index = cys2_seq_index
 
         # The following attribute can be either "intrachain" (the 2 cys belong to the same
         # polypeptide chain) or "interchain" (the 2 cys belong to two different polypeptide chains).
-        self.bridge_type = ""
         if self.cys1_chain == self.cys2_chain:
-            self.bridge_type = "intrachain"
+            self.type = "intrachain"
         elif self.cys1_chain != self.cys2_chain:
-            self.bridge_type = "interchain"
-
-        # self.disulfide_id = disulfide_id
-
-    # This sets the number of the cysteine in the sequence created by Pymod. Most often it is
-    # different from the number from the PDB file.
-    def set_cys_seq_number(self,cys,number):
-        if cys == 1:
-            self.cys1_seq_number = number
-        elif cys == 2:
-            self.cys2_seq_number = number
+            self.type = "interchain"
 
 
 ###################################################################################################
@@ -314,7 +281,7 @@ class Disulfide_bridge:
 
 class Disulfide_analyser:
     """
-    Uses Biopython to find the disulfides bridges in the molecules in the parsed structure file.
+    Uses Biopython to find the disulfides bridges in the molecules in a parsed structure file.
     """
     # Parameters for disulfide bridges definition.
     disulfide_min_sg_distance = 1.5
@@ -330,7 +297,7 @@ class Disulfide_analyser:
 
     def get_disulfide_bridges(self):
         # Starts to iterate through the S gamma atoms in the biopython object.
-        list_of_sg_atoms = [atom for atom in list(self.parsed_biopython_structure.get_models())[0].get_atoms() if atom.id == "SG"]
+        list_of_sg_atoms = [atom for atom in list(self.parsed_biopython_structure.get_list())[0].get_atoms() if atom.id == "SG"]
         self.list_of_disulfides = []
         for si, atomi in enumerate(list_of_sg_atoms):
             for sj, atomj in enumerate(list_of_sg_atoms[si:]):
@@ -349,9 +316,13 @@ class Disulfide_analyser:
                         # Filters for chi3 angle values.
                         if chi3_dihedral >= self.min_chi3_dihedral_value and chi3_dihedral <= self.max_chi3_dihedral_value:
                             self.list_of_disulfides.append({"distance": ij_distance,
+                                                            # Atoms.
                                                             "atom_i": atomi, "atom_j": atomj,
+                                                            # Residues ids.
+                                                            "residue_i": atomi.get_parent().id, "residue_j": atomj.get_parent().id,
+                                                            # Chain ids.
                                                             "chain_i": atomi.get_parent().get_parent().id, "chain_j": atomj.get_parent().get_parent().id,
-                                                            "chi3_dihedral":chi3_dihedral*180.0/math.pi})
+                                                            "chi3_dihedral":chi3_dihedral}) # *180.0/math.pi
         return self.list_of_disulfides
 
 def get_disulfide_bridges_of_structure(parsed_biopython_structure):
