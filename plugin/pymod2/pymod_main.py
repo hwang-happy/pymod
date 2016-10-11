@@ -21,6 +21,7 @@
 #       - control the sequences.
 #       - models refinement.
 #     - add the licence part to each file of the plugin.
+#     - 'update structures from PyMOL' part.
 
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
 #     - add an "export to .phy file" option when showing distance trees.
@@ -727,12 +728,15 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
         # Dimer: easy case.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
         # Monomer disulfides.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
+        # Ubiquitin.
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
 
         self.gridder(update_clusters=True, update_menus=True)
 
