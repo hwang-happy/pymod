@@ -277,6 +277,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             self.pymod.show_error_message(title, self.modelization_parameters_error, self.modeling_window, refresh=False)
             return None
 
+        self.set_modeling_options()
+
         # The modeling window can be destroyed.
         self.modeling_window.destroy()
 
@@ -369,7 +371,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # External --------------------------------------------------
         if self.write_modeller_script:
             print >> self.modeller_script, "\n"+"class MyModel(modeller.automodel.automodel):"
-            print >> self.modeller_script, "\n"+"   pass" # TODO: remove.
+            print >> self.modeller_script, "\n"+"    pass" # TODO: remove.
         #------------------------------------------------------------
 
         #----------------------------------------------------------------------------------------
@@ -378,10 +380,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # in a "reduced" state.                                                                 -
         #----------------------------------------------------------------------------------------
         if self.check_targets_with_cys() and self.check_structures_with_disulfides():
-            # If the user chose to use templates disulfides bridges.
-            if self.modeling_window.disulfides_frame.use_template_dsb_var.get():
-                # Modeller will automatically use the patch_ss_templates() method of the automodel
-                # class.
+            # If the user chose to use templates disulfides bridges MODELLER will automatically use
+            # the patch_ss_templates() method of the automodel class.
+            if self.use_template_dsb:
                 pass
             # Don't use template dsbs: this will not create any dsbs in the model by not disulfide
             # patching and leave the model CYS residues that in the template are engaged in a dsb in
@@ -404,171 +405,130 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         #-----------------------------------------------------------------------------------
         # Part for multichain models and user defined disulfide bridges, which requires to -
-        # the special_patches() method override.                                           -
+        # override the special_patches() method.                                           -
         #-----------------------------------------------------------------------------------
-        if self.check_targets_with_cys():
-            self.all_user_defined_dsb = self.modeling_window.get_user_dsb_list()
 
-#         # Internal --------------------------------------------------
-#         if self.run_modeller_internally:
-#             def special_patches(self, aln):
-#
-#                 # When building a multichain model it uses the special patches method to rename the
-#                 # chains and give the residues the right ids.
-#                 if len(pymod.modeling_clusters_list) > 1:
-#                     # Rename the chains. When Modeller builds a multichain model with heteroatoms
-#                     # and/or water it places them in additional chains. The following code will
-#                     # rename these extra chains in the right way.
-#                     segments = [s for s in pymod.target_segment_list if s.use]
-#                     for chain, segment in zip(self.chains, segments):
-#                         # print "seq. " + chain.name + " : " + segment
-#                         chain.name = segment.chain_id
-#
-#                     # Renumber the residues in the new chains starting from 1. When Modeller builds
-#                     # a multichain model it doesn't restart to count residues from 1 when changing
-#                     # chain. The following code renumbers the residues in the correct way.
-#                     count_dictionary = {}
-#                     for chain in self.chains:
-#                         if chain.name not in count_dictionary.keys():
-#                             count_dictionary.update({chain.name: 1})
-#                     for chain in self.chains:
-#                         for num, residue in enumerate(chain.residues):
-#                             residue.num = '%d' % (count_dictionary[chain.name])
-#                             count_dictionary[chain.name] += 1
-#
-#                 # Informs Modeller on how to build custom disulfide bridges.
-#                 if True in [mc.target_with_cys for mc in pymod.modeling_clusters_list]:
-#                     # If the user wants to use some custom dsb.
-#                     if pymod.disulfides_frame.use_user_defined_dsb_var.get():
-#                         # Gets the list of user defined dsb for each modeling cluster (if the
-#                         # target of the modeling cluster doesn't have at least two cys residues
-#                         # it will have an [] empty list).
-#                         for (mci,mc) in enumerate(pymod.modeling_clusters_list):
-#                             # If some user-defined disulfide bridges have been created by the user then get that
-#                             # information from self.dsb_page.
-#                             # Populate the self.user_defined_dsb list.
-#                             for dsb in pymod.all_user_defined_dsb[mci]:
-#                                 # For example CYS321.
-#                                 cys1 = dsb[0][3:]
-#                                 cys2 = dsb[1][3:]
-#                                 # If a bridge has the same cys: <class '_modeller.ModellerError'>: unqang__247E> Internal error:
-#                                 # Redefine the routine to include user defined dsb.
-#                                 if len(pymod.modeling_clusters_list) > 1:
-#                                     chain = mc.get_template_complex_chain().structure.pdb_chain_id
-#                                     self.patch(residue_type="DISU", residues=(self.chains[chain].residues[cys1], self.chains[chain].residues[cys2]))
-#                                 else:
-#                                     self.patch(residue_type="DISU", residues=(self.residues[cys1], self.residues[cys2]))
-#
-#                     # If the user wants Modeller to build automatically the dsb.
-#                     if pymod.disulfides_frame.auto_dsb_var.get():
-#                         # Adds disulfides bridges for cys that are sufficently close.
-#                         self.patch_ss()
-#
-#             # Dynamically assigns the method.
-#             setattr(MyModel, 'special_patches', special_patches)
-#         #------------------------------------------------------------
-#
-#         # External --------------------------------------------------
-#         if self.write_modeller_script:
-#             print >> self.modeller_script, "    def special_patches(self, aln):"
-#             if self.multiple_chain_mode:
-#                 segments = [s for s in self.target_segment_list if s.use]
-#                 print >> self.modeller_script, "        # Rename the chains so that hetatms and water are assigned in the right way."
-#                 print >> self.modeller_script, "        segments = " + repr([s.chain_id for s in segments])
-#                 print >> self.modeller_script, "        for chain, segment in zip(self.chains, segments):"
-#                 print >> self.modeller_script, "            chain.name = segment" + "\n"
-#                 print >> self.modeller_script, "        # Renumber the residues in the new chains starting from 1."
-#                 print >> self.modeller_script, "        count_dictionary = {}"
-#                 print >> self.modeller_script, "        for chain in self.chains:"
-#                 print >> self.modeller_script, "            if chain.name not in count_dictionary.keys():"
-#                 print >> self.modeller_script, "                count_dictionary.update({chain.name: 1})"
-#                 print >> self.modeller_script, "        for chain in self.chains:"
-#                 print >> self.modeller_script, "            for num, residue in enumerate(chain.residues):"
-#                 print >> self.modeller_script, "                residue.num = '%d' % (count_dictionary[chain.name])"
-#                 print >> self.modeller_script, "                count_dictionary[chain.name] += 1" + "\n"
-#
-#             if self.check_targets_with_cys():
-#                 for (mci,mc) in enumerate(self.modeling_clusters_list):
-#                     for dsb in self.all_user_defined_dsb[mci]:
-#                         # For example CYS321.
-#                         cys1 = dsb[0][3:]
-#                         cys2 = dsb[1][3:]
-#                         if self.multiple_chain_mode:
-#                             chain = mc.get_template_complex_chain().structure.pdb_chain_id
-#                             print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.chains['%s'].residues['%s'], self.chains['%s'].residues['%s']))" % (chain,cys1,chain,cys2)
-#                         else:
-#                             print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.residues['%s'], self.residues['%s']))" % (cys1,cys2)
-#                 if self.disulfides_frame.auto_dsb_var.get():
-#                     print >> self.modeller_script, "        self.patch_ss()"
-#         #------------------------------------------------------------
-#
-#         # ---
-#         # Apply simmetry restraints to target chains that have the same sequence.
-#         # ---
-#         if len(pymod.modeling_clusters_list) > 1:
-#             groups_to_use = [g for g in self.symmetry_restraints_groups.get_groups(min_number_of_sequences=2) if g.use]
-#             if len(groups_to_use) > 0:
-#                 # Define group of chains on which symmetry restraints have to be applied.
-#                 list_of_groups = []
-#                 for srg in groups_to_use:
-#                     list_of_chains = []
-#                     for mcl in srg.list_of_clusters:
-#                         if mcl.symmetry_restraints_var.get() == 1:
-#                             list_of_chains.append(mcl.model_chain_id)
-#                     list_of_groups.append(list_of_chains)
-#
-#                 list_of_symmetry_restraints = []
-#                 for list_of_chains in list_of_groups:
-#                     s = []
-#                     for c in range(len(list_of_chains)):
-#                         i1 = list_of_chains[c]
-#                         i2 = None
-#                         if c < len(list_of_chains) - 1:
-#                             i2 = list_of_chains[c+1]
-#                         else:
-#                             pass
-#                         if i2!=None:
-#                             s.append([i1,i2])
-#                     list_of_symmetry_restraints.append(s)
-#
-#                 # Internal ----------------------------------------------
-#                 if self.run_modeller_internally:
-#                     def special_restraints(self, aln):
-#                         # Constrain chains to be identical (but only restrain
-#                         # the C-alpha atoms, to reduce the number of interatomic distances
-#                         # that need to be calculated):
-#                         for symmetry_restraints_group in list_of_symmetry_restraints:
-#                             for s in symmetry_restraints_group:
-#                                 s1 = modeller.selection(self.chains[s[0]]).only_atom_types('CA')
-#                                 s2 = modeller.selection(self.chains[s[1]]).only_atom_types('CA')
-#                                 self.restraints.symmetry.append(modeller.symmetry(s1, s2, 1.0))
-#                     setattr(MyModel, 'special_restraints', special_restraints)
-#
-#                     def user_after_single_model(self):
-#                         # Report on symmetry violations greater than 1A after building
-#                         # each model:
-#                         self.restraints.symmetry.report(1.0)
-#                     setattr(MyModel, 'user_after_single_model', user_after_single_model)
-#                 #----------------------------------------------------
-#
-#                 # External ----------------------------------------------
-#                 if self.write_modeller_script:
-#                     print >> self.modeller_script, "    def special_restraints(self, aln):"
-#                     for si,symmetry_restraints_group in enumerate(list_of_symmetry_restraints):
-#                          print >> self.modeller_script, "        # Symmetry restraints group n. %d." % (si+1)
-#                          for s in symmetry_restraints_group:
-#                              print >> self.modeller_script, "        s1 = modeller.selection(self.chains['" +s[0] + "']).only_atom_types('CA')"
-#                              print >> self.modeller_script, "        s2 = modeller.selection(self.chains['" +s[1] + "']).only_atom_types('CA')"
-#                              print >> self.modeller_script, "        self.restraints.symmetry.append(modeller.symmetry(s1, s2, 1.0))"
-#                     print >> self.modeller_script, "\n"+"    def user_after_single_model(self):"
-#                     print >> self.modeller_script, "        self.restraints.symmetry.report(1.0)"
-#                 #--------------------------------------------------------
-#
-#         # External --------------------------------------------------
-#         if self.write_modeller_script:
-#             print >> self.modeller_script, "\n"+"        pass"+"\n"
-#         #------------------------------------------------------------
-#
+        # Internal --------------------------------------------------
+        if self.run_modeller_internally:
+            modeling_protocol = self
+            def special_patches(self, aln):
+                #--------------------------------------------------------------------------------
+                # Renumber the residues in the new chains starting from 1. When Modeller builds -
+                # a multichain model it doesn't restart to count residues from 1 when changing  -
+                # chain. The following code renumbers the residues in the correct way.          -
+                #--------------------------------------------------------------------------------
+                if modeling_protocol.multiple_chain_mode:
+                    count_dictionary = {}
+                    for chain in self.chains:
+                        if chain.name not in count_dictionary.keys():
+                            count_dictionary.update({chain.name: 1})
+                    for chain in self.chains:
+                        for num, residue in enumerate(chain.residues):
+                            residue.num = '%d' % (count_dictionary[chain.name])
+                            count_dictionary[chain.name] += 1
+
+                #-------------------------------------------------------------
+                # Informs Modeller on how to build custom disulfide bridges. -
+                #-------------------------------------------------------------
+                if modeling_protocol.check_targets_with_cys():
+                    # If the user wants to use some custom dsb.
+                    if modeling_protocol.use_user_defined_dsb:
+                        # Gets the list of user defined dsb for each modeling cluster (if the
+                        # target of the modeling cluster doesn't have at least two cys residues
+                        # it will have an [] empty list).
+                        for (mci, mc) in enumerate(modeling_protocol.modeling_clusters_list):
+                            for dsb in modeling_protocol.all_user_defined_dsb[mci]:
+                                # For example CYS321.
+                                cys1 = dsb[0][3:]
+                                cys2 = dsb[1][3:]
+                                # If a bridge has the same cys: <class '_modeller.ModellerError'>: unqang__247E> Internal error:
+                                # Redefine the routine to include user defined dsb.
+                                if modeling_protocol.multiple_chain_mode:
+                                    chain = mc.get_template_complex_chain().get_structure_chain_id()
+                                    self.patch(residue_type="DISU", residues=(self.chains[chain].residues[cys1], self.chains[chain].residues[cys2]))
+                                else:
+                                    self.patch(residue_type="DISU", residues=(self.residues[cys1], self.residues[cys2]))
+
+                    # If the user wants MODELLER to build automatically the dsb.
+                    if modeling_protocol.use_auto_dsb:
+                        # Adds disulfides bridges for cys that are sufficently close.
+                        self.patch_ss()
+
+            setattr(MyModel, 'special_patches', special_patches)
+        #------------------------------------------------------------
+
+        # External --------------------------------------------------
+        if self.write_modeller_script:
+            print >> self.modeller_script, "    def special_patches(self, aln):"
+            if self.multiple_chain_mode:
+                print >> self.modeller_script, "        # Renumber the residues in the new chains starting from 1."
+                print >> self.modeller_script, "        count_dictionary = {}"
+                print >> self.modeller_script, "        for chain in self.chains:"
+                print >> self.modeller_script, "            if chain.name not in count_dictionary.keys():"
+                print >> self.modeller_script, "                count_dictionary.update({chain.name: 1})"
+                print >> self.modeller_script, "        for chain in self.chains:"
+                print >> self.modeller_script, "            for num, residue in enumerate(chain.residues):"
+                print >> self.modeller_script, "                residue.num = '%d' % (count_dictionary[chain.name])"
+                print >> self.modeller_script, "                count_dictionary[chain.name] += 1" + "\n"
+
+            if self.check_targets_with_cys():
+                if self.use_user_defined_dsb:
+                    for (mci,mc) in enumerate(self.modeling_clusters_list):
+                        for dsb in self.all_user_defined_dsb[mci]:
+                            cys1 = dsb[0][3:]
+                            cys2 = dsb[1][3:]
+                            if self.multiple_chain_mode:
+                                chain = mc.get_template_complex_chain().get_structure_chain_id()
+                                print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.chains['%s'].residues['%s'], self.chains['%s'].residues['%s']))" % (chain,cys1,chain,cys2)
+                            else:
+                                print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.residues['%s'], self.residues['%s']))" % (cys1,cys2)
+                if self.use_auto_dsb:
+                    print >> self.modeller_script, "        self.patch_ss()"
+        #------------------------------------------------------------
+
+        #--------------------------------------------------------------------------
+        # Apply simmetry restraints to target chains that have the same sequence. -
+        #--------------------------------------------------------------------------
+        if self.multiple_chain_mode and len(self.list_of_symmetry_restraints) > 0:
+            # Internal ----------------------------------------------
+            if self.run_modeller_internally:
+                modeling_protocol = self
+                def special_restraints(self, aln):
+                    # Constrain chains to be identical (but only restrain
+                    # the C-alpha atoms, to reduce the number of interatomic distances
+                    # that need to be calculated):
+                    for symmetry_restraints_group in modeling_protocol.list_of_symmetry_restraints:
+                        for s in symmetry_restraints_group:
+                            s1 = modeller.selection(self.chains[s[0]]).only_atom_types('CA')
+                            s2 = modeller.selection(self.chains[s[1]]).only_atom_types('CA')
+                            self.restraints.symmetry.append(modeller.symmetry(s1, s2, 1.0))
+                setattr(MyModel, 'special_restraints', special_restraints)
+
+                def user_after_single_model(self):
+                    # Report on symmetry violations greater than 1A after building
+                    # each model:
+                    self.restraints.symmetry.report(1.0)
+                setattr(MyModel, 'user_after_single_model', user_after_single_model)
+            #----------------------------------------------------
+
+            # External ----------------------------------------------
+            if self.write_modeller_script:
+                print >> self.modeller_script, "    def special_restraints(self, aln):"
+                for si,symmetry_restraints_group in enumerate(self.list_of_symmetry_restraints):
+                     print >> self.modeller_script, "        # Symmetry restraints group n. %d." % (si+1)
+                     for s in symmetry_restraints_group:
+                         print >> self.modeller_script, "        s1 = modeller.selection(self.chains['" +s[0] + "']).only_atom_types('CA')"
+                         print >> self.modeller_script, "        s2 = modeller.selection(self.chains['" +s[1] + "']).only_atom_types('CA')"
+                         print >> self.modeller_script, "        self.restraints.symmetry.append(modeller.symmetry(s1, s2, 1.0))" + "\n"
+                print >> self.modeller_script, "    def user_after_single_model(self):"
+                print >> self.modeller_script, "        self.restraints.symmetry.report(1.0)"
+            #--------------------------------------------------------
+
+        # External --------------------------------------------------
+        if self.write_modeller_script:
+            print >> self.modeller_script, "\n"+"        pass"+"\n"
+        #------------------------------------------------------------
+
         #------------------------------------------------------
         # Creates the "a" object to perform the modelization. -
         #------------------------------------------------------
@@ -664,6 +624,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             print >> self.modeller_script, "a.starting_model= 1"
             print >> self.modeller_script, "a.ending_model = " + str(self.ending_model_number)
             print >> self.modeller_script, "a.make()"
+
             # Saves an output file that will be red by PyMod when MODELLER is executed externally.
             if not self.run_modeller_internally:
                 print >> self.modeller_script, "\n###################################"
@@ -676,6 +637,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 print >> self.modeller_script, "    modeller_outputs_file.write('%s,' % (repr(model_copy)))"
                 print >> self.modeller_script, "modeller_outputs_file.write(']')"
                 print >> self.modeller_script, "modeller_outputs_file.close()"
+                
             self.modeller_script.close()
 
         if not self.run_modeller_internally:
@@ -1012,6 +974,32 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                         self.all_templates_namelist.append(mc.template_options_dict[t]["modeller_name"])
             self.modeller_target_name = self.multiple_chains_models_name
 
+        #-------------------------------------
+        # Get options for disulfide bridges. -
+        #-------------------------------------
+        if self.check_targets_with_cys() :
+            self.use_template_dsb = self.modeling_window.disulfides_frame.use_template_dsb_var.get()
+            self.use_user_defined_dsb = self.modeling_window.disulfides_frame.use_user_defined_dsb_var.get()
+            # If some user-defined disulfide bridges have been built, get that information from GUI.
+            if self.use_user_defined_dsb:
+                self.all_user_defined_dsb = self.modeling_window.get_user_dsb_list()
+            self.use_auto_dsb = self.modeling_window.disulfides_frame.auto_dsb_var.get()
+
+        #---------------------------------------
+        # Get options for symmetry restraints. -
+        #---------------------------------------
+        if self.multiple_chain_mode:
+            self.symmetry_restraints_groups.get_symmetry_restraints_from_gui()
+
+
+    def set_modeling_options(self):
+        """
+        Set additional modeling options after some initial paramaters from the GUI have been
+        checked.
+        """
+        if self.multiple_chain_mode:
+            self.list_of_symmetry_restraints = self.symmetry_restraints_groups.get_symmetry_restraints_list()
+
 
     def chain_is_from_template_complex(self, pymod_element): # elaion!
         return pymod_element.get_structure_file(name_only=True, original_structure_file=True) == self.template_complex_name
@@ -1119,15 +1107,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         """
         correct_symmetry_vars = True
         for srg in self.symmetry_restraints_groups.get_groups(min_number_of_sequences=2):
-            si = len([mc for mc in srg.list_of_clusters if mc.symmetry_restraints_var.get() == 1])
-            if si == 1:
+            if srg.use == 1:
                 correct_symmetry_vars = False
-                self.modelization_parameters_error = "In order to impose symmetry restraints you need select the 'Apply symmetry restraints' option for at least two targets with the same sequence (you selected this option only for target '%s')." % (mc.target_name)
+                self.modelization_parameters_error = "In order to impose symmetry restraints you need select the 'Apply symmetry restraints' option for at least two targets with the same sequence (you selected this option only for target '%s')." % (srg.list_of_clusters[0].target_name)
                 break
-            elif si > 1:
-                srg.use = True
-            else:
-                srg.use = False
         return correct_symmetry_vars
 
 
@@ -1136,7 +1119,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         Check if there is at least one modeling cluster with a target sequence with at least two CYS
         residues.
         """
-        return True in [mc.target_with_cys for mc in self.modeling_clusters_list]
+        return True in [mc.has_target_with_multiple_cys() for mc in self.modeling_clusters_list]
 
     def check_structures_with_disulfides(self):
         """
@@ -1167,6 +1150,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             os.mkdir(self.modeling_directory)
         except:
             pass
+
         #-------------------------------------------------------------------------
         # Prepares the structure files of the templates in the output directory. -
         #-------------------------------------------------------------------------
@@ -1488,18 +1472,10 @@ class Modeling_cluster(Modeling_session):
 
         # This will contain a list objects from the Structure_frame class.
         self.structure_frame_list = []
-
         self.water_molecules_count = 0
-        # self.use_water_in_cluster = False
-        # self.use_template_complex_waters = False
-
         self.disulfides_frame = None
-        self.target_with_cys = None
-        if self.target.my_sequence.count("C") >= 2:
-            self.target_with_cys = True
-        else:
-            self.target_with_cys = False
 
+        self.model_chain_id = " "
 
         self.structure_chains_dict = {}
         # Index of the modeling cluster.
@@ -1595,9 +1571,13 @@ class Modeling_cluster(Modeling_session):
     def use_water_in_cluster(self):
         return 1 in [self.template_options_dict[t]["water_state"] for t in self.templates_list]
 
+    def has_target_with_multiple_cys(self):
+        return self.target.my_sequence.count("C") >= 2
+
 
     def set_template_complex_chain(self, template):
         self.template_options_dict[template]["template_complex"] = True
+        self.model_chain_id = template.get_structure_chain_id()
 
     def is_template_complex_chain(self, template):
         """
@@ -1713,6 +1693,9 @@ class Symmetry_restraints_groups_list:
         """
         return [g for g in self.list_of_groups if len(g.list_of_clusters) >= min_number_of_sequences]
 
+    def get_groups_to_use(self):
+        return [g for g in self.get_groups(min_number_of_sequences=2) if g.use > 1]
+
     def add_group(self,symmetry_id):
         srg = Symmetry_restraints_group(symmetry_id)
         self.list_of_groups.append(srg)
@@ -1722,6 +1705,41 @@ class Symmetry_restraints_groups_list:
             if g.id == symmetry_id:
                 return g
 
+    def get_symmetry_restraints_from_gui(self):
+        for srg in self.get_groups(min_number_of_sequences=2):
+            si = len([mc for mc in srg.list_of_clusters if mc.symmetry_restraints_var.get() == 1])
+            srg.use = si
+
+    def get_symmetry_restraints_list(self):
+        """
+        Builds a list of symmetry restraints to be used by MODELLER.
+        """
+        list_of_symmetry_restraints = []
+        symmetry_restraints_groups_to_use = self.get_groups_to_use()
+        if len(symmetry_restraints_groups_to_use) > 0:
+            # Define group of chains on which symmetry restraints have to be applied.
+            list_of_groups = []
+            for srg in symmetry_restraints_groups_to_use:
+                list_of_chains = []
+                for mcl in srg.list_of_clusters:
+                    if mcl.symmetry_restraints_var.get() == 1:
+                        list_of_chains.append(mcl.model_chain_id)
+                list_of_groups.append(list_of_chains)
+
+            for list_of_chains in list_of_groups:
+                s = []
+                for c in range(len(list_of_chains)):
+                    i1 = list_of_chains[c]
+                    i2 = None
+                    if c < len(list_of_chains) - 1:
+                        i2 = list_of_chains[c+1]
+                    else:
+                        pass
+                    if i2!=None:
+                        s.append([i1,i2])
+                list_of_symmetry_restraints.append(s)
+        return list_of_symmetry_restraints
+
 
 class Symmetry_restraints_group:
     """
@@ -1730,7 +1748,7 @@ class Symmetry_restraints_group:
     these groups, PyMod can let the user apply symmetry restraints to those chains when using
     MODELLER.
     """
-    def __init__(self,symmetry_id):
+    def __init__(self, symmetry_id):
         # The "id" is just the target sequence stripped of all indels.
         self.id = symmetry_id
         # This will contain a list of Modeling_cluster objects that contain a target sequence

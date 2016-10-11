@@ -892,7 +892,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         modeling_cluster_custom_dsb_frame = Frame(self.user_defined_dsb_combo_box_frame, background='black', bd=1, relief=GROOVE, padx = 10, pady = 10)
         modeling_cluster_custom_dsb_frame.grid(row=modeling_cluster_index, column=0,sticky = "nw",pady = (0,5))
         label_text = ""
-        if modeling_cluster.target_with_cys:
+        if modeling_cluster.has_target_with_multiple_cys():
             label_text = "Select two CYS for target " + modeling_cluster.target_name
         else:
             label_text = "Target " + modeling_cluster.target_name + " doesn't have at least two CYS residues."
@@ -931,7 +931,7 @@ class User_dsb_selector_frame(shared_components.PyMod_frame, Modeling_window_mix
         self.user_defined_disulfide_bridges = []
         # Builds an interface to let the user define additional dsb only for targets which have at
         # least two CYS residues.
-        if self.modeling_cluster.target_with_cys: # TODO?
+        if self.modeling_cluster.has_target_with_multiple_cys(): # TODO?
             for (k,r) in enumerate(str(self.target).replace("-","")):
                 if r == "C":
                     cys = {"position": k + 1,
