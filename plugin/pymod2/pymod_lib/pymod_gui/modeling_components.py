@@ -113,7 +113,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             # The user can choose the "template complex" with some Radiobuttons.
             self.template_complex_var = StringVar()
             # Initialize by default with the first PDB in the list.
-            self.template_complex_var.set(self.modeling_protocol.template_complex_list[0])
+            self.template_complex_var.set(self.modeling_protocol.available_template_complex_list[0])
 
             # Display some information to explain what is a "template complex".
             information = (
@@ -124,7 +124,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             # self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **shared_components.modeling_window_explanation)
             # self.template_complex_message.grid(row=1, column=0, sticky = "w")
 
-            for (tc_i,tc) in enumerate(self.modeling_protocol.template_complex_list):
+            for (tc_i,tc) in enumerate(self.modeling_protocol.available_template_complex_list):
                 tcb = Radiobutton(self.template_complex_selection_frame, text=tc, variable=self.template_complex_var, value=tc, **shared_components.modeling_window_rb_big)
                 tcb.grid(row=tc_i+2, column=0, sticky = "w",padx=(20,0))
 
@@ -333,9 +333,20 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
     ###############################################################################################
     # Takes paramaters from the GUI.                                                              #
     ###############################################################################################
+    def get_use_template_dsb_var(self):
+        return self.disulfides_frame.use_template_dsb_var.get()
+
+    def get_use_user_defined_dsb_var(self):
+        return self.disulfides_frame.use_user_defined_dsb_var.get()
 
     def get_user_dsb_list(self):
+        """
+        If some user-defined disulfide bridges have been built, get that information from GUI.
+        """
         return [sel.user_defined_disulfide_bridges for sel in self.disulfides_frame.user_dsb_selector_list]
+
+    def get_auto_dsb_var(self):
+        return self.disulfides_frame.auto_dsb_var.get()
 
 
 ###################################################################################################
@@ -618,7 +629,13 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
 
     def __init__(self, parent, **configs):
         shared_components.PyMod_frame.__init__(self, parent, **configs)
-
+        # By default all values are set to 0 (that is, the options are not selected by default).
+        self.use_template_dsb_var = IntVar()
+        self.use_template_dsb_var.set(0)
+        self.use_user_defined_dsb_var = IntVar()
+        self.use_user_defined_dsb_var.set(0)
+        self.auto_dsb_var = IntVar()
+        self.auto_dsb_var.set(0)
 
     def build_template_dsb_frame(self):
         """
@@ -642,9 +659,8 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
             information = "Include disulfide bridges found in the structures in the Templates page."
             self.template_disulfides_information = Label(self.template_dsb_frame, text= information, **shared_components.modeling_window_explanation)
             self.template_disulfides_information.grid(row=1, column=0, sticky = "w")
-            # Radiobuttons and their frame.
-            self.use_template_dsb_var = IntVar()
-            # Initialize the radiobuttons.
+            # Initialize the radiobutton: if the are some structures with disulfides use this option
+            # by default.
             self.use_template_dsb_var.set(1)
             # Frame.
             self.use_template_dsb_rad_frame = Frame(self.template_dsb_frame)
@@ -775,10 +791,6 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         self.user_disulfides_information = Label(self.user_defined_dsb_frame, text = information, **shared_components.modeling_window_explanation)
         self.user_disulfides_information.grid(row=1, column=0, sticky = "w")
 
-        # Radiobuttons and their frame.
-        self.use_user_defined_dsb_var = IntVar()
-        self.use_user_defined_dsb_var.set(0)
-
         # Frame.
         self.use_user_defined_dsb_rad_frame = Frame(self.user_defined_dsb_frame)
         self.use_user_defined_dsb_rad_frame.grid(row=2, column=0, sticky = "w")
@@ -825,10 +837,6 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
 
         self.auto_disulfides_information = Label(self.auto_dsb_frame, text= information, **shared_components.modeling_window_explanation)
         self.auto_disulfides_information.grid(row=1, column=0, sticky = "w")
-
-        # Radiobuttons and their frame.
-        self.auto_dsb_var = IntVar()
-        self.auto_dsb_var.set(0)
 
         # Frame.
         self.use_auto_dsb_rad_frame = Frame(self.auto_dsb_frame)

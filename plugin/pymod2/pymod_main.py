@@ -1,15 +1,15 @@
 # TODO:
 #     - MODELLER.
+#     - structures, files and headers formatting.
+#         - save structure to file option.
+#         - open multiple files with the same structure.
+#         - color structures and models, structure appearence and colors.
+#         - duplicate structures.
+#         - fetch and associate structures.
 #     - implement ordered dictionaries.
 #     - update BLAST clusters.
 #     - color the clusters after modifications.
-#     - structures, files and headers formatting.
-#       - save structure to file option.
-#     - open multiple files with the same structure.
-#     - duplicate structures.
 #     - add raw sequence.
-#     - structure appearence and colors.
-#     - fetch and associate structures.
 #     - reimplement the collapsed clusters features.
 #     - rewrite the 'execute_subprocess' method.
 #     - Ramachandran plot.
@@ -18,16 +18,16 @@
 #     - reimplement the rest.
 #     - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
 #     - integrate the modifications made in the stable branch.
-#       - temp directory.
-#       - control the sequences.
-#       - models refinement.
+#         - temp directory.
+#         - control the sequences.
+#         - models refinement.
 #     - add the licence part to each file of the plugin.
-#     - 'update structures from PyMOL' part.
-
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
+#     - reimplement the "Display" submenu in the main menu.
 #     - add an "export to .phy file" option when showing distance trees.
 #     - add a similar option for distance matrices, dope profiles and assessment tables.
-#     - reimplement the "Display" submenu in the main menu.
+#     - 'update structures from PyMOL' part.
+
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
@@ -729,15 +729,18 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
         # Dimer: easy case.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
         # Monomer disulfides.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
         # Ubiquitin.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+        # Simple heteromer.
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
 
         self.gridder(update_clusters=True, update_menus=True)
 

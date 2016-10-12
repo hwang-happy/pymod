@@ -142,14 +142,14 @@ class Parsed_pdb_file:
         #---------------------------------------------------------
         io=Bio.PDB.PDBIO()
         io.set_structure(self.parsed_biopython_structure)
-        for parsed_chain in list_of_parsed_chains:
+        for numeric_chain_id, parsed_chain in enumerate(list_of_parsed_chains):
             parsed_chain["file_name"] = "%s_chain_%s.pdb" % (self.structure_file_name, parsed_chain["pymod_id"])
             parsed_chain["file_path"] = os.path.join(self.output_directory, parsed_chain["file_name"])
             # Saves a PDB file with only the current chain of the first model of the structure.
             io.save(parsed_chain["file_path"], Select_chain_and_first_model(parsed_chain["pymod_id"]))
             # Builds the new 'PyMod_structure'.
             new_structure = {"chain_file_path":parsed_chain["file_path"],
-                             "chain_id": parsed_chain["pymod_id"],
+                             "chain_id": parsed_chain["pymod_id"], "numeric_chain_id": numeric_chain_id,
                              "original_structure_file_path":self.original_pdb_file_path}
             self.list_of_structure_objects.append(new_structure)
             # Builds the new 'PyMod_element'.

@@ -544,15 +544,18 @@ class PyMod_sequence_element(PyMod_element):
         self.initial_chain_file_path = None
         self.current_chain_file_path = None
         self.chain_id = None
+        # Numeric index to report where the chain is in the structure file.
+        self.numeric_chain_id = 0
         self.original_structure_file_path = None
         self.disulfides_list = []
         self.structure = None
 
 
-    def set_structure(self, chain_file_path, chain_id, original_structure_file_path):
+    def set_structure(self, chain_file_path, chain_id, original_structure_file_path, numeric_chain_id=0):
         self.initial_chain_file_path = chain_file_path
         self.current_chain_file_path = self.initial_chain_file_path
         self.chain_id = chain_id
+        self.numeric_chain_id = numeric_chain_id
         self.original_structure_file_path = original_structure_file_path
         self.structure = True
 
@@ -596,6 +599,10 @@ class PyMod_sequence_element(PyMod_element):
     @check_structure
     def get_structure_chain_id(self):
         return self.chain_id
+
+    @check_structure
+    def get_chain_numeric_id(self):
+        return self.numeric_chain_id
 
 
     #################################################################
