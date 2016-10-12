@@ -1,7 +1,6 @@
 # TODO
 #   - multiple chain modeling.
-#       - superpose multiple chains models to the template complex.
-#       - order the chains of the template complex. # sakura!
+#       - order the chains of the template complex. # sakura! Use an id when building the PyMod elements with the 'Parsed_pdb_file' class.
 #   - structures part (see pymod_main file).
 #   - subsitute the first model with actual target element and then put successive models outside
 #     target's cluster.
@@ -9,6 +8,7 @@
 #   - include hydrogens.
 #   - build a log file on all platforms.
 #   - implement saving of modeling sessions.
+#       - save modeling sessions (and also build a well done MODELLER script).
 #   - reimplement all.
 #   - implement the master branch modifications (refinement and optimization).
 #       - implement the "really quick" refinement option.
@@ -16,11 +16,10 @@
 #       - hetatms, refinement levels, disulfides, internal and external, models menu, multiple
 #         templates.
 #   - build a line in the DOPE plots for the 0.03 threshold.
+#   - sort tables.
 #   - implement Structure_file class. elaion!
-#   - implement loop modeling, after having built reimplemented everything.
-#   - save modeling sessions (and also build a well done MODELLER script).
+
 #   - remove leeafs, saakura, ellaion.
-#   - use the available topologies for those residues having them.
 
 import os
 import sys
@@ -32,6 +31,9 @@ import tkMessageBox
 import Pmw
 
 import Bio.SeqIO
+
+import pymol
+from pymol import cmd
 
 try:
     import modeller
@@ -263,11 +265,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         This method is called when the 'SUBMIT' button in the modelization window is pressed. It
         contains the code to instruct Modeller on how to perform the modelization.
         """
-        self._perform_modelization()
         try:
-            pass
+            self._perform_modelization()
         except Exception, e:
-            self.modeling_session_failure(e)
+            self.finish_modeling_session(successful=False, error_message=e)
 
 
     def _perform_modelization(self):
@@ -293,9 +294,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # Prepares the directory where MODELLER's output will be generated and moves into it.
         self.prepare_modeling_session_files()
 
-        #############################################################
-        # Start setting options for MODELLER.                       #
-        #############################################################
+        ###########################################################################################
+        # Start setting options for MODELLER.                                                     #
+        ###########################################################################################
 
         #------------------------
         # Sets the environment. -
@@ -486,7 +487,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                             cys1 = dsb[0][3:]
                             cys2 = dsb[1][3:]
                             if self.multiple_chain_mode:
-                                chain = mc.get_template_complex_chain().get_structure_chain_id()
+                                chain = mc.get_template_complex_chain().get_structure_chain_id() # TODO: use 'model_chain_id' attribute.
                                 print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.chains['%s'].residues['%s'], self.chains['%s'].residues['%s']))" % (chain,cys1,chain,cys2)
                             else:
                                 print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.residues['%s'], self.residues['%s']))" % (cys1,cys2)
@@ -670,14 +671,15 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             a.make()
         #------------------------------------------------------------
 
-        ####################################################################################
-        # Returns back to the PyMod projects directory.                                    #
-        ####################################################################################
+        ###########################################################################################
+        # Finishes to set options for MODELLER and returns back to the PyMod projects directory.  #
+        ###########################################################################################
+
         os.chdir(self.pymod.current_project_directory_full_path)
 
-        ####################################################################################
-        # Cycles through all models built by MODELLER to import them into PyMod and PyMOL. #
-        ####################################################################################
+        #-----------------------------------------------------------------------------------
+        # Cycles through all models built by MODELLER to import them into PyMod and PyMOL. -
+        #-----------------------------------------------------------------------------------
 
         for model_file_number, model in enumerate(a.outputs):
 
@@ -702,51 +704,45 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             # Superpose models to templates in PyMOL. -
             #------------------------------------------
 
-            if self.superpose_to_templates:
-                # Just superpose the model's chain to the first template.
-                if not self.multiple_chain_mode:
-                    # Superpose in PyMOL the model to its first template.
-                    super_template_selector = self.modeling_clusters_list[0].templates_list[0].get_pymol_object_name()
-                    # Builds only a selector for the first and only chain models.
-                    for mod_e in current_model_chains_elements:
-                        self.superpose_in_pymol(mod_e.get_pymol_object_name(), super_template_selector)
-                # Superposing is more complex, and follows a different strategy.
-                else:
-                    pass # raise Exception("multichain")
-                    # # Loads the full template complex file.
-                    # if model_file_number == 0:
-                    #     template_complex_shortcut = os.path.join(self.structures_directory, self.template_complex.pdb_file_name)
-                    #     cmd.load(template_complex_shortcut, tc_temp_pymol_name)
-                    #     # Superpose each separated chain of the template complex to the corresponding
-                    #     # chains of the full template complex.
-                    #     for mc in self.modeling_clusters_list:
-                    #         chain_id = mc.model_chain_id
-                    #         template_complex_chain = mc.get_template_complex_chain().build_chain_selector_for_pymol()
-                    #         self.superpose_in_pymol(template_complex_chain, "%s and chain %s" % (tc_temp_pymol_name, chain_id), save_superposed_structure=True)
-                    # # Loads the full model complex file.
-                    # cmd.load(model_file_full_path, mc_temp_pymol_name)
-                    # # Superpose the full model complex file on the template complex using PyMOL.
-                    # self.superpose_in_pymol(mc_temp_pymol_name,tc_temp_pymol_name, save_superposed_structure=False)
-                    # # Saves the new superposed file in the structures directory.
-                    # cmd.save(os.path.join(self.pymod.structures_directory, model['name']), mc_temp_pymol_name)
-                    # # Superpose single model chains to the correspondig one of the full model
-                    # # complex.
-                    # for me in current_model_chains_elements:
-                    #     chain_id = me.structure.pdb_chain_id
-                    #     model_chain = me.build_chain_selector_for_pymol()
-                    #     self.superpose_in_pymol(model_chain, "%s and chain %s" % (mc_temp_pymol_name, chain_id), save_superposed_structure=True)
-                    # # Cleans up.
-                    # cmd.delete(mc_temp_pymol_name)
-                    # cmd.delete(tc_temp_pymol_name)
+            # Just superpose the model's chain to the first template.
+            if self.superpose_to_templates and not self.multiple_chain_mode:
+                super_template_selector = self.modeling_clusters_list[0].templates_list[0].get_pymol_object_name()
+                # Builds only a selector for the first and only chain models.
+                for mod_e in current_model_chains_elements:
+                    self.superpose_in_pymol(mod_e.get_pymol_object_name(), super_template_selector)
 
-            #------------------------------
-            # Increases the models count. -
-            #------------------------------
+            # Superposing for multichain modeling is more complex, and follows a different strategy.
+            elif self.superpose_to_templates and self.multiple_chain_mode:
+                # Loads the full template complex file in PyMOL when the first model is loaded.
+                if model_file_number == 0:
+                    cmd.load(os.path.join(self.modeling_directory, self.template_complex_name), self.tc_temp_pymol_name)
+                    # Superpose each separated chain of the template complex to the corresponding
+                    # chains of the full template complex.
+                    for mc in self.modeling_clusters_list:
+                        self.superpose_in_pymol(mc.get_template_complex_chain().get_pymol_object_name(),          # Single template complex chain selector.
+                                                "%s and chain %s" % (self.tc_temp_pymol_name, mc.model_chain_id), # Same chain of the full template complex structure.
+                                                save_superposed_structure=False)
+                # Loads the full model complex file.
+                cmd.load(model_file_full_path, self.mc_temp_pymol_name)
+                # Superpose the full model complex file on the template complex using PyMOL.
+                self.superpose_in_pymol(self.mc_temp_pymol_name, self.tc_temp_pymol_name, save_superposed_structure=False)
+                # Saves the new superposed file in the structures directory.
+                # cmd.save(os.path.join(self.pymod.structures_directory, model['name']), self.mc_temp_pymol_name)
+                # Superpose single model chains to the correspondig one of the full model complex.
+                for mod_e in current_model_chains_elements:
+                    self.superpose_in_pymol(mod_e.get_pymol_object_name(),
+                                            "%s and chain %s" % (self.mc_temp_pymol_name, mod_e.get_structure_chain_id()),
+                                            save_superposed_structure=False)
+                # Cleans up.
+                cmd.delete(self.mc_temp_pymol_name)
+                cmd.delete(self.tc_temp_pymol_name)
+
+            # Increases the models count.
             self.increase_model_number()
 
-        #############################################################
-        # Quality assessment of the models.                         #
-        #############################################################
+        #------------------------------------------------------------
+        # Quality assessment of the models.                         -
+        #------------------------------------------------------------
 
         # Starts to build the 'current_modeling_session' which will be used to build a new item on
         # the 'Models' submenu on the main window.
@@ -797,8 +793,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             session_assessment_data.append(assessment_values)
             fmo.assessment_data = assessment_values
 
-        # Prepares data to show a table with objective function values and DOPE scores for each
-        # model.
+        # Prepares data to show a table with assessment values for each model.
         column_headers = ["Objective Function Value", "DOPE score"]
         assessment_table_args = {"column_headers": column_headers,
                                  "row_headers": [m["name"] for m in a.outputs],
@@ -808,52 +803,45 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                                  "width": 850, "height" :420}
         current_modeling_session.assessment_table_data = assessment_table_args
 
-        #--------------------------------------------------------------
-        # Adds the information of this new modeling session to PyMod. -
-        #--------------------------------------------------------------
+        #------------------------------------------------------------
+        # Finishes the modeling process.                            -
+        #------------------------------------------------------------
+        # Adds the information of this new modeling session to PyMod.
         self.pymod.modeling_session_list.append(current_modeling_session)
 
-        #---------------------------------------------------------------------------------------
-        # Finally shows the table and the previously built DOPE profile comprising DOPE curves -
-        # of every model and templates.                                                        -
-        #---------------------------------------------------------------------------------------
+        # Finally shows the table and the previously built DOPE profile comprising DOPE curves of
+        # every model and templates.
         self.pymod.show_table(**current_modeling_session.assessment_table_data)
         show_dope_plot(current_modeling_session.dope_profile_data, self.pymod.main_window)
 
-        #--------------------------------------------------------------------
-        # Changes back the working directory to the project main directory. -
-        #--------------------------------------------------------------------
+        # Completes the process.
         self.finish_modeling_session(successful = True)
 
 
-    # TODO: merge the two methods below in only one.
-    def finish_modeling_session(self, successful=False):
+    def finish_modeling_session(self, successful=False, error_message=""):
+        """
+        Finishes the modeling session, both when models where sucessully built and when some error
+        was encountered.
+        """
         # Displayes the models in PyMod main window, if some were built.
         self.pymod.gridder(update_menus=True, clear_selection=True, update_element_text=successful)
-        # Colors the models and templates according to their DOPE values. -
         if successful:
-            # TODO.
-            # for element in self.all_assessed_structures_list:
-            #     if self.color_models_by_choice == "DOPE Score":
-            #         self.pymod.main_window.color_element_by_dope(element)
-            #     else:
-            #         pass
-            # Moves back to the current project directory.
-            os.chdir(self.pymod.current_project_directory_full_path)
+            # Colors the models and templates according to their DOPE values.
+            for element in self.all_assessed_structures_list:
+                if self.color_models_by_choice == "DOPE Score":
+                    self.pymod.main_window.color_element_by_dope(element)
             # Increases modeling count.
-            if successful:
-                self.pymod.performed_modeling_count += 1
+            self.pymod.performed_modeling_count += 1
 
+        elif not successful:
+            try:
+                if os.path.isdir(self.modeling_directory):
+                    shutil.rmtree(self.modeling_directory)
+                self.pymod.show_error_message("Modeling Session Error", "PyMod has encountered the following error while running MODELLER: %s" % error_message)
+            except:
+                self.pymod.show_error_message("Modeling Session Error", "PyMod has encountered an unknown error in the modeling session: %s" % error_message)
 
-    def modeling_session_failure(self, error_message):
-        try:
-            title = "Modeling Session Error"
-            message = "PyMod has encountered the following error while running MODELLER: %s" % error_message
-            self.pymod.show_error_message(title, message)
-            if os.path.isdir(self.modeling_directory):
-                shutil.rmtree(self.modeling_directory)
-        except:
-            self.pymod.show_error_message("Modeling Session Error", "PyMod has encountered an unknown error in the modeling session: %s" % error_message)
+        # Moves back to the current project directory.
         os.chdir(self.pymod.current_project_directory_full_path)
 
 

@@ -729,23 +729,17 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
         # Dimer: easy case.
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
         # Monomer disulfides.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
         # Ubiquitin.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
 
         self.gridder(update_clusters=True, update_menus=True)
-
-        # Alignments.
-        if 0:
-            for i in range(0,3):
-                self.root_element.list_of_children[i].selected = True
-            self.launch_alignment_program("clustalw", "regular-alignment")
 
 
     #################################################################
