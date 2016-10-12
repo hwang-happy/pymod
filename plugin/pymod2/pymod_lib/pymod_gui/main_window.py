@@ -58,17 +58,17 @@ class PyMod_main_window_mixin:
                 self.pymod.update_cluster_sequences(cluster)
 
         ###################################################
-        if 0: # TODO: remove.
-            def print_element(element, level):
-                print "    "*level + "- " + element.my_header
-            def print_recursively(element, level=0):
-                if element.is_mother():
-                    print_element(element, level)
-                    for c in element.get_children():
-                        print_recursively(c, level=level+1)
-                else:
-                    print_element(element, level)
-            print_recursively(self.pymod.root_element)
+        # if 0: # TODO: remove.
+        #     def print_element(element, level):
+        #         print "    "*level + "- " + element.my_header
+        #     def print_recursively(element, level=0):
+        #         if element.is_mother():
+        #             print_element(element, level)
+        #             for c in element.get_children():
+        #                 print_recursively(c, level=level+1)
+        #         else:
+        #             print_element(element, level)
+        #     print_recursively(self.pymod.root_element)
         ###################################################
 
         #-------------------------------------------------------------------------
@@ -87,8 +87,8 @@ class PyMod_main_window_mixin:
             self.pymod.deselect_all_sequences()
 
         if update_menus:
-            self.pymod.main_window.build_alignment_submenu()
-            # self.pymod.build_models_submenu() # TODO.
+            self.build_alignment_submenu()
+            self.build_models_submenu()
 
 
     def grid_descendants(self, pymod_element, set_grid_index_only=False, update_element_text=False, color_elements=False):

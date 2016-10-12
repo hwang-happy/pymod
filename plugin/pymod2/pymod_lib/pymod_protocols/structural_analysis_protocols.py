@@ -477,8 +477,9 @@ class DOPE_assessment(PyMod_protocol):
 
     def __init__(self, pymod, selected_sequences=None):
         PyMod_protocol.__init__(self, pymod)
-        self.selected_sequences = self.get_pymod_elements(selected_sequences)
-        self.dope_scores_dict = {}
+        self.selected_sequences = []
+        self.unfiltered_dope_scores_dict = {} # Items will contain DOPE scores for ligands and water molecules.
+        self.dope_scores_dict = {} # Items will contain DOPE scores of only polymer residues.
         self.assessed_structures_list = [] # TODO: this is redundant with 'dope_scores_dict'.
 
 
@@ -486,6 +487,10 @@ class DOPE_assessment(PyMod_protocol):
         """
         Called when users decide calculate DOPE of a structure loaded in PyMod.
         """
+
+        # TODO: use the same system for all protocols.
+        self.selected_sequences = self.pymod.get_selected_sequences() # self.get_pymod_elements(self.selected_sequences)
+
         #-----------------------------------------------
         # Checks if the DOPE profiles can be computed. -
         #-----------------------------------------------
@@ -525,8 +530,7 @@ class DOPE_assessment(PyMod_protocol):
         #-------------------------------------------------------------------------------------
         # Actually computes the DOPE scores of the polypeptide chains in the user selection. -
         #-------------------------------------------------------------------------------------
-        for element in self.selected_sequences:
-            self.compute_dope(element, env=env)
+        self.compute_all_dopes(env=env)
 
         #--------------------------------------------------------------------------
         # Assigns to each residue of a corresponding color according to its DOPE. -
@@ -548,28 +552,42 @@ class DOPE_assessment(PyMod_protocol):
         elif len(self.selected_sequences) >= 2:
             dope_graph_mode = "multiple"
         # Prepares the data to show in the plot.
-        dope_plot_data = self.prepare_dope_plot_data(self.selected_sequences, mode = dope_graph_mode)
+        self.dope_plot_data = self.prepare_dope_plot_data(self.selected_sequences, mode = dope_graph_mode)
         # Shows the plot.
-        self.show_dope_plot(dope_plot_data)
+        self.show_plot()
 
 
-    def compute_dope(self, element, env=None):
+    def add_element(self, pymod_element):
+        self.selected_sequences.append(pymod_element)
+
+
+    def compute_all_dopes(self, env=None):
+        for element in self.selected_sequences:
+            self._compute_dope_of_element(element, env=env)
+
+
+    def _compute_dope_of_element(self, element, env=None):
         # Prepares the input for MODELLER.
         e_file_name = element.get_structure_file(name_only=True, strip_extension=True)
         e_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name)
         e_profile_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name+".profile")
         # Computes the DOPE of the 3D structure of the chain of the 'element'.
-        self.compute_dope_of_structure_file(e_file_shortcut, e_profile_file_shortcut, env=env,
-            run_internally=self.pymod.modeller.run_internally(), modeller_path=self.pymod.modeller.get_exe_file_path(),
-            run_externally_command=self.pymod.execute_subprocess)
+        self._compute_dope_of_structure_file(e_file_shortcut, e_profile_file_shortcut, env=env)
         # Reads the output file produced by MODELLER with the DOPE scores of the chain of the
         # 'element'.
-        dope_scores = self.get_dope_profile(e_profile_file_shortcut)
-        self.dope_scores_dict.update({element:dope_scores})
+        dope_scores = self._get_dope_profile(e_profile_file_shortcut)
+        self.unfiltered_dope_scores_dict.update({element:dope_scores})
         self.assessed_structures_list.append(element)
 
 
-    def compute_dope_of_structure_file(self, str_file_path, profile_file_path, env=None, run_internally=True, modeller_path=None, run_externally_command=None):
+    def _compute_dope_of_structure_file(self, str_file_path, profile_file_path, env=None):
+        return self._compute_dope(str_file_path, profile_file_path, env=env,
+                                  run_internally=self.pymod.modeller.run_internally(),
+                                  modeller_path=self.pymod.modeller.get_exe_file_path(),
+                                  run_externally_command=self.pymod.execute_subprocess)
+
+
+    def _compute_dope(self, str_file_path, profile_file_path, env=None, run_internally=True, modeller_path=None, run_externally_command=None):
         """
         Uses MODELLER to compute the DOPE of a polypeptidic chain, and ouptuts the results in
         'profile_file_path'. When 'env' is set to 'None', MODELLER will be initialized. If
@@ -628,7 +646,7 @@ class DOPE_assessment(PyMod_protocol):
         return score
 
 
-    def get_dope_profile(self, profile_file_name, seq=None):
+    def _get_dope_profile(self, profile_file_name, seq=None):
         """
         Read 'profile_file' into a Python list, and add gaps corresponding to the alignment
         sequence 'seq'.
@@ -650,12 +668,12 @@ class DOPE_assessment(PyMod_protocol):
     def assign_dope_items(self):
         # Retain only the DOPE values for residues of the chain (standard and modified residues).
         for chain_element in self.assessed_structures_list:
+            all_chain_dope_scores = self.unfiltered_dope_scores_dict[chain_element]
             filtered_chain_dope_scores = []
-            all_chain_dope_scores = self.dope_scores_dict[chain_element]
             for res, score in zip(chain_element.residues, all_chain_dope_scores):
                 if res.is_polymer_residue():
                     filtered_chain_dope_scores.append(score)
-            self.dope_scores_dict[chain_element] = filtered_chain_dope_scores
+            self.dope_scores_dict.update({chain_element: filtered_chain_dope_scores})
         # Builds a list of all DOPE values of the residues in the selection.
         ldope = []
         for chain_element in self.assessed_structures_list:
@@ -739,29 +757,45 @@ class DOPE_assessment(PyMod_protocol):
             # Prepares the data.
             dope_plot_data.append({"dope_scores": element_dope_scores,
                                    "additional_data": residue_additional_data,
-                                   "label": element.compact_header})# element.my_header[0:15]})
+                                   "label": element.compact_header})
 
         return dope_plot_data
 
-    
-    def show_dope_plot(self, selection_dope_plot_data):
+
+    def show_plot(self):
+        show_dope_plot(self.dope_plot_data, self.pymod.main_window)
+
+
+class DOPE_profile_window:
+    """
+    A class used to show DOPE plots. The constructor takes as first argument the output of the
+    'prepare_dope_plot_data' method of the 'DOPE_assessment' class.
+    """
+    def __init__(self, selection_dope_plot_data, parent_window):
+        self.selection_dope_plot_data = selection_dope_plot_data
+        self.parent_window = parent_window
+
+    def show(self):
+        """
+        Uses the 'pymod_plot' module to show a DOPE profile.
+        """
         x_label_text = None
         message_bar_text_on_update = None
-        if len(selection_dope_plot_data) > 1:
+        if len(self.selection_dope_plot_data) > 1:
             x_label_text = "Alignment position"
             message_bar_text_on_update = "Selected: %s %s of __plot_name__ (alignment position: __x__), DOPE value: __y__"
         else:
             x_label_text = "Residue position"
             message_bar_text_on_update = "Selected: %s %s of __plot_name__, DOPE value: __y__"
-        cp = pplt.Custom_plot_window(self.pymod.main_window, title="DOPE Profile")
+        cp = pplt.Custom_plot_window(self.parent_window, title="DOPE Profile")
         cp.build_plotting_area(message_bar_initial_text = "Click on the plot to highlight corresponding residues in PyMOL.",
                                update_message_bar=True,
                                message_bar_text_on_update=message_bar_text_on_update,
                                message_bar_vars_on_update=("residue_name","residue_pdb_position"),
-                               on_click_action=self.highlight_in_pymol_from_dope_plot,
+                               on_click_action=self._highlight_in_pymol_from_dope_plot,
                                x_label_text=x_label_text,
                                y_label_text="DOPE score")
-        for chain_dope_data in selection_dope_plot_data:
+        for chain_dope_data in self.selection_dope_plot_data:
             # Adds the new plot corresponding to the current chain.
             cp.add_plot(range(1, len(chain_dope_data["dope_scores"])+1), chain_dope_data["dope_scores"],
                         label=chain_dope_data["label"],
@@ -769,9 +803,26 @@ class DOPE_assessment(PyMod_protocol):
         cp.show()
 
 
-    def highlight_in_pymol_from_dope_plot(self, point, plot):
+    def _highlight_in_pymol_from_dope_plot(self, point, plot):
         cmd.select("pymod_selection", point.additional_data["pymol_selector"])
         cmd.center("pymod_selection")
+
+
+def show_dope_plot(selection_dope_plot_data, parent_window):
+    """
+    Shortcut function to use the 'DOPE_profile_window' class.
+    """
+    dpw = DOPE_profile_window(selection_dope_plot_data, parent_window)
+    dpw.show()
+
+
+def compute_dope_of_structure_file(pymod, str_file_path, profile_file_path, env=None):
+    """
+    Quickly computes the DOPE energy of the molecules contained in a structure file.
+    """
+    model_dope_protocol = DOPE_assessment(pymod)
+    dope_score = model_dope_protocol._compute_dope_of_structure_file(str_file_path, profile_file_path, env=env)
+    return dope_score
 
 
 #     #################################################################

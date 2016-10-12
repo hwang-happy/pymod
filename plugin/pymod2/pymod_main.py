@@ -4,6 +4,7 @@
 #     - update BLAST clusters.
 #     - color the clusters after modifications.
 #     - structures, files and headers formatting.
+#       - save structure to file option.
 #     - open multiple files with the same structure.
 #     - duplicate structures.
 #     - add raw sequence.
@@ -2827,40 +2828,40 @@ class PyMod:
     # MODELS MENU AND ITS BEHAVIOUR.                                                              #
     ###############################################################################################
 
-    # def show_session_profile(self, modeling_session):
-    #     """
-    #     Shows a DOPE profile of a modeling session.
-    #     """
-    #     self.show_dope_plot(modeling_session.session_profile)
-    #
-    #
-    # def show_assessment_table(self, modeling_session):
-    #     self.show_table(**modeling_session.assessment_table_data)
-    #
-    #
-    # def save_full_model_to_file(self, full_model):
-    #     save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = [("PDB","*.pdb")], parent=pymod.main_window)
-    #     if save_file_full_path != "":
-    #         # Moves the saved file to the path chosen by the user.
-    #         try:
-    #             old_path = full_model.original_file_path
-    #             os.rename(old_path, save_file_full_path)
-    #         except:
-    #             title = "File Error"
-    #             message = "Could not save the alignment file to path: %s" % (save_file_full_path)
-    #             self.show_error_message(title, message)
-    #
-    #
-    # def show_full_model_profile(self, full_model):
-    #     self.show_dope_plot(full_model.model_profile)
-    #
-    #
-    # def show_full_model_assessment_values(self, full_model):
-    #     objfv = full_model.assessment_data[0]
-    #     dopes = full_model.assessment_data[1]
-    #     title = "Assessement Information"
-    #     message = "Assessment Information for %s\n\nObjective Function Value: %s\n\nDOPE Score: %s" % (full_model.model_name, objfv, dopes)
-    #     tkMessageBox.showinfo(title, message, parent=self.main_window)
+    def show_session_profile(self, modeling_session):
+        """
+        Shows a DOPE profile of a modeling session.
+        """
+        pmptc.structural_analysis_protocols.show_dope_plot(modeling_session.dope_profile_data, self.main_window)
+
+
+    def show_assessment_table(self, modeling_session):
+        self.show_table(**modeling_session.assessment_table_data)
+
+
+    def show_full_model_profile(self, full_model):
+        pmptc.structural_analysis_protocols.show_dope_plot(full_model.dope_profile_data, self.main_window)
+
+
+    def show_full_model_assessment_values(self, full_model):
+        objfv, dopes = [full_model.assessment_data[0], full_model.assessment_data[1]]
+        title = "Assessement Information"
+        message = "Assessment Information for %s\n\nObjective Function Value: %s\n\nDOPE Score: %s" % (full_model.model_name, objfv, dopes)
+        tkMessageBox.showinfo(title, message, parent=self.main_window)
+
+
+    def save_full_model_to_file(self, full_model):
+        save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = [("PDB","*.pdb")], parent=self.main_window)
+        if save_file_full_path == "":
+            return None
+        # Moves the saved file to the path chosen by the user.
+        try:
+            old_path = full_model.original_file_path
+            shutil.copy(old_path, save_file_full_path)
+        except:
+            title = "File Error"
+            message = "Could not save the model file to path: %s" % (save_file_full_path)
+            self.show_error_message(title, message)
 
 
     ###############################################################################################
