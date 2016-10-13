@@ -423,7 +423,7 @@ class Web_services_common:
         # Uploads also a structure file.
         if structure_element != None:
             # values.update(other_values)
-            structure_file = open(os.path.join(self.pymod.structures_directory, structure_element.get_structure_file(name_only=True)))
+            structure_file = open(os.path.join(self.pymod.structures_directory, structure_element.get_structure_file()))
             structure_file_string = structure_file.read()
             dbref_line = "DBREF %s" % (structure_element.my_header).ljust(80, " ")
             structure_file_string = dbref_line + "\n" + structure_file_string
@@ -777,7 +777,7 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
             espript_url = espript_basic_url+schubert_folder_url+uploaded_alignment_file   #creates the URL
             if selected_structure_element != None:
                 espript_url += ";struct1file0=%s%s" % (schubert_folder_url, uploaded_structure_file)
-                espript_url += ";struct1chain0=%s" % (selected_structure_element.get_structure_chain_id())
+                espript_url += ";struct1chain0=%s" % (selected_structure_element.get_chain_id())
             webbrowser.open(espript_url)    #opens the URL
             if self.verbose:
                 print 'Done'

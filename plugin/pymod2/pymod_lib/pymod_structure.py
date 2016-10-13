@@ -46,30 +46,35 @@ class Parsed_pdb_file:
     """
 
     counter = 0
+    parsed_file_code = "parsed_by_pymod"
     blank_chain_character = "X"
 
     def __init__(self, pdb_file_path, output_directory="", new_file_name=None):
 
+        # self.list_of_structure_dicts = []
+
         st1 = time.time()
 
-        self.output_directory = output_directory
-        self.original_pdb_file_path = pdb_file_path
-        self.original_base_name = os.path.splitext(os.path.basename(self.original_pdb_file_path))[0]
+        #------------------------------------------------------------------------------------
+        # Defines the name of the files which will be built from the parsed structure file. -
+        #------------------------------------------------------------------------------------
+
+        self.output_directory = output_directory # Directory where the output files (such as the splitted chains files) are going to be built.
+        self.original_pdb_file_path = pdb_file_path # Path of the original structure file on the user's system.
+        self.original_base_name = os.path.splitext(os.path.basename(self.original_pdb_file_path))[0] # Original basename.
+        # Define the name of the structures files derived from the original file.
         if not new_file_name:
             self.structure_file_name = self.original_base_name
         else:
             self.structure_file_name = os.path.splitext(os.path.basename(new_file_name))[0]
 
-        self.list_of_pymod_elements = []
-        self.list_of_structure_objects = []
-
         #-------------------------------------------------------------
         # Copies the orginal structure file in the output directory. -
         #-------------------------------------------------------------
-        copied_file_path = os.path.join(self.output_directory, self.structure_file_name+".pdb")
-        # TODO: check this.
-        if not os.path.isfile(copied_file_path):
-            shutil.copy(self.original_pdb_file_path, copied_file_path)
+        # Initially copies the full PDB file in the ouptu directory using a temporary name.
+        copied_full_file_path = os.path.join(self.output_directory, self._get_full_structure_file_name())
+        if not os.path.isfile(copied_full_file_path):
+            shutil.copy(self.original_pdb_file_path, copied_full_file_path)
 
         #------------------------------
         # Parses the header manually. -
@@ -80,35 +85,40 @@ class Parsed_pdb_file:
         # Split the sequence in chains, get the sequences and residues using Biopython. -
         #--------------------------------------------------------------------------------
 
-        # Creates a biopython pdb object and starts to take informations from it.
         warnings.simplefilter("ignore")
+        # Actually parses the original structure file on the user's system.
+        parsed_file_handle = open(self.original_pdb_file_path, "rU")
+        # Creates a biopython 'Structure' object and starts to take informations from it.
+        self.parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure(self.parsed_file_code, parsed_file_handle)
+        parsed_file_handle.close()
 
-        fh = open(self.original_pdb_file_path, "rU")
-        self.parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure("some_code", fh) # TODO: insert a code.
-        fh.close()
+        # The items of this list will contain information used to build the elements to be loaded
+        # in PyMod.
         list_of_parsed_chains = []
         # Starts to iterate through the models in the biopython object.
         for model in self.parsed_biopython_structure.get_list():
             for chain in model.get_list():
-                parsed_chain = {
-                    "original_id": None, # Chain ID in the PDB file.
-                    "pymod_id": None, # The ID assigned in PyMod.
-                    "sequence": "", # This string is going to contain the sequence that will appear on the PyMod main window.
-                    "residues":[],
-                    "file_name":None,
-                    "file_path":None
-                }
+                parsed_chain = {"original_id": None, # Chain ID in the PDB file.
+                                "pymod_id": None, # The ID assigned in PyMod.
+                                "residues":[],
+                                "file_name":None,
+                                "file_path":None}
+
                 # Assigns a blank "X" chain id for PDB structures that do not specify chains id.
                 parsed_chain["original_id"] = chain.id
-                if chain.id != " ":
-                    parsed_chain["pymod_id"] = chain.id
-                elif chain.id == " ": # TODO: check this!
-                    chain.id = self.blank_chain_character
-                    parsed_chain["pymod_id"] = self.blank_chain_character
+                parsed_chain["pymod_id"] = self._correct_chain_id(chain.id)
+                chain.id = self._correct_chain_id(chain.id)
 
-                #-------------------------------------------------------------------------------
-                # Starts to build the sequences by parsing through every residue of the chain. -
-                #-------------------------------------------------------------------------------
+                ################################################################
+                # OLD
+                # if chain.id != " ":
+                #     parsed_chain["pymod_id"] = chain.id
+                # elif chain.id == " ":
+                #     chain.id = self.blank_chain_character
+                #     parsed_chain["pymod_id"] = self.blank_chain_character
+                ################################################################
+
+                # Starts to build the sequences by parsing through every residue of the chain.
                 for residue in chain:
                     # Gets the 3 letter name of the current residue.
                     resname = residue.get_resname()
@@ -118,45 +128,56 @@ class Parsed_pdb_file:
                     hetfield, pdb_position = residue.get_id()[0:2]
                     # For HETATM residues.
                     if hetfield[0] == "H":
-                        # Check if the current HETRES is a modres according to the info in the MODRES
-                        # fields in the PDB file.
+                        # Check if the current HETRES is a modified residue. Modified residues will
+                        # be added to the primary sequence.
                         if self._check_modified_residue(residue):
-                            # If the HETRES is a "modified-residue".
                             parsed_chain["residues"].append(pmel.PyMod_modified_residue(three_letter_code=resname, one_letter_code=pmdt.modified_residue_one_letter, db_index=pdb_position))
                         else:
                             parsed_chain["residues"].append(pmel.PyMod_ligand(three_letter_code=resname, one_letter_code=pmdt.ligand_one_letter, db_index=pdb_position))
                     # For water molecules.
                     elif hetfield == "W":
-                        parsed_chain["residues"].append(pmel.PyMod_water_molecule(three_letter_code=resname, one_letter_code="w", db_index=pdb_position))
+                        parsed_chain["residues"].append(pmel.PyMod_water_molecule(three_letter_code=resname, one_letter_code=pmdt.water_one_letter, db_index=pdb_position))
                     # For standard amminoacidic residues. Adds them to the primary sequence.
                     else:
                         parsed_chain["residues"].append(pmel.PyMod_standard_residue(three_letter_code=resname, one_letter_code=pmsm.three2one(resname), db_index=pdb_position))
                 list_of_parsed_chains.append(parsed_chain)
 
-            # Stops after having parsed the first "model" in the biopython "structure". This is
+            # Stops after having parsed the first "model" in the biopython "Structure". This is
             # needed to import only the first model of multimodel files (such as NMR files).
             break
 
-        #---------------------------------------------------------
-        # Save the chains and build the relative PyMod_elements. -
-        #---------------------------------------------------------
-        io=Bio.PDB.PDBIO()
-        io.set_structure(self.parsed_biopython_structure)
+        #----------------------------------------------------------------------
+        # Build 'PyMod_elements' object for each chain of the structure file. -
+        #----------------------------------------------------------------------
+
+        self.list_of_pymod_elements = []
+
         for numeric_chain_id, parsed_chain in enumerate(list_of_parsed_chains):
-            parsed_chain["file_name"] = "%s_chain_%s.pdb" % (self.structure_file_name, parsed_chain["pymod_id"])
+            # Defines the path of the element chain structure file. Initially uses a temporary name
+            # for the file names. When the structures will be loaded in PyMod/PyMOL they will be
+            # renamed using the header of the PyMod element.
+            parsed_chain["file_name"] = self._get_structure_chain_file_name(parsed_chain["pymod_id"])
             parsed_chain["file_path"] = os.path.join(self.output_directory, parsed_chain["file_name"])
-            # Saves a PDB file with only the current chain of the first model of the structure.
-            io.save(parsed_chain["file_path"], Select_chain_and_first_model(parsed_chain["pymod_id"]))
-            # Builds the new 'PyMod_structure'.
-            new_structure = {"chain_file_path":parsed_chain["file_path"],
-                             "chain_id": parsed_chain["pymod_id"], "numeric_chain_id": numeric_chain_id,
-                             "original_structure_file_path":self.original_pdb_file_path}
-            self.list_of_structure_objects.append(new_structure)
-            # Builds the new 'PyMod_element'.
-            new_element_header = os.path.splitext(parsed_chain["file_name"])[0]
+            # Builds the new 'PyMod_element'. The header will be used to rename the chains once They
+            # are loaded in PyMod/PyMOL.
+            new_element_header = self._get_new_pymod_element_header(parsed_chain["pymod_id"])
             new_element = pmel.PyMod_sequence_element(residues=parsed_chain["residues"], header=new_element_header)
+            # Builds the new structure for the PyMod element.
+            new_structure = {"file_name_root": self.structure_file_name,
+                             "full_file_path": copied_full_file_path, "chain_file_path": parsed_chain["file_path"],
+                             "chain_id": parsed_chain["pymod_id"], "numeric_chain_id": numeric_chain_id,
+                             "original_structure_file_path": self.original_pdb_file_path,
+                             "original_structure_id": Parsed_pdb_file.counter}
             new_element.set_structure(**new_structure)
             self.list_of_pymod_elements.append(new_element)
+
+        #------------------------------------------------------------------------------------
+        # Saves a PDB file with only the current chain of the first model of the structure. -
+        #------------------------------------------------------------------------------------
+        io=Bio.PDB.PDBIO()
+        io.set_structure(self.parsed_biopython_structure)
+        for element in self.list_of_pymod_elements:
+            io.save(element.get_structure_file(name_only=False), Select_chain_and_first_model(element.get_chain_id()))
 
         warnings.simplefilter("always")
 
@@ -181,9 +202,27 @@ class Parsed_pdb_file:
         return self.list_of_pymod_elements
 
 
+    def _correct_chain_id(self, chain_id):
+        if chain_id != " ":
+            return chain_id
+        else:
+            return self.blank_chain_character
+
     def _check_modified_residue(self, residue):
         # TODO: make this better.
         return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
+
+
+    def _get_structure_chain_file_name(self, chain_id):
+        return pmdt.structure_chain_temp_name % (Parsed_pdb_file.counter, chain_id)
+
+    def _get_new_pymod_element_header(self, chain_id):
+        parsed_chain_name = "%s_chain_%s.pdb" % (self.structure_file_name, chain_id)
+        return os.path.splitext(parsed_chain_name)[0]
+
+    def _get_full_structure_file_name(self):
+        # return self.structure_file_name
+        return pmdt.structure_temp_name % Parsed_pdb_file.counter
 
 
     def _assign_disulfide_bridges(self):
@@ -193,14 +232,10 @@ class Parsed_pdb_file:
         list_of_disulfides = get_disulfide_bridges_of_structure(self.parsed_biopython_structure)
         for dsb in list_of_disulfides:
             # Get the chain of the first SG atom.
-            dsb_chain_i = dsb["chain_i"]
-            if dsb_chain_i == " ":
-                dsb_chain_i = self.blank_chain_character
+            dsb_chain_i = self._correct_chain_id(dsb["chain_i"])
             # Get the chain of the second SG.
-            dsb_chain_j = dsb["chain_j"]
-            if dsb_chain_j == " ":
-                dsb_chain_j = self.blank_chain_character
-
+            dsb_chain_j = self._correct_chain_id(dsb["chain_j"])
+            # For intrachain residues.
             if dsb_chain_i == dsb_chain_j:
                 chain_element = self._get_pymod_element_by_chain(dsb_chain_i)
                 new_dsb = Disulfide_bridge(cys1=dsb["residue_i"][1], cys2=dsb["residue_j"][1],
@@ -209,6 +244,7 @@ class Parsed_pdb_file:
                                            cys1_chain=dsb_chain_i, cys2_chain=dsb_chain_j,
                                            distance=dsb["distance"], chi3_dihedral=dsb["chi3_dihedral"])
                 chain_element.add_disulfide(disulfide=new_dsb)
+            # For interchain residues.
             else:
                 raise Exception("interchain")
                 # self._get_pymod_element_by_chain(dsb_chain_j).add_disulfide(disulfide=dsb)
@@ -217,12 +253,12 @@ class Parsed_pdb_file:
 
     def _get_pymod_element_by_chain(self, chain_id):
         for e in self.list_of_pymod_elements:
-            if e.get_structure_chain_id() == chain_id:
+            if e.get_chain_id() == chain_id:
                 return e
         raise Exception("No element with chain '%s' was built from the parsed PDB file." % chain_id)
 
 
-# def get_sequence_using_ppb(pdb_file_path, output_directory=""):
+# def _get_sequence_using_ppb(pdb_file_path, output_directory=""):
 #     warnings.simplefilter("ignore")
 #     # Creates a biopython pdb object and starts to take informations from it.
 #     fh = open(pdb_file_path, "rU")
@@ -246,6 +282,10 @@ class Parsed_pdb_file:
 #     # for pp in ppb.build_peptides(structure):
 #     #     print(pp.get_sequence())
 
+
+###################################################################################################
+# Classes for several structural features of macromolecules.                                      #
+###################################################################################################
 
 class Disulfide_bridge:
     """
@@ -315,14 +355,14 @@ class Disulfide_analyser:
                         chi3_dihedral = abs(chi3_dihedral)
                         # Filters for chi3 angle values.
                         if chi3_dihedral >= self.min_chi3_dihedral_value and chi3_dihedral <= self.max_chi3_dihedral_value:
-                            self.list_of_disulfides.append({"distance": ij_distance,
+                            self.list_of_disulfides.append({# Measurements.
+                                                            "distance": ij_distance, "chi3_dihedral":chi3_dihedral, # *180.0/math.pi
                                                             # Atoms.
                                                             "atom_i": atomi, "atom_j": atomj,
                                                             # Residues ids.
                                                             "residue_i": atomi.get_parent().id, "residue_j": atomj.get_parent().id,
                                                             # Chain ids.
-                                                            "chain_i": atomi.get_parent().get_parent().id, "chain_j": atomj.get_parent().get_parent().id,
-                                                            "chi3_dihedral":chi3_dihedral}) # *180.0/math.pi
+                                                            "chain_i": atomi.get_parent().get_parent().id, "chain_j": atomj.get_parent().get_parent().id})
         return self.list_of_disulfides
 
 def get_disulfide_bridges_of_structure(parsed_biopython_structure):
@@ -358,6 +398,7 @@ class PDB_joiner:
             if lines[-1].startswith("ATOM"):
                 lines.append(self._build_ter_line(lines[-1]))
             self.output_file_lines.extend(lines)
+        # TODO: add an 'END' line.
 
     def write(self, output_file_path):
         output_file_handle = open(output_file_path, "w")

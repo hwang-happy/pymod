@@ -65,7 +65,7 @@ class Secondary_structure_assignment(PyMod_protocol):
 
     def assign_with_ksdssp(self):
         # Runs ksdssp.
-        dssptext=self.runKSDSSP(os.path.join(self.pymod.structures_directory, self.pymod_element.get_structure_file(name_only=True)), ksdssp_exe=self.pymod.ksdssp.get_exe_file_path())
+        dssptext=self.runKSDSSP(os.path.join(self.pymod.structures_directory, self.pymod_element.get_structure_file()), ksdssp_exe=self.pymod.ksdssp.get_exe_file_path())
         # Parses ksdssp's output, that is, an series of pdb format 'HELIX' and 'SHEET' record lines.
         dsspout = dssptext.split("\n")
         helices = set() # A set to store the sequence numbers of the residues in helical conformation.
@@ -568,7 +568,7 @@ class DOPE_assessment(PyMod_protocol):
 
     def _compute_dope_of_element(self, element, env=None):
         # Prepares the input for MODELLER.
-        e_file_name = element.get_structure_file(name_only=True, strip_extension=True)
+        e_file_name = element.get_structure_file(strip_extension=True)
         e_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name)
         e_profile_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name+".profile")
         # Computes the DOPE of the 3D structure of the chain of the 'element'.

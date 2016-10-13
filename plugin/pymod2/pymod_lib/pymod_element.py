@@ -495,13 +495,13 @@ class PyMod_sequence_element(PyMod_element):
         if only_polymer:
             return self.get_polymer_residues()[index]
         else:
-            return self.residues[index] # self.residues[index]
+            return self.residues[index]
 
     def get_residue_by_db_index(self, db_index):
         for res in self.residues:
             if res.db_index == db_index:
                 return res
-        raise Exception("No residue with db_index '' found." % db_index)
+        raise Exception("No residue with db_index '%s' found." % db_index)
 
     def get_residue_seq_id_from_db_id(self, db_index):
         res = self.get_residue_by_db_index(db_index)
@@ -541,23 +541,47 @@ class PyMod_sequence_element(PyMod_element):
         """
         Attributes to represent the 3D structure of a macromolecule within PyMod.
         """
+        # File paths of the full structure files (the file containing all the chains of the
+        # structure) of the PyMod element.
+        self.initial_full_file_path = None
+        self.current_full_file_path = None
+        # Base name assigned in the constructor of the 'Parsed_pdb_file' class.
+        self.file_name_root = None
+
+        # File paths of the structure files of the chain of the PyMod element.
         self.initial_chain_file_path = None
         self.current_chain_file_path = None
         self.chain_id = None
+
+        # File path of the original structure file on the user's system. This file will only be
+        # copied, not actually edited.
+        self.original_structure_file_path = None
+        self.original_structure_id = None
         # Numeric index to report where the chain is in the structure file.
         self.numeric_chain_id = 0
-        self.original_structure_file_path = None
+
         self.disulfides_list = []
         self.structure = None
 
 
-    def set_structure(self, chain_file_path, chain_id, original_structure_file_path, numeric_chain_id=0):
+    def set_structure(self, file_name_root, full_file_path, chain_file_path, chain_id, original_structure_file_path, original_structure_id, numeric_chain_id=0):
+        self.initial_full_file_path = full_file_path
+        self.current_full_file_path = self.initial_full_file_path
+        self.file_name_root = file_name_root
+
         self.initial_chain_file_path = chain_file_path
         self.current_chain_file_path = self.initial_chain_file_path
         self.chain_id = chain_id
-        self.numeric_chain_id = numeric_chain_id
+
         self.original_structure_file_path = original_structure_file_path
+        self.original_structure_id = original_structure_id
+        self.numeric_chain_id = numeric_chain_id
+
         self.structure = True
+
+    def rename_structure_files(self, use_prefix=True):
+        pass
+
 
 
     def remove_structure(self):
@@ -584,9 +608,12 @@ class PyMod_sequence_element(PyMod_element):
 
 
     @check_structure
-    def get_structure_file(self, name_only=False, strip_extension=False, original_structure_file=False):
+    def get_structure_file(self, name_only=True, strip_extension=False, original_structure_file=False, full_file_path=False):
+        assert(not (original_structure_file and full_file_path))
         if original_structure_file:
             result = self.original_structure_file_path
+        elif full_file_path:
+            result = self.current_full_file_path
         else:
             result = self.current_chain_file_path
         if name_only:
@@ -595,9 +622,13 @@ class PyMod_sequence_element(PyMod_element):
             result = os.path.splitext(result)[0]
         return result
 
+    @check_structure
+    def get_structure_file_root(self):
+        return self.file_name_root
+
 
     @check_structure
-    def get_structure_chain_id(self):
+    def get_chain_id(self):
         return self.chain_id
 
     @check_structure
@@ -759,7 +790,7 @@ class PyMod_residue:
         return None
 
     def get_parent_structure_chain_id(self):
-        return self.pymod_element.get_structure_chain_id()
+        return self.pymod_element.get_chain_id()
 
 
 class PyMod_standard_residue(PyMod_residue):

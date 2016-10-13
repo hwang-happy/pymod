@@ -1,5 +1,11 @@
 # TODO
 #   - structures part (see pymod_main file).
+#         - structures, files and headers formatting.
+#         - open multiple files with the same structure.
+#         - color structures and models, structure appearence and colors. # elaion!
+#         - duplicate structures.
+#         - fetch and associate structures.
+#         - save structure to file option.
 #   - subsitute the first model with actual target element and then put successive models outside
 #     target's cluster.
 #   - add 'show all' and 'hide all' commands on 'pymod_plot' windows.
@@ -447,7 +453,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                                 # If a bridge has the same cys: <class '_modeller.ModellerError'>: unqang__247E> Internal error:
                                 # Redefine the routine to include user defined dsb.
                                 if modeling_protocol.multiple_chain_mode:
-                                    chain = mc.get_template_complex_chain().get_structure_chain_id()
+                                    chain = mc.get_template_complex_chain().get_chain_id()
                                     self.patch(residue_type="DISU", residues=(self.chains[chain].residues[cys1], self.chains[chain].residues[cys2]))
                                 else:
                                     self.patch(residue_type="DISU", residues=(self.residues[cys1], self.residues[cys2]))
@@ -481,7 +487,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                             cys1 = dsb[0][3:]
                             cys2 = dsb[1][3:]
                             if self.multiple_chain_mode:
-                                chain = mc.get_template_complex_chain().get_structure_chain_id() # TODO: use 'model_chain_id' attribute.
+                                chain = mc.get_template_complex_chain().get_chain_id() # TODO: use 'model_chain_id' attribute.
                                 print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.chains['%s'].residues['%s'], self.chains['%s'].residues['%s']))" % (chain,cys1,chain,cys2)
                             else:
                                 print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.residues['%s'], self.residues['%s']))" % (cys1,cys2)
@@ -725,7 +731,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 # Superpose single model chains to the correspondig one of the full model complex.
                 for mod_e in current_model_chains_elements:
                     self.superpose_in_pymol(mod_e.get_pymol_object_name(),
-                                            "%s and chain %s" % (self.mc_temp_pymol_name, mod_e.get_structure_chain_id()),
+                                            "%s and chain %s" % (self.mc_temp_pymol_name, mod_e.get_chain_id()),
                                             save_superposed_structure=False)
                 # Cleans up.
                 cmd.delete(self.mc_temp_pymol_name)
@@ -936,7 +942,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
 
     def chain_is_from_template_complex(self, pymod_element):
-        return pymod_element.get_structure_file(name_only=True, original_structure_file=True) == self.template_complex_name
+        return pymod_element.get_structure_file(original_structure_file=True) == self.template_complex_name
 
 
     def check_all_modeling_parameters(self):
@@ -1112,7 +1118,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         if self.multiple_chain_mode:
             list_of_template_complex_files = []
             for t in self.get_template_complex_chains(sorted_by_id=True):
-                list_of_template_complex_files.append(os.path.join(self.modeling_directory, t.get_structure_file(name_only=True)))
+                list_of_template_complex_files.append(os.path.join(self.modeling_directory, t.get_structure_file()))
             pmstr.join_pdb_files(list_of_template_complex_files, os.path.join(self.modeling_directory, self.template_complex_name))
 
         #---------------------------------------
@@ -1229,7 +1235,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             for template in modeling_cluster.get_single_chain_templates():
                 # Writes the first line of the template.
                 template_code = modeling_cluster.template_options_dict[template]["modeller_name"]
-                template_chain = template.get_structure_chain_id()
+                template_chain = template.get_chain_id()
                 print >> pir_align_file_handle , ">P1;%s" % template_code
                 print >> pir_align_file_handle , "structure:%s:.:%s:.:%s::::" % (template_code,template_chain,template_chain)
                 sct_pir_string = ""
@@ -1427,7 +1433,7 @@ class Modeling_cluster(Modeling_session):
         which belong to that PDB structure.
         """
         for t in self.suitable_templates_list:
-            template_original_file = t.get_structure_file(name_only=True, original_structure_file=True)
+            template_original_file = t.get_structure_file(original_structure_file=True)
             if template_original_file in self.structure_chains_dict.keys():
                 self.structure_chains_dict[template_original_file] += 1
             else:
@@ -1476,7 +1482,7 @@ class Modeling_cluster(Modeling_session):
 
 
     def get_template_modeller_name(self, pymod_element):
-        return pymod_element.get_structure_file(name_only=True).replace(":","_")[:-4]
+        return pymod_element.get_structure_file().replace(":","_")[:-4]
         # IF THE ORIGINAL PDB FILES ARE TO BE USED:
         #     - self.struct_list[a].structure.original_chain_pdb_file_name.replace(":","_")
         # In the original Pymod it was:
@@ -1504,7 +1510,7 @@ class Modeling_cluster(Modeling_session):
 
     def set_template_complex_chain_to_use(self, template):
         self.template_options_dict[template]["selected_template_complex"] = True
-        self.model_chain_id = template.get_structure_chain_id()
+        self.model_chain_id = template.get_chain_id()
         self.block_index = template.get_chain_numeric_id()
 
     def is_template_complex_chain(self, template):
@@ -1539,7 +1545,7 @@ class Modeling_cluster(Modeling_session):
 
     def prepare_template_files(self, template):
         # Copy the templates structure files in the modeling directory.
-        template_str_file = template.get_structure_file()
+        template_str_file = template.get_structure_file(name_only=False)
         copied_template_str_file = os.path.basename(template_str_file)
         shutil.copy(template_str_file, os.path.join(self.modeling_directory, copied_template_str_file))
         self.template_options_dict[template]["structure_file"] = copied_template_str_file

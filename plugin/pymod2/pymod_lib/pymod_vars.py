@@ -420,3 +420,5 @@ pir_hetres_code_dict = {ligand_one_letter:".", water_one_letter:"w"}
 # "temp_pymod_element_%s_"
 unique_index_header_formatted = "temp_pymod_element_%s_"
 unique_index_header_regex = r"temp_pymod_element_\d+_"
+structure_temp_name = "__%s_structure_temp__"
+structure_chain_temp_name = "__%s_structure_temp_chain_%s__"

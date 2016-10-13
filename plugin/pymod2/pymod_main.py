@@ -1,11 +1,5 @@
 # TODO:
 #     - MODELLER.
-#     - structures, files and headers formatting.
-#         - save structure to file option.
-#         - open multiple files with the same structure.
-#         - color structures and models, structure appearence and colors.
-#         - duplicate structures.
-#         - fetch and associate structures.
 #     - implement ordered dictionaries.
 #     - update BLAST clusters.
 #     - color the clusters after modifications.
@@ -27,6 +21,8 @@
 #     - add an "export to .phy file" option when showing distance trees.
 #     - add a similar option for distance matrices, dope profiles and assessment tables.
 #     - 'update structures from PyMOL' part.
+#     - define modified residues.
+#     - nucleic acids.
 
 
 ###########################################################################
@@ -995,10 +991,9 @@ class PyMod:
         # Adjust its header.
         if adjust_header and not element.is_cluster(): # Cluster elements do not need their headers to be adjusted.
             self.adjust_headers(element)
-        if color: # TODO.
+        if color: # elaion!
             element.my_color = color
-        # Builds for it some Tkinter widgets to show in PyMod main window.
-        # They will be gridded later.
+        # Builds for it some Tkinter widgets to show in PyMod window. They will be gridded later.
         self.main_window.add_pymod_element_widgets(element)
 
         # Load its structure in PyMOL.
@@ -1911,7 +1906,7 @@ class PyMod:
         """
         Loads the PDB structure of the chain into PyMol.
         """
-        file_to_load = element.get_structure_file()
+        file_to_load = element.get_structure_file(name_only=False)
         pymol_object_name = element.get_pymol_object_name()
         cmd.load(file_to_load, pymol_object_name)
         # chain_root_name = element.build_chain_selector_for_pymol()
@@ -2042,7 +2037,6 @@ class PyMod:
     # Headers.                                                      #
     #################################################################
 
-    # elaion!
     def adjust_headers(self, pymod_element):
         """
         This methods renames PyMod elements. Checks if there are other elements in the
@@ -2056,6 +2050,10 @@ class PyMod:
         self.set_compact_headers(pymod_element)
         # Finally sets the 'my_header' attribute.
         self.set_header(pymod_element)
+        # For elements with structures, also set the name of their structures to be loaded in PyMOL.
+        # elaion!
+        if pymod_element.has_structure():
+            self.set_structure_header(pymod_element)
 
     def set_header_root(self, pymod_element, header=None):
         """
@@ -2072,6 +2070,29 @@ class PyMod:
 
     def set_header(self, pymod_element, header=None):
         pymod_element.my_header = pymod_element.compact_header_prefix + pymod_element.my_header_root # pymod_element.compact_header_prefix+pymod_element.my_header_root
+
+    def set_structure_header(self, pymod_element, header=None):
+        # Renames the full structure file.
+        renamed_full_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.get_structure_file_root()))
+        if not os.path.isfile(renamed_full_str_file):
+            os.rename(pymod_element.get_structure_file(name_only=False, full_file_path=True), renamed_full_str_file)
+        pymod_element.initial_full_file_path = renamed_full_str_file
+        pymod_element.current_full_file_path = renamed_full_str_file
+        # Renames the chain file.
+        renamed_chain_str_file = os.path.join(self.structures_directory, "%s.pdb" % pymod_element.my_header)
+        if not os.path.isfile(renamed_chain_str_file):
+            os.rename(pymod_element.get_structure_file(name_only=False), renamed_chain_str_file)
+        pymod_element.initial_chain_file_path = renamed_chain_str_file
+        pymod_element.current_chain_file_path = renamed_chain_str_file
+
+
+
+        # for str_file in (pymod_element.get_structure_file(name_only=False), pymod_element.get_structure_file(name_only=False, full_file_path=True)):
+        #     renamed_str_file = os.path.join(self.structures_directory, pymod_element.my_header)
+        #     print "###############################################################################"
+        #     print str_file,"->",renamed_str_file
+        #     if not os.path.isfile(renamed_str_file):
+        #         os.rename(str_file, renamed_str_file)
 
     def get_new_name(self, name, list_to_check=[], get_tuple=False):
         new_name_tuple = self._get_new_name_tuple(name, list_to_check=list_to_check)
@@ -2095,16 +2116,6 @@ class PyMod:
             return self._get_new_name_tuple(new_name, n+1, name_root, list_to_check)
         else:
             return (n, name)
-
-
-    # def get_new_name(self, name, n=1, name_root=None, list_to_check=[]): # n=0
-    #     if name_root == None:
-    #         name_root = name
-    #     if name in list_to_check:
-    #         new_name = "%s_%s" % (str(n), name_root)
-    #         return self.get_new_name(new_name, n+1, name_root, list_to_check)
-    #     else:
-    #         return name
 
 
     ###############################################################################################

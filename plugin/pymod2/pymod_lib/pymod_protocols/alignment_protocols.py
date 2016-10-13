@@ -2012,9 +2012,9 @@ class SALIGN_str_regular_alignment(SALIGN_alignment, Regular_structural_alignmen
         shortcut_to_temp_files = os.path.join(self.pymod.current_project_directory_full_path,self.pymod.alignments_directory,output_file_name)
         struct_tup=range(0,len(structures_to_align))
         for ii in range(0,len(structures_to_align)):
-            struct_entry=structures_to_align[ii].get_structure_file(name_only=True, strip_extension=True)
+            struct_entry=structures_to_align[ii].get_structure_file(strip_extension=True)
             header = structures_to_align[ii].get_unique_index_header()
-            chain_id=structures_to_align[ii].get_structure_chain_id()
+            chain_id=structures_to_align[ii].get_chain_id()
             struct_tup[ii]=(struct_entry,header,chain_id)
 
         # Change the working directory, so that the ouptut files will be created in the structures
@@ -2295,8 +2295,8 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
 
             # Takes the header and the chain id of the selected chains.
             def prepare_data_for_ce_alignment(element,n):
-                chain_id = element.get_structure_chain_id()
-                sel_file = element.get_structure_file(name_only=True, strip_extension=True) # element.structure.chain_pdb_file_name_root
+                chain_id = element.get_chain_id()
+                sel_file = element.get_structure_file(strip_extension=True) # element.structure.chain_pdb_file_name_root
                 sel = element.get_pymol_object_name() # element.my_header.replace(":", "_")
                 return chain_id, sel_file, sel
 
