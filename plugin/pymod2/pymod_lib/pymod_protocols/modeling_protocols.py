@@ -1,7 +1,5 @@
 # TODO
 #   - structures part (see pymod_main file).
-#         - structures, files and headers formatting.
-#         - open multiple files with the same structure.
 #         - color structures and models, structure appearence and colors. # elaion!
 #         - duplicate structures.
 #         - fetch and associate structures.
@@ -942,7 +940,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
 
     def chain_is_from_template_complex(self, pymod_element):
-        return pymod_element.get_structure_file(original_structure_file=True) == self.template_complex_name
+        return pymod_element.get_structure_file(full_file=True) == self.template_complex_name
 
 
     def check_all_modeling_parameters(self):
@@ -1433,7 +1431,7 @@ class Modeling_cluster(Modeling_session):
         which belong to that PDB structure.
         """
         for t in self.suitable_templates_list:
-            template_original_file = t.get_structure_file(original_structure_file=True)
+            template_original_file = t.get_structure_file(full_file=True)
             if template_original_file in self.structure_chains_dict.keys():
                 self.structure_chains_dict[template_original_file] += 1
             else:

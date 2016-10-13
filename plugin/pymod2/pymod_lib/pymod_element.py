@@ -608,11 +608,11 @@ class PyMod_sequence_element(PyMod_element):
 
 
     @check_structure
-    def get_structure_file(self, name_only=True, strip_extension=False, original_structure_file=False, full_file_path=False):
-        assert(not (original_structure_file and full_file_path))
+    def get_structure_file(self, name_only=True, strip_extension=False, original_structure_file=False, full_file=False):
+        assert(not (original_structure_file and full_file))
         if original_structure_file:
             result = self.original_structure_file_path
-        elif full_file_path:
+        elif full_file:
             result = self.current_full_file_path
         else:
             result = self.current_chain_file_path

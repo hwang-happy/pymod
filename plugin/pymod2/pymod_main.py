@@ -2072,10 +2072,14 @@ class PyMod:
         pymod_element.my_header = pymod_element.compact_header_prefix + pymod_element.my_header_root # pymod_element.compact_header_prefix+pymod_element.my_header_root
 
     def set_structure_header(self, pymod_element, header=None):
+        """
+        Renames the structure files of the PyMod element, since when they were first built, they
+        were assigned with temporary names.
+        """
         # Renames the full structure file.
         renamed_full_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.get_structure_file_root()))
         if not os.path.isfile(renamed_full_str_file):
-            os.rename(pymod_element.get_structure_file(name_only=False, full_file_path=True), renamed_full_str_file)
+            os.rename(pymod_element.get_structure_file(name_only=False, full_file=True), renamed_full_str_file)
         pymod_element.initial_full_file_path = renamed_full_str_file
         pymod_element.current_full_file_path = renamed_full_str_file
         # Renames the chain file.
@@ -2085,14 +2089,6 @@ class PyMod:
         pymod_element.initial_chain_file_path = renamed_chain_str_file
         pymod_element.current_chain_file_path = renamed_chain_str_file
 
-
-
-        # for str_file in (pymod_element.get_structure_file(name_only=False), pymod_element.get_structure_file(name_only=False, full_file_path=True)):
-        #     renamed_str_file = os.path.join(self.structures_directory, pymod_element.my_header)
-        #     print "###############################################################################"
-        #     print str_file,"->",renamed_str_file
-        #     if not os.path.isfile(renamed_str_file):
-        #         os.rename(str_file, renamed_str_file)
 
     def get_new_name(self, name, list_to_check=[], get_tuple=False):
         new_name_tuple = self._get_new_name_tuple(name, list_to_check=list_to_check)
