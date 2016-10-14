@@ -293,18 +293,15 @@ class PyMod_main_window_mixin:
 
     def color_element(self, element, on_grid=False, color_pdb=True):
         """
-        Colors the sequence entry when it is displayed by the pymod.gridder() method or when the user
-        changes the color scheme of a sequence. This can color also the PDB file of the element (if the
-        element has one). In PyMod the PDB file is not colored when pymod.gridder() is called, it is
+        Colors the sequence entry when it is displayed by the 'gridder()' method or when the user
+        changes the color scheme of a sequence. This can color also the PDB file of the element (if
+        the element has one). In PyMod the PDB file is not colored when 'gridder()' is called, it is
         colored only when the user decides to change the sequence color scheme.
         """
-        # The 'residues_to_color' variable permits to color all the residues of a polypeptidic chain
-        # (standard + modified) if set to 'all' or only standard residues if set to 'standard'.
-        residues_to_color = "all"
         if 1: # if self.is_shown: # TODO.
-            self.color_sequence_text(element, on_grid, residues_to_color=residues_to_color)
+            self.color_sequence_text(element, on_grid)
         if color_pdb and element.has_structure():
-            self.color_structure(element, on_grid, residues_to_color=residues_to_color)
+            self.color_structure(element, on_grid)
 
 
     #######################
@@ -320,27 +317,13 @@ class PyMod_main_window_mixin:
         if element.color_by != "regular":
             # Changing the foreground to "white" is needed to color indels with white.
             element_widgets_group.sequence_text.tag_config("normal", foreground="white", background="black")
-            get_sequence_residue_color = self.assign_residue_coloring_method(element, "sequence")
+            get_residue_color_method = self.assign_residue_coloring_method(element, "sequence")
             for (i,aa) in enumerate(element.get_polymer_residues()):
                 tag_name = aa.three_letter_code+str(i)
                 aid = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, i)
                 element_widgets_group.sequence_text.tag_add(tag_name, "1.%d" % (aid)) # "1.0"
-                color = get_sequence_residue_color(element, residue =aa, residue_id = i, residues_to_color=residues_to_color)
+                color = get_residue_color_method(residue=aa)
                 element_widgets_group.sequence_text.tag_config(tag_name, foreground=color)
-            # sequence = self.my_sequence
-            # for (i,aa) in enumerate(sequence):
-            #     # Changing the foreground to "white" is needed to color indels with white.
-            #     self.sequence_entry.tag_config("normal", foreground="white", background="black")
-            #     # Creates a series of tags, used to color each residue differently.
-            #     if aa != "-":
-            #         if residues_to_color == "standard" and aa == "X":
-            #             pass
-            #         else:
-            #             tag_name = aa+str(i)
-            #             self.sequence_entry.tag_add(tag_name, "1.%d" % (i)) # "1.0"
-            #             color = self.get_residue_color(residue_ids = (i,aa), color_target="sequence", residues_to_color=residues_to_color)
-            #             self.sequence_entry.tag_config(tag_name, foreground=color)
-            pass
         # Just color each residue of the sequence with the same color.
         else:
             # First find if there are some tags in the Text (that is, if the sequence was colored
@@ -351,8 +334,7 @@ class PyMod_main_window_mixin:
             if tags_to_delete != []:
                 for tag in tags_to_delete:
                     element_widgets_group.sequence_text.tag_delete(tag)
-            # self.sequence_entry.tag_config("normal", foreground=self.my_color, background="black")
-            element_widgets_group.sequence_text.tag_config("normal", foreground=element.my_color, background="black")
+            element_widgets_group.sequence_text.tag_config("normal", foreground=self.get_regular_sequence_color(element.my_color), background="black")
 
 
     ########################
@@ -366,34 +348,17 @@ class PyMod_main_window_mixin:
         chain_sel = element.get_pymol_object_name()
         # Colors the structure according to some particular color scheme.
         if element.color_by != "regular":
-            # # Gets the standard amminoacidic residues of the PDB file: they should be the same
-            # # residues of the sequence displayed in PyMod main window.
-            # residues = None
-            # if residues_to_color == "all":
-            #     residues = filter(lambda r: r.residue_type == "standard" or r.hetres_type == "modified-residue", self.structure.pdb_chain_sequence)
-            # elif residues_to_color == "standard":
-            #     residues = filter(lambda r: r.residue_type == "standard", self.structure.pdb_chain_sequence)
-            #     # When the standard residues will be colored, this will make the modified residues
-            #     # mantain a white color.
-            #     cmd.color("white",chain_sel)
-            # for (i,res) in enumerate(residues):
-            #     # Gets the right color for the current residue.
-            #     color = self.get_residue_color(residue_ids = (i,str(res)), color_target="structure", residues_to_color=residues_to_color)
-            #     # Builds a PyMOL selector for the current residue.
-            #     residue_sel = self.build_residue_selector_for_pymol(res.pdb_position)
-            #     # Finally colors the residue in PyMOL.
-            #     cmd.color(color, residue_sel)
-            get_sequence_residue_color = self.assign_residue_coloring_method(element, "structure")
-            for (i,res) in enumerate(element.get_polymer_residues()):
+            get_residue_color_method = self.assign_residue_coloring_method(element, "structure")
+            for res in element.get_polymer_residues():
                 # Gets the right color for the current residue.
-                color = get_sequence_residue_color(element, residue = res, residue_id = i, residues_to_color=residues_to_color)
+                color = get_residue_color_method(residue = res)
                 # Builds a PyMOL selector for the current residue.
                 residue_sel = res.get_pymol_selector()
                 # Finally colors the residue in PyMOL.
                 cmd.color(color, residue_sel)
         # Colors all the residues of a structure with the same color.
         else:
-            cmd.color(element.my_color,chain_sel)
+            cmd.color(self.get_regular_structure_color(element.my_color), chain_sel)
         cmd.util.cnc(chain_sel) # Colors by atom.
 
 
@@ -401,6 +366,7 @@ class PyMod_main_window_mixin:
     # Get the colors for the residues. #
     ####################################
 
+    # TODO: use a get_color() method for the residue class, in order to speed up things.
     def assign_residue_coloring_method(self, element, color_target):
         if element.color_by == "polarity":
             if color_target == "sequence":
@@ -428,35 +394,61 @@ class PyMod_main_window_mixin:
             elif color_target == "structure":
                 return self.get_dope_structure_color
 
+    # Regular colors.
+    def get_regular_sequence_color(self, color):
+        return self.pymod.all_colors_dict_tkinter[color]
 
-    def get_polarity_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return self.pymod.polarity_color_dictionary_tkinter.get(residue.one_letter_code)
+    def get_regular_structure_color(self, color):
+        return color
 
-    def get_polarity_structure_color(self, element, residue, residue_id, residues_to_color="all"):
-        return "%s%s" % (pmdt.pymol_polarity_color_name, residue.one_letter_code)
+    # Residue polarity colors.
+    def get_polarity_sequence_color(self, residue):
+        return self.pymod.all_colors_dict_tkinter[self.form_residue_polarity_color_name(residue)]
 
-    def get_observed_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return pmdt.sec_str_color_dict.get(residue.secondary_structure)
+    def get_polarity_structure_color(self, residue):
+        return self.form_residue_polarity_color_name(residue)
 
-    def get_observed_sec_str_structure_color(self, element, residue, residue_id, residues_to_color="all"):
-        return pmdt.sec_str_color_dict.get(residue.secondary_structure)
+    def form_residue_polarity_color_name(self, residue):
+        return "%s_%s" % (pmdt.pymol_polarity_color_name, residue.one_letter_code)
 
-    def get_predicted_sec_str_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return self.pymod.psipred_color_dict_tkinter[(residue.psipred_result["confidence"], residue.psipred_result["sec-str-element"])]
+    # Observed secondary structure colors.
+    def get_observed_sec_str_sequence_color(self, residue):
+        return self.pymod.all_colors_dict_tkinter[self.form_observed_sec_str_color_name(residue)]
 
-    def get_predicted_sec_str_structure_color(self, element, residue, residue_id, residues_to_color="all"):
+    def get_observed_sec_str_structure_color(self, residue):
+        return self.form_observed_sec_str_color_name(residue)
+
+    def form_observed_sec_str_color_name(self, residue):
+        return "%s_%s" % (pmdt.pymol_obs_sec_str_name, residue.secondary_structure)
+
+    # Predicted secondary structure colors.
+    def get_predicted_sec_str_sequence_color(self, residue):
+        return self.pymod.all_colors_dict_tkinter[self.form_predicted_sec_str_color_name(residue)]
+
+    def get_predicted_sec_str_structure_color(self, residue):
+        return self.form_predicted_sec_str_color_name(residue)
+
+    def form_predicted_sec_str_color_name(self, residue):
         return "%s_%s_%s" % (pmdt.pymol_psipred_color_name, residue.psipred_result["confidence"], residue.psipred_result["sec-str-element"])
 
-    def get_campo_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return self.pymod.campo_color_dictionary_tkinter[residue.campo_score["interval"]]
+    # CAMPO colors.
+    def get_campo_sequence_color(self, residue):
+        return self.pymod.all_colors_dict_tkinter[self.form_campo_color_name(residue)]
 
-    def get_campo_structure_color(self, element, residue, residue_id, residues_to_color="all"):
+    def get_campo_structure_color(self, residue):
+        return self.form_campo_color_name(residue)
+
+    def form_campo_color_name(self, residue):
         return "%s_%s" % (pmdt.pymol_campo_color_name, residue.campo_score["interval"])
 
-    def get_dope_sequence_color(self, element, residue, residue_id, residues_to_color="all"):
-        return self.pymod.dope_color_dictionary_tkinter[residue.dope_score["interval"]]
+    # DOPE colors.
+    def get_dope_sequence_color(self, residue):
+        return self.pymod.all_colors_dict_tkinter[self.form_dope_color_name(residue)]
 
-    def get_dope_structure_color(self, element, residue, residue_id, residues_to_color="all"):
+    def get_dope_structure_color(self, residue):
+        return self.form_dope_color_name(residue)
+
+    def form_dope_color_name(self, residue):
         return "%s_%s" % (pmdt.pymol_dope_color_name, residue.dope_score["interval"])
 
 
@@ -1399,8 +1391,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         # A submenu to choose a single color used to color all the residues of a sequence.
         self.regular_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        for color in pmdt.regular_colours:
-            self.regular_colors_menu.add_command(label=color, command = lambda c=color: self.color_selection("single",self.pymod_element,"regular",c))
+        self.build_regular_colors_submenu(self.regular_colors_menu, "single")
         self.color_menu.add_cascade(menu=self.regular_colors_menu, label="Color whole Sequence by")
         self.color_menu.add_separator()
 
@@ -1434,6 +1425,38 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.color_menu.add_cascade(menu=self.energy_colors_menu, label="By Energy")
 
         self.header_popup_menu.add_cascade(menu=self.color_menu, label="Color")
+
+    def build_regular_colors_submenu(self, target_menu, color_mode, elements_to_color=None):
+        if color_mode == "single":
+            elements_to_color = self.pymod_element
+        elif color_mode in ("selection", "multiple"):
+            pass
+
+        # Build PyMOL color palette menu.
+        self.build_color_palette_submenu(color_mode, elements_to_color, target_menu, "PyMOL Colors", pmdt.pymol_regular_colors_list)
+
+        # # Build PyMOL light color pallette.
+        self.build_color_palette_submenu(color_mode, elements_to_color, target_menu, "PyMOL Light Colors", pmdt.pymol_light_colors_list)
+
+        # Build PyMod color palette.
+        self.build_color_palette_submenu(color_mode, elements_to_color, target_menu, "PyMod Colors", pmdt.pymod_regular_colors_list)
+
+        # Custom color selection.
+        '''
+        from Tkinter import *
+        from tkColorChooser import askcolor
+        '''
+
+        target_menu.add_command(label="Pick Color", command=lambda: self.color_selection(color_mode, elements_to_color,"regular","white"))
+
+
+    def build_color_palette_submenu(self, color_mode, elements_to_color, target_submenu, title, list_of_colors):
+        new_palette_submenu = Menu(target_submenu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        for color in list_of_colors:
+            new_palette_submenu.add_command(label=color,
+                command = lambda c=color: self.color_selection(color_mode, elements_to_color,"regular",c),
+                foreground=self.pymod.all_colors_dict_tkinter[color])
+        target_submenu.add_cascade(menu=new_palette_submenu, label=title)
 
 
     def build_structure_menu(self):
@@ -1541,8 +1564,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         # A submenu to choose a single color used to color all the residues of a sequence.
         multiple_regular_colors_menu = Menu(multiple_color_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        for color in pmdt.regular_colours:
-            multiple_regular_colors_menu.add_command(label=color, command = lambda c=color: self.color_selection(color_selection_mode, color_selection_target, "regular",c))
+        self.build_regular_colors_submenu(multiple_regular_colors_menu, color_selection_mode, elements_to_color=color_selection_target)
         multiple_color_menu.add_cascade(menu=multiple_regular_colors_menu, label="Color whole %s by" % (color_target_label))
         multiple_color_menu.add_separator()
 
@@ -1787,11 +1809,11 @@ class Sequence_text(Text, PyMod_main_window_mixin):
             borderwidth=0,
             highlightcolor=self.bg_color,
             highlightbackground=self.bg_color,
-            foreground = self.pymod_element.my_color,
+            foreground = self.get_regular_sequence_color(self.pymod_element.my_color),
             background = self.bg_color,
             exportselection=0,
-            selectbackground= self.bg_color,
-            selectforeground=self.pymod_element.my_color,
+            selectbackground=self.bg_color,
+            selectforeground=self.get_regular_sequence_color(self.pymod_element.my_color),
             selectborderwidth=0,
             width = len(self.pymod_element.my_sequence)) # The length of the entry is equal to the length of the sequence.
         try:

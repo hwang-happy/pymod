@@ -1342,8 +1342,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             return self.modeling_clusters_list[0].target.models_count
 
     def get_model_color(self, chain_number, multiple_chain_mode):
-        # TODO: get the right color.
-        list_of_model_chains_colors = ["green", "blue", "red", "yellow"]
+        list_of_model_chains_colors = pmdt.pymol_regular_colors_list
         if not multiple_chain_mode:
             return "white"
         else:

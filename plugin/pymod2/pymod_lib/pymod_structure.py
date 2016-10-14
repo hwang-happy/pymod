@@ -161,7 +161,9 @@ class Parsed_pdb_file:
             # Builds the new 'PyMod_element'. The header will be used to rename the chains once They
             # are loaded in PyMod/PyMOL.
             new_element_header = self._get_new_pymod_element_header(parsed_chain["pymod_id"])
-            new_element = pmel.PyMod_sequence_element(residues=parsed_chain["residues"], header=new_element_header)
+            new_element = pmel.PyMod_sequence_element(residues=parsed_chain["residues"],
+                                                      header=new_element_header,
+                                                      color=self._get_chain_color(numeric_chain_id))
             # Builds the new structure for the PyMod element.
             new_structure = {"file_name_root": self.structure_file_name,
                              "full_file_path": copied_full_file_path, "chain_file_path": parsed_chain["file_path"],
@@ -223,6 +225,10 @@ class Parsed_pdb_file:
     def _get_full_structure_file_name(self):
         # return self.structure_file_name
         return pmdt.structure_temp_name % Parsed_pdb_file.counter
+
+    def _get_chain_color(self, chain_number):
+        list_of_model_chains_colors = pmdt.pymol_regular_colors_list
+        return list_of_model_chains_colors[chain_number % len(list_of_model_chains_colors)]
 
 
     def _assign_disulfide_bridges(self):

@@ -1,6 +1,6 @@
-# ---------------------------------------------------
-# Define some variabiles used throughout the PyMod. -
-# ---------------------------------------------------
+###################################################################################################
+# Define some variabiles used throughout the PyMod.                                               #
+###################################################################################################
 
 # Tuple containing ids of the algorithms used to perform sequence alignments.
 sequence_alignment_tools = ("clustalw", "clustalo", "muscle","salign-seq")
@@ -28,9 +28,21 @@ can_show_dendrogram = ("salign-seq","salign-str")
 can_use_scr_find = ("ce","salign-str")
 
 
-#-----------------------------------
-# File formats supported in PyMod. -
-#-----------------------------------
+###################################################################################################
+# PyMod elements information.                                                                     #
+###################################################################################################
+
+# "__pymod_element_%s__"
+# "temp_pymod_element_%s_"
+unique_index_header_formatted = "temp_pymod_element_%s_"
+unique_index_header_regex = r"temp_pymod_element_\d+_"
+structure_temp_name = "__%s_structure_temp__"
+structure_chain_temp_name = "__%s_structure_temp_chain_%s__"
+
+
+###################################################################################################
+# File formats supported in PyMod.                                                                #
+###################################################################################################
 
 class File_type:
     def __init__(self, format_id, full_name, extensions, data_types):
@@ -90,14 +102,14 @@ alignment_extensions_dictionary = {
     "stockholm": "sto",
     "pymod":   "txt"}
 
-#------------
-# GUI data. -
-#------------
+###################################################################################################
+# GUI data.                                                                                       #
+###################################################################################################
 yesno_dict = {"Yes":True, "No":False}
 
-#----------------------
-# Tool specific data. -
-#----------------------
+###################################################################################################
+# Tool specific data.                                                                             #
+###################################################################################################
 
 # PSIPRED.
 psipred_output_extensions = (".ss2",".horiz")
@@ -117,188 +129,308 @@ def convert_to_tkinter_rgb(rgb_tuple):
     rgb_tuple = [i*255 for i in rgb_tuple]
     return '#%02x%02x%02x' % tuple(rgb_tuple)
 
+#--------------------------
+# Regular colors palette. -
+#--------------------------
 
-# Available colors for sequences.
-regular_colours = ['red', 'green', 'blue', 'yellow', 'violet', 'cyan',
-                   'salmon', 'pink', 'magenta', 'orange', 'purple',
-                   'firebrick', 'chocolate', 'white']
+# PyMod color palette.
+pymod_regular_colors_list = ['red', 'green', 'blue', 'yellow', 'violet', 'cyan',
+                             'salmon', 'pink', 'magenta', 'orange', 'purple',
+                             'firebrick', 'chocolate', 'white']
+
+# PyMOL color cycle.
+# pymol_full_color_cycle = [
+#     "carbon",
+#     "cyan",
+#     "lightmagenta",
+#     "yellow",
+#     "salmon",
+#     "hydrogen",
+#     "slate",
+#     "orange",
+#     "lime",
+#     "deepteal",
+#     "hotpink",
+#     "yelloworange",
+#     "violetpurple",
+#     "grey70",
+#     "marine",
+#     "olive",
+#     "smudge",
+#     "teal",
+#     "dirtyviolet",
+#     "wheat",
+#     "deepsalmon",
+#     "lightpink",
+#     "aquamarine",
+#     "paleyellow",
+#     "limegreen",
+#     "skyblue",
+#     "warmpink",
+#     "limon",
+#     "violet",
+#     "bluewhite",
+#     "greencyan",
+#     "sand",
+#     "forest",
+#     "lightteal",
+#     "darksalmon",
+#     "splitpea",
+#     "raspberry",
+#     "grey50",
+#     "deepblue",
+#     "brown"]
+
+# PyMOL colors palette. Used to color structures loaded in PyMOL. Takes only a certain number of
+# colors from the full cycle.
+pymol_regular_colors_list = [ # TODO: to be removed when ordered dictionaries are implemented.
+    "carbon",
+    "cyan",
+    "lightmagenta",
+    "yellow",
+    "salmon",
+    "hydrogen",
+    "slate",
+    "orange",
+    "lime",
+    "deepteal",
+    "hotpink",
+    "yelloworange",
+    "violetpurple",
+    "grey70",
+    "marine",
+    "olive",
+    "smudge",
+    "teal",
+    "dirtyviolet",
+    "wheat"]
+
+# Obtained from: https://pymolwiki.org/index.php/Color_Values
+pymol_regular_colors_dict_rgb = {
+    "carbon": (0.2, 1.0, 0.2),
+    "cyan": (0.0, 1.0, 1.0),
+    "lightmagenta": (1.0, 0.2, 0.8),
+    "yellow": (1.0, 1.0, 0.0),
+    "salmon": (1.0, 0.6, 0.6),
+    "hydrogen": (0.9, 0.9, 0.9),
+    "slate": (0.5, 0.5, 1.0),
+    "orange": (1.0, 0.5, 0.0),
+    "lime": (0.5, 1.0, 0.5),
+    "deepteal": (0.1, 0.6, 0.6),
+    "hotpink": (1.0, 0.0, 0.5),
+    "yelloworange": (1.0, 0.87, 0.37),
+    "violetpurple": (0.55, 0.25, 0.60),
+    "grey70": (0.7, 0.7, 0.7),
+    "marine": (0.0, 0.5, 1.0),
+    "olive": (0.77, 0.70, 0.00),
+    "smudge": (0.55, 0.70, 0.40),
+    "teal": (0.00, 0.75, 0.75),
+    "dirtyviolet": (0.70, 0.50, 0.50),
+    "wheat": (0.99, 0.82, 0.65)}
+
+# PyMOL light colors palette. Used to color multiple chains models.
+pymol_light_colors_prefix = "l"
+pymol_light_colors_list = [pymol_light_colors_prefix +"_"+c for c in pymol_regular_colors_list]
+pymol_light_colors_dict_rgb = {
+    pymol_light_colors_prefix + "_carbon": (0.8, 1.0, 0.8),
+    pymol_light_colors_prefix + "_cyan": (0.0, 1.0, 1.0),
+    pymol_light_colors_prefix + "_lightmagenta": (1.0, 0.2, 0.8),
+    pymol_light_colors_prefix + "_yellow": (1.0, 1.0, 0.0),
+    pymol_light_colors_prefix + "_salmon": (1.0, 0.6, 0.6),
+    pymol_light_colors_prefix + "_hydrogen": (0.9, 0.9, 0.9),
+    pymol_light_colors_prefix + "_slate": (0.5, 0.5, 1.0),
+    pymol_light_colors_prefix + "_orange": (1.0, 0.5, 0.0),
+    pymol_light_colors_prefix + "_lime": (0.5, 1.0, 0.5),
+    pymol_light_colors_prefix + "_deepteal": (0.1, 0.6, 0.6),
+    pymol_light_colors_prefix + "_hotpink": (1.0, 0.0, 0.5),
+    pymol_light_colors_prefix + "_yelloworange": (1.0, 0.87, 0.37),
+    pymol_light_colors_prefix + "_violetpurple": (0.55, 0.25, 0.60),
+    pymol_light_colors_prefix + "_grey70": (0.7, 0.7, 0.7),
+    pymol_light_colors_prefix + "_marine": (0.0, 0.5, 1.0),
+    pymol_light_colors_prefix + "_olive": (0.77, 0.70, 0.00),
+    pymol_light_colors_prefix + "_smudge": (0.55, 0.70, 0.40),
+    pymol_light_colors_prefix + "_teal": (0.00, 0.75, 0.75),
+    pymol_light_colors_prefix + "_dirtyviolet": (0.70, 0.50, 0.50),
+    pymol_light_colors_prefix + "_wheat": (0.99, 0.82, 0.65)}
+
+#-----------------------------
+# Single amino acids colors. -
+#-----------------------------
 
 # Starts to define color dictionaries for amminoacids.
-residue_color_dict = {
-    "A": "blue",
-    "L": "blue",
-    "I": "blue",
-    "M": "blue",
-    "W": "blue",
-    "F": "blue",
-    "V": "blue",
-    "T": "green",
-    "N": "green",
-    "Q": "green",
-    "S": "green",
-    "P": "yellow",
-    "G": "orange",
-    "R": "red",
-    "K": "red",
-    "C": "pink",
-    "D": "magenta",
-    "E": "magenta",
-    "H": "cyan",
-    "Y": "cyan",
-    "X": "white",
-    "-": "white"}
+# residue_color_dict = {
+#     "A": "blue",
+#     "L": "blue",
+#     "I": "blue",
+#     "M": "blue",
+#     "W": "blue",
+#     "F": "blue",
+#     "V": "blue",
+#     "T": "green",
+#     "N": "green",
+#     "Q": "green",
+#     "S": "green",
+#     "P": "yellow",
+#     "G": "orange",
+#     "R": "red",
+#     "K": "red",
+#     "C": "pink",
+#     "D": "magenta",
+#     "E": "magenta",
+#     "H": "cyan",
+#     "Y": "cyan",
+#     "X": "white",
+#     "-": "white"}
 
-# Used to color residues according to their observed secondary structure.
+#--------------------------------------------------------------------------
+# Used to color residues according to their secondary structure. -
+#--------------------------------------------------------------------------
+# Observed secondary structure.
+pymol_obs_sec_str_name = "pymod_oss"
 sec_str_color_dict = {
-  "H": "red",    # PyMOL helix.
-  "S": "yellow", # PyMOL sheet.
-  "L": "green",  # PyMOL aperiodic.
-  None: "white"}
+          pymol_obs_sec_str_name + "_H": (1.0, 0.0, 0.0),    # PyMOL helix: red.
+          pymol_obs_sec_str_name + "_S": (1.0, 1.0, 0.0), # PyMOL sheet: yellow.
+          pymol_obs_sec_str_name + "_L": (0.0, 1.0, 0.0),  # PyMOL aperiodic: green.
+          pymol_obs_sec_str_name + "_" : (1.0, 1.0, 1.0),
+          pymol_obs_sec_str_name + "_None" : (1.0, 1.0, 1.0)}
 
-# Used to color residues according to their predicted secondary structure.
+# Predicted secondary structure.
+pymol_psipred_color_name = "pymod_psipred"
+# Generates names like: 'pymod_psipred_8_H' (the name of the color with which residues predicted in
+# an helix with confidence score of 8 will be colored).
 psipred_color_dict = {
       # Helices.
-      (9,"H"): (1.0, 0.0, 0.0),
-      (8,"H"): (1.0, 0.098039215686274508, 0.098039215686274508),
-      (7,"H"): (1.0, 0.20000000000000001, 0.20000000000000001),
-      (6,"H"): (1.0, 0.29803921568627451, 0.29803921568627451),
-      (5,"H"): (1.0, 0.40000000000000002, 0.40000000000000002),
-      (4,"H"): (1.0, 0.50196078431372548, 0.50196078431372548),
-      (3,"H"): (1.0, 0.59999999999999998, 0.59999999999999998),
-      (2,"H"): (1.0, 0.70196078431372544, 0.70196078431372544),
-      (1,"H"): (1.0, 0.80000000000000004, 0.80000000000000004),
-      (0,"H"): (1.0, 0.90196078431372551, 0.90196078431372551),
+      pymol_psipred_color_name + "_9_H": (1.0, 0.0, 0.0),
+      pymol_psipred_color_name + "_8_H": (1.0, 0.098039215686274508, 0.098039215686274508),
+      pymol_psipred_color_name + "_7_H": (1.0, 0.20000000000000001, 0.20000000000000001),
+      pymol_psipred_color_name + "_6_H": (1.0, 0.29803921568627451, 0.29803921568627451),
+      pymol_psipred_color_name + "_5_H": (1.0, 0.40000000000000002, 0.40000000000000002),
+      pymol_psipred_color_name + "_4_H": (1.0, 0.50196078431372548, 0.50196078431372548),
+      pymol_psipred_color_name + "_3_H": (1.0, 0.59999999999999998, 0.59999999999999998),
+      pymol_psipred_color_name + "_2_H": (1.0, 0.70196078431372544, 0.70196078431372544),
+      pymol_psipred_color_name + "_1_H": (1.0, 0.80000000000000004, 0.80000000000000004),
+      pymol_psipred_color_name + "_0_H": (1.0, 0.90196078431372551, 0.90196078431372551),
       # Sheets.
-      (9,"E"): (1.0, 1.0, 0.0),
-      (8,"E"): (1.0, 1.0, 0.098039215686274508),
-      (7,"E"): (1.0, 1.0, 0.20000000000000001),
-      (6,"E"): (1.0, 1.0, 0.29803921568627451),
-      (5,"E"): (1.0, 1.0, 0.40000000000000002),
-      (4,"E"): (1.0, 1.0, 0.50196078431372548),
-      (3,"E"): (1.0, 1.0, 0.59999999999999998),
-      (2,"E"): (1.0, 1.0, 0.70196078431372544),
-      (1,"E"): (1.0, 1.0, 0.80000000000000004),
-      (0,"E"): (1.0, 1.0, 0.90196078431372551),
+      pymol_psipred_color_name + "_9_E": (1.0, 1.0, 0.0),
+      pymol_psipred_color_name + "_8_E": (1.0, 1.0, 0.098039215686274508),
+      pymol_psipred_color_name + "_7_E": (1.0, 1.0, 0.20000000000000001),
+      pymol_psipred_color_name + "_6_E": (1.0, 1.0, 0.29803921568627451),
+      pymol_psipred_color_name + "_5_E": (1.0, 1.0, 0.40000000000000002),
+      pymol_psipred_color_name + "_4_E": (1.0, 1.0, 0.50196078431372548),
+      pymol_psipred_color_name + "_3_E": (1.0, 1.0, 0.59999999999999998),
+      pymol_psipred_color_name + "_2_E": (1.0, 1.0, 0.70196078431372544),
+      pymol_psipred_color_name + "_1_E": (1.0, 1.0, 0.80000000000000004),
+      pymol_psipred_color_name + "_0_E": (1.0, 1.0, 0.90196078431372551),
       # Aperiodic.
-      (9,"C"): (0.0, 1.0, 0.0),
-      (8,"C"): (0.098039215686274508, 1.0, 0.098039215686274508),
-      (7,"C"): (0.20000000000000001, 1.0, 0.20000000000000001),
-      (6,"C"): (0.29803921568627451, 1.0, 0.29803921568627451),
-      (5,"C"): (0.40000000000000002, 1.0, 0.40000000000000002),
-      (4,"C"): (0.50196078431372548, 1.0, 0.50196078431372548),
-      (3,"C"): (0.59999999999999998, 1.0, 0.59999999999999998),
-      (2,"C"): (0.70196078431372544, 1.0, 0.70196078431372544),
-      (1,"C"): (0.80000000000000004, 1.0, 0.80000000000000004),
-      (0,"C"): (0.90196078431372551, 1.0, 0.90196078431372551)
+      pymol_psipred_color_name + "_9_C": (0.0, 1.0, 0.0),
+      pymol_psipred_color_name + "_8_C": (0.098039215686274508, 1.0, 0.098039215686274508),
+      pymol_psipred_color_name + "_7_C": (0.20000000000000001, 1.0, 0.20000000000000001),
+      pymol_psipred_color_name + "_6_C": (0.29803921568627451, 1.0, 0.29803921568627451),
+      pymol_psipred_color_name + "_5_C": (0.40000000000000002, 1.0, 0.40000000000000002),
+      pymol_psipred_color_name + "_4_C": (0.50196078431372548, 1.0, 0.50196078431372548),
+      pymol_psipred_color_name + "_3_C": (0.59999999999999998, 1.0, 0.59999999999999998),
+      pymol_psipred_color_name + "_2_C": (0.70196078431372544, 1.0, 0.70196078431372544),
+      pymol_psipred_color_name + "_1_C": (0.80000000000000004, 1.0, 0.80000000000000004),
+      pymol_psipred_color_name + "_0_C": (0.90196078431372551, 1.0, 0.90196078431372551)
       }
 
-# Initializes the colors in PyMOL.
-pymol_psipred_color_name = "pymod_psipred"
-
-# A dictionary containing colors for CAMPO scores.
-campo_color_dictionary = {
-    # None: (1,1,1),
-    # 1: (0.0, 0.0, 0.5),
-    # 2: (0.0, 0.0, 0.94563279857397498),
-    # 3: (0.0, 0.29999999999999999, 1.0),
-    # 4: (0.0, 0.69215686274509802, 1.0),
-    # 5: (0.16129032258064513, 1.0, 0.80645161290322587),
-    # 6: (0.49019607843137247, 1.0, 0.47754585705249841),
-    # 7: (0.80645161290322565, 1.0, 0.16129032258064513),
-    # 8: (1.0, 0.7705156136528688, 0.0),
-    # 9: (1.0, 0.40740740740740755, 0.0),
-    # 10: (0.94563279857397531, 0.029774872912127992, 0.0)
-    None: (1,1,1),
-    1: (0.0, 0.1588235294117647, 1.0),
-    2: (0.0, 0.50392156862745097, 1.0),
-    3: (0.0, 0.83333333333333337, 1.0),
-    4: (0.21189120809614148, 1.0, 0.75585072738772952),
-    5: (0.49019607843137247, 1.0, 0.47754585705249841),
-    6: (0.75585072738772918, 1.0, 0.2118912080961417),
-    7: (1.0, 0.9012345679012348, 0.0),
-    8: (1.0, 0.58169934640522891, 0.0),
-    9: (1.0, 0.27668845315904156, 0.0),
-    10: (0.8743315508021392, 0.0, 0.0)
-
-}
+#---------------------------------------------------
+# A dictionary containing colors for CAMPO scores. -
+#---------------------------------------------------
 pymol_campo_color_name = "pymod_campo"
+campo_color_dictionary = {
+    pymol_campo_color_name + "_None": (1,1,1), # (1,1,1),
+    pymol_campo_color_name + "_1": (0.0, 0.1588235294117647, 1.0), # (0.0, 0.0, 0.5),
+    pymol_campo_color_name + "_2": (0.0, 0.50392156862745097, 1.0), # (0.0, 0.0, 0.94563279857397498),
+    pymol_campo_color_name + "_3": (0.0, 0.83333333333333337, 1.0), # (0.0, 0.29999999999999999, 1.0),
+    pymol_campo_color_name + "_4": (0.21189120809614148, 1.0, 0.75585072738772952), # (0.0, 0.69215686274509802, 1.0),
+    pymol_campo_color_name + "_5": (0.49019607843137247, 1.0, 0.47754585705249841), # (0.16129032258064513, 1.0, 0.80645161290322587),
+    pymol_campo_color_name + "_6": (0.75585072738772918, 1.0, 0.2118912080961417), # (0.49019607843137247, 1.0, 0.47754585705249841),
+    pymol_campo_color_name + "_7": (1.0, 0.9012345679012348, 0.0), # (0.80645161290322565, 1.0, 0.16129032258064513),
+    pymol_campo_color_name + "_8": (1.0, 0.58169934640522891, 0.0), # (1.0, 0.7705156136528688, 0.0),
+    pymol_campo_color_name + "_9": (1.0, 0.27668845315904156, 0.0), # (1.0, 0.40740740740740755, 0.0),
+    pymol_campo_color_name + "_10": (0.8743315508021392, 0.0, 0.0) # (0.94563279857397531, 0.029774872912127992, 0.0)
+}
 
-# DOPE values colors.
-dope_color_dict = {
-    None: (1,1,1),
-    1: (0.0, 0.1588235294117647, 1.0),
-    2: (0.0, 0.50392156862745097, 1.0),
-    3: (0.0, 0.83333333333333337, 1.0),
-    4: (0.21189120809614148, 1.0, 0.75585072738772952),
-    5: (0.49019607843137247, 1.0, 0.47754585705249841),
-    6: (0.75585072738772918, 1.0, 0.2118912080961417),
-    7: (1.0, 0.9012345679012348, 0.0),
-    8: (1.0, 0.58169934640522891, 0.0),
-    9: (1.0, 0.27668845315904156, 0.0),
-    10: (0.8743315508021392, 0.0, 0.0)}
+#----------------------
+# DOPE values colors. -
+#----------------------
 pymol_dope_color_name = "pymod_dope"
+dope_color_dict = {
+    pymol_dope_color_name + "_None": (1,1,1),
+    pymol_dope_color_name + "_1": (0.0, 0.1588235294117647, 1.0),
+    pymol_dope_color_name + "_2": (0.0, 0.50392156862745097, 1.0),
+    pymol_dope_color_name + "_3": (0.0, 0.83333333333333337, 1.0),
+    pymol_dope_color_name + "_4": (0.21189120809614148, 1.0, 0.75585072738772952),
+    pymol_dope_color_name + "_5": (0.49019607843137247, 1.0, 0.47754585705249841),
+    pymol_dope_color_name + "_6": (0.75585072738772918, 1.0, 0.2118912080961417),
+    pymol_dope_color_name + "_7": (1.0, 0.9012345679012348, 0.0),
+    pymol_dope_color_name + "_8": (1.0, 0.58169934640522891, 0.0),
+    pymol_dope_color_name + "_9": (1.0, 0.27668845315904156, 0.0),
+    pymol_dope_color_name + "_10": (0.8743315508021392, 0.0, 0.0)}
 
-# -----
-# Hydrophobicity scale colors.
-# -----
+#-------------------------------
+# Hydrophobicity scale colors. -
+#-------------------------------
+
+# Initiliazes the hydrophobicity scale colors in PyMOL.
+pymol_polarity_color_name = "pymod_h"
 
 # Kyte and Doolittle: J Mol Biol. 1982 May 5;157(1):105-32.
 kyte_doolittle_h_dictionary = {
-    'A': (1.0, 0.59607843137254901, 0.59607843137254901),
-    'C': (1.0, 0.4392156862745098, 0.4392156862745098),
-    'E': (0.2196078431372549, 0.2196078431372549, 1.0),
-    'D': (0.2196078431372549, 0.2196078431372549, 1.0),
-    'G': (0.90980392156862744, 0.90980392156862744, 1.0),
-    'F': (1.0, 0.37647058823529411, 0.37647058823529411),
-    'I': (1.0, 0.0, 0.0),
-    'H': (0.28235294117647058, 0.28235294117647058, 1.0),
-    'K': (0.13333333333333333, 0.13333333333333333, 1.0),
-    'M': (1.0, 0.5725490196078431, 0.5725490196078431),
-    'L': (1.0, 0.14901960784313728, 0.14901960784313728),
-    'N': (0.2196078431372549, 0.2196078431372549, 1.0),
-    'Q': (0.2196078431372549, 0.2196078431372549, 1.0),
-    'P': (0.64313725490196072, 0.64313725490196072, 1.0),
-    'S': (0.82352941176470584, 0.82352941176470584, 1.0),
-    'R': (0.0, 0.0, 1.0),
-    'T': (0.84705882352941175, 0.84705882352941175, 1.0),
-    'W': (0.80000000000000004, 0.80000000000000004, 1.0),
-    'V': (1.0, 0.062745098039215685, 0.062745098039215685),
-    'Y': (0.71372549019607845, 0.71372549019607845, 1.0),
-    'X': (1.0, 1.0, 1.0)}
+    pymol_polarity_color_name + '_A': (1.0, 0.59607843137254901, 0.59607843137254901),
+    pymol_polarity_color_name + '_C': (1.0, 0.4392156862745098, 0.4392156862745098),
+    pymol_polarity_color_name + '_E': (0.2196078431372549, 0.2196078431372549, 1.0),
+    pymol_polarity_color_name + '_D': (0.2196078431372549, 0.2196078431372549, 1.0),
+    pymol_polarity_color_name + '_G': (0.90980392156862744, 0.90980392156862744, 1.0),
+    pymol_polarity_color_name + '_F': (1.0, 0.37647058823529411, 0.37647058823529411),
+    pymol_polarity_color_name + '_I': (1.0, 0.0, 0.0),
+    pymol_polarity_color_name + '_H': (0.28235294117647058, 0.28235294117647058, 1.0),
+    pymol_polarity_color_name + '_K': (0.13333333333333333, 0.13333333333333333, 1.0),
+    pymol_polarity_color_name + '_M': (1.0, 0.5725490196078431, 0.5725490196078431),
+    pymol_polarity_color_name + '_L': (1.0, 0.14901960784313728, 0.14901960784313728),
+    pymol_polarity_color_name + '_N': (0.2196078431372549, 0.2196078431372549, 1.0),
+    pymol_polarity_color_name + '_Q': (0.2196078431372549, 0.2196078431372549, 1.0),
+    pymol_polarity_color_name + '_P': (0.64313725490196072, 0.64313725490196072, 1.0),
+    pymol_polarity_color_name + '_S': (0.82352941176470584, 0.82352941176470584, 1.0),
+    pymol_polarity_color_name + '_R': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_T': (0.84705882352941175, 0.84705882352941175, 1.0),
+    pymol_polarity_color_name + '_W': (0.80000000000000004, 0.80000000000000004, 1.0),
+    pymol_polarity_color_name + '_V': (1.0, 0.062745098039215685, 0.062745098039215685),
+    pymol_polarity_color_name + '_Y': (0.71372549019607845, 0.71372549019607845, 1.0),
+    pymol_polarity_color_name + '_X': (1.0, 1.0, 1.0)}
 
 # Fauchere and Pliska: Eur. J. Med. Chem. 18:369-375(1983).
 fauchere_pliska_h_scale = {
-    'A': (1.0, 0.27450980392156865, 0.27450980392156865),
-    'C': (1.0, 0.0, 0.0),
-    'E': (0.0, 0.0, 1.0),
-    'D': (0.0, 0.0, 1.0),
-    'G': (0.36862745098039218, 0.36862745098039218, 1.0),
-    'F': (1.0, 0.0, 0.0),
-    'I': (1.0, 0.0, 0.0),
-    'H': (0.0, 0.0, 1.0),
-    'K': (0.0, 0.0, 1.0),
-    'M': (1.0, 0.21176470588235319, 0.21176470588235319),
-    'L': (1.0, 0.0, 0.0),
-    'N': (0.0, 0.0, 1.0),
-    'Q': (0.0, 0.0, 1.0),
-    'P': (0.0, 0.0, 1.0),
-    'S': (0.12549019607843137, 0.12549019607843137, 1.0),
-    'R': (0.0, 0.0, 1.0),
-    'T': (0.18823529411764706, 0.18823529411764706, 1.0),
-    'W': (0.062745098039215685, 0.062745098039215685, 1.0),
-    'V': (1.0, 0.0, 0.0),
-    'Y': (0.0, 0.0, 1.0),
-    'X': (1.0, 1.0, 1.0)}
+    pymol_polarity_color_name + '_A': (1.0, 0.27450980392156865, 0.27450980392156865),
+    pymol_polarity_color_name + '_C': (1.0, 0.0, 0.0),
+    pymol_polarity_color_name + '_E': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_D': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_G': (0.36862745098039218, 0.36862745098039218, 1.0),
+    pymol_polarity_color_name + '_F': (1.0, 0.0, 0.0),
+    pymol_polarity_color_name + '_I': (1.0, 0.0, 0.0),
+    pymol_polarity_color_name + '_H': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_K': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_M': (1.0, 0.21176470588235319, 0.21176470588235319),
+    pymol_polarity_color_name + '_L': (1.0, 0.0, 0.0),
+    pymol_polarity_color_name + '_N': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_Q': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_P': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_S': (0.12549019607843137, 0.12549019607843137, 1.0),
+    pymol_polarity_color_name + '_R': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_T': (0.18823529411764706, 0.18823529411764706, 1.0),
+    pymol_polarity_color_name + '_W': (0.062745098039215685, 0.062745098039215685, 1.0),
+    pymol_polarity_color_name + '_V': (1.0, 0.0, 0.0),
+    pymol_polarity_color_name + '_Y': (0.0, 0.0, 1.0),
+    pymol_polarity_color_name + '_X': (1.0, 1.0, 1.0)}
 
 # This is the color dictionary actually used in PyMod.
 polarity_color_dictionary = kyte_doolittle_h_dictionary
-# Initiliazes the hydrophobicity scale colors in PyMOL.
-pymol_polarity_color_name = "pymod_h_"
 
 
-#--------------------------------------------------
-# Standard bioinformatics dictionaries and lists. -
-#--------------------------------------------------
+###################################################################################################
+# Standard bioinformatics dictionaries and lists.                                                 #
+###################################################################################################
 
 # TODO: delete this old part.
 
@@ -348,9 +480,9 @@ nucleic_acids_dictionary = {
 code_standard.update(nucleic_acids_dictionary)
 
 
-##################################################
-# Updated data dictionaries for the new version. #
-##################################################
+###################################################################################################
+# Updated data dictionaries for the new version.                                                  #
+###################################################################################################
 
 #------------
 # Proteins. -
@@ -410,15 +542,3 @@ ligand_one_letter = "x"
 water_one_letter = "w"
 
 pir_hetres_code_dict = {ligand_one_letter:".", water_one_letter:"w"}
-
-
-###############################
-# PyMod elements information. #
-###############################
-
-# "__pymod_element_%s__"
-# "temp_pymod_element_%s_"
-unique_index_header_formatted = "temp_pymod_element_%s_"
-unique_index_header_regex = r"temp_pymod_element_\d+_"
-structure_temp_name = "__%s_structure_temp__"
-structure_chain_temp_name = "__%s_structure_temp_chain_%s__"

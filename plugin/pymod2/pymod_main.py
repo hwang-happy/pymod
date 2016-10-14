@@ -278,39 +278,23 @@ class PyMod:
         # This is an index that will bw used to color each structure loaded into PyMod with a
         # different color taken from the list above. It will be used in "color_struct()".
         self.color_index = 0
+        self.all_colors_dict_tkinter = {}
 
-        # Generates PSIPRED predictions colors for PyMOL.
-        self.psipred_color_dict_rgb = pmdt.psipred_color_dict.copy()
-        self.psipred_color_dict_tkinter = {}
-        for c in self.psipred_color_dict_rgb.keys():
-            # Generates names like: 'pymod_psipred_8_H' (the name of the color with which residues
-            # predicted in an helix with confidence score of 8 will be colored).
-            color_name = "%s_%s_%s" % (pmdt.pymol_psipred_color_name, c[0], c[1])
-            cmd.set_color(color_name, self.psipred_color_dict_rgb[c])
-            self.psipred_color_dict_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.psipred_color_dict_rgb[c])})
+        # Import in PyMod some PyMOL colors.
+        self.update_pymod_color_dict_with_dict(pmdt.pymol_regular_colors_dict_rgb, update_in_pymol=False)
 
-        # Prepares CAMPO colors in PyMOL and PyMod. Generates something like: 'pymod_campo_7'.
-        self.campo_color_dictionary_rgb = pmdt.campo_color_dictionary.copy()
-        self.campo_color_dictionary_tkinter = {}
-        for c in self.campo_color_dictionary_rgb.keys():
-            color_name = "%s_%s" % (pmdt.pymol_campo_color_name, c)
-            cmd.set_color(color_name, self.campo_color_dictionary_rgb[c])
-            self.campo_color_dictionary_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.campo_color_dictionary_rgb[c])})
+        # Light PyMOL colors.
+        self.update_pymod_color_dict_with_dict(pmdt.pymol_light_colors_dict_rgb)
 
-        # DOPE scores colors.
-        self.dope_color_dictionary_rgb = pmdt.dope_color_dict.copy()
-        self.dope_color_dictionary_tkinter = {}
-        for c in pmdt.dope_color_dict.keys():
-            color_name = "%s_%s" % (pmdt.pymol_dope_color_name, c)
-            cmd.set_color(color_name, self.dope_color_dictionary_rgb[c])
-            self.dope_color_dictionary_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.dope_color_dictionary_rgb[c])})
+        # PyMod colors.
+        self.update_pymod_color_dict_with_list(pmdt.pymod_regular_colors_list, update_in_pymol=False)
 
-        # Residue polarity colors.
-        self.polarity_color_dictionary_rgb = pmdt.polarity_color_dictionary.copy()
-        self.polarity_color_dictionary_tkinter = {}
-        for c in self.polarity_color_dictionary_rgb.keys():
-            cmd.set_color(pmdt.pymol_polarity_color_name + c, self.polarity_color_dictionary_rgb[c])
-            self.polarity_color_dictionary_tkinter.update({c: pmdt.convert_to_tkinter_rgb(self.polarity_color_dictionary_rgb[c])})
+        # Prepares other colors for PyMOL and PyMod.
+        self.update_pymod_color_dict_with_dict(pmdt.sec_str_color_dict)
+        self.update_pymod_color_dict_with_dict(pmdt.psipred_color_dict)
+        self.update_pymod_color_dict_with_dict(pmdt.campo_color_dictionary)
+        self.update_pymod_color_dict_with_dict(pmdt.dope_color_dict)
+        self.update_pymod_color_dict_with_dict(pmdt.polarity_color_dictionary)
 
         #--------------------------------------
         # Builds the plugin the main window. -
@@ -791,6 +775,23 @@ class PyMod:
                 shutil.rmtree(dir_to_remove_path)
 
 
+    #################################################################
+    # Colors.                                                       #
+    #################################################################
+
+    def update_pymod_color_dict_with_dict(self, color_dict, update_in_pymol=True):
+        for color_name in color_dict.keys():
+            if update_in_pymol:
+                cmd.set_color(color_name, color_dict[color_name])
+            self.all_colors_dict_tkinter.update({color_name:  pmdt.convert_to_tkinter_rgb(color_dict[color_name])})
+
+    def update_pymod_color_dict_with_list(self, color_list, update_in_pymol=False):
+        for color_name in color_list:
+            if update_in_pymol:
+                cmd.set_color(color_name, color_name)
+            self.all_colors_dict_tkinter.update({color_name: color_name})
+
+
     ###############################################################################################
     # WORKSPACES.                                                                                 #
     ###############################################################################################
@@ -991,7 +992,7 @@ class PyMod:
         # Adjust its header.
         if adjust_header and not element.is_cluster(): # Cluster elements do not need their headers to be adjusted.
             self.adjust_headers(element)
-        if color: # elaion!
+        if color:
             element.my_color = color
         # Builds for it some Tkinter widgets to show in PyMod window. They will be gridded later.
         self.main_window.add_pymod_element_widgets(element)
@@ -1314,9 +1315,14 @@ class PyMod:
         p = pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
         if hasattr(p,"get_pymod_elements"):
             for element in p.get_pymod_elements():
-                self.add_element_to_pymod(element, load_in_pymol=True, color="red") # TODO: change the color part.
+                self.add_element_to_pymod(element, load_in_pymol=True) # Add this to use the old color shceme of PyMod: color=self.color_struct()
         if grid:
             self.gridder()
+
+    def color_struct(self):
+        color_to_return = pmdt.pymod_regular_colors_list[self.color_index % len(pmdt.pymod_regular_colors_list)]
+        self.color_index += 1
+        return color_to_return
 
 
     #################################################################
@@ -1695,7 +1701,7 @@ class PyMod:
         #             for chain_id in pdb_file.get_chains_ids():
         #                 new_element = pdb_file.get_chain_pymod_element(chain_id)
         #                 if chain_id != pdb_chain:
-        #                     self.add_element_to_pymod(new_element, "mother", color="gray")
+        #                     self.add_element_to_pymod(new_element, "mother")
         #                 else:
         #                     # Deletes the original hit sequence retrieved by BLAST and replaces it with
         #                     # a new element with an associated structure loaded in PyMOL.
@@ -1886,14 +1892,6 @@ class PyMod:
         #     self.import_from_pymol_window.destroy()
 
 
-    def color_struct(self):
-        if self.color_index > len(pmdt.regular_colours) - 1:
-            self.color_index=0
-        color_index_to_return = self.color_index
-        self.color_index += 1
-        return pmdt.regular_colours[color_index_to_return]
-
-
     def show_pdb_info(self):
         self.work_in_progress()
 
@@ -1909,21 +1907,12 @@ class PyMod:
         file_to_load = element.get_structure_file(name_only=False)
         pymol_object_name = element.get_pymol_object_name()
         cmd.load(file_to_load, pymol_object_name)
-        # chain_root_name = element.build_chain_selector_for_pymol()
-        # file_name_to_load = os.path.join(pymod.structures_directory, chain_root_name+".pdb")
-        # cmd.load(file_name_to_load)
-        # cmd.select("last_prot", chain_root_name)
-        # cmd.hide("everything", "last_prot")
-        # cmd.show("cartoon", "last_prot" ) # Show the new chain as a cartoon.
-        # if mode == "model":
-        #     cmd.color("white", "last_prot")
-        # else:
-        #     cmd.color(element.my_color, "last_prot")
-        # cmd.util.cnc("last_prot") # Colors by atom.
-        # cmd.center('last_prot')
-        # cmd.zoom('last_prot')
-        # cmd.delete("last_prot")
-
+        cmd.color(element.my_color, pymol_object_name)
+        cmd.hide("everything", pymol_object_name)
+        cmd.show("cartoon", pymol_object_name) # Show the new chain as a cartoon.
+        cmd.util.cnc(pymol_object_name) # Colors by atom.
+        cmd.zoom(pymol_object_name)
+        cmd.center(pymol_object_name)
 
     def center_chain_in_pymol(self, pymod_element):
         cmd.center(pymod_element.get_pymol_object_name())
