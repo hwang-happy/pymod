@@ -1429,15 +1429,11 @@ class Header_entry(Entry, PyMod_main_window_mixin):
     def build_regular_colors_submenu(self, target_menu, color_mode, elements_to_color=None):
         if color_mode == "single":
             elements_to_color = self.pymod_element
-        elif color_mode in ("selection", "multiple"):
-            pass
 
         # Build PyMOL color palette menu.
         self.build_color_palette_submenu(color_mode, elements_to_color, target_menu, "PyMOL Colors", pmdt.pymol_regular_colors_list)
-
         # # Build PyMOL light color pallette.
         self.build_color_palette_submenu(color_mode, elements_to_color, target_menu, "PyMOL Light Colors", pmdt.pymol_light_colors_list)
-
         # Build PyMod color palette.
         self.build_color_palette_submenu(color_mode, elements_to_color, target_menu, "PyMod Colors", pmdt.pymod_regular_colors_list)
 
@@ -1446,7 +1442,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         from Tkinter import *
         from tkColorChooser import askcolor
         '''
-
         target_menu.add_command(label="Pick Color", command=lambda: self.color_selection(color_mode, elements_to_color,"regular","white"))
 
 
@@ -1455,7 +1450,8 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         for color in list_of_colors:
             new_palette_submenu.add_command(label=color,
                 command = lambda c=color: self.color_selection(color_mode, elements_to_color,"regular",c),
-                foreground=self.pymod.all_colors_dict_tkinter[color])
+                foreground=self.pymod.all_colors_dict_tkinter[color], background="black",
+                activeforeground=self.pymod.all_colors_dict_tkinter[color])
         target_submenu.add_cascade(menu=new_palette_submenu, label=title)
 
 

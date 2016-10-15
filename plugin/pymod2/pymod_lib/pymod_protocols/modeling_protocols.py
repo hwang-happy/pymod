@@ -1,7 +1,5 @@
 # TODO
 #   - structures part (see pymod_main file).
-#         - color structures and models, structure appearence and colors. # elaion!
-#         - duplicate structures.
 #         - fetch and associate structures.
 #         - save structure to file option.
 #   - subsitute the first model with actual target element and then put successive models outside
@@ -11,7 +9,7 @@
 #   - build a log file on all platforms.
 #   - implement saving of modeling sessions.
 #       - save modeling sessions (and also build a well done MODELLER script).
-#   - reimplement all.
+#   - make sure to reimplement all.
 #   - implement the master branch modifications (refinement and optimization).
 #       - implement the "really quick" refinement option.
 #   - test with all kind of cases.
@@ -1342,7 +1340,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             return self.modeling_clusters_list[0].target.models_count
 
     def get_model_color(self, chain_number, multiple_chain_mode):
-        list_of_model_chains_colors = pmdt.pymol_regular_colors_list
+        list_of_model_chains_colors = pmdt.pymol_light_colors_list
         if not multiple_chain_mode:
             return "white"
         else:

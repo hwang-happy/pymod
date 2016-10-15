@@ -38,6 +38,7 @@ unique_index_header_formatted = "temp_pymod_element_%s_"
 unique_index_header_regex = r"temp_pymod_element_\d+_"
 structure_temp_name = "__%s_structure_temp__"
 structure_chain_temp_name = "__%s_structure_temp_chain_%s__"
+copied_chain_name = "cobj_%s"
 
 
 ###################################################################################################
@@ -232,7 +233,7 @@ pymol_regular_colors_dict_rgb = {
 pymol_light_colors_prefix = "l"
 pymol_light_colors_list = [pymol_light_colors_prefix +"_"+c for c in pymol_regular_colors_list]
 pymol_light_colors_dict_rgb = {
-    pymol_light_colors_prefix + "_carbon": (0.8, 1.0, 0.8),
+    pymol_light_colors_prefix + "_carbon": (0.94, 1.0, 0.94),
     pymol_light_colors_prefix + "_cyan": (0.0, 1.0, 1.0),
     pymol_light_colors_prefix + "_lightmagenta": (1.0, 0.2, 0.8),
     pymol_light_colors_prefix + "_yellow": (1.0, 1.0, 0.0),
@@ -527,7 +528,6 @@ def get_prot_one_to_three(one_letter_code):
 
 def get_prot_three_to_one(three_letter_code):
     return prot_standard_and_x_three_to_one_dict[one_letter_code]
-
 
 #--------------------
 # Heteroatoms data. -

@@ -23,6 +23,7 @@
 #     - 'update structures from PyMOL' part.
 #     - define modified residues.
 #     - nucleic acids.
+#     - color structures and models, structure appearence and user defined colors.
 
 
 ###########################################################################
@@ -149,6 +150,7 @@ class PyMod:
         # An index that increases by one every time an element is added to the above list by using
         # the .add_element_to_pymod() method.
         self.unique_index = 0
+        self.new_objects_index = 0
 
         #--------------------------------------------------------------------------------------
         # Prepare PyMod files and folders that will be created in the project main directory. -
@@ -1313,9 +1315,8 @@ class PyMod:
         if not self.is_valid_structure_file(pdb_file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
         p = pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
-        if hasattr(p,"get_pymod_elements"):
-            for element in p.get_pymod_elements():
-                self.add_element_to_pymod(element, load_in_pymol=True) # Add this to use the old color shceme of PyMod: color=self.color_struct()
+        for element in p.get_pymod_elements():
+            self.add_element_to_pymod(element, load_in_pymol=True) # Add this to use the old color shceme of PyMod: color=self.color_struct()
         if grid:
             self.gridder()
 
@@ -1376,6 +1377,7 @@ class PyMod:
         """
         Edit a sequence.
         """
+        # TODO: move this in the GUI submodule.
         # Builds the GUI.
         child=Toplevel(pymod.main_window)
         child.resizable(0,0)
@@ -1425,26 +1427,13 @@ class PyMod:
 
     def duplicate_sequence(self, element_to_duplicate):
         if element_to_duplicate.has_structure():
-            raise Exception("TODO")
-            # new_file_shortcut = os.path.join(self.structures_directory, element_to_duplicate.structure.original_pdb_file_name)
-            # target_chain_id = element_to_duplicate.structure.pdb_chain_id
-            # # Builds a 'Parsed_pdb_file' object.
-            # pdb_file = Parsed_pdb_file(os.path.abspath(new_file_shortcut))
-            # # Start parsing the PDB file.
-            # pdb_file.parse_pdb_file()
-            # # Builds 'Pymod_elements' objects for each chain present in the PDB file and adds the PDB
-            # # file to the record of PDB files loaded in PyMod.
-            # pdb_file.build_structure_objects(add_to_pymod_pdb_list = False)
-            # # Builds an element and load a structure only for target elements.
-            # for chain_id in pdb_file.get_chains_ids():
-            #     if chain_id == target_chain_id:
-            #         new_element = pdb_file.get_chain_pymod_element(chain_id)
-            #         self.add_element_to_pymod(new_element, "mother")
-            #         self.load_element_in_pymol(new_element)
+            p = pmstr.Parsed_pdb_file(element_to_duplicate.get_structure_file(name_only=False),
+                output_directory=self.structures_directory,
+                new_file_name= pmdt.copied_chain_name % self.new_objects_index) # "copy_"+element_to_duplicate.get_structure_file_root()), "copied_object_%s"
+            self.new_objects_index += 1
+            for element in p.get_pymod_elements():
+                self.add_element_to_pymod(element, load_in_pymol=True, color=element_to_duplicate.my_color) # Add this to use the old color shceme of PyMod: color=self.color_struct()
         else:
-            # c = PyMod_element(
-            #     str(element_to_duplicate.my_sequence).replace("-",""), element_to_duplicate.my_header_fix,
-            #     full_original_header= "Copy of " + element_to_duplicate.full_original_header, element_type="sequence")
             duplicated_element = pmel.PyMod_sequence_element(element_to_duplicate.my_sequence, element_to_duplicate.my_header_root)
             self.add_element_to_pymod(duplicated_element)
 

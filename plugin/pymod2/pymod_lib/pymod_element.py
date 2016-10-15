@@ -579,9 +579,9 @@ class PyMod_sequence_element(PyMod_element):
 
         self.structure = True
 
+
     def rename_structure_files(self, use_prefix=True):
         pass
-
 
 
     def remove_structure(self):
