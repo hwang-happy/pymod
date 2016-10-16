@@ -8,6 +8,7 @@
 #     - rewrite the 'execute_subprocess' method.
 #     - Ramachandran plot.
 #     - superpose.
+#     - adjust the importing of sequences from the MODELLER based algorithms.
 #     - RMSD part.
 #     - reimplement the rest.
 #     - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
@@ -20,10 +21,13 @@
 #     - reimplement the "Display" submenu in the main menu.
 #     - add an "export to .phy file" option when showing distance trees.
 #     - add a similar option for distance matrices, dope profiles and assessment tables.
-#     - 'update structures from PyMOL' part.
+#     - 'update structures from PyMOL' and 'move back to original position' part.
+#         - implement a 'Superpose in PyMOL' option in structural alignments.
 #     - define modified residues.
 #     - nucleic acids.
 #     - color structures and models, structure appearence and user defined colors.
+#     - organize the structure of the PyMod_protocols.
+#         - take input from gui for alignment protocols.
 
 
 ###########################################################################
@@ -702,6 +706,8 @@ class PyMod:
 
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
+        # Fetch sequences from the PDB.
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi.fasta"))
         # Dimer: complex case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
@@ -721,7 +727,7 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
         self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
 
         self.gridder(update_clusters=True, update_menus=True)
@@ -1429,7 +1435,7 @@ class PyMod:
         if element_to_duplicate.has_structure():
             p = pmstr.Parsed_pdb_file(element_to_duplicate.get_structure_file(name_only=False),
                 output_directory=self.structures_directory,
-                new_file_name= pmdt.copied_chain_name % self.new_objects_index) # "copy_"+element_to_duplicate.get_structure_file_root()), "copied_object_%s"
+                new_file_name=pmdt.copied_chain_name % self.new_objects_index) # "copy_"+element_to_duplicate.get_structure_file_root()), "copied_object_%s"
             self.new_objects_index += 1
             for element in p.get_pymod_elements():
                 self.add_element_to_pymod(element, load_in_pymol=True, color=element_to_duplicate.my_color) # Add this to use the old color shceme of PyMod: color=self.color_struct()
@@ -1596,115 +1602,9 @@ class PyMod:
 
 
     def fetch_pdb_files(self, mode, target_selection):
-        """
-        Function for downloading a PDB file from the sequences retrived from BLAST.
-        """
-        # Builds a list of structures to be fetched.
-        self.structures_to_fetch = []
-        if mode == "single":
-            self.structures_to_fetch.append(target_selection)
-        elif mode == "selection":
-            self.structures_to_fetch.extend(self.get_selected_sequences())
-        # Let the user choose the way in which to retrieve the structures.
-        import_all_text = 'Import all chains'
-        import_single_text = 'Import only the hit sequences fragments'
-        self.import_mode_choices = {import_single_text: "single-chain", import_all_text: "multiple-chains"}
-        self.fetch_pdb_dialog = Pmw.MessageDialog(self.main_window,
-            title = 'Import Options',
-            message_text = (
-            "Please select the 3D structure import mode:\n\n"+
-            "- Import in PyMod the structure of every chain of the PDB files.\n\n"+
-            "- Import in PyMod only the structure of the hit sequences fragments identified by (PSI-)BLAST."
-            ),
-            buttons = (import_all_text, import_single_text) )
-        self.fetch_pdb_dialog.component("message").configure(justify="left")
-        self.fetch_pdb_dialog.configure(command=self.fetch_pdb_files_state)
-
-
-    def fetch_pdb_files_state(self, dialog_choice):
-        raise Exception("TODO")
-
-        # self.fetch_pdb_dialog.withdraw()
-        # # Interrupt the process if users close the dialog window.
-        # if not dialog_choice:
-        #     return None
-        # import_mode = self.import_mode_choices[dialog_choice]
-        #
-        # # Begins to actually fetch the PDB files.
-        # for element in self.structures_to_fetch:
-        #     element_header = element.my_header
-        #     if element_header.split("|")[2] == "pdb":
-        #         pdb_code = element_header.split("|")[3]
-        #         if element_header.split("|")[4] != "":
-        #             pdb_chain = element_header.split("|")[4][0]
-        #         else:
-        #             pdb_chain = None
-        #             import_mode = "multiple-chains"
-        #     elif element_header.split("|")[4] == "pdb":
-        #         pdb_code=element_header.split("|")[5]
-        #         if element_header.split("|")[6][0] != "":
-        #             pdb_chain = element_header.split("|")[6][0]
-        #         else:
-        #             pdb_chain = None
-        #             mport_mode = "multiple-chains"
-        #
-        #     zipped_file = None
-        #
-        #     # Retrieve the PDB file from the internet.
-        #     try:
-        #         zipped_file = urllib.urlretrieve('http://www.rcsb.org/pdb/files/'+ pdb_code + '.pdb.gz')[0]
-        #     except:
-        #         title = "Connection Error"
-        #         message = "Can not access to the PDB database.\nPlease check your Internet access."
-        #         self.show_error_message(title,message)
-        #         return False
-        #
-        #     open_zipped_file = gzip.open(zipped_file) # Uncompress the file while reading
-        #     new_name = pdb_code + '.pdb' # Form the pdb output name
-        #     pdb_file_shortcut = os.path.join(self.structures_directory, new_name)
-        #     saved_file = open(pdb_file_shortcut, 'w')
-        #     saved_file.write(open_zipped_file.read()) # Write pdb file
-        #     open_zipped_file.close()
-        #     saved_file.close()
-        #
-        #     # Builds a 'Parsed_pdb_file' object.
-        #     pdb_file = Parsed_pdb_file(os.path.abspath(pdb_file_shortcut))
-        #     # Start parsing the PDB file.
-        #     pdb_file.parse_pdb_file()
-        #
-        #     # Load in PyMod only the chain corresponding to the hit sequence and adjust its legth to
-        #     # the region identified by BLAST.
-        #     if import_mode == "single-chain":
-        #         if not self.associate_structure(pdb_file, pdb_chain, element):
-        #             self.show_associate_structure_error()
-        #
-        #     # Load each chain found in the PDB file where the 3D structure of the hit sequence is
-        #     # present. This is actually like opening a new PDB file with the 'open_structure_file()'
-        #     # method, except that in this case, the chains not corresponging to the hit sequence
-        #     # are colored in gray.
-        #     elif import_mode == "multiple-chains":
-        #         # Builds 'Pymod_elements' objects for each chain present in the PDB file.
-        #         pdb_file.build_structure_objects(add_to_pymod_pdb_list = True)
-        #         if pdb_chain:
-        #             # Actually adds as mothers the PyMod elements to the 'pymod_elements_list'.
-        #             for chain_id in pdb_file.get_chains_ids():
-        #                 new_element = pdb_file.get_chain_pymod_element(chain_id)
-        #                 if chain_id != pdb_chain:
-        #                     self.add_element_to_pymod(new_element, "mother")
-        #                 else:
-        #                     # Deletes the original hit sequence retrieved by BLAST and replaces it with
-        #                     # a new element with an associated structure loaded in PyMOL.
-        #                     self.delete_element_from_pymod(element)
-        #                     self.add_element_to_pymod(new_element, "mother")
-        #                 self.load_element_in_pymol(new_element)
-        #         else:
-        #             for chain_id in pdb_file.get_chains_ids():
-        #                 new_element = pdb_file.get_chain_pymod_element(chain_id)
-        #                 self.add_element_to_pymod(new_element, "mother")
-        #                 self.load_element_in_pymol(new_element)
-        #             self.delete_element_from_pymod(element)
-        #
-        # self.gridder()
+        fp = pmptc.structural_databases_protocols.Fetch_structure_file(self)
+        fp.initialize_from_gui(mode, target_selection)
+        fp.launch_from_gui()
 
 
     def associate_structure_from_popup_menu(self, target_element):

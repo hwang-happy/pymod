@@ -14,7 +14,7 @@
 #       - implement the "really quick" refinement option.
 #   - test with all kind of cases.
 #       - hetatms, refinement levels, disulfides, internal and external, models menu, multiple
-#         templates.
+#         templates, all the platforms, strange PDB files.
 #   - build a line in the DOPE plots for the 0.03 threshold.
 #   - sort tables.
 

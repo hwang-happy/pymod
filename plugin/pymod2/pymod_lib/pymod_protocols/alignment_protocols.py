@@ -142,50 +142,14 @@ class Alignment_protocol(PyMod_protocol):
         """
         This method builds the structure of the alignment options window.
         """
-        # Builds the window.
-        self.alignment_window = pmgi.shared_components.PyMod_tool_window(self.pymod.main_window,
+        Alignment_window_class = self.get_alignment_window_class()
+        self.alignment_window = Alignment_window_class(self.pymod.main_window, self,
             title = " %s Options " % (pmdt.algorithms_full_names_dict[self.alignment_program]),
             upper_frame_title = "Here you can modify options for %s" % (pmdt.algorithms_full_names_dict[self.alignment_program]),
             submit_command = self.alignment_state)
-        # Put into the middle frame some options to change the alignment parameters.
-        self.build_alignment_window_middle_frame()
 
-
-    def build_alignment_window_middle_frame(self):
-        """
-        The middle frame of the window will contain a frame with widgets to choose the alignment
-        mode and a frame with widgets to change the alignment algorithm parameters.
-        """
-        # Options to choose the alignment mode.
-        self.build_alignment_mode_frame()
-        # Options to choose the parameters of the alignment algoirthm being used.
-        self.build_algorithm_options_frame()
-
-
-    #################################################################
-    # Part for building the frame  containing the options for       #
-    # choosing the alignment mode and options.                      #
-    #################################################################
-
-    def build_alignment_mode_frame(self):
-        """
-        Builds a frame with some options to choose the alignment mode.
-        """
-        self.alignment_mode_frame = pmgi.shared_components.PyMod_frame(self.alignment_window.midframe)
-        self.alignment_mode_frame.grid(row=0, column=0, sticky = W+E+N+S,pady=(0,10))
-        self.alignment_mode_row = 0
-        self.alignment_mode_label = Label(self.alignment_mode_frame, font = "comic 12", height = 1,
-                    text= "Alignment Mode", background='black', fg='red',
-                    borderwidth = 1, padx = 8)
-        self.alignment_mode_label.grid(row=self.alignment_mode_row, column=0, sticky = W)
-        self.alignment_mode_radiobutton_var = StringVar()
-        self.build_strategy_specific_modes_frames() # Defined in child classes.
-
-
-    def build_algorithm_options_frame(self):
-        self.alignment_options_frame = pmgi.shared_components.PyMod_frame(self.alignment_window.midframe)
-        self.alignment_options_frame.grid(row=1, column=0, sticky = W+E+N+S)
-        self.build_algorithm_options_widgets()
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.Alignment_window
 
 
     #################################################################
@@ -487,98 +451,6 @@ class Regular_alignment(Alignment_protocol):
         return proceed_with_alignment
 
 
-    #################################################################
-    # Build components of the GUI to show the alignment options.    #
-    #################################################################
-
-    def build_strategy_specific_modes_frames(self):
-
-        #----------------------------
-        # Rebuild an old alignment. -
-        #----------------------------
-        if self.rebuild_single_alignment_choice:
-            self.alignment_mode_radiobutton_var.set("rebuild-old-alignment")
-            self.alignment_mode_row += 1
-            new_alignment_rb_text = "Rebuild alignment (?)"
-            new_alignment_rb_help = "Rebuild the alignment with all its sequences."
-            self.new_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=new_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="rebuild-old-alignment", background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_build_new_alignment_radio)
-            self.new_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-            return None
-
-        #------------------------------------------------------
-        # Build a new alignment using the selected sequences. -
-        #------------------------------------------------------
-        self.alignment_mode_radiobutton_var.set("build-new-alignment")
-        self.alignment_mode_row += 1
-        # new_alignment_rb_text = "Build a new alignment from scratch using the selected sequences."
-        new_alignment_rb_text = "Build a new alignment (?)"
-        new_alignment_rb_help = "Build a new alignment from scratch using the selected sequences."
-        self.new_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=new_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="build-new-alignment", background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_build_new_alignment_radio)
-        self.new_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-
-        #--------------------
-        # Alignment joiner. -
-        #--------------------
-        # This can be performed only if there is one selected child per cluster.
-        if len(self.involved_clusters_list) > 1 and self.check_alignment_joining_selection():
-            self.alignment_mode_row += 1
-            # alignment_joiner_rb_text = "Join the alignments using the selected sequences as bridges (see 'Alignment Joining')."
-            self.join_alignments_radiobutton = Radiobutton(self.alignment_mode_frame, text="Join Alignments (?)", variable=self.alignment_mode_radiobutton_var, value="alignment-joining",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',command=self.click_on_alignment_joiner_radio)
-            self.join_alignments_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0))
-
-        #---------------------------
-        # Keep previous alignment. -
-        #---------------------------
-        # Right now it can be used only when the user has selected only one cluster.
-        # This alignment mode might be used also for multiple clusters, but right now this is
-        # prevented in order to keep the alignment modes selection as simple and as intuitive as
-        # possible. If the user wants to append to a cluster some sequences that are contained
-        # in another cluster using this method, he/she should firtst extract them from their
-        # their original cluster. In order to let the user use this option also for multiple
-        # clusters, change the condition below in:
-        # len(self.involved_clusters_list) >= 1 or (len(self.involved_clusters_list) == 1 and len(self.selected_root_sequences_list) > 0)
-        if len(self.involved_clusters_list) == 1 and len(self.selected_root_sequences_list) > 0:
-            keep_alignment_rb_text = None
-            # Shows a different label for the checkbutton if there is one or more clusters involved.
-            if len(self.involved_clusters_list) > 1:
-                # keep_alignment_rb_text = "Keep only one alignment and align to its selected sequences the remaining ones"
-                keep_alignment_rb_text =  "Keep previous alignment (?)"
-            elif len(self.involved_clusters_list) == 1:
-                target_cluster_name = self.involved_clusters_list[0].my_header
-                # keep_alignment_rb_text = "Keep '%s', and align to its selected sequences the remaining ones." % (target_cluster_name)
-                keep_alignment_rb_text =  "Keep previous alignment (?)"
-
-            self.alignment_mode_row += 1
-            self.keep_previous_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=keep_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="keep-previous-alignment",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',justify=LEFT,anchor= NW, command=self.click_on_keep_previous_alignment_radio)
-            self.keep_previous_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0))
-
-            # Only if there are multiple clusters involved it displays a combobox to select the
-            # target alignment.
-            if len(self.involved_clusters_list) > 1:
-                # Frame with the options to control the new alignment. It will be gridded in the
-                # click_on_keep_previous_alignment_radio() method.
-                self.keep_previous_alignment_frame = Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_clusters_list = self.involved_clusters_list, label_text = "Alignment to keep:")
-
-
-    def click_on_build_new_alignment_radio(self):
-        if len(self.involved_clusters_list) > 1:
-            if hasattr(self,"keep_previous_alignment_frame"):
-                self.keep_previous_alignment_frame.grid_remove()
-            if hasattr(self,"alignment_joiner_frame"):
-                self.alignment_joiner_frame.grid_remove()
-
-    def click_on_alignment_joiner_radio(self):
-        if len(self.involved_clusters_list) > 1:
-            if hasattr(self,"keep_previous_alignment_frame"):
-                self.keep_previous_alignment_frame.grid_remove()
-
-    def click_on_keep_previous_alignment_radio(self):
-        if len(self.involved_clusters_list) > 1:
-            self.keep_previous_alignment_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
-            if hasattr(self,"alignment_joiner_frame"):
-                self.alignment_joiner_frame.grid_remove()
-
-
     def check_alignment_joining_selection(self):
         """
         Used to check if there is a right selection in order to perform the Alignment Joiner
@@ -610,7 +482,7 @@ class Regular_alignment(Alignment_protocol):
         """
         Gets parameters from the GUI in order to define the alignment mode.
         """
-        self.alignment_mode = self.alignment_mode_radiobutton_var.get()
+        self.alignment_mode = self.alignment_window.get_alignment_mode()
         # Takes the index of the target cluster for the "keep-previous-alignment" mode.
         if self.alignment_mode == "keep-previous-alignment":
             self.target_cluster_index = None
@@ -1146,64 +1018,6 @@ class Profile_alignment(Alignment_protocol):
 
 
     #################################################################
-    # Build components of the GUI to show the alignment options.    #
-    #################################################################
-
-    def build_strategy_specific_modes_frames(self):
-        #------------------------------------------
-        # Perform a profile to profile alignment. -
-        #------------------------------------------
-        if self.can_perform_ptp_alignment:
-            self.alignment_mode_radiobutton_var.set("profile-to-profile")
-            self.alignment_mode_row += 1
-            # profile_profile_rb_text = "Profile to profile: perform a profile to profile alignment."
-            profile_profile_rb_text = "Profile to profile (?)"
-            self.profile_to_profile_radiobutton = Radiobutton(self.alignment_mode_frame, text=profile_profile_rb_text, variable=self.alignment_mode_radiobutton_var, value="profile-to-profile", background='black', foreground = "white", selectcolor = "red", highlightbackground='black', command=self.click_on_profile_to_profile_radio)
-            self.profile_to_profile_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-        else:
-            self.alignment_mode_radiobutton_var.set("sequence-to-profile")
-
-        #-----------------------------------------
-        # Perform sequence to profile alignment. -
-        #-----------------------------------------
-        sequence_profile_rb_text = None
-        build_target_profile_frame = False
-        # Shows a different label for the checkbutton if there is one or more clusters involved.
-        if len(self.selected_clusters_list) > 1:
-            # sequence_profile_rb_text = "Sequence to profile: align to a target profile the rest of the selected sequences."
-            sequence_profile_rb_text = "Sequence to profile (?)"
-            build_target_profile_frame = True
-        elif len(self.selected_clusters_list) == 1:
-            profile_cluster_name = self.involved_clusters_list[0].my_header
-            # sequence_profile_rb_text = "Sequence to profile: align the selected sequence to the target profile '%s'." % (profile_cluster_name)
-            sequence_profile_rb_text = "Sequence to profile (?)"
-
-        # Radiobutton.
-        self.alignment_mode_row += 1
-        self.sequence_to_profile_radiobutton = Radiobutton(self.alignment_mode_frame, text=sequence_profile_rb_text, variable=self.alignment_mode_radiobutton_var, value="sequence-to-profile", background='black', foreground = "white", selectcolor = "red", highlightbackground='black', command=self.click_on_sequence_to_profile_radio)
-        self.sequence_to_profile_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0),pady=(5,0))
-
-        # If there is more than one selected cluster, then build a frame to let the user choose
-        # which is going to be the target profile.
-        if build_target_profile_frame:
-            # Frame with the options to choose which is going to be the target profile.
-            self.target_profile_frame = pmgi.shared_components.Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_cluster_elements_list = self.involved_clusters_list, label_text = "Target profile:")
-            # If the profile to profile option is available, the "target_profile_frame" will be
-            # hidden until the user clicks on the "sequence_to_profile_radiobutton".
-            if not self.can_perform_ptp_alignment:
-                self.target_profile_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
-
-
-    def click_on_profile_to_profile_radio(self):
-        if hasattr(self,"target_profile_frame"):
-            self.target_profile_frame.grid_remove()
-
-    def click_on_sequence_to_profile_radio(self):
-        if self.can_perform_ptp_alignment:
-            self.target_profile_frame.grid(row=self.alignment_mode_row + 1, column=0, sticky = "w",padx=(15,0))
-
-
-    #################################################################
     # Perform the alignment.                                        #
     #################################################################
 
@@ -1212,7 +1026,7 @@ class Profile_alignment(Alignment_protocol):
         Gets several parameters from the GUI in order to define the alignment mode.
         """
         # It can be either "sequence-to-profile" or "profile-to-profile".
-        self.alignment_mode = self.alignment_mode_radiobutton_var.get()
+        self.alignment_mode = self.alignment_window.get_alignment_mode()
         # Takes the index of the target cluster.
         self.target_cluster_index = None
         # Takes the index of the target cluster for the "keep-previous-alignment" mode.
@@ -1222,7 +1036,7 @@ class Profile_alignment(Alignment_protocol):
                 self.target_cluster_index = 0 # Cluster index.
             # Get the index of the cluster from the combobox.
             elif len(self.selected_clusters_list) > 1:
-                self.target_cluster_index = self.target_profile_frame.get_selected_cluster_index()
+                self.target_cluster_index = self.alignment_window.target_profile_frame.get_selected_cluster_index()
 
 
     def perform_alignment_protocol(self):
@@ -1430,63 +1244,19 @@ class Clustalw_alignment:
         self.tool = self.pymod.clustalw
 
 
-    def build_algorithm_options_widgets(self):
-
-        widgets_to_align = []
-
-        # Scoring matrix radioselect.
-        self.matrix_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
-        self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
-        self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
-        for matrix_name in (self.clustal_matrices):
-            self.matrix_rds.add(matrix_name)
-        self.matrix_rds.setvalue("Blosum")
-        self.matrix_rds.pack(side = 'top', anchor="w", pady = 10)
-        widgets_to_align.append(self.matrix_rds)
-
-        # Gap open entryfield.
-        self.gapopen_enf = pmgi.shared_components.PyMod_entryfield(
-            self.alignment_options_frame,
-            label_text = "Gap Opening Penalty",
-            value = '10',
-            validate = {'validator' : 'integer',
-                        'min' : 0, 'max' : 1000})
-        self.gapopen_enf.pack(side = 'top', anchor="w", pady = 10)
-        widgets_to_align.append(self.gapopen_enf)
-
-        # Gap extension entryfield.
-        self.gapextension_enf = pmgi.shared_components.PyMod_entryfield(
-            self.alignment_options_frame,
-            label_text = "Gap Extension Penalty",
-            value = '0.2',
-            validate = {'validator' : 'real',
-                        'min' : 0, 'max' : 1000})
-        self.gapextension_enf.pack(side = 'top', anchor="w", pady = 10)
-        widgets_to_align.append(self.gapextension_enf)
-
-        Pmw.alignlabels(widgets_to_align, sticky="nw")
-        pmgi.shared_components.align_input_widgets_components(widgets_to_align, 10)
-
-
-    def get_matrix_value(self):
-        return self.clustal_matrices_dict[self.matrix_rds.getvalue()]
-
-    def get_gapopen_value(self):
-        return self.gapopen_enf.getvalue()
-
-    def get_gapextension_value(self):
-        return self.gapextension_enf.getvalue()
-
-
 class Clustalw_regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
+
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.Clustalw_regular_window
+
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         # TODO: use_parameters_from_gui.
         self.run_clustalw(sequences_to_align,
                       output_file_name=output_file_name,
-                      matrix=self.get_matrix_value(),
-                      gapopen=int(self.get_gapopen_value()),
-                      gapext=float(self.get_gapextension_value()) )
+                      matrix=self.alignment_window.get_matrix_value(),
+                      gapopen=int(self.alignment_window.get_gapopen_value()),
+                      gapext=float(self.alignment_window.get_gapextension_value()) )
 
 
     def run_clustalw(self, sequences_to_align, output_file_name, matrix="blosum", gapopen=10, gapext=0.2):
@@ -1510,14 +1280,17 @@ class Clustalw_regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
 
 class Clustalw_profile_alignment(Clustalw_alignment, Clustal_profile_alignment):
 
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.Clustalw_profile_window
+
     def prepare_sequence_to_profile_commandline(self, profile_file_shortcut, sequences_to_add_file_shortcut, output_file_shortcut):
         clustalw_path = self.tool.get_exe_file_path()
         cline='"'         +clustalw_path+'"'+ \
             ' -PROFILE1="'+profile_file_shortcut+'"'+ \
             ' -PROFILE2="'+sequences_to_add_file_shortcut+'" -SEQUENCES -OUTORDER=INPUT'+ \
-            ' -MATRIX='   +self.get_matrix_value() + \
-            ' -GAPOPEN='  +self.get_gapopen_value() + \
-            ' -GAPEXT='   +self.get_gapextension_value() + \
+            ' -MATRIX='   +self.alignment_window.get_matrix_value() + \
+            ' -GAPOPEN='  +self.alignment_window.get_gapopen_value() + \
+            ' -GAPEXT='   +self.alignment_window.get_gapextension_value() + \
             ' -OUTFILE="' +output_file_shortcut+'.aln"'
         return cline
 
@@ -1527,9 +1300,9 @@ class Clustalw_profile_alignment(Clustalw_alignment, Clustal_profile_alignment):
         cline='"'          +clustalw_path+'"' \
             ' -PROFILE1="' +profile1+'"'+ \
             ' -PROFILE2="' +profile2+'" -OUTORDER=INPUT' \
-            ' -MATRIX='    +self.get_matrix_value()+ \
-            ' -GAPOPEN='   +str(self.get_gapopen_value())+ \
-            ' -GAPEXT='    +str(self.get_gapextension_value())+ \
+            ' -MATRIX='    +self.alignment_window.get_matrix_value()+ \
+            ' -GAPOPEN='   +str(self.alignment_window.get_gapopen_value())+ \
+            ' -GAPEXT='    +str(self.alignment_window.get_gapextension_value())+ \
             ' -OUTFILE="'  +output_file_shortcut+'.aln"'
         return cline
 
@@ -1550,36 +1323,20 @@ class Clustalomega_alignment:
         Alignment_protocol.__init__(self, pymod)
         self.tool = self.pymod.clustalo
 
-    def build_algorithm_options_widgets(self):
-        self.extraoption=Label(self.alignment_options_frame, font = "comic 12",
-                           height=1, text="Extra Command Line Option",
-                           background='black', fg='red',
-                           borderwidth = 1, padx = 8)
-        self.extraoption.grid(row=10, column=0, sticky = "we", pady=20)
-        self.extraoption_entry=Entry(self.alignment_options_frame,bg='white',width=10)
-        self.extraoption_entry.insert(0, "--auto -v")
-        self.extraoption_entry.grid(row=10,column=1,sticky="we", pady=20)
-        self.extraoption_def=Label(self.alignment_options_frame, font = "comic 10",
-                               height = 1,
-                               text= "--outfmt clustal --force",
-                               background='black', fg='white',
-                               borderwidth = 1, padx = 8)
-        self.extraoption_def.grid(row=10,column=2,sticky="we",pady=20)
-
-
-    def get_extraoption_value(self):
-        return self.extraoption_entry.get()
-
 
 class Clustalomega_regular_alignment(Clustalomega_alignment, Clustal_regular_alignment):
     """
     Regular alignments using Clustal Omega.
     """
 
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.Clustalomega_regular_window
+
+
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         self.run_clustalo(sequences_to_align,
                       output_file_name=output_file_name,
-                      extraoption=self.get_extraoption_value())
+                      extraoption=self.alignment_window.get_extraoption_value())
 
 
     def run_clustalo(self, sequences_to_align, output_file_name=None, extraoption=""):
@@ -1608,13 +1365,17 @@ class Clustalomega_profile_alignment(Clustalomega_alignment, Clustal_profile_ali
     Profile alignments for Clustal Omega.
     """
 
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.Clustalomega_profile_window
+
+
     def prepare_sequence_to_profile_commandline(self, profile_file_shortcut, sequences_to_add_file_shortcut, output_file_shortcut):
         clustalo_path = self.tool.get_exe_file_path()
         cline='"'           +clustalo_path+'"'+ \
             ' --profile1="' +profile_file_shortcut+'"'+ \
             ' --outfile="'  +output_file_shortcut+'.aln"'+ \
             ' --outfmt=clustal --force'+ \
-            ' ' +self.get_extraoption_value()
+            ' ' +self.alignment_window.get_extraoption_value()
         if len(self.elements_to_add)>1:
             cline+=' --infile="'  +sequences_to_add_file_shortcut+'"'
         else:
@@ -1629,7 +1390,7 @@ class Clustalomega_profile_alignment(Clustalomega_alignment, Clustal_profile_ali
             ' --profile2="' +profile2+'"'+ \
             ' --outfile="'  +output_file_shortcut+'.aln"' \
             ' --outfmt=clustal --force' \
-            ' ' +self.get_extraoption_value()
+            ' ' +self.alignment_window.get_extraoption_value()
         return cline
 
 
@@ -1646,15 +1407,13 @@ class MUSCLE_alignment:
         self.tool = self.pymod.muscle
 
 
-    def build_algorithm_options_widgets(self):
-        pass
-
-
 class MUSCLE_regular_alignment(MUSCLE_alignment, Regular_sequence_alignment):
+
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.MUSCLE_regular_window
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         self.run_muscle(sequences_to_align, output_file_name=output_file_name)
-
 
     def run_muscle(self, sequences_to_align, output_file_name):
         """
@@ -1702,27 +1461,10 @@ class SALIGN_seq_alignment(SALIGN_alignment):
         Alignment_protocol.__init__(self, pymod)
         self.tool = self.pymod.modeller
 
-    def build_algorithm_options_widgets(self):
-        return False
-
-        # Use structure information to guide sequence alignment.
-        # self.salign_seq_struct_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
-        # for option in ("Yes","No"):
-        #     self.salign_seq_struct_rds.add(option)
-        # self.salign_seq_struct_rds.setvalue("No")
-        # self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
-        # self.salign_seq_struct_rds.set_input_widget_width(10)
-
-    def get_salign_seq_str_alignment_var(self):
-        if self.structures_are_selected:
-            return False # pmdt.yesno_dict[self.salign_seq_struct_rds.getvalue()]
-        else:
-            return False
-
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name, use_parameters_from_gui=True, use_structural_information=False):
         if use_parameters_from_gui:
-            use_structural_information = self.get_salign_seq_str_alignment_var()
+            use_structural_information = self.alignment_window.get_salign_seq_str_alignment_var()
         self.run_salign_malign(sequences_to_align, output_file_name, use_structural_information)
 
 
@@ -1881,10 +1623,16 @@ class SALIGN_seq_alignment(SALIGN_alignment):
 
 
 class SALIGN_seq_regular_alignment(SALIGN_seq_alignment, Regular_sequence_alignment):
-    pass
 
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.SALIGN_seq_regular_window
+        
 
 class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
+
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.SALIGN_seq_profile_window
+
 
     def run_sequence_to_profile_alignment_program(self):
 
@@ -1925,7 +1673,7 @@ class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
         self.profiles_to_join_file_list=[]
         profiles=[alignment_to_keep_elements]+[[e] for e in self.elements_to_add]
 
-        use_str_info = self.get_salign_seq_str_alignment_var()
+        use_str_info = self.alignment_window.get_salign_seq_str_alignment_var()
 
         for (i,children) in enumerate(profiles):
             file_name = "cluster_" + str(i)
@@ -1950,7 +1698,7 @@ class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
 
         self.profiles_to_join_file_list=[] # two MSA files
 
-        use_str_info = self.get_salign_seq_str_alignment_var()
+        use_str_info = self.alignment_window.get_salign_seq_str_alignment_var()
 
         for (i,cluster) in enumerate(self.selected_clusters_list):
             file_name = "cluster_" + str(i) # Build FASTA with the MSAs.
@@ -1969,6 +1717,7 @@ class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
         self.build_elements_to_align_dict(self.elements_to_align)
         self.protocol_output_file_name = profile_alignment_output
 
+
 ###################################################################################################
 # SALIGN structural alignment.                                                                    #
 ###################################################################################################
@@ -1981,16 +1730,8 @@ class SALIGN_str_regular_alignment(SALIGN_alignment, Regular_structural_alignmen
         Alignment_protocol.__init__(self, pymod)
         self.tool = self.pymod.modeller
 
-    def build_algorithm_options_widgets(self):
-        return False
-
-        # Use structure information to guide sequence alignment.
-        # self.salign_seq_struct_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
-        # for option in ("Yes","No"):
-        #     self.salign_seq_struct_rds.add(option)
-        # self.salign_seq_struct_rds.setvalue("No")
-        # self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
-        # self.salign_seq_struct_rds.set_input_widget_width(10)
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.SALIGN_str_regular_window
 
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name, use_parameters_from_gui=True, use_structural_information=False):
@@ -2132,54 +1873,6 @@ class CEalign_alignment:
         self.pymod.show_popup_message("error", title, message)
 
 
-    def build_algorithm_options_widgets(self):
-
-        widgets_to_align = []
-
-        # # Scoring matrix radioselect.
-        # self.matrix_rds = pmgi.shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
-        # self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
-        # self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
-        # for matrix_name in (self.clustal_matrices):
-        #     self.matrix_rds.add(matrix_name)
-        # self.matrix_rds.setvalue("Blosum")
-        # self.matrix_rds.pack(side = 'top', anchor="w", pady = 10)
-        # widgets_to_align.append(self.matrix_rds)
-        #
-        # # Gap open entryfield.
-        # self.gapopen_enf = pmgi.shared_components.PyMod_entryfield(
-        #     self.alignment_options_frame,
-        #     label_text = "Gap Opening Penalty",
-        #     value = '10',
-        #     validate = {'validator' : 'integer',
-        #                 'min' : 0, 'max' : 1000})
-        # self.gapopen_enf.pack(side = 'top', anchor="w", pady = 10)
-        # widgets_to_align.append(self.gapopen_enf)
-        #
-        # # Gap extension entryfield.
-        # self.gapextension_enf = pmgi.shared_components.PyMod_entryfield(
-        #     self.alignment_options_frame,
-        #     label_text = "Gap Extension Penalty",
-        #     value = '0.2',
-        #     validate = {'validator' : 'real',
-        #                 'min' : 0, 'max' : 1000})
-        # self.gapextension_enf.pack(side = 'top', anchor="w", pady = 10)
-        # widgets_to_align.append(self.gapextension_enf)
-        #
-        # Pmw.alignlabels(widgets_to_align, sticky="nw")
-        # pmgi.shared_components.align_input_widgets_components(widgets_to_align, 10)
-
-
-    # def get_matrix_value(self):
-    #     return self.clustal_matrices_dict[self.matrix_rds.getvalue()]
-    #
-    # def get_gapopen_value(self):
-    #     return self.gapopen_enf.getvalue()
-    #
-    # def get_gapextension_value(self):
-    #     return self.gapextension_enf.getvalue()
-
-
     def update_aligned_sequences(self):
         if get_ce_mode() == "plugin":
             self.update_aligned_sequences_with_modres()
@@ -2188,6 +1881,10 @@ class CEalign_alignment:
 
 
 class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment):
+
+    def get_alignment_window_class(self):
+        return pmgi.alignment_components.CEalign_regular_window
+
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         # TODO: use_parameters_from_gui.

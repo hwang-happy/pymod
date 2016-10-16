@@ -99,11 +99,41 @@ target_box_style = {"background":'black', "bd":1, "relief":GROOVE, "padx":10, "p
 # CLASSES FOR WIDGETS USED THROUGHOUT THE PLUGIN MULTIPLE TIMES.                                  #
 ###################################################################################################
 
-class PyMod_gui_style_mixin:
-    pass
+class PyMod_gui_mixin:
+
+    ###############################################################################################
+    # FUNCTIONS USED THROUGHOUT THE MODULE.                                                       #
+    ###############################################################################################
+
+    def align_set_of_widgets(self, widgets_to_align, input_widget_width=10):
+        Pmw.alignlabels(widgets_to_align, sticky="nw")
+        self.align_input_widgets_components(widgets_to_align, input_widget_width)
 
 
-class PyMod_frame(Frame):
+    def align_input_widgets_components(self, widgets_to_align, input_widgets_width):
+        """
+        Used to force to the same width all the input components of a list of widgets to align.
+        It will be generally used along (and after) the label componets are aligned with
+        Pmw.alignlabels().
+        """
+        map(lambda w: w.set_input_widget_width(input_widgets_width), widgets_to_align)
+
+
+    def get_parent_window(self, target_widget):
+        """
+        Returns the parent window Tkinter object of a target widget. Useful when specifiying the parents
+        windows in Tkinter dialogs.
+        """
+        parent_window_name = target_widget.winfo_parent()
+        parent_window = target_widget.nametowidget(parent_window_name) # also: _nametowidget
+        return parent_window
+
+
+    def check_non_empty_input(gui_input):
+        return gui_input != ""
+
+
+class PyMod_frame(Frame, PyMod_gui_mixin):
     """
     A class for frames created in the PyMod GUI.
     """
@@ -111,7 +141,11 @@ class PyMod_frame(Frame):
         Frame.__init__(self, parent, background = widgets_background_color, **configs)
 
 
-class PyMod_base_window(Toplevel):
+###################################################################################################
+# WINDOWS USED IN THE PLUGIN.                                                                     #
+###################################################################################################
+
+class PyMod_base_window(Toplevel, PyMod_gui_mixin):
     """
     A class for a base window created in PyMod.
     """
@@ -249,11 +283,17 @@ class PyMod_tool_window(PyMod_base_window):
         return True
 
 
+class PyMod_protocol_window_mixin:
+
+    def __init__(self, protocol):
+        self.protocol = protocol
+
+
 ###################################################################################################
 # OPTION SELECTION WIDGETS.                                                                       #
 ###################################################################################################
 
-class PyMod_radioselect(Pmw.RadioSelect):
+class PyMod_radioselect(Pmw.RadioSelect, PyMod_gui_mixin):
     """
     Class for custom Pmw.RadioSelect widgets.
     """
@@ -287,7 +327,7 @@ class PyMod_radioselect(Pmw.RadioSelect):
             b.configure(width = widget_width)
 
 
-class PyMod_entryfield(Pmw.EntryField):
+class PyMod_entryfield(Pmw.EntryField, PyMod_gui_mixin):
     """
     Class for custom Pmw.EntryField widgets.
     """
@@ -336,10 +376,10 @@ class PyMod_path_entryfield(PyMod_entryfield):
         if self.path_type == "file":
             new_path = askopenfilename(title = self.askpath_title,
                 initialdir=os.path.dirname(current_path),
-                initialfile=os.path.basename(current_path), parent = get_parent_window(self), filetypes = self.file_types)
+                initialfile=os.path.basename(current_path), parent = self.get_parent_window(self), filetypes = self.file_types)
 
         elif self.path_type == "directory":
-            new_path = askdirectory(title = self.askpath_title, initialdir=os.path.dirname(current_path), mustexist = True, parent = get_parent_window(self))
+            new_path = askdirectory(title = self.askpath_title, initialdir=os.path.dirname(current_path), mustexist = True, parent = self.get_parent_window(self))
 
         # Updates the text in the Entry with the new path name.
         if new_path:
@@ -350,7 +390,7 @@ class PyMod_path_entryfield(PyMod_entryfield):
             self.run_after_selection()
 
 
-class PyMod_combobox(Pmw.ComboBox):
+class PyMod_combobox(Pmw.ComboBox, PyMod_gui_mixin):
     """
     Class for custom combobox widgets.
     """
@@ -374,7 +414,7 @@ class PyMod_combobox(Pmw.ComboBox):
         self.component("entryfield").component("entry").configure(width = widget_width)
 
 
-class PyMod_dialog(Pmw.MessageDialog):
+class PyMod_dialog(Pmw.MessageDialog, PyMod_gui_mixin):
     def __init__(self, parent, **configs):
         Pmw.MessageDialog.__init__(self, parent, command = self.dialog_state,**configs)
         self.wait_state = True
@@ -405,7 +445,7 @@ class PyMod_dialog(Pmw.MessageDialog):
 # alignments.                                                       #
 #####################################################################
 
-class Cluster_selection_frame(Frame):
+class Cluster_selection_frame(Frame, PyMod_gui_mixin):
     """
     Class used to build a frame containing the widgets necessary to select a cluster from a
     combobox. This is used in the alignment options window.
@@ -485,39 +525,3 @@ class Modeller_exec_entryfield(PyMod_path_entryfield):
         self.choose_path_button.grid_forget()
         self.not_necessary_label.grid(column=3,row=2, padx=(15,0))
         self.component("entry").configure(state="readonly")
-
-
-###################################################################################################
-# FUNCTIONS USED THROUGHOUT THE MODULE.                                                           #
-###################################################################################################
-
-def align_set_of_widgets(widgets_to_align, input_widget_width=10):
-        Pmw.alignlabels(widgets_to_align, sticky="nw")
-        align_input_widgets_components(widgets_to_align, input_widget_width)
-
-
-def align_input_widgets_components(widgets_to_align, input_widgets_width):
-    """
-    Used to force to the same width all the input components of a list of widgets to align.
-    It will be generally used along (and after) the label componets are aligned with
-    Pmw.alignlabels().
-    """
-    map(lambda w: w.set_input_widget_width(input_widgets_width), widgets_to_align)
-
-
-def get_parent_window(target_widget):
-    """
-    Returns the parent window Tkinter object of a target widget. Useful when specifiying the parents
-    windows in Tkinter dialogs.
-    """
-    parent_window_name = target_widget.winfo_parent()
-    parent_window = target_widget.nametowidget(parent_window_name) # also: _nametowidget
-    return parent_window
-
-
-def check_non_empty_input(gui_input):
-    return gui_input != ""
-
-#####################################################################
-# Classes for the graphical user interface.                         #
-#####################################################################

@@ -1614,7 +1614,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.selection_structure_menu.add_separator()
             self.selection_structure_menu.add_command(label="Remove 3D Structures")
         elif self.pymod.all_sequences_have_fetchable_pdbs():
-            self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: self.fetch_pdb_files_from_popup_menu("selection", None))
+            self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: self.pymod.fetch_pdb_files_from_popup_menu("selection", None))
         self.selection_menu.add_cascade(menu=self.selection_structure_menu, label="Structures")
 
 

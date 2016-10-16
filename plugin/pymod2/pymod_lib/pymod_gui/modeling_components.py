@@ -11,30 +11,27 @@ from pymod_lib.pymod_gui import shared_components
 
 import pymod_lib.pymod_sequence_manipulation as pmsm
 
-# TODO:
-#   - remove pymod_object
-
 # TODO: make a base class for all kind of protocols window.
 class Modeling_window_mixin:
     """
     A mixin for the 'Modeling Windows' of PyMod.
     """
-    modeling_protocol = None
+    current_protocol = None
 
 
 ###############################################################################################
 # GUI of the homology modeling window.                                                        #
 ###############################################################################################
 
-class Modeling_window(Toplevel, Modeling_window_mixin):
+class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_gui_mixin):
     """
     A class to represent the 'Homology Modeling Window' of PyMod.
     """
 
-    def __init__(self, parent, modeling_protocol, **configs):
+    def __init__(self, parent, protocol, **configs):
 
         Toplevel.__init__(self, parent, **configs)
-        Modeling_window_mixin.modeling_protocol = modeling_protocol
+        Modeling_window_mixin.current_protocol = protocol
 
         self.resizable(1,1)
         self.title("<< MODELLER Options >>")
@@ -73,7 +70,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         self.lowerframe.pack(side = BOTTOM,expand=1,fill=BOTH, anchor="center",ipadx=5,ipady=5)
         # This is the button on the modellization window that when is pressed calls
         # the state() function above.
-        self.submit=Button(self.lowerframe, text="SUBMIT", command=self.modeling_protocol.perform_modelization, **shared_components.button_style_1)
+        self.submit=Button(self.lowerframe, text="SUBMIT", command=self.current_protocol.perform_modelization, **shared_components.button_style_1)
         self.submit.pack(pady=10)
 
 
@@ -103,7 +100,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
 
         # If the user choose to build a multiple chain model, it displays an additional option to
         # let the user choose his/her "template complex".
-        if self.modeling_protocol.multiple_chain_mode:
+        if self.current_protocol.multiple_chain_mode:
             # An additional frame for the "template complex" selection.
             self.template_complex_selection_frame = Frame(self.main_frame_interior,borderwidth=0, background='black', relief='groove', pady=15)
             self.template_complex_selection_frame.pack(side="top", anchor="w")
@@ -113,7 +110,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             # The user can choose the "template complex" with some Radiobuttons.
             self.template_complex_var = StringVar()
             # Initialize by default with the first PDB in the list.
-            self.template_complex_var.set(self.modeling_protocol.available_template_complex_list[0])
+            self.template_complex_var.set(self.current_protocol.available_template_complex_list[0])
 
             # Display some information to explain what is a "template complex".
             information = (
@@ -124,13 +121,13 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             # self.template_complex_message = Label(self.template_complex_selection_frame, text= information, **shared_components.modeling_window_explanation)
             # self.template_complex_message.grid(row=1, column=0, sticky = "w")
 
-            for (tc_i,tc) in enumerate(self.modeling_protocol.available_template_complex_list):
+            for (tc_i,tc) in enumerate(self.current_protocol.available_template_complex_list):
                 tcb = Radiobutton(self.template_complex_selection_frame, text=tc, variable=self.template_complex_var, value=tc, **shared_components.modeling_window_rb_big)
                 tcb.grid(row=tc_i+2, column=0, sticky = "w",padx=(20,0))
 
         # Builds a frame for each modeling_cluster.
-        for (i, modeling_cluster) in enumerate(self.modeling_protocol.modeling_clusters_list):
-            if self.modeling_protocol.multiple_chain_mode:
+        for (i, modeling_cluster) in enumerate(self.current_protocol.modeling_clusters_list):
+            if self.current_protocol.multiple_chain_mode:
                 spacer_frame = Frame(self.main_frame_interior, background='black',height = 2,bd=1,relief=GROOVE)
                 spacer_frame.pack(side="top", padx = 20, anchor="w", fill="x")
             # A frame that will contain all the widgets necessary to choose the templates for a
@@ -150,7 +147,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
             additional_options_label=Label(modeling_cluster_frame, text= "Restraints options", **shared_components.modeling_options_sections_style)
             additional_options_frame = Frame(modeling_cluster_frame, **shared_components.target_box_style)
             show_additional_options = False
-            if self.modeling_protocol.multiple_chain_mode:
+            if self.current_protocol.multiple_chain_mode:
                 # Use symmetry restraints option.
                 if modeling_cluster.symmetry_restraints_id != None:
                     symmetry_frame = Frame(additional_options_frame,background='black',bd=0,relief=GROOVE)
@@ -192,7 +189,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         Launched when the user activates/inactivates the "Include HetAtoms" in the Options page in
         the modeling window.
         """
-        for mc in self.modeling_protocol.modeling_clusters_list:
+        for mc in self.current_protocol.modeling_clusters_list:
             self.switch_hetres_checkbutton_states(mc, het_radio_button_state)
         if het_radio_button_state == 0:
             self.exclude_heteroatoms_rds.setvalue("Yes")
@@ -204,7 +201,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         """
         Displays informations about which target sequence shares the same sequence of other targets.
         """
-        mc_list = self.modeling_protocol.symmetry_restraints_groups.get_group_by_id(modeling_cluster.symmetry_restraints_id).list_of_clusters
+        mc_list = self.current_protocol.symmetry_restraints_groups.get_group_by_id(modeling_cluster.symmetry_restraints_id).list_of_clusters
         mc_list = filter(lambda x: not x is modeling_cluster ,mc_list)
         message1 = "The target '%s' shares the same sequence with these other targets:" % (modeling_cluster.target_name)
         seqs = reduce(lambda x,y: x+",\n"+y, [mc.target_name for mc in mc_list])
@@ -236,11 +233,11 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         self.disulfides_frame.grid(row=0, column=0, sticky = "nw",pady=(0,5))
         # If at least one cluster has a target with at least two CYS residues, then build the
         # disulfide page with all its options.
-        if self.modeling_protocol.check_targets_with_cys():
+        if self.current_protocol.check_targets_with_cys():
             self.disulfides_frame.build_template_dsb_frame()
             # User defined dsb. Each target is going to have a frame to define additional dsb.
             self.disulfides_frame.build_user_defined_dsb_frame()
-            for (mci,mc) in enumerate(self.modeling_protocol.modeling_clusters_list):
+            for (mci,mc) in enumerate(self.current_protocol.modeling_clusters_list):
                 self.disulfides_frame.build_modeling_cluster_users_dsb_frame(mc,mci)
             self.disulfides_frame.build_auto_dsb_frame()
         else:
@@ -271,7 +268,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         # Option to chose the number of models that Modeller has to produce.
         self.max_models_enf = shared_components.PyMod_entryfield(
             self.options_frame, label_text = "Models to Build", value = 1,
-            validate = {'validator' : 'integer', 'min' : 1, 'max' : self.modeling_protocol.max_models_per_session})
+            validate = {'validator' : 'integer', 'min' : 1, 'max' : self.current_protocol.max_models_per_session})
         self.max_models_enf.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.max_models_enf)
 
@@ -311,7 +308,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin):
         self.superpose_models_to_templates_rds.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.superpose_models_to_templates_rds)
 
-        shared_components.align_set_of_widgets(option_widgets_to_align)
+        self.align_set_of_widgets(option_widgets_to_align)
 
 
     def switch_hetres_checkbutton_states(self, modeling_cluster, het_radio_button_state):
@@ -558,12 +555,12 @@ class Structure_frame(shared_components.PyMod_frame, Modeling_window_mixin):
 
     def show_select_single_hetres_frame(self):
         self.select_single_hetres_frame.grid(row=2, column=0, sticky = "w")
-        self.modeling_protocol.modeling_window.main_frame.reposition()
+        self.current_protocol.modeling_window.main_frame.reposition()
 
 
     def hide_select_single_hetres_frame(self):
         self.select_single_hetres_frame.grid_remove()
-        self.modeling_protocol.modeling_window.main_frame.reposition()
+        self.current_protocol.modeling_window.main_frame.reposition()
 
 
     def build_water_frame(self):
@@ -597,7 +594,7 @@ class Structure_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         all the other structures, because only water from one structure can be used to build the
         model.
         """
-        for sf in self.modeling_protocol.modeling_clusters_list[self.mc_id].structure_frame_list:
+        for sf in self.current_protocol.modeling_clusters_list[self.mc_id].structure_frame_list:
             if sf.id != self.id and sf.structure_pymod_element.has_waters():
                 sf.water_checkbox.deselect()
 
@@ -654,7 +651,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         self.templates_dsb_label.grid(row=0, column=0, sticky = "nw", pady=(0,0))
 
         # If there are some templates with disulfide bridges.
-        if self.modeling_protocol.check_structures_with_disulfides():
+        if self.current_protocol.check_structures_with_disulfides():
             # Label for the information about the use of this feature.
             information = "Include disulfide bridges found in the structures in the Templates page."
             self.template_disulfides_information = Label(self.template_dsb_frame, text= information, **shared_components.modeling_window_explanation)
@@ -693,7 +690,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         Called when the "Yes" radiobutton of the "Use template disulfide" option is pressed.
         """
         self.toggle_template_frame.grid(row = 3, column = 0,sticky = "w",padx = (30,0),pady = (5,0))
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def show_template_dsb(self):
         """
@@ -701,7 +698,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         """
         self.template_disulfides_frame.grid(row=4, column=0,sticky = "w",padx = (30,0),pady = (5,0))
         self.toggle_template_dsb_button.configure(text="Hide",command = self.hide_template_dsb)
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def inactivate_template_dsb_frame(self):
         """
@@ -711,7 +708,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         """
         self.toggle_template_frame.grid_remove()
         self.hide_template_dsb()
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def hide_template_dsb(self):
         """
@@ -719,7 +716,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         """
         self.template_disulfides_frame.grid_remove()
         self.toggle_template_dsb_button.configure(text="Show",command = self.show_template_dsb)
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def build_templates_disulfides_frame(self):
         """
@@ -728,7 +725,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         # Frame for template disulfides.
         self.template_disulfides_frame = Frame(self.template_dsb_frame, background='black', bd=1, relief = GROOVE, padx = 15, pady = 10)
         # Build a frame for every modeling cluster which have templates with disulfides.
-        for mci, mc in enumerate(filter(lambda mc: mc.has_structures_with_disulfides(), self.modeling_protocol.modeling_clusters_list)):
+        for mci, mc in enumerate(filter(lambda mc: mc.has_structures_with_disulfides(), self.current_protocol.modeling_clusters_list)):
             # A counter to iterate through all the template structures.
             frame_for_cluster_templates_dsb = Frame(self.template_disulfides_frame, background='black')
             frame_for_cluster_templates_dsb.grid(row=mci, column=0,sticky = "w", pady=(0,10))
@@ -813,11 +810,11 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
 
     def activate_combo_box_frame(self):
         self.user_defined_dsb_combo_box_frame.grid(row=3, column=0,sticky = "nw",padx = (30,0))
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def inactivate_combo_box_frame(self):
         self.user_defined_dsb_combo_box_frame.grid_remove()
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
     def build_auto_dsb_frame(self):
@@ -852,7 +849,7 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
 
     def activate_auto_dsb(self):
         # Inactivates the "use template dsb" radiobuttons and selects the "No" radiobutton.
-        if self.modeling_protocol.check_structures_with_disulfides():
+        if self.current_protocol.check_structures_with_disulfides():
             self.use_template_dsb_rad2.select()
             self.use_template_dsb_rad1.configure(state=DISABLED)
             self.use_template_dsb_rad2.configure(state=DISABLED)
@@ -864,17 +861,17 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         self.use_user_defined_dsb_rad2.configure(state=DISABLED)
 
         self.user_defined_dsb_combo_box_frame.grid_remove()
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
     def inactivate_auto_dsb(self):
         # Reactivates the "use template dsb" and the "create new dsb" radiobuttons.
-        if self.modeling_protocol.check_structures_with_disulfides():
+        if self.current_protocol.check_structures_with_disulfides():
             self.use_template_dsb_rad1.configure(state=NORMAL)
             self.use_template_dsb_rad2.configure(state=NORMAL)
 
         self.use_user_defined_dsb_rad1.configure(state=NORMAL)
         self.use_user_defined_dsb_rad2.configure(state=NORMAL)
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
     def build_no_dsb_frame(self):
@@ -960,12 +957,12 @@ class User_dsb_selector_frame(shared_components.PyMod_frame, Modeling_window_mix
         # Checks that both the comboboxes have been used to select a cys.
         if (self.list_of_disulfide_combos[-1].cys1_combobox.get() == "" or self.list_of_disulfide_combos[-1].cys2_combobox.get() == ""):
             txt = "You have to select two cysteines residue to define a disulfide bridge!"
-            tkMessageBox.showwarning("Warning", txt,parent=self.modeling_protocol.modeling_window)
+            tkMessageBox.showwarning("Warning", txt,parent=self.current_protocol.modeling_window)
 
         # Checks that the same cys has not been selected in both comboboxes.
         elif (self.list_of_disulfide_combos[-1].cys1_combobox.get() == self.list_of_disulfide_combos[-1].cys2_combobox.get()):
             txt = "You cannot select the same cysteine to form a disulfide bridge!"
-            tkMessageBox.showwarning("Message", txt,parent=self.modeling_protocol.modeling_window)
+            tkMessageBox.showwarning("Message", txt,parent=self.current_protocol.modeling_window)
 
         # Checks that the selected cys are not engaged in other bridges.
         # ...
@@ -987,7 +984,7 @@ class User_dsb_selector_frame(shared_components.PyMod_frame, Modeling_window_mix
             # used in the perform_modelization() method.
             self.user_defined_disulfide_bridges.append(cysteines)
             # self.print_user_ds_list()
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
     def remove_user_disulfide(self, udc_to_remove):
@@ -1000,7 +997,7 @@ class User_dsb_selector_frame(shared_components.PyMod_frame, Modeling_window_mix
         self.list_of_disulfide_combos.remove(udc_to_remove)
         # Also removes the bridge from the self.user_defined_disulfide_bridges.
         self.user_defined_disulfide_bridges.remove(dsb_to_remove)
-        self.modeling_protocol.modeling_window.disulfides_scrolled_frame.reposition()
+        self.current_protocol.modeling_window.disulfides_scrolled_frame.reposition()
 
 
 class User_disulfide_combo(shared_components.PyMod_frame, Modeling_window_mixin):
