@@ -1,25 +1,24 @@
 # TODO:
 #     - MODELLER.
 #     - implement ordered dictionaries.
-#     - color the clusters after modifications.
+#     - color the clusters after modifications. Cluster appearance.
+#         - reimplement the collapsed clusters features.
 #     - add raw sequences.
-#     - reimplement the collapsed clusters features.
 #     - rewrite the 'execute_subprocess' method.
 #     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
 #     - RMSD part.
 #     - reimplement the rest.
+#         - reimplement the "Display" submenu in the main menu.
 #     - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
 #         - build well organized classes for the protocols windows.
 #     - integrate the modifications made in the stable branch.
-#         - control the sequences.
-#         - models refinement.
+#         - control the sequences before modeling.
 #     - add the licence part to each file of the plugin.
 #     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
-#     - reimplement the "Display" submenu in the main menu.
 #     - add an "export to .phy file" option when showing distance trees.
-#     - add a similar option for distance matrices, dope profiles and assessment tables.
+#         - add a similar option for distance matrices, dope profiles and assessment tables.
 #     - 'update structures from PyMOL' and 'move back to original position' part.
 #         - implement a 'Superpose in PyMOL' option in structural alignments.
 #     - define modified residues.
@@ -709,7 +708,8 @@ class PyMod:
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
         # Fetch sequences from the PDB.
-        self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
         # Dimer: complex case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))

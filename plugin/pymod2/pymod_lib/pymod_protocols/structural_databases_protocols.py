@@ -61,6 +61,7 @@ class Fetch_structure_file(PyMod_protocol):
     def fetch_pdb_files(self):
         # Begins to actually fetch the PDB files.
         for element in self.structures_to_fetch:
+
             pdb_code, pdb_chain_id = self._get_pdb_code_from_header(element)
             try:
                 pdb_file_shortcut = self._fetch_structure_file(pdb_code, self.pymod.temp_directory_name)
@@ -75,7 +76,7 @@ class Fetch_structure_file(PyMod_protocol):
             # to the region identified by BLAST.                                                  -
             #--------------------------------------------------------------------------------------
             if self.import_mode == "single-chain":
-                raise Exception("TODO")
+                pmstr.associate_structure(pdb_file_shortcut, pdb_chain_id, element, output_directory=self.pymod.temp_directory_name)
                 # if not self.associate_structure(pdb_file, pdb_chain, element):
                 #     self.show_associate_structure_error()
 

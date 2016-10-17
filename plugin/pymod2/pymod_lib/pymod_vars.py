@@ -137,7 +137,7 @@ def convert_to_tkinter_rgb(rgb_tuple):
 # PyMod color palette.
 pymod_regular_colors_list = ['red', 'green', 'blue', 'yellow', 'violet', 'cyan',
                              'salmon', 'pink', 'magenta', 'orange', 'purple',
-                             'firebrick', 'chocolate', 'white']
+                             'firebrick', 'chocolate', 'gray', 'white']
 
 # PyMOL color cycle.
 # pymol_full_color_cycle = [
