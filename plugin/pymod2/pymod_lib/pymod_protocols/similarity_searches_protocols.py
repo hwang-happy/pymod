@@ -1,6 +1,5 @@
 import os
 import sys
-import shutil # TODO: check if used.
 
 from Tkinter import *
 from tkFileDialog import *
@@ -91,72 +90,11 @@ class Generic_BLAST_search(PyMod_protocol):
         Builds a window containing the widget necessary to define the options for BLAST and
         PSI-BLAST searches.
         """
-        self.current_pack_options = pmgi.shared_components.pack_options_1
-        self.current_label_options = pmgi.shared_components.label_style_1
-
-        self.blast_options_window = pmgi.shared_components.PyMod_tool_window(self.pymod.main_window,
+        blast_window_class = self.get_blast_window_class()
+        self.blast_options_window = blast_window_class(self.pymod.main_window, protocol=self,
             title = "%s Search Options" % (pmdt.algorithms_full_names_dict[self.blast_version]),
             upper_frame_title = "Here you can modify search options for %s" % (pmdt.algorithms_full_names_dict[self.blast_version]),
-            submit_command = self.blast_window_state,
-            with_frame=True)
-        self.blast_options_window.geometry("550x600")
-
-        # -----------------
-        # Simple options. -
-        # -----------------
-        self.build_algorithm_standard_options_widgets()
-
-        # E-value selection.
-        self.e_value_threshold_enf = pmgi.shared_components.PyMod_entryfield(self.blast_options_window.midframe,
-            label_text = "E-value Threshold",
-            label_style = self.current_label_options,
-            value = 10.0,
-            validate = {'validator' : 'real', 'min' : 0.0, 'max' : 1000.0} )
-        self.e_value_threshold_enf.pack(**self.current_pack_options)
-        self.blast_options_window.add_widget_to_align(self.e_value_threshold_enf)
-        self.blast_options_window.add_widget_to_validate(self.e_value_threshold_enf)
-
-        # Max hit number selection.
-        self.max_hits_enf = pmgi.shared_components.PyMod_entryfield(self.blast_options_window.midframe,
-            label_text = "Max Number of Hits",
-            label_style = self.current_label_options,
-            value = 100,
-            validate = {'validator' : 'integer', 'min' : 1, 'max' : 5000} )
-        self.max_hits_enf.pack(**self.current_pack_options)
-        self.blast_options_window.add_widget_to_align(self.max_hits_enf)
-        self.blast_options_window.add_widget_to_validate(self.max_hits_enf)
-
-        # -------------------
-        # Advanced options. -
-        # -------------------
-        self.blast_options_window.show_advanced_button()
-
-        # Minimum id% on with query.
-        self.min_id_enf = pmgi.shared_components.PyMod_entryfield(self.blast_options_window.midframe,
-            label_text = "Min ID% Threshold",
-            label_style = self.current_label_options,
-            value = 0,
-            validate = {'validator' : 'integer', 'min' : 0, 'max' : 100} )
-        self.blast_options_window.add_widget_to_align(self.min_id_enf)
-        self.blast_options_window.add_advanced_widget(self.min_id_enf)
-        self.blast_options_window.add_widget_to_validate(self.min_id_enf)
-
-        # Minimum coverage on the query.
-        self.min_coverage_enf = pmgi.shared_components.PyMod_entryfield(self.blast_options_window.midframe,
-            label_text = "Min Coverage% Threshold",
-            label_style = self.current_label_options,
-            value = 0,
-            validate = {'validator' : 'integer', 'min' : 0, 'max' : 100} )
-        self.blast_options_window.add_widget_to_align(self.min_coverage_enf)
-        self.blast_options_window.add_advanced_widget(self.min_coverage_enf)
-        self.blast_options_window.add_widget_to_validate(self.min_coverage_enf)
-
-        # Organisms.
-        # To be done.
-
-        self.build_algorithm_advanced_options_widgets()
-
-        self.blast_options_window.align_widgets(input_widget_width=10)
+            submit_command = self.blast_window_state)
 
 
     #################################################################
@@ -568,22 +506,15 @@ class Generic_BLAST_search(PyMod_protocol):
 class NCBI_BLAST_search(Generic_BLAST_search):
 
     blast_version = "blast"
+    ncbi_databases = [("Nr", "nr"), ("Pdb", "pdb"), ("SwissProt", "swissprot"),
+                      ("Yeast", "yeast"), ("E. coli", "E. coli"), ("Patents", "patents"),
+                      ("Month", "month"), ("Kabat", "kabat"), ("Alu", "alu")]
 
     def check_blast_program(self):
         return True # TODO: check the internet connection.
 
-
-    def build_algorithm_standard_options_widgets(self):
-        self.ncbiblast_database_rds = pmgi.shared_components.PyMod_radioselect(self.blast_options_window.midframe, label_text = 'Database Selection')
-        for text, val in pmdt.ncbi_databases:
-            self.ncbiblast_database_rds.add(text)
-        self.ncbiblast_database_rds.setvalue('Pdb')
-        self.ncbiblast_database_rds.pack(**self.current_pack_options)
-        self.blast_options_window.add_widget_to_align(self.ncbiblast_database_rds)
-
-
-    def build_algorithm_advanced_options_widgets(self):
-        pass
+    def get_blast_window_class(self):
+        return pmgi.similarity_searches_components.BLAST_options_window
 
 
     def check_blast_input_parameters(self):
@@ -617,14 +548,14 @@ class NCBI_BLAST_search(Generic_BLAST_search):
         query_seq = str(self.blast_query_element.my_sequence)
         try:
             if self.blast_options_window.showing_advanced_widgets:
-                self.min_id = self.min_id_enf.getvalue()
-                self.min_coverage = self.min_coverage_enf.getvalue()
+                self.min_id = self.blast_options_window.min_id_enf.getvalue()
+                self.min_coverage = self.blast_options_window.min_coverage_enf.getvalue()
 
             result_handle = NCBIWWW.qblast("blastp",
                 self.get_ncbiblast_database(),
                 query_seq,
-                hitlist_size=self.max_hits_enf.getvalue(),
-                expect=self.e_value_threshold_enf.getvalue())
+                hitlist_size=self.blast_options_window.max_hits_enf.getvalue(),
+                expect=self.blast_options_window.e_value_threshold_enf.getvalue())
 
             blast_results = result_handle.read()
             # Saves an XML file that contains the results and that will be used to display them on
@@ -644,8 +575,9 @@ class NCBI_BLAST_search(Generic_BLAST_search):
 
 
     def get_ncbiblast_database(self):
-        text = self.ncbiblast_database_rds.getvalue()
-        for i in pmdt.ncbi_databases:
+        # TODO: use ordered dicts.
+        text = self.blast_options_window.ncbiblast_database_rds.getvalue()
+        for i in self.ncbi_databases:
             if i[0] == text:
                 return i[1]
 
@@ -657,8 +589,11 @@ class NCBI_BLAST_search(Generic_BLAST_search):
 class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
 
     blast_version = "psi-blast"
+    # PSI-BLAST minimum inclusion E-value.
+    min_inclusion_eval_default = 0.005
 
     def check_blast_program(self):
+        self.databases_directories_list = self.build_blast_db_list()
         # If performing a PSI-BLAST search, check if PSI-BLAST is installed.
         if not self.pymod.blast_plus["exe_dir_path"].path_exists(): # TODO: make a 'check_tool' method.
             self.pymod.blast_plus.exe_not_found()
@@ -667,58 +602,8 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
             return True
 
 
-    def build_algorithm_standard_options_widgets(self):
-        # Makes the user chose the folder where the BLAST database files are stored locally.
-        # A list containing information about the databases present in PyMod BLAST database
-        # folder.
-        self.list_of_databases_directories = self.build_blast_db_list()
-        self.psiblast_database_rds = pmgi.shared_components.PyMod_radioselect(self.blast_options_window.midframe, label_text = 'Database Selection')
-        # Add the buttons to choose the database.
-        # self.psiblast_database_rds.add("select...")
-        for db in self.list_of_databases_directories:
-            self.psiblast_database_rds.add(db["prefix"])
-        # Adds a 'Browse' button in order to let users specify a custom database on their
-        # system.
-        self.interior = self.psiblast_database_rds.component('frame')
-        self.choose_path_label = Label(self.interior, text="None", **pmgi.shared_components.label_style_2)
-        self.choose_path_label.grid(column=3,row=0, padx=(0,0))
-        self.psiblast_database_rds.button(0).configure(command=self.choose_psiblast_db_dir)
-        # Packs the PSI-BLAST database selection widget.
-        self.psiblast_database_rds.pack(**self.current_pack_options)
-        self.blast_options_window.add_widget_to_align(self.psiblast_database_rds)
-
-        self.psiblast_iterations_enf = pmgi.shared_components.PyMod_entryfield(self.blast_options_window.midframe,
-            label_text = "PSI-BLAST Iterations",
-            label_style = self.current_label_options,
-            value = 3,
-            validate = {'validator' : 'integer', 'min' : 1, 'max' : 10} )
-        self.psiblast_iterations_enf.pack(**self.current_pack_options)
-        self.blast_options_window.add_widget_to_align(self.psiblast_iterations_enf)
-        self.blast_options_window.add_widget_to_validate(self.psiblast_iterations_enf)
-
-
-    def build_algorithm_advanced_options_widgets(self):
-        # PSI-BLAST minimum inclusion E-value.
-        self.psiblast_min_inclusion_eval_default = 0.005
-        if self.blast_version == "psi-blast":
-            self.psiblast_eval_threshold_enf = pmgi.shared_components.PyMod_entryfield(self.blast_options_window.midframe,
-                label_text = "PSI-BLAST E-value Threshold",
-                label_style = self.current_label_options,
-                value = self.psiblast_min_inclusion_eval_default,
-                validate = {'validator' : 'real', 'min' : 0.0, 'max' : 1000.0} )
-            self.blast_options_window.add_widget_to_align(self.psiblast_eval_threshold_enf)
-            self.blast_options_window.add_advanced_widget(self.psiblast_eval_threshold_enf)
-            self.blast_options_window.add_widget_to_validate(self.psiblast_eval_threshold_enf)
-
-        # Use current cluster for PSI-BLAST PSSM.
-        # if self.blast_query_element.is_child:
-        #     self.use_current_pssm_rds = pmgi.shared_components.PyMod_radioselect(self.blast_options_window.midframe, label_text = 'Use current cluster as PSSM')
-        #     for text in ('Yes', 'No'):
-        #         self.use_current_pssm_rds.add(text)
-        #     self.use_current_pssm_rds.setvalue('No')
-        #     # self.use_current_pssm_rds.pack(side = 'top', padx = 10, pady = 10, anchor="w")
-        #     self.blast_options_window.add_widget_to_align(self.use_current_pssm_rds)
-        #     self.blast_options_window.add_advanced_widget(self.use_current_pssm_rds)
+    def get_blast_window_class(self):
+        return pmgi.similarity_searches_components.PSI_BLAST_options_window
 
 
     def check_blast_input_parameters(self):
@@ -769,15 +654,15 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
         # Sets some parameters in needed to run PSI-BLAST.
         ncbi_dir = self.pymod.blast_plus["exe_dir_path"].get_value()
         db_path = self.get_psiblast_database_from_gui()
-        iterations = self.psiblast_iterations_enf.getvalue()
-        evalue_cutoff = self.e_value_threshold_enf.getvalue()
-        max_hits = self.max_hits_enf.getvalue()
+        iterations = self.blast_options_window.psiblast_iterations_enf.getvalue()
+        evalue_cutoff = self.blast_options_window.e_value_threshold_enf.getvalue()
+        max_hits = self.blast_options_window.max_hits_enf.getvalue()
         if self.blast_options_window.showing_advanced_widgets:
-            evalue_inclusion_cutoff = self.psiblast_eval_threshold_enf.getvalue()
-            self.min_id = self.min_id_enf.getvalue()
-            self.min_coverage = self.min_coverage_enf.getvalue()
+            evalue_inclusion_cutoff = self.blast_options_window.psiblast_eval_threshold_enf.getvalue()
+            self.min_id = self.blast_options_window.min_id_enf.getvalue()
+            self.min_coverage = self.blast_options_window.min_coverage_enf.getvalue()
         else:
-            evalue_inclusion_cutoff = self.psiblast_min_inclusion_eval_default
+            evalue_inclusion_cutoff = self.min_inclusion_eval_default
 
         try:
             self.execute_psiblast(
@@ -837,32 +722,8 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
         return list_of_databases_directories
 
 
-    def choose_psiblast_db_dir(self):
-        """
-        Called when users want to manually choose a BLAST sequence database folder on their system.
-        """
-        current_path = self.pymod.blast_plus["database_dir_path"].get_value()
-        new_path = None
-        # Lets users choose a new path.
-        new_path = askdirectory(title = "Search for a BLAST database directory", initialdir=current_path, mustexist = True, parent = self.blast_options_window)
-        if new_path:
-            if pmos.verify_valid_blast_dbdir(new_path):
-                prefix = pmos.get_blast_database_prefix(new_path)
-                # Updates the label with the new prefix name.
-                self.choose_path_label.configure(text=prefix)
-                self.list_of_databases_directories[0]["full-path"] = new_path
-            else:
-                self.choose_path_label.configure(text="None")
-                self.list_of_databases_directories[0]["full-path"] = None
-                title = "Selection Error"
-                message = "The directory you specified does not seem to contain a valid set of sequence database files."
-                self.pymod.show_error_message(title, message, parent_window = self.blast_options_window, refresh=False)
-        # Selects the 'browse' button once users click on it.
-        self.psiblast_database_rds.setvalue("browse")
-
-
     def get_psiblast_database_from_gui(self):
-        button_name = self.psiblast_database_rds.getvalue()
-        for dbd in self.list_of_databases_directories:
+        button_name = self.blast_options_window.psiblast_database_rds.getvalue()
+        for dbd in self.databases_directories_list:
             if dbd["prefix"] == button_name:
                 return dbd["full-path"]

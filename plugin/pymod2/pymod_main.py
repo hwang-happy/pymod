@@ -1,9 +1,8 @@
 # TODO:
 #     - MODELLER.
 #     - implement ordered dictionaries.
-#     - update BLAST clusters.
 #     - color the clusters after modifications.
-#     - add raw sequence.
+#     - add raw sequences.
 #     - reimplement the collapsed clusters features.
 #     - rewrite the 'execute_subprocess' method.
 #     - Ramachandran plot.
@@ -12,8 +11,8 @@
 #     - RMSD part.
 #     - reimplement the rest.
 #     - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
+#         - build well organized classes for the protocols windows.
 #     - integrate the modifications made in the stable branch.
-#         - temp directory.
 #         - control the sequences.
 #         - models refinement.
 #     - add the licence part to each file of the plugin.
@@ -28,7 +27,9 @@
 #     - color structures and models, structure appearence and user defined colors.
 #     - organize the structure of the PyMod_protocols.
 #         - take input from gui for alignment protocols.
-
+#         - intialize_from_gui -> launch_from_gui -> check_parameters_from_gui -> protocol_state -> import_results_in_pymod
+#         - fix BLAST protocols.
+#             - update BLAST clusters.
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.

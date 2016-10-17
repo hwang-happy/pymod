@@ -229,7 +229,7 @@ class PyMod_tool_window(PyMod_base_window):
 
     def align_widgets(self, input_widget_width=10):
         Pmw.alignlabels(self.widgets_to_align, sticky="nw")
-        align_input_widgets_components(self.widgets_to_align, input_widget_width)
+        self.align_input_widgets_components(self.widgets_to_align, input_widget_width)
 
 
     def add_advanced_widget(self, widget):

@@ -1,3 +1,6 @@
+# TODO:
+#   - remove the unused variables.
+
 ###################################################################################################
 # Define some variabiles used throughout the PyMod.                                               #
 ###################################################################################################
@@ -117,10 +120,7 @@ psipred_output_extensions = (".ss2",".horiz")
 psipred_element_dict = {"H": "alpha helix", "E": "beta sheet", "C": "aperiodic"}
 # Tree building.
 tree_building_alg_dict = {"Neighbor Joining": "nj", "UPGMA": "upgma"}
-# BLAST.
-ncbi_databases = [("Nr", "nr"), ("Pdb", "pdb"), ("SwissProt", "swissprot"),
-                       ("Yeast", "yeast"), ("E. coli", "E. coli"), ("Patents", "patents"),
-                       ("Month", "month"), ("Kabat", "kabat"), ("Alu", "alu")]
+
 
 ###################################################################################################
 # Color dictionaries.                                                                             #
