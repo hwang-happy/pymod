@@ -169,6 +169,7 @@ class PyMod:
         self.data_directory_name = "data"
         self.blast_databases_directory_name = "blast_databases"
         self.blast_databases_directory_shortcut = os.path.join(self.data_directory_name, self.blast_databases_directory_name)
+        self.temp_directory_name = "temp_dir"
 
         # Structures.
         self.structures_directory = "structures"
@@ -707,7 +708,7 @@ class PyMod:
         seqs_dir = "/home/giacomo/Dropbox/sequences"
 
         # Fetch sequences from the PDB.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi.fasta"))
+        self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
         # Dimer: complex case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
@@ -761,6 +762,9 @@ class PyMod:
     def create_similarity_searches_directory(self):
         self.create_subdirectory(self.similarity_searches_directory)
 
+    def create_temp_directory(self):
+        self.create_subdirectory(self.temp_directory_name)
+
 
     def create_project_subdirectories(self):
         self.create_alignments_directory()
@@ -769,6 +773,7 @@ class PyMod:
         self.create_structures_directory()
         self.create_psipred_directory()
         self.create_similarity_searches_directory()
+        self.create_temp_directory()
 
 
     def remove_project_subdirectories(self, new_dir_name):
@@ -776,8 +781,7 @@ class PyMod:
         Removes the previously used subdirectories and all their content when users decide to
         overwrite an existing project's directory.
         """
-        dirs_to_remove = (self.structures_directory, self.models_directory, self.alignments_directory, self.psipred_directory, self.similarity_searches_directory, self.images_directory)
-        for single_dir in dirs_to_remove:
+        for single_dir in (self.structures_directory, self.models_directory, self.alignments_directory, self.psipred_directory, self.similarity_searches_directory, self.images_directory, self.temp_directory_name):
             dir_to_remove_path = os.path.join(new_dir_name, single_dir)
             if os.path.isdir(dir_to_remove_path):
                 shutil.rmtree(dir_to_remove_path)
@@ -987,7 +991,7 @@ class PyMod:
         return cs
 
 
-    def add_element_to_pymod(self, element, adjust_header=True, load_in_pymol=False, color=None):
+    def add_element_to_pymod(self, element, adjust_header=True, load_in_pymol=False, color=None, use_pymod_old_color_scheme=False):
         """
         Used to add elements to the pymod_elements_list. Once an element is added to children of the
         'root_element' by this method, it will be displayed in the PyMod main window.
@@ -997,11 +1001,18 @@ class PyMod:
         # Sets its unique index.
         element.unique_index = self.unique_index
         self.unique_index += 1
+
         # Adjust its header.
         if adjust_header and not element.is_cluster(): # Cluster elements do not need their headers to be adjusted.
             self.adjust_headers(element)
+
+        # Defines the color.
         if color:
             element.my_color = color
+        elif use_pymod_old_color_scheme and element.has_structure():
+            # Use the old color shceme of PyMod.
+            color=self.color_struct()
+
         # Builds for it some Tkinter widgets to show in PyMod window. They will be gridded later.
         self.main_window.add_pymod_element_widgets(element)
 
@@ -1011,9 +1022,11 @@ class PyMod:
 
 
     def delete_element_from_pymod(self, element):
-        # TODO: place these in the right place.
+        """
+        Used to remove definitively an element from PyMod.
+        """
         if element.has_structure():
-            self.delete_pdb_file(element)
+            self.delete_pdb_file_in_pymol(element)
         if element.is_mother():
             children = element.get_children()
             for c in children[:]:
@@ -1023,7 +1036,7 @@ class PyMod:
         self.main_window.delete_pymod_element_widgets(element)
 
 
-    def delete_pdb_file(self, element):
+    def delete_pdb_file_in_pymol(self, element):
         # If the sequence has a PDB file loaded inside PyMOL, then delete it.
         try:
             cmd.delete(element.get_pymol_object_name())
@@ -1322,7 +1335,7 @@ class PyMod:
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
         p = pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
         for element in p.get_pymod_elements():
-            self.add_element_to_pymod(element, load_in_pymol=True) # Add this to use the old color shceme of PyMod: color=self.color_struct()
+            self.add_element_to_pymod(element, load_in_pymol=True)
         if grid:
             self.gridder()
 
