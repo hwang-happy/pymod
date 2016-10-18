@@ -21,6 +21,8 @@
 #         - add a similar option for distance matrices, dope profiles and assessment tables.
 #     - 'update structures from PyMOL' and 'move back to original position' part.
 #         - implement a 'Superpose in PyMOL' option in structural alignments.
+#         - save structure to file option.
+#         - buttons for fast controls of structures in PyMOL.
 #     - define modified residues.
 #     - nucleic acids.
 #     - color structures and models, structure appearence and user defined colors.
@@ -29,6 +31,7 @@
 #         - intialize_from_gui -> launch_from_gui -> check_parameters_from_gui -> protocol_state -> import_results_in_pymod
 #         - fix BLAST protocols.
 #             - update BLAST clusters.
+#     - add an 'Annotations' submenu.
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
@@ -709,7 +712,12 @@ class PyMod:
 
         # Fetch sequences from the PDB.
         # self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
+        self.load_uniprot_random()
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
+
+        # Rubic.
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/rubic 1/run.fasta"))
+
         # Dimer: complex case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
@@ -721,7 +729,7 @@ class PyMod:
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
         # Monomer disulfides.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
@@ -730,7 +738,7 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
 
         self.gridder(update_clusters=True, update_menus=True)
 
@@ -2877,6 +2885,15 @@ class PyMod:
             self.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
         else:
             self.show_error_message("Update Failed", update_results[1])
+
+    ###############################################################################################
+    # TO BE REMOVED.                                                                              #
+    ###############################################################################################
+
+    def load_uniprot_random(self):
+        import urllib
+        temp_fasta_path = urllib.urlretrieve("http://www.uniprot.org/uniprot/?query=reviewed:yes+AND+organism:9606&random=yes&format=fasta")[0]
+        self.open_sequence_file(temp_fasta_path)
 
 
 ###################################################################################################

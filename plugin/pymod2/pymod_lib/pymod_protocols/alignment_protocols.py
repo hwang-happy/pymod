@@ -1626,7 +1626,7 @@ class SALIGN_seq_regular_alignment(SALIGN_seq_alignment, Regular_sequence_alignm
 
     def get_alignment_window_class(self):
         return pmgi.alignment_components.SALIGN_seq_regular_window
-        
+
 
 class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
 
@@ -2306,9 +2306,6 @@ def get_ce_mode():
 ###################################################################################################
 # FUNCTIONS UTILIZED BY THE CE-alignment algorithm.                                               #
 ###################################################################################################
-
-import Bio.PDB
-import math
 
 ##Algorithm##
 def doScoring(L,s1,s2,matrix,sc,sequence_information):

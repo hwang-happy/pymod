@@ -1,9 +1,7 @@
 # TODO
-#   - structures part (see pymod_main file).
-#         - fetch and associate structures.
-#         - save structure to file option.
 #   - subsitute the first model with actual target element and then put successive models outside
 #     target's cluster.
+#       - use a 'substitute_element' method, to be implemented also in the 'Associate_structure' class
 #   - add 'show all' and 'hide all' commands on 'pymod_plot' windows.
 #   - include hydrogens.
 #   - build a log file on all platforms.
