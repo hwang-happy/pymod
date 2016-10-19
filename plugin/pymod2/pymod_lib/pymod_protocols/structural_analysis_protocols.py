@@ -568,7 +568,7 @@ class DOPE_assessment(PyMod_protocol):
 
     def _compute_dope_of_element(self, element, env=None):
         # Prepares the input for MODELLER.
-        e_file_name = element.get_structure_file(strip_extension=True)
+        e_file_name = element.get_structure_file(strip_extension=False)
         e_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name)
         e_profile_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name+".profile")
         # Computes the DOPE of the 3D structure of the chain of the 'element'.

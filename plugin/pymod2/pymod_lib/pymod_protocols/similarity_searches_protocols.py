@@ -148,7 +148,7 @@ class Generic_BLAST_search(PyMod_protocol):
         # Exit the whole process if no hits were found.
         if len(self.blast_record.alignments) == 0:
             blast_version = pmdt.algorithms_full_names_dict[self.blast_version]
-            self.show_warning_message("%s Message", "No hits weew found for %s for %s." % (blast_version, blast_version, self.blast_query_element.compact_header))
+            self.pymod.show_warning_message("%s Message", "No hits were found by %s for %s." % (blast_version, blast_version, self.blast_query_element.compact_header))
             return False
         else:
             # Returns 'True' if some hits were found.

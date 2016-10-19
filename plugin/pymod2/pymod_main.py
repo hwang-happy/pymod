@@ -724,12 +724,12 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
         # CXCR4.
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/casp_dimer/1oas.pdb"))
         # Monomer disulfides.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
@@ -1043,6 +1043,24 @@ class PyMod:
         # Actually delete the element.
         element.remove_from_cluster()
         self.main_window.delete_pymod_element_widgets(element)
+
+
+    def replace_element(self, old_element, new_element, keep_old_header=False):
+        """
+        Replaces an old element with a new element, which will be displayed in PyMod main window
+        with the same position of the old element.
+        """
+        # Gets the old container element and the old index of the target sequence.
+        old_element_container = old_element.mother
+        old_element_index = self.get_pymod_element_index_in_container(old_element)
+        # Actually replaces the old element with the new one.
+        if keep_old_header:
+            pass
+        self.delete_element_from_pymod(old_element)
+        self.add_element_to_pymod(new_element, load_in_pymol=True)
+        # Put the new element in the same cluster (with the same position) of the old one.
+        old_element_container.add_child(new_element)
+        self.change_pymod_element_list_index(new_element, old_element_index)
 
 
     def delete_pdb_file_in_pymol(self, element):

@@ -86,7 +86,7 @@ class Fetch_structure_file(PyMod_protocol):
             else:
                 pdb_chain = None
                 # import_mode = "multiple-chains"
-        return pdb_code, pdb_chain
+        return str(pdb_code), str(pdb_chain) # Unicode strings are not recognized by MODELLER.
 
 
     def _fetch_structure_file(self, pdb_code, output_dir, new_name=None):
@@ -203,6 +203,9 @@ class Associate_structure(PyMod_protocol):
 
 
     def associate(self):
+        """
+        Actually associates the structure.
+        """
 
         #-------------------------------------------------------------------------------------
         # Gets information about matching and missing residues in the two aligned sequences. -
@@ -247,16 +250,9 @@ class Associate_structure(PyMod_protocol):
         # Builds a 'Parsed_pdb_file' object for the PDB file of the structure just saved. -
         #----------------------------------------------------------------------------------
         p = pmstr.Parsed_pdb_file(os.path.abspath(cropped_structure_file_shortcut), output_directory=self.output_directory)
-        new_element = p.get_pymod_element_by_chain(self.chain_id)
-        # Gets the old container element and the old index of the target sequence.
-        container = self.target_element.mother
-        old_index = self.pymod.get_pymod_element_index_in_container(self.target_element)
-        # Replace the target sequence element with the element with the structure.
+        new_element_with_structure = p.get_pymod_element_by_chain(self.chain_id)
         adjust_to_sequence = self.target_element.my_sequence
-        self.pymod.delete_element_from_pymod(self.target_element)
-        self.pymod.add_element_to_pymod(new_element, load_in_pymol=True)
-        container.add_child(new_element)
-        self.pymod.change_pymod_element_list_index(new_element, old_index)
+        self.pymod.replace_element(self.target_element, new_element_with_structure)
 
         #--------------------------------------------------------------------------------------
         # Updates the sequence of the fragment to keep it in frame with the original sequence -
@@ -278,7 +274,7 @@ class Associate_structure(PyMod_protocol):
             if p != "-":
                 adc += 1
         new_sequence = "".join(new_sequence)
-        new_element.set_sequence(new_sequence)
+        new_element_with_structure.set_sequence(new_sequence)
 
 
 ###################################################################################################

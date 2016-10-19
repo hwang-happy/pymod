@@ -1,7 +1,4 @@
 # TODO
-#   - subsitute the first model with actual target element and then put successive models outside
-#     target's cluster.
-#       - use a 'substitute_element' method, to be implemented also in the 'Associate_structure' class
 #   - add 'show all' and 'hide all' commands on 'pymod_plot' windows.
 #   - include hydrogens.
 #   - build a log file on all platforms.
@@ -71,6 +68,8 @@ class Modeling_session:
     multiple_chains_models_name = "MyMultiModel"
     tc_temp_pymol_name = "template_complex_temp"
     mc_temp_pymol_name = "model_complex_temp"
+
+    list_of_model_chains_colors = pmdt.pymol_light_colors_list
 
     def set_hetatm_use(self, state):
         Modeling_session.use_hetatm_in_session = state
@@ -693,6 +692,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 self.pymod.add_element_to_pymod(element, load_in_pymol=True, color=self.get_model_color(chain_number, self.multiple_chain_mode))
                 modeling_cluster.model_elements_list.append(element)
                 current_model_chains_elements.append(element)
+                # Substitute the first model with the target element.
+                if model_file_number == 0:
+                    self.pymod.replace_element(old_element=modeling_cluster.target, new_element=element)
 
             #------------------------------------------
             # Superpose models to templates in PyMOL. -
@@ -727,9 +729,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     self.superpose_in_pymol(mod_e.get_pymol_object_name(),
                                             "%s and chain %s" % (self.mc_temp_pymol_name, mod_e.get_chain_id()),
                                             save_superposed_structure=False)
-                # Cleans up.
-                cmd.delete(self.mc_temp_pymol_name)
-                cmd.delete(self.tc_temp_pymol_name)
+                # Cleans up after having superposed the last multiple chain model.
+                if model_file_number == len(a.outputs) - 1:
+                    cmd.delete(self.mc_temp_pymol_name)
+                    cmd.delete(self.tc_temp_pymol_name)
 
             # Increases the models count.
             self.increase_model_number()
@@ -1338,11 +1341,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             return self.modeling_clusters_list[0].target.models_count
 
     def get_model_color(self, chain_number, multiple_chain_mode):
-        list_of_model_chains_colors = pmdt.pymol_light_colors_list
         if not multiple_chain_mode:
             return "white"
         else:
-            return list_of_model_chains_colors[chain_number % len(list_of_model_chains_colors)]
+            return self.list_of_model_chains_colors[chain_number % len(self.list_of_model_chains_colors)]
 
     def increase_model_number(self):
         if self.multiple_chain_mode:
