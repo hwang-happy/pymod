@@ -716,7 +716,7 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
 
         # Rubic.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/rubic 1/run.fasta"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/rubic 1/run.fasta"))
 
         # Dimer: complex case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
@@ -724,8 +724,8 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
         # CXCR4.
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
@@ -734,8 +734,8 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
         # Ubiquitin.
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))

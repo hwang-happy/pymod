@@ -1,5 +1,9 @@
 # TODO
 #   - build a log file on all platforms.
+#       - Linux internal
+#       - Linux external: ok.
+#       - Win internal
+#       - OSX external
 #   - implement saving of modeling sessions.
 #       - save modeling sessions (and also build a well done MODELLER script).
 #   - make sure to reimplement all.
@@ -62,6 +66,9 @@ class Modeling_session:
     write_modeller_script = True
 
     modeling_directory = ""
+    modeling_files_name = "my_model"
+    modeling_script_name = "%s.py" % modeling_files_name
+    modeling_log_name = "%s.txt" % modeling_files_name
     pir_file_name = "align-multiple.ali"
     multiple_chains_models_name = "MyMultiModel"
     tc_temp_pymol_name = "template_complex_temp"
@@ -295,6 +302,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         # Internal --------------------------------------------------
         if self.run_modeller_internally:
+            self.begin_log_file_building(self.modeling_log_name)
             modeller.log.verbose()
             env = modeller.environ()
             env.io.atom_files_directory = []
@@ -303,7 +311,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         # External --------------------------------------------------
         if self.write_modeller_script:
-            self.modeller_script = open("my_model.py", "w")
+            self.modeller_script = open(self.modeling_script_name, "w")
             print >> self.modeller_script, "import modeller"
             print >> self.modeller_script, "import modeller.automodel"
             print >> self.modeller_script, "\n"
@@ -318,7 +326,6 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #--------------------------------------
         # Sets heteroatoms and water options. -
         #--------------------------------------
-
         # If the user wants to include hetero-atoms and water molecules.
         if self.use_hetatm_in_session:
             # Internal ----------------------------------------------
@@ -347,6 +354,16 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         else:
             pass
 
+        #-----------------------------------------------------
+        # Define whether to include hydrogens in the models. -
+        #-----------------------------------------------------
+        if self.build_all_hydrogen_models:
+            session_automodel_class = modeller.automodel.allhmodel
+            session_automodel_class_name = "allhmodel"
+        else:
+            session_automodel_class = modeller.automodel.automodel
+            session_automodel_class_name = "automodel"
+
         #-------------------------------------------------------
         # Creates a file with the alignment in the PIR format. -
         #-------------------------------------------------------
@@ -363,14 +380,6 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #   - exclude template disulfide bridges in the model
         #   - build multichain models with symmetries restraints
         #   - rename the chains in multichain models
-
-        # Define whether to include hydrogens in the models.
-        if self.build_all_hydrogen_models:
-            session_automodel_class = modeller.automodel.allhmodel
-            session_automodel_class_name = "allhmodel"
-        else:
-            session_automodel_class = modeller.automodel.automodel
-            session_automodel_class_name = "automodel"
 
         # Internal --------------------------------------------------
         if self.run_modeller_internally:
@@ -651,7 +660,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             self.modeller_script.close()
 
         if not self.run_modeller_internally:
-            cline=self.pymod.modeller.get_exe_file_path() + " my_model.py"
+            cline = "%s %s" % (self.pymod.modeller.get_exe_file_path(), self.modeling_script_name)
             self.pymod.execute_subprocess(cline)
             # Builds the 'a.outputs' when MODELLER was executed externally by reading an output file
             # that was generated in the MODELLER script that was executed externally from PyMOL.
@@ -668,14 +677,14 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         if self.run_modeller_internally:
             a.starting_model = 1 # index of the first model
             a.ending_model = int(self.ending_model_number) # index of the last model
-            # This is the method that launches the modl building phase.
+            # This is the method that launches the model building phase.
             a.make()
+            self.finish_log_file_building()
         #------------------------------------------------------------
 
         ###########################################################################################
         # Finishes to set options for MODELLER and returns back to the PyMod projects directory.  #
         ###########################################################################################
-
         os.chdir(self.pymod.current_project_directory_full_path)
 
         #-----------------------------------------------------------------------------------
@@ -695,13 +704,14 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             # Parses the PDB file of the model.
             parsed_model_file = pmstr.Parsed_pdb_file(model_file_full_path, output_directory=self.pymod.structures_directory, new_file_name=pymod_model_name)
             current_model_chains_elements = []
-            # Multiple chain models will yield multiple PyMod elements (one for each chain).
+            # Multiple chain models will yield multiple PyMod elements (one for each chain, thus one
+            # for each modeling cluster).
             for chain_number, (element, modeling_cluster) in enumerate(zip(parsed_model_file.get_pymod_elements(), self.get_modeling_clusters_list(sorted_by_id=True))):
                 self.pymod.add_element_to_pymod(element, load_in_pymol=True, color=self.get_model_color(chain_number, self.multiple_chain_mode))
                 modeling_cluster.model_elements_list.append(element)
                 current_model_chains_elements.append(element)
                 # Substitute the first model with the target element.
-                if model_file_number == 0:
+                if model_file_number == 0 and modeling_cluster.target.models_count == 0:
                     self.pymod.replace_element(old_element=modeling_cluster.target, new_element=element)
 
             #------------------------------------------
@@ -838,7 +848,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             # Increases modeling count.
             self.pymod.performed_modeling_count += 1
 
+        # Reverts the stdout to the system one, and removes the modeling files.
         elif not successful:
+            if self.run_modeller_internally:
+                self.finish_log_file_building()
             try:
                 if os.path.isdir(self.modeling_directory):
                     shutil.rmtree(self.modeling_directory)
@@ -1578,16 +1591,8 @@ class Modeling_cluster(Modeling_session):
     # Old methods. #
     ################
 
-    # def set_block_index(self,index):
-    #     self.block_index = index
-
-
     def has_structures_with_disulfides(self):
         return True in [e.has_disulfides() for e in self.suitable_templates_list]
-
-
-    # def set_model_chain_id(self,chain_index):
-    #     self.model_chain_id = chain_index
 
 
     def adjust_model_elements_sequence(self):
@@ -1728,54 +1733,4 @@ class Full_model:
 
 
 class MODELLER_loop_refinement(PyMod_protocol, Modeling_session):
-
     pass
-
-
-###################################################################################################
-# Other classes.                                                                                  #
-###################################################################################################
-
-# class MODELLER_run:
-#
-#     def __init__(self, mode="both"):
-#         self.mode = mode
-#
-#     def build_script_file(self, script_absolute_path):
-#         self.script_absolute_path = script_absolute_path
-#         self.modeller_script = open(self.script_absolute_path, "w")
-#         self.modeller_script_content = ""
-#
-#     def add_command(self, line, tabs=0):
-#         line = "    "*tabs + line + "\n"
-#         self.modeller_script_content += line
-#
-#     def end_script(self):
-#         print >> self.modeller_script, self.modeller_script_content
-#         self.modeller_script.close()
-#
-#     def run_script(self):
-#         if self.mode == "interal" or self.mode == "both":
-#             print self.modeller_script_content
-#             exec self.modeller_script_content
-#         elif self.mode == "external":
-#             execfile(self.script_absolute_path)
-#
-#     def change_stdout(self):
-#         """
-#         This is needed to create a log file also on Linux.
-#         """
-#         from cStringIO import StringIO
-#         self.old_stdout = sys.stdout
-#         self.mystdout = StringIO()
-#         sys.stdout = self.mystdout
-#
-#     def revert_stdout_and_build_log_file(self):
-#         """
-#         Gets Modeller output text and prints it to a .log file.
-#         """
-#         sys.stdout = self.old_stdout
-#         t = self.mystdout.getvalue()
-#         f = open("modeller_log.txt","w")
-#         f.write(t)
-#         f.close()

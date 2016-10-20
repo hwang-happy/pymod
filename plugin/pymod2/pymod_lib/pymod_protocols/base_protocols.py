@@ -1,5 +1,7 @@
 import os
+import sys
 import shutil
+from cStringIO import StringIO
 
 import pymol
 from pymol import cmd, stored
@@ -13,6 +15,8 @@ class PyMod_protocol:
 
     def __init__(self, pymod):
         self.pymod = pymod
+        self.sys_stdout = sys.stdout
+        self.my_stdout = None
 
 
     def get_pymod_elements(self, pymod_elements):
@@ -57,6 +61,43 @@ class PyMod_protocol:
             cmd.align(mobile_selection, fixed_selection)
         if save_superposed_structure:
             cmd.save(os.path.join(output_directory, mobile_selection+".pdb"), mobile_selection)
+
+
+    ###############################################################################################
+    # Executing subprocesses.                                                                     #
+    ###############################################################################################
+
+    def begin_log_file_building(self, log_file_path):
+        self._log_file_path = log_file_path
+        self._building_log_file = True
+        self._change_stdout_to_string()
+
+    def finish_log_file_building(self):
+        if self._building_log_file:
+            self._revert_stdout()
+            self._write_log_file(self._log_file_path)
+            self._building_log_file = False
+
+    def _change_stdout_to_string(self):
+        """
+        This is needed to create a log file also on Linux.
+        """
+        self.my_stdout = StringIO()
+        sys.stdout = self.my_stdout
+
+    def _revert_stdout(self):
+        sys.stdout = self.sys_stdout
+
+    def _write_log_file(self, log_file_path):
+        """
+        Gets Modeller output text and prints it to a .log file.
+        """
+        log_fh = open(log_file_path,"w")
+        log_fh.write(self._get_string_stdout())
+        log_fh.close()
+
+    def _get_string_stdout(self):
+        return self.my_stdout.getvalue()
 
 
 class PSI_BLAST_common:
@@ -171,3 +212,33 @@ class PSI_BLAST_common:
                             num_alignments)
 
         return psiblast_command
+
+
+###################################################################################################
+# Other classes.                                                                                  #
+###################################################################################################
+
+# class MODELLER_run:
+#
+#     def __init__(self, mode="both"):
+#         self.mode = mode
+#
+#     def build_script_file(self, script_absolute_path):
+#         self.script_absolute_path = script_absolute_path
+#         self.modeller_script = open(self.script_absolute_path, "w")
+#         self.modeller_script_content = ""
+#
+#     def add_command(self, line, tabs=0):
+#         line = "    "*tabs + line + "\n"
+#         self.modeller_script_content += line
+#
+#     def end_script(self):
+#         print >> self.modeller_script, self.modeller_script_content
+#         self.modeller_script.close()
+#
+#     def run_script(self):
+#         if self.mode == "interal" or self.mode == "both":
+#             print self.modeller_script_content
+#             exec self.modeller_script_content
+#         elif self.mode == "external":
+#             execfile(self.script_absolute_path)
