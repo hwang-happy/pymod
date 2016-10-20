@@ -248,6 +248,7 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         """
         Add the "Options" page on modeling window notebook.
         """
+        # TODO: build a dictionary to store all the widgets for option selection.
         # Options page.
         self.options_page = self.notebook.add('Options')
         self.notebook.page(2).configure(bg="black")
@@ -263,7 +264,10 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         self.options_frame = self.options_scrolled_frame.interior()
         self.options_frame.configure(bd=0,pady=20)
 
-        # Start to insert modeling options widgets.
+        #--------------------------------------------
+        # Start to insert modeling options widgets. -
+        #--------------------------------------------
+
         option_widgets_to_align = []
         # Option to chose the number of models that Modeller has to produce.
         self.max_models_enf = shared_components.PyMod_entryfield(
@@ -281,6 +285,14 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         option_widgets_to_align.append(self.exclude_heteroatoms_rds)
         self.exclude_heteroatoms_rds.button(0).configure(command=lambda: self.switch_all_hetres_checkbutton_states(0)) # Yes, inactivate.
         self.exclude_heteroatoms_rds.button(1).configure(command=lambda: self.switch_all_hetres_checkbutton_states(1)) # No, activate.
+
+        # Build all hydrogen models.
+        self.build_all_hydrogen_models_rds = shared_components.PyMod_radioselect(self.options_frame, label_text = 'Inlcude Hydrogens')
+        for choice in ("Yes", "No"):
+            self.build_all_hydrogen_models_rds.add(choice)
+        self.build_all_hydrogen_models_rds.setvalue("No")
+        self.build_all_hydrogen_models_rds.pack(**shared_components.pack_options_1)
+        option_widgets_to_align.append(self.build_all_hydrogen_models_rds)
 
         # Option to choose the level of optimization for Modeller.
         self.optimization_level_choices = ("None", "Low", "Mid", "High")

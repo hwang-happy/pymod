@@ -1,5 +1,4 @@
 # TODO
-#   - include hydrogens.
 #   - build a log file on all platforms.
 #   - implement saving of modeling sessions.
 #       - save modeling sessions (and also build a well done MODELLER script).
@@ -359,19 +358,29 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # This class is going to be used to build the "a" object used to perform the actual
         # homology modelization. It is going to inherit everything from the automodel class
         # but is going to have dynamically redifined routines to make it possible to:
+        #   - include hydrogen atoms in the models
         #   - include user defined disulfide bridges in the model
         #   - exclude template disulfide bridges in the model
         #   - build multichain models with symmetries restraints
         #   - rename the chains in multichain models
+
+        # Define whether to include hydrogens in the models.
+        if self.build_all_hydrogen_models:
+            session_automodel_class = modeller.automodel.allhmodel
+            session_automodel_class_name = "allhmodel"
+        else:
+            session_automodel_class = modeller.automodel.automodel
+            session_automodel_class_name = "automodel"
+
         # Internal --------------------------------------------------
         if self.run_modeller_internally:
-            class MyModel(modeller.automodel.automodel):
+            class MyModel(session_automodel_class):
                 pass
         #------------------------------------------------------------
 
         # External --------------------------------------------------
         if self.write_modeller_script:
-            print >> self.modeller_script, "\n"+"class MyModel(modeller.automodel.automodel):"
+            print >> self.modeller_script, "\n"+"class MyModel(modeller.automodel.%s):" % session_automodel_class_name
             print >> self.modeller_script, "\n"+"    pass" # TODO: remove.
         #------------------------------------------------------------
 
@@ -855,6 +864,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #--------------------------------------
         self.ending_model_number = self.modeling_window.max_models_enf.getvalue()
         self.exclude_hetatms = pmdt.yesno_dict[self.modeling_window.exclude_heteroatoms_rds.getvalue()]
+        self.build_all_hydrogen_models = pmdt.yesno_dict[self.modeling_window.build_all_hydrogen_models_rds.getvalue()]
         self.optimization_level = self.modeling_window.optimization_level_rds.getvalue()
         self.superpose_to_templates = pmdt.yesno_dict[self.modeling_window.superpose_models_to_templates_rds.getvalue()]
         self.color_models_by_choice = self.modeling_window.color_models_rds.getvalue()
