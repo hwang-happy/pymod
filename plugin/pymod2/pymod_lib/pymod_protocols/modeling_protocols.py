@@ -1,5 +1,4 @@
 # TODO
-#   - add 'show all' and 'hide all' commands on 'pymod_plot' windows.
 #   - include hydrogens.
 #   - build a log file on all platforms.
 #   - implement saving of modeling sessions.

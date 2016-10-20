@@ -30,8 +30,13 @@ except:
 # Plotting window.                                                                                #
 ###################################################################################################
 
-# TODO: cambia il nome in Plot_window.
-class Custom_plot_window(Toplevel):
+class Custom_plot_mixin:
+    control_labels_config = {"bg":"white","bd":0,"font": "comic 9"}
+    control_labels_pack_config = {"pady":0,"ipady":2}
+
+
+# TODO: change the name in 'Plot_window'.
+class Custom_plot_window(Toplevel, Custom_plot_mixin):
 
     def __init__(self, parent, title = None, **configs):
         # Sets the window parameters.
@@ -53,8 +58,7 @@ class Custom_plot_window(Toplevel):
         self.canvas_plot_frame = Frame(self.plot_frame)
         self.canvas_plot_frame.grid(row=1, column=0, sticky=E+W+S+N, padx=5, pady=5)
 
-        self.plots_control_frames_list = []
-        self.plots_control_frames_dict = {}
+        self.control_frames_list = []
 
         # A bottom frame fo the window, containing some buttons to interact with the graph.
         self.control_frame = Frame(self)# , bg="gray")
@@ -105,7 +109,8 @@ class Custom_plot_window(Toplevel):
 
 
     def build_plotting_area(self,
-        use_plotting_controls = True,
+        use_plotting_controls = True,       # Adds to the plotting window a right column with checkbuttons to show/hide the lines plots in the drawing area.
+        add_show_hide_all_controls = True,  # Adds to the plotting control column 'Show All' and 'Hide All' buttons.
         message_bar_initial_text = None,
         on_click_action=None,
         update_message_bar=False,
@@ -145,6 +150,8 @@ class Custom_plot_window(Toplevel):
         # Builds a right column on the plot window. It will contain checkbuttons and legends to
         # show/hide each plot.
         self.use_plotting_controls = use_plotting_controls
+        self.add_show_hide_all_controls = add_show_hide_all_controls
+
         if self.use_plotting_controls:
             # A frame with the labels of the plots.
             self.labels_frame = None
@@ -175,16 +182,33 @@ class Custom_plot_window(Toplevel):
                 self.labels_frame_scrollbar.config(command=self.inner_labels_frame.yview)
                 self.labels_frame.grid(row=1, column=1, sticky=N+W, padx=(0,5), pady=5)
 
-            self.labels_config = {"bg":"white","bd":0,"font": "comic 9"}
-            self.labels_pack_config = {"pady":0,"ipady":2}
+            self.labels_title = Label(self.inner_labels_frame, text=" Plots List", anchor="w", **self.control_labels_config)
+            self.labels_title.pack(fill="x",**self.control_labels_pack_config)
 
-            self.labels_title = Label(self.inner_labels_frame, text=" Plots List", anchor="w", **self.labels_config)
-            self.labels_title.pack(fill="x",**self.labels_pack_config)
-
+            if self.add_show_hide_all_controls:
+                show_all_plot_control_frame = Global_control_frame(self.inner_labels_frame, button_label="Show All", button_command=self.click_show_all_checkbutton)
+                self.control_frames_list.append(show_all_plot_control_frame)
+                hide_all_plot_control_frame = Global_control_frame(self.inner_labels_frame, button_label="Hide All", button_command=self.click_hide_all_checkbutton)
+                self.control_frames_list.append(hide_all_plot_control_frame)
 
     def check_plotting_area(self):
         if not hasattr(self, "canvas_plot"):
             raise Exception("This 'Custom_plot_window' does not have a plotting area. Before starting to draw on it, use the 'build_plotting_area' method.")
+
+
+    def click_show_all_checkbutton(self, global_control_frame):
+        for control_frame in self.get_plot_control_frames():
+            self.show_plot_from_controls(control_frame.plot)
+            control_frame.plot_button.select()
+
+    def click_hide_all_checkbutton(self, global_control_frame):
+        for control_frame in self.get_plot_control_frames():
+            self.hide_plot_from_controls(control_frame.plot)
+            control_frame.plot_button.deselect()
+
+
+    def get_plot_control_frames(self):
+        return filter(lambda cf: isinstance(cf, Plot_control_frame), self.control_frames_list)
 
 
     #################################################################
@@ -209,45 +233,38 @@ class Custom_plot_window(Toplevel):
         """
         self.check_plotting_area()
         # Build a plot control frame.
-        plot_control_frame = Plot_control_frame(self.inner_labels_frame, bg="white")
-        # Build its chekcbutton.
-        cvar = IntVar()
-        plot_checkbutton = Checkbutton(plot_control_frame, text=label, variable=cvar, highlightthickness=0,**self.labels_config)
-        plot_checkbutton.var = cvar
-        plot_checkbutton.configure(command = lambda x=plot_checkbutton: self.click_plot_checkbutton(x))
-        # Add the checkbutton to the frame.
-        plot_control_frame.add_checkbutton(plot_checkbutton)
-
-        # Add a canvas with a line (or a dot) to work as a legend.
-        legend_canvas_height, legend_canvas_width = plot_checkbutton.winfo_reqheight(),25
-        legend_canvas = Canvas(plot_control_frame, width=legend_canvas_width, height=legend_canvas_height, bg="white", bd=0, highlightthickness=0,insertbackground="white")
-        legend_canvas.create_line(0, float(legend_canvas_height)/2.0,legend_canvas_width,float(legend_canvas_height)/2.0, width=2, fill=plot.color)
-        # Add a legend canvas.
-        plot_control_frame.add_legend_canvas(legend_canvas)
-
-        self.plots_control_frames_list.append(plot_control_frame)
-        self.plots_control_frames_dict[plot_checkbutton] = plot
+        plot_control_frame = Plot_control_frame(self.inner_labels_frame, plot=plot, button_label=label, button_command=self.click_plot_checkbutton)
+        self.control_frames_list.append(plot_control_frame)
 
 
-    def click_plot_checkbutton(self, checkbutton):
+    def click_plot_checkbutton(self, control_frame):
         """
         Shows or hides a plot in the plotting area when a user click on the plot checkbutton.
         """
-        plot = self.plots_control_frames_dict[checkbutton]
 
         # Uncomment this to remove the last highlighted item when hiding or showing a plot.
         # self.canvas_plot.remove_last_clicked_item()
 
-        if not checkbutton.var.get():
-            # Hide the line of the plot and its points.
-            for segment in plot.segments_list:
-                self.canvas_plot.itemconfig(segment.id, state='hidden')
-            map(lambda p: self.canvas_plot.itemconfig(p.id, state='hidden'), plot.get_points())
+        if not control_frame.plot_button.var.get():
+            self.hide_plot_from_controls(control_frame.plot)
         else:
-            # Show the line of the plot and its points.
-            for segment in plot.segments_list:
-                self.canvas_plot.itemconfig(segment.id, state='normal')
-            map(lambda p: self.canvas_plot.itemconfig(p.id, state='normal'), plot.get_points())
+            self.show_plot_from_controls(control_frame.plot)
+
+
+    def show_plot_from_controls(self, plot):
+        """
+        Show the line of the plot and its points.
+        """
+        map(lambda segment: self.canvas_plot.itemconfig(segment.id, state='normal'), plot.segments_list)
+        map(lambda p: self.canvas_plot.itemconfig(p.id, state='normal'), plot.get_points())
+
+
+    def hide_plot_from_controls(self, plot):
+        """
+        Hide the line of the plot and its points.
+        """
+        map(lambda segment: self.canvas_plot.itemconfig(segment.id, state='hidden'), plot.segments_list)
+        map(lambda p: self.canvas_plot.itemconfig(p.id, state='hidden'), plot.get_points())
 
 
     def draw_line(self, coords):
@@ -274,11 +291,8 @@ class Custom_plot_window(Toplevel):
         self.canvas_plot.initialize(**configs)
         self.canvas_plot.show_all_objects()
         # Packs the plot control frames.
-        for plot_control_frame in self.plots_control_frames_list:
-            plot_control_frame.legend_canvas.pack(side="left", padx=5,**self.labels_pack_config)
-            plot_control_frame.checkbutton.pack(side="left", **self.labels_pack_config)
-            plot_control_frame.checkbutton.select()
-            plot_control_frame.pack(expand=True, fill="both")
+        for plot_control_frame in self.control_frames_list:
+            plot_control_frame.show_widgets()
         # Packs the buttons.
         self.view_label.pack(**self.buttons_pack_config)
         self.home_view_button.pack(**self.buttons_pack_config)
@@ -387,7 +401,29 @@ class Custom_plot_window(Toplevel):
                 pass
 
 
-class Plot_control_frame(Frame):
+class Control_frame(Frame, Custom_plot_mixin):
+    """
+    A base class for control frames to be displayed in the right column of the plotting window.
+    """
+    control_frame_bg = "white"
+
+    def __init__(self, parent = None, button_label="", button_command=None, bg=control_frame_bg, **configs):
+        Frame.__init__(self, parent, bg=bg, **configs)
+        self.build_button(button_label, button_command)
+        # Add a canvas with a line (or a dot) to work as a legend.
+        self.legend_canvas_height, self.legend_canvas_width = self.winfo_reqheight(), 25
+        self.legend_canvas = Canvas(self, width=self.legend_canvas_width, height=self.legend_canvas_height, bg=self.control_frame_bg, bd=0, highlightthickness=0,insertbackground=self.control_frame_bg)
+
+    def show_widgets(self):
+        self.legend_canvas.pack(side="left", padx=5,**self.control_labels_pack_config)
+        self.plot_button.pack(side="left", **self.control_labels_pack_config)
+        self.pack(expand=True, fill="both")
+
+    def build_button(self, label, command):
+        pass
+
+
+class Plot_control_frame(Control_frame):
     """
     A class which will represent for each plot a frame containing a:
         - legend canvas, a canvas with a line with the same color as the respective line in the
@@ -395,15 +431,39 @@ class Plot_control_frame(Frame):
         - a checkbutton with the name of the line, if users click on it, the line (and its points)
           will be hidden in the plot.
     """
-    def __init__(self, parent = None, **configs):
-        Frame.__init__(self, parent, **configs)
-        self.checkbutton = None
 
-    def add_checkbutton(self, checkbutton):
-        self.checkbutton = checkbutton
+    def __init__(self, parent = None, plot=None, button_label="", button_command=None, **configs):
+        self.plot = plot
+        Control_frame.__init__(self, parent, button_label=button_label, button_command=button_command, **configs)
+        if hasattr(self.plot, "color"):
+            self.legend_canvas.create_line(0, float(self.legend_canvas_height)/2.0, self.legend_canvas_width,float(self.legend_canvas_height)/2.0, width=2, fill=self.plot.color)
 
-    def add_legend_canvas(self, legend_canvas):
-        self.legend_canvas = legend_canvas
+    def build_button(self, label, command):
+        """
+        Build the checkbutton of the control frame.
+        """
+        cvar = IntVar()
+        self.plot_button = Checkbutton(self, text=label, variable=cvar, highlightthickness=0, **self.control_labels_config)
+        self.plot_button.var = cvar
+        self.plot_button.configure(command = lambda x=self: command(x))
+
+    def show_widgets(self):
+        Control_frame.show_widgets(self)
+        self.plot_button.select()
+
+
+class Global_control_frame(Control_frame):
+    """
+    A class used to build control column buttons that will be used to control all the plots (for
+    example the 'Show All' and 'Hide All' buttons).
+    """
+
+    def __init__(self, parent = None, button_label="", button_command=None, **configs):
+        Control_frame.__init__(self, parent, plot=None, button_label=button_label, button_command=button_command, **configs)
+
+    def build_button(self, label, command):
+        self.plot_button = Button(self, text=label, highlightthickness=0, **self.control_labels_config)
+        self.plot_button.configure(command = lambda x=self: command(x))
 
 
 ###################################################################################################
@@ -792,13 +852,6 @@ class Canvas_plot(Canvas):
         # Builds the line with all its segments (that is, series of points separated by points with
         # 'None' y values).
         for segment in new_plot.segments_list:
-            # TODO: remove.
-            # line_coords = []
-            # for point in segment.points:
-            #     line_coords.extend([0,0])
-            # # Segments with only one points.
-            # if len(line_coords) < 4:
-            #     line_coords.extend([0, 0])
             pid = self.create_line([0,0,0,0])
             segment.id = pid
             self.itemconfig(pid, width=2, fill=new_plot.color, tags=("plot","resize"))
@@ -1828,7 +1881,7 @@ if __name__ == "__main__":
         print "Test: ", point.xd, point.yd, point.additional_data, plot.label
     root = Tk()
     cp = Custom_plot_window(root, title="A test plotting window.")
-    cp.build_plotting_area(message_bar_initial_text="Click on points to highlight residues in PyMOL: ", y_label_text="DOPE profile", on_click_action=prova)
+    cp.build_plotting_area(message_bar_initial_text="Initial text: ", y_label_text="DOPE profile", on_click_action=prova)
     # vals = list(numpy.random.uniform(-0.5,0.5,200)*100)
     n = 5
     for p in range(0,n):
