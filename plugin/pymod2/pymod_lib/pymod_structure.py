@@ -150,6 +150,7 @@ class Parsed_pdb_file:
         #----------------------------------------------------------------------
 
         self.list_of_pymod_elements = []
+        self.list_of_chains_structure_args = []
 
         for numeric_chain_id, parsed_chain in enumerate(list_of_parsed_chains):
             # Defines the path of the element chain structure file. Initially uses a temporary name
@@ -160,17 +161,17 @@ class Parsed_pdb_file:
             # Builds the new 'PyMod_element'. The header will be used to rename the chains once They
             # are loaded in PyMod/PyMOL.
             new_element_header = self._get_new_pymod_element_header(parsed_chain["pymod_id"])
-            new_element = pmel.PyMod_sequence_element(residues=parsed_chain["residues"],
-                                                      header=new_element_header,
-                                                      color=self._get_chain_color(numeric_chain_id))
+
+            new_element = self._build_pymod_element(residues=parsed_chain["residues"], element_header=new_element_header, color=self._get_chain_color(numeric_chain_id))
             # Builds the new structure for the PyMod element.
-            new_structure = {"file_name_root": self.structure_file_name,
-                             "full_file_path": copied_full_file_path, "chain_file_path": parsed_chain["file_path"],
-                             "chain_id": parsed_chain["pymod_id"], "numeric_chain_id": numeric_chain_id,
-                             "original_structure_file_path": self.original_pdb_file_path,
-                             "original_structure_id": Parsed_pdb_file.counter}
-            new_element.set_structure(**new_structure)
+            new_structure = PyMod_structure(file_name_root = self.structure_file_name,
+                             full_file_path = copied_full_file_path, chain_file_path = parsed_chain["file_path"],
+                             chain_id = parsed_chain["pymod_id"], numeric_chain_id = numeric_chain_id,
+                             original_structure_file_path = self.original_pdb_file_path,
+                             original_structure_id = Parsed_pdb_file.counter)
+            new_element.set_structure(new_structure)
             self.list_of_pymod_elements.append(new_element)
+            self.list_of_chains_structure_args.append(new_structure)
 
         #------------------------------------------------------------------------------------
         # Saves a PDB file with only the current chain of the first model of the structure. -
@@ -203,6 +204,9 @@ class Parsed_pdb_file:
     def get_pymod_elements(self):
         return self.list_of_pymod_elements
 
+    def get_structure_args(self):
+        return self.list_of_chains_structure_args
+
 
     def _correct_chain_id(self, chain_id):
         if chain_id != " ":
@@ -225,6 +229,9 @@ class Parsed_pdb_file:
     def _get_full_structure_file_name(self):
         # return self.structure_file_name
         return pmdt.structure_temp_name % Parsed_pdb_file.counter
+
+    def _build_pymod_element(self, residues, element_header, color):
+        return pmel.PyMod_sequence_element(residues=residues, header=element_header, color=color)
 
     def _get_chain_color(self, chain_number):
         list_of_model_chains_colors = pmdt.pymol_regular_colors_list
@@ -263,30 +270,76 @@ class Parsed_pdb_file:
                 return e
         raise Exception("No element with chain '%s' was built from the parsed PDB file." % chain_id)
 
+    def get_structure_args_by_chain(self, chain_id):
+        for e in self.list_of_chains_structure_args:
+            if e.chain_id == chain_id:
+                return e
+        raise Exception("No chain with id '%s' is present in the parsed PDB file." % chain_id)
 
-# def _get_sequence_using_ppb(pdb_file_path, output_directory=""):
-#     warnings.simplefilter("ignore")
-#     # Creates a biopython pdb object and starts to take informations from it.
-#     fh = open(pdb_file_path, "rU")
-#     parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure("some_code", fh) # TODO: insert a code.
-#     warnings.simplefilter("always")
-#     code = os.path.splitext(os.path.basename(pdb_file_path))[0]
-#     ppb = PPBuilder()
-#     seq = ""
-#     for pp in ppb.build_peptides(parsed_biopython_structure, aa_only=False):
-#         s = ""
-#         for r in pp:
-#             if Bio.PDB.Polypeptide.is_aa(r.get_resname()):
-#                 s+=str(r.get_resname())
-#             else:
-#                 s+="X"
-#         seq += s
-#     return seq
-#
-#     # # Using CA-CA
-#     # ppb = CaPPBuilder()
-#     # for pp in ppb.build_peptides(structure):
-#     #     print(pp.get_sequence())
+
+    # def _get_sequence_using_ppb(pdb_file_path, output_directory=""):
+    #     warnings.simplefilter("ignore")
+    #     # Creates a biopython pdb object and starts to take informations from it.
+    #     fh = open(pdb_file_path, "rU")
+    #     parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure("some_code", fh) # TODO: insert a code.
+    #     warnings.simplefilter("always")
+    #     code = os.path.splitext(os.path.basename(pdb_file_path))[0]
+    #     ppb = PPBuilder()
+    #     seq = ""
+    #     for pp in ppb.build_peptides(parsed_biopython_structure, aa_only=False):
+    #         s = ""
+    #         for r in pp:
+    #             if Bio.PDB.Polypeptide.is_aa(r.get_resname()):
+    #                 s+=str(r.get_resname())
+    #             else:
+    #                 s+="X"
+    #         seq += s
+    #     return seq
+    #
+    #     # # Using CA-CA
+    #     # ppb = CaPPBuilder()
+    #     # for pp in ppb.build_peptides(structure):
+    #     #     print(pp.get_sequence())
+
+
+class Parsed_model_pdb_file(Parsed_pdb_file):
+
+    def __init__(self, pdb_file_path, model_root_name="", **configs):
+        self.model_root_name = model_root_name
+        Parsed_pdb_file.__init__(self, pdb_file_path, **configs)
+
+    def _build_pymod_element(self, residues, element_header, color):
+        return pmel.PyMod_model_element(residues=residues, header=element_header, color=color, model_root_name=self.model_root_name)
+
+
+class PyMod_structure:
+
+    def __init__(self, file_name_root, full_file_path, chain_file_path, chain_id, original_structure_file_path, original_structure_id, numeric_chain_id=0):
+        # File paths of the full structure files (the file containing all the chains of the
+        # structure) of the PyMod element.
+        self.initial_full_file_path = full_file_path
+        self.current_full_file_path = self.initial_full_file_path
+        # Base name assigned in the constructor of the 'Parsed_pdb_file' class.
+        self.file_name_root = file_name_root
+
+        # File paths of the structure files of the chain of the PyMod element.
+        self.initial_chain_file_path = chain_file_path
+        self.current_chain_file_path = self.initial_chain_file_path
+        self.chain_id = chain_id
+
+        # File path of the original structure file on the user's system. This file will only be
+        # copied, not actually edited.
+        self.original_structure_file_path = original_structure_file_path
+        self.original_structure_id = original_structure_id
+        # Numeric index to report where the chain is in the structure file.
+        self.numeric_chain_id = numeric_chain_id
+
+        self.disulfides_list = []
+
+        self.pymod_element = None
+
+    def set_pymod_element(self, pymod_element):
+        self.pymod_element = pymod_element
 
 
 ###################################################################################################

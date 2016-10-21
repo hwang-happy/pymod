@@ -325,7 +325,6 @@ class PyMod_sequence_element(PyMod_element):
         #--------------------------
         # Structural information. -
         #--------------------------
-        self.initialize_structural_information()
         self.models_count = 0
         self.loop_models_count = 0
 
@@ -352,11 +351,11 @@ class PyMod_sequence_element(PyMod_element):
         #----------------------------------------------------
         # Other sequence- or structure-related information. -
         #----------------------------------------------------
-
         self.initialize_additional_information()
 
 
     def initialize_additional_information(self):
+        self.structure = None
         self.assigned_secondary_structure = None
         self.predicted_secondary_structure = None
         self.campo_scores = None
@@ -429,6 +428,10 @@ class PyMod_sequence_element(PyMod_element):
         self.set_residues_from_sequence()
         self.initialize_additional_information()
 
+
+    def tackback_sequence(self, sequence_to_align):
+        ali = pmsm.global_pairwise_alignment(self.my_sequence, sequence_to_align)
+        self.set_sequence(ali["seq1"])
 
     ################################
     # def set_sequence(self, sequence, adjust_sequence=True):
@@ -537,62 +540,13 @@ class PyMod_sequence_element(PyMod_element):
     # Structure related.                                                                          #
     ###############################################################################################
 
-    def initialize_structural_information(self):
-        """
-        Attributes to represent the 3D structure of a macromolecule within PyMod.
-        """
-        # File paths of the full structure files (the file containing all the chains of the
-        # structure) of the PyMod element.
-        self.initial_full_file_path = None
-        self.current_full_file_path = None
-        # Base name assigned in the constructor of the 'Parsed_pdb_file' class.
-        self.file_name_root = None
-
-        # File paths of the structure files of the chain of the PyMod element.
-        self.initial_chain_file_path = None
-        self.current_chain_file_path = None
-        self.chain_id = None
-
-        # File path of the original structure file on the user's system. This file will only be
-        # copied, not actually edited.
-        self.original_structure_file_path = None
-        self.original_structure_id = None
-        # Numeric index to report where the chain is in the structure file.
-        self.numeric_chain_id = 0
-
-        self.disulfides_list = []
-        self.structure = None
-
-
-    def set_structure(self, file_name_root, full_file_path, chain_file_path, chain_id, original_structure_file_path, original_structure_id, numeric_chain_id=0):
-        self.initial_full_file_path = full_file_path
-        self.current_full_file_path = self.initial_full_file_path
-        self.file_name_root = file_name_root
-
-        self.initial_chain_file_path = chain_file_path
-        self.current_chain_file_path = self.initial_chain_file_path
-        self.chain_id = chain_id
-
-        self.original_structure_file_path = original_structure_file_path
-        self.original_structure_id = original_structure_id
-        self.numeric_chain_id = numeric_chain_id
-
-        self.structure = True
-
-
-    def rename_structure_files(self, use_prefix=True):
-        pass
-
-
-    def remove_structure(self):
-        self.initialize_structural_information()
+    def set_structure(self, structure_object):
+        self.structure = structure_object
+        self.structure.set_pymod_element(self)
 
 
     def has_structure(self):
-        if self.structure != None:
-            return True
-        else:
-            return False
+        return self.structure != None
 
 
     def check_structure(method):
@@ -608,14 +562,25 @@ class PyMod_sequence_element(PyMod_element):
 
 
     @check_structure
+    def remove_structure(self):
+        self.structure = None
+
+    @check_structure
+    def rename_structure_files(self, full_structure_file="", chain_structure_file=""):
+        self.structure.initial_full_file_path = full_structure_file
+        self.structure.current_full_file_path = full_structure_file
+        self.structure.initial_chain_file_path = chain_structure_file
+        self.structure.current_chain_file_path = chain_structure_file
+
+    @check_structure
     def get_structure_file(self, name_only=True, strip_extension=False, original_structure_file=False, full_file=False):
         assert(not (original_structure_file and full_file))
         if original_structure_file:
-            result = self.original_structure_file_path
+            result = self.structure.original_structure_file_path
         elif full_file:
-            result = self.current_full_file_path
+            result = self.structure.current_full_file_path
         else:
-            result = self.current_chain_file_path
+            result = self.structure.current_chain_file_path
         if name_only:
             result = os.path.basename(result)
         if strip_extension:
@@ -624,16 +589,15 @@ class PyMod_sequence_element(PyMod_element):
 
     @check_structure
     def get_structure_file_root(self):
-        return self.file_name_root
-
+        return self.structure.file_name_root
 
     @check_structure
     def get_chain_id(self):
-        return self.chain_id
+        return self.structure.chain_id
 
     @check_structure
     def get_chain_numeric_id(self):
-        return self.numeric_chain_id
+        return self.structure.numeric_chain_id
 
 
     #################################################################
@@ -642,7 +606,7 @@ class PyMod_sequence_element(PyMod_element):
 
     @check_structure
     def get_pymol_object_name(self):
-        return os.path.splitext(os.path.basename(self.current_chain_file_path))[0]
+        return os.path.splitext(os.path.basename(self.structure.current_chain_file_path))[0]
 
 
     #################################################################
@@ -651,15 +615,15 @@ class PyMod_sequence_element(PyMod_element):
 
     @check_structure
     def get_disulfides(self):
-        return self.disulfides_list
+        return self.structure.disulfides_list
 
     @check_structure
     def has_disulfides(self):
-        return self.disulfides_list != []
+        return self.structure.disulfides_list != []
 
     @check_structure
     def add_disulfide(self, disulfide=None):
-        self.disulfides_list.append(disulfide)
+        self.structure.disulfides_list.append(disulfide)
 
 
     ###############################################################################################
@@ -710,11 +674,22 @@ class PyMod_sequence_element(PyMod_element):
         return self.has_structure() # TODO: and sequence.is_model != True:
 
 
-class PyMod_polypeptide_element(PyMod_sequence_element):
+    def is_model(self):
+        return isinstance(self, PyMod_model_element)
+
+
+class PyMod_model_element(PyMod_sequence_element):
+
+    def __init__(self, model_root_name, **configs):
+        self.model_root_name = model_root_name
+        PyMod_sequence_element.__init__(self, **configs)
+
+
+class PyMod_polypeptide_element:
     pass
 
 
-class PyMod_nucleic_acid_element(PyMod_sequence_element):
+class PyMod_nucleic_acid_element:
     pass
 
 

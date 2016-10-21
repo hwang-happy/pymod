@@ -524,10 +524,16 @@ prot_standard_and_x_three_to_one_dict = {
 }
 
 def get_prot_one_to_three(one_letter_code):
-    return prot_standard_and_x_one_to_three_dict[one_letter_code]
+    if one_letter_code in prot_standard_and_x_one_letter_set:
+        return prot_standard_and_x_one_to_three_dict.get(one_letter_code)
+    else:
+        return "XXX"
 
 def get_prot_three_to_one(three_letter_code):
-    return prot_standard_and_x_three_to_one_dict[one_letter_code]
+    if three_letter_code in prot_standard_and_x_three_letters_set:
+        return prot_standard_and_x_three_to_one_dict.get(one_letter_code)
+    else:
+        return "X"
 
 #--------------------
 # Heteroatoms data. -

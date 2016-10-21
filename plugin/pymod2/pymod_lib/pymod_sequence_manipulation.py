@@ -153,6 +153,9 @@ def count_indels_to_next_residue(seq, start_real_id):
 
 
 def global_pairwise_alignment(seq1, seq2, toss_modres=False):
+    """
+    If seq1 contains gaps, also aseq1 will maintain these gaps.
+    """
     ali = Bio.pairwise2.align.globalms(seq1, seq2, 2, -1, -.5, -.1)
     aseq1 = ali[0][0]
     aseq2 = ali[0][1]

@@ -8,6 +8,7 @@
 #     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
+#         - implement the new tackbacking system.
 #     - RMSD part.
 #     - reimplement the rest.
 #         - reimplement the "Display" submenu in the main menu.
@@ -724,8 +725,8 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
         # CXCR4.
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
@@ -734,8 +735,8 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
         # Ubiquitin.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
@@ -1989,23 +1990,20 @@ class PyMod:
     def set_header(self, pymod_element, header=None):
         pymod_element.my_header = pymod_element.compact_header_prefix + pymod_element.my_header_root # pymod_element.compact_header_prefix+pymod_element.my_header_root
 
-    def set_structure_header(self, pymod_element, header=None):
+    def set_structure_header(self, pymod_element, full_structure_name=None, chain_file_name=None):
         """
         Renames the structure files of the PyMod element, since when they were first built, they
-        were assigned with temporary names.
+        were assigned temporary names.
         """
         # Renames the full structure file.
         renamed_full_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.get_structure_file_root()))
         if not os.path.isfile(renamed_full_str_file):
             os.rename(pymod_element.get_structure_file(name_only=False, full_file=True), renamed_full_str_file)
-        pymod_element.initial_full_file_path = renamed_full_str_file
-        pymod_element.current_full_file_path = renamed_full_str_file
         # Renames the chain file.
-        renamed_chain_str_file = os.path.join(self.structures_directory, "%s.pdb" % pymod_element.my_header)
+        renamed_chain_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.my_header_root))
         if not os.path.isfile(renamed_chain_str_file):
             os.rename(pymod_element.get_structure_file(name_only=False), renamed_chain_str_file)
-        pymod_element.initial_chain_file_path = renamed_chain_str_file
-        pymod_element.current_chain_file_path = renamed_chain_str_file
+        pymod_element.rename_structure_files(full_structure_file=renamed_full_str_file, chain_structure_file=renamed_chain_str_file)
 
 
     def get_new_name(self, name, list_to_check=[], get_tuple=False):
@@ -2749,6 +2747,18 @@ class PyMod:
     ###############################################################################################
     # MODELS MENU AND ITS BEHAVIOUR.                                                              #
     ###############################################################################################
+
+    def save_modeling_session(self, modeling_session):
+        save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = [("ZIP","*.zip")], parent=self.main_window)
+        if save_file_full_path == "":
+            return None
+        if 1: #try:
+            old_path = modeling_session.modeling_directory_path
+            shutil.copy(old_path, save_file_full_path)
+        else: # except:
+            title = "File Error"
+            message = "Could not save the modeling session file to path: %s" % (save_file_full_path)
+            self.show_error_message(title, message)
 
     def show_session_profile(self, modeling_session):
         """

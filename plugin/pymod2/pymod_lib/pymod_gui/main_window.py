@@ -860,7 +860,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.build_models_submenu()
         # Adds the "Alignments" menu to the main menu
         self.menubar.add_cascade(label = "Models", menu = self.models_menu)
-        # self.define_models_menu_structure()
 
         #--------------------
         # "Selection" menu. -
@@ -1003,6 +1002,8 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         if self.pymod.modeling_session_list != []:
             for modeling_session in self.pymod.modeling_session_list:
                 modeling_session_submenu = Menu(self.models_menu, tearoff = 0)
+                modeling_session_submenu.add_command(label = "Export to File",
+                    command = lambda ms=modeling_session: self.pymod.save_modeling_session(ms))
                 modeling_session_submenu.add_command(label = "DOPE Profile",
                     command = lambda ms=modeling_session: self.pymod.show_session_profile(ms))
                 modeling_session_submenu.add_command(label = "Assessment Table",

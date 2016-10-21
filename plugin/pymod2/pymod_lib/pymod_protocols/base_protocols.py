@@ -67,16 +67,17 @@ class PyMod_protocol:
     # Executing subprocesses.                                                                     #
     ###############################################################################################
 
-    def begin_log_file_building(self, log_file_path):
+    def begin_log_file_building_from_stdout(self, log_file_path):
         self._log_file_path = log_file_path
         self._building_log_file = True
         self._change_stdout_to_string()
 
-    def finish_log_file_building(self):
+    def finish_log_file_building_from_stdout(self):
         if self._building_log_file:
             self._revert_stdout()
             self._write_log_file(self._log_file_path)
             self._building_log_file = False
+            self.my_stdout = None
 
     def _change_stdout_to_string(self):
         """
