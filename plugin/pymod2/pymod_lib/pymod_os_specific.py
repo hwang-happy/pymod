@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # os_specific.py: submodules for cross-platform compatibility
 # Copyright (C) 2016 Chengxin Zhang, Giacomo Janson
 #
@@ -402,6 +401,34 @@ def custom_extract(zipfile_obj, zipped_file_name, target_dir):
                 os.mkdir(new_path)
         else:
             os.mkdir(new_path)
+
+
+def zip_directory(directory_path, zipfile_path):
+    """
+    Zips a directory. This function will ignore empty subdirectories inside the directory to zip.
+    """
+    if not os.path.isdir(directory_path):
+        raise Exception("The target path (%s) is not a directory." % directory_path)
+    directory_name = os.path.basename(directory_path)
+    directory_parent = os.path.dirname(directory_path)
+    directory_name_count = directory_path.split(os.path.sep).count(directory_name)
+    zipfile_handle = zipfile.ZipFile(zipfile_path, 'w', zipfile.ZIP_DEFLATED)
+    for root, dirs, files in os.walk(directory_path):
+        for f in files:
+            # Build the relative path of the zipped file.
+            dir_index_in_root = 0
+            for i,dirname in enumerate(root.split(os.path.sep)):
+                if dirname == directory_name:
+                    dir_index_in_root += 1
+                    if dir_index_in_root == directory_name_count:
+                        index_to_use = i
+                        break
+            # absolute_path = os.path.join(root, f)
+            # relative_path = absolute_path[len(directory_parent)+len(os.path.sep):]
+            # z.write(absolute_path, relative_path)
+            relative_path = os.path.sep.join(root.split(os.path.sep)[index_to_use:])
+            zipfile_handle.write(os.path.join(root, f), os.path.join(relative_path, f))
+    zipfile_handle.close()
 
 
 #####################################################################

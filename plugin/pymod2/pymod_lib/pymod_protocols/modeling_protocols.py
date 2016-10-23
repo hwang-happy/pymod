@@ -4,10 +4,10 @@
 #       - Linux external: ok.
 #       - Win internal
 #       - OSX external
+#       - fix the output of other MODELLER processes.
 #   - implement saving of modeling sessions.
-#       - save modeling sessions (and also build a well done MODELLER script).
-#       - clean the modeling directory.
-#       - save the DOPE profiles of the templates as csv.
+#       - build a well done MODELLER script.
+
 #   - make sure to reimplement all.
 #   - implement the master branch modifications (refinement and optimization).
 #       - implement the "really quick" refinement option.
@@ -15,7 +15,7 @@
 #       - hetatms, refinement levels, disulfides, internal and external, models menu, multiple
 #         templates, all the platforms, strange PDB files.
 #   - build a line in the DOPE plots for the 0.03 threshold.
-#   - sort tables.
+#   - sort tables: make a class for tables.
 
 import os
 import sys
@@ -72,6 +72,7 @@ class Modeling_session:
     modeling_script_name = "%s.py" % modeling_files_name
     modeling_log_name = "%s.log" % modeling_files_name
     pir_file_name = "align-multiple.ali"
+    modeller_temp_output_name = "modeller_saved_outputs.txt"
     multiple_chains_models_name = "MyMultiModel"
     tc_temp_pymol_name = "template_complex_temp"
     mc_temp_pymol_name = "model_complex_temp"
@@ -650,7 +651,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             if not self.run_modeller_internally:
                 print >> self.modeller_script, "\n###################################"
                 print >> self.modeller_script, "# Needed to run MODELLER externally from PyMOL."
-                print >> self.modeller_script, "modeller_outputs_file = open('modeller_saved_outputs.txt','w')"
+                print >> self.modeller_script, "modeller_outputs_file = open('%s','w')" % self.modeller_temp_output_name
                 print >> self.modeller_script, "modeller_outputs_file.write('[')"
                 print >> self.modeller_script, "for model in a.outputs:"
                 print >> self.modeller_script, "    model_copy = model.copy()"
@@ -666,13 +667,14 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             self.pymod.execute_subprocess(cline)
             # Builds the 'a.outputs' when MODELLER was executed externally by reading an output file
             # that was generated in the MODELLER script that was executed externally from PyMOL.
-            modeller_outputs_file = open("modeller_saved_outputs.txt","r")
+            modeller_outputs_file = open(self.modeller_temp_output_name,"r")
             class Empty_automodel:
                 outputs = None
             a = Empty_automodel()
             # Gets the a.outputs data.
             a.outputs = eval(modeller_outputs_file.readline())
             modeller_outputs_file.close()
+            os.remove(self.modeller_temp_output_name)
         #------------------------------------------------------------
 
         # Internal --------------------------------------------------
@@ -724,7 +726,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                     self.pymod.replace_element(old_element=modeling_cluster.target, new_element=model_element)
                     modeling_cluster.target = model_element
                 # Adds gaps to the various copies of the target sequencs.
-                model_element.tackback_sequence(original_target_aligned_sequence)
+                model_element.trackback_sequence(original_target_aligned_sequence)
 
             #------------------------------------------
             # Superpose models to templates in PyMOL. -
@@ -781,7 +783,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # Create a DOPE profile plot for all models built in this by computing their DOPE scores. -
         #------------------------------------------------------------------------------------------
         self.all_assessed_structures_list = []
-        session_dope_protocol = DOPE_assessment(self.pymod)
+        session_dope_protocol = DOPE_assessment(self.pymod, output_directory=None)
         # Actually computes the DOPE profiles the templates and of the models.
         for mc in self.get_modeling_clusters_list(sorted_by_id=True):
             for template in mc.templates_list:
@@ -812,6 +814,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         # Gets the objective function and DOPE scores values for each full model (the model -
         # comprising all the chains) built.                                                 -
         #------------------------------------------------------------------------------------
+        # This will also save in the modeling directory the DOPE profile files of the models and
+        # templates.
         session_assessment_data = []
         for model, fmo in zip(a.outputs, current_modeling_session.full_models):
             obj_funct_value = self.get_model_objective_function_value(model)
@@ -819,6 +823,10 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             assessment_values = [self.round_assessment_value(obj_funct_value), self.round_assessment_value(dope_score)]
             session_assessment_data.append(assessment_values)
             fmo.assessment_data = assessment_values
+        for template_name in self.all_templates_namelist:
+            compute_dope_of_structure_file(self.pymod,
+                os.path.join(self.modeling_directory, "%s.pdb" % template_name),
+                os.path.join(self.modeling_directory, "%s.profile" % template_name), env=env)
 
         # Prepares data to show a table with assessment values for each model.
         column_headers = ["Objective Function Value", "DOPE score"]
@@ -1126,7 +1134,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             # The absolute path of the models directory.
             models_dir = os.path.join(self.pymod.current_project_directory_full_path, self.pymod.models_directory)
             # Name of the model subdirectory where Modeller output files are going to be placed.
-            model_subdir_name = "%s_%s_%s" % (self.pymod.models_subdirectory, self.pymod.performed_modeling_count, self.modeller_target_name)
+            model_subdir_name = "%s_%s_%s" % (self.pymod.models_subdirectory, self.pymod.performed_modeling_count + 1, self.modeller_target_name)
             # The absolute path of the model subdirectory.
             modeller_output_dir_path = os.path.join(models_dir, model_subdir_name)
 

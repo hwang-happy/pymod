@@ -1,6 +1,6 @@
 # TODO:
 #     - MODELLER.
-#     - implement ordered dictionaries.
+#     - implement ordered dictionaries (test on PyMOL 0.99).
 #     - color the clusters after modifications. Cluster appearance.
 #         - reimplement the collapsed clusters features.
 #     - add raw sequences.
@@ -26,6 +26,8 @@
 #         - buttons for fast controls of structures in PyMOL.
 #     - define modified residues.
 #     - nucleic acids.
+#     - adjust the structure files part.
+#         - add a "pymol_selector attribute".
 #     - color structures and models, structure appearence and user defined colors.
 #     - organize the structure of the PyMod_protocols.
 #         - take input from gui for alignment protocols.
@@ -725,8 +727,8 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
         # CXCR4.
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/3oe0.pdb"))
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/3oe0_mut.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
@@ -735,11 +737,14 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
         # Ubiquitin.
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
+        # PAX domains.
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))
 
         self.gridder(update_clusters=True, update_menus=True)
 
@@ -1058,7 +1063,8 @@ class PyMod:
         if keep_old_header:
             pass
         self.delete_element_from_pymod(old_element)
-        self.add_element_to_pymod(new_element, load_in_pymol=True)
+        if not new_element in self.get_pymod_elements_list():
+            self.add_element_to_pymod(new_element, load_in_pymol=True)
         # Put the new element in the same cluster (with the same position) of the old one.
         old_element_container.add_child(new_element)
         self.change_pymod_element_list_index(new_element, old_element_index)
@@ -2749,15 +2755,17 @@ class PyMod:
     ###############################################################################################
 
     def save_modeling_session(self, modeling_session):
-        save_file_full_path = asksaveasfilename(defaultextension = "", filetypes = [("ZIP","*.zip")], parent=self.main_window)
-        if save_file_full_path == "":
+        """
+        Build a zip file of the modeling directory of a certain session.
+        """
+        arhive_file_full_path = asksaveasfilename(defaultextension = "", filetypes = [("ZIP","*.zip")], parent=self.main_window)
+        if arhive_file_full_path == "":
             return None
-        if 1: #try:
-            old_path = modeling_session.modeling_directory_path
-            shutil.copy(old_path, save_file_full_path)
-        else: # except:
+        try:
+            pmos.zip_directory(directory_path=modeling_session.modeling_directory_path, zipfile_path=arhive_file_full_path)
+        except:
             title = "File Error"
-            message = "Could not save the modeling session file to path: %s" % (save_file_full_path)
+            message = "Could not save the modeling session file to path: %s" % (arhive_file_full_path)
             self.show_error_message(title, message)
 
     def show_session_profile(self, modeling_session):
@@ -2788,8 +2796,7 @@ class PyMod:
             return None
         # Moves the saved file to the path chosen by the user.
         try:
-            old_path = full_model.original_file_path
-            shutil.copy(old_path, save_file_full_path)
+            shutil.copy(full_model.original_file_path, save_file_full_path)
         except:
             title = "File Error"
             message = "Could not save the model file to path: %s" % (save_file_full_path)
@@ -2918,9 +2925,13 @@ class PyMod:
     # TO BE REMOVED.                                                                              #
     ###############################################################################################
 
-    def load_uniprot_random(self):
+    def load_uniprot_random(self, reviewed=False):
         import urllib
-        temp_fasta_path = urllib.urlretrieve("http://www.uniprot.org/uniprot/?query=reviewed:yes+AND+organism:9606&random=yes&format=fasta")[0]
+        if reviewed:
+            rev_string = "yes"
+        else:
+            rev_string = "no"
+        temp_fasta_path = urllib.urlretrieve("http://www.uniprot.org/uniprot/?query=reviewed:%s+AND+organism:9606&random=yes&format=fasta" % rev_string)[0]
         self.open_sequence_file(temp_fasta_path)
 
 

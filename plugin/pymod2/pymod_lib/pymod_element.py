@@ -429,7 +429,7 @@ class PyMod_sequence_element(PyMod_element):
         self.initialize_additional_information()
 
 
-    def tackback_sequence(self, sequence_to_align):
+    def trackback_sequence(self, sequence_to_align):
         ali = pmsm.global_pairwise_alignment(self.my_sequence, sequence_to_align)
         self.set_sequence(ali["seq1"])
 

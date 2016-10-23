@@ -475,12 +475,16 @@ class DOPE_assessment(PyMod_protocol):
     Compute the DOPE (Discrete optimized protein energy) of a polypeptidic chain using MODELLER.
     """
 
-    def __init__(self, pymod, selected_sequences=None):
+    def __init__(self, pymod, selected_sequences=None, output_directory=None):
         PyMod_protocol.__init__(self, pymod)
         self.selected_sequences = []
         self.unfiltered_dope_scores_dict = {} # Items will contain DOPE scores for ligands and water molecules.
         self.dope_scores_dict = {} # Items will contain DOPE scores of only polymer residues.
         self.assessed_structures_list = [] # TODO: this is redundant with 'dope_scores_dict'.
+        if not output_directory:
+            self.output_directory = self.pymod.structures_directory
+        else:
+            self.output_directory = output_directory
 
 
     def launch_from_gui(self):
@@ -570,7 +574,7 @@ class DOPE_assessment(PyMod_protocol):
         # Prepares the input for MODELLER.
         e_file_name = element.get_structure_file(strip_extension=False)
         e_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name)
-        e_profile_file_shortcut = os.path.join(self.pymod.structures_directory, e_file_name+".profile")
+        e_profile_file_shortcut = os.path.join(self.output_directory, e_file_name+".profile")
         # Computes the DOPE of the 3D structure of the chain of the 'element'.
         self._compute_dope_of_structure_file(e_file_shortcut, e_profile_file_shortcut, env=env)
         # Reads the output file produced by MODELLER with the DOPE scores of the chain of the
@@ -613,7 +617,7 @@ class DOPE_assessment(PyMod_protocol):
                 raise Exception("Can not run MODELLER externally.")
             # Builds the MODELLER script file to be executed externally.
             dope_profile_script_file_name = "dope_profile-script.py"
-            dope_profile_temp_out_name = "dope_profile_temp_out.txt"
+            dope_profile_temp_out_name = "dope_profile_temp_out.txt" # TODO: remove this file after execution.
             dope_profile_script_file = open(dope_profile_script_file_name,"w")
             print >> dope_profile_script_file, "import modeller"
             print >> dope_profile_script_file, "from modeller.scripts import complete_pdb"
