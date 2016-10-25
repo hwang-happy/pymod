@@ -39,7 +39,7 @@ import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_gui as pmgi
 import pymod_lib.pymod_sequence_manipulation as pmsm
-from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
+from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, MODELLER_common
 
 # CE-alignment.
 global ce_alignment_mode

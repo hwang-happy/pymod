@@ -25,7 +25,7 @@ import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_sequence_manipulation as pmsm
 import pymod_lib.pymod_plot as pplt
-from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, PSI_BLAST_common
+from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, MODELLER_common, PSI_BLAST_common
 
 ###################################################################################################
 # SECONDARY STRUCTURE ASSIGNMENT.                                                                 #
@@ -470,18 +470,24 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
 # DOPE PROFILES.                                                                                  #
 ###################################################################################################
 
-class DOPE_assessment(PyMod_protocol):
+class DOPE_assessment(PyMod_protocol, MODELLER_common):
     """
     Compute the DOPE (Discrete optimized protein energy) of a polypeptidic chain using MODELLER.
     """
 
+    script_file_basename = "dope_profile_script"
+    script_file_name = "%s.py" % script_file_basename
+    script_temp_output_name = "dope_profile_temp_out.txt"
+
     def __init__(self, pymod, selected_sequences=None, output_directory=None):
         PyMod_protocol.__init__(self, pymod)
+        MODELLER_common.__init__(self)
+
         self.selected_sequences = []
         self.unfiltered_dope_scores_dict = {} # Items will contain DOPE scores for ligands and water molecules.
         self.dope_scores_dict = {} # Items will contain DOPE scores of only polymer residues.
         self.assessed_structures_list = [] # TODO: this is redundant with 'dope_scores_dict'.
-        if not output_directory:
+        if not output_directory: # TODO: replace with the default routine on the base class.
             self.output_directory = self.pymod.structures_directory
         else:
             self.output_directory = output_directory
@@ -512,6 +518,7 @@ class DOPE_assessment(PyMod_protocol):
             if self.pymod.root_element in mothers_set or len(mothers_set) > 1:
                 self.pymod.show_error_message("Selection Error", "You can assess multiple structures DOPE only if they are aligned in the same cluster.")
                 return None
+
         # Ask users if they would like to color the sequences according to their DOPE values.
         title = "Color Option"
         message = "Would you like to color the selected sequences by their DOPE values, once they have been calculated?"
@@ -520,14 +527,8 @@ class DOPE_assessment(PyMod_protocol):
         #------------------------
         # Initializes MODELLER. -
         #------------------------
-        if self.pymod.modeller.run_internally():
-            env = modeller.environ()
-            env.io.atom_files_directory = []
-            env.io.atom_files_directory.append(".")
-            env.io.hetatm = True
-            env.io.water = True
-            env.libs.topology.read(file='$(LIB)/top_heav.lib')
-            env.libs.parameters.read(file='$(LIB)/par.lib')
+        if self.run_modeller_internally:
+            env = self._initialiaze_env()
         else:
             env = None
 
@@ -586,9 +587,9 @@ class DOPE_assessment(PyMod_protocol):
 
     def _compute_dope_of_structure_file(self, str_file_path, profile_file_path, env=None):
         return self._compute_dope(str_file_path, profile_file_path, env=env,
-                                  run_internally=self.pymod.modeller.run_internally(),
-                                  modeller_path=self.pymod.modeller.get_exe_file_path(),
-                                  run_externally_command=self.pymod.execute_subprocess)
+                                  run_internally=self.run_modeller_internally, # TODO: remove.
+                                  modeller_path=self.pymod.modeller.get_exe_file_path(), # TODO: remove.
+                                  run_externally_command=self.pymod.execute_subprocess) # TODO: remove.
 
 
     def _compute_dope(self, str_file_path, profile_file_path, env=None, run_internally=True, modeller_path=None, run_externally_command=None):
@@ -600,25 +601,18 @@ class DOPE_assessment(PyMod_protocol):
         """
         if run_internally:
             if env == None:
-                env = modeller.environ()
-                env.io.atom_files_directory = []
-                env.io.atom_files_directory.append(".")
-                env.io.hetatm = True
-                env.io.water = True
-                env.libs.topology.read(file='$(LIB)/top_heav.lib')
-                env.libs.parameters.read(file='$(LIB)/par.lib')
+                env = self._initialiaze_env()
             modstr = complete_pdb(env, str_file_path)
             # Assess with DOPE.
             s = modeller.selection(modstr).only_std_residues() # only_het_residues, only_std_residues, only_water_residues
             # Gets the DOPE score.
             score = s.assess_dope(output='ENERGY_PROFILE NO_REPORT',file=profile_file_path, normalize_profile=True, smoothing_window=15)
+
         else:
             if not os.path.isfile(modeller_path) or not hasattr(run_externally_command, "__call__"):
                 raise Exception("Can not run MODELLER externally.")
             # Builds the MODELLER script file to be executed externally.
-            dope_profile_script_file_name = "dope_profile-script.py"
-            dope_profile_temp_out_name = "dope_profile_temp_out.txt" # TODO: remove this file after execution.
-            dope_profile_script_file = open(dope_profile_script_file_name,"w")
+            dope_profile_script_file = open(self.script_file_name, "w")
             print >> dope_profile_script_file, "import modeller"
             print >> dope_profile_script_file, "from modeller.scripts import complete_pdb"
             print >> dope_profile_script_file, "env = modeller.environ()"
@@ -632,20 +626,23 @@ class DOPE_assessment(PyMod_protocol):
             print >> dope_profile_script_file, "s = modeller.selection(modstr).only_std_residues()"
             print >> dope_profile_script_file, "score = s.assess_dope(output='ENERGY_PROFILE NO_REPORT',file='%s', normalize_profile=True, smoothing_window=15)" % profile_file_path
             print >> dope_profile_script_file, "\n# Needed to compute DOPE in PyMod when MODELLER is run externally from PyMOL."
-            print >> dope_profile_script_file, "dope_profile_out_file = open('%s','w')" % dope_profile_temp_out_name
+            print >> dope_profile_script_file, "dope_profile_out_file = open('%s','w')" % self.script_temp_output_name
             print >> dope_profile_script_file, "dope_profile_out_file.write(str(score))"
             print >> dope_profile_script_file, "dope_profile_out_file.close()"
             dope_profile_script_file.close()
 
             # Executes the script.
-            cline = modeller_path + " " + dope_profile_script_file_name
+            cline =  "%s %s" % (modeller_path, self.script_file_name)
             run_externally_command(cline)
             # Gets the score from the output generated by the script and cleans up temporary files.
-            dope_profile_out_file = open(dope_profile_temp_out_name, "r")
+            dope_profile_out_file = open(self.script_temp_output_name, "r")
             score = float(eval(dope_profile_out_file.readline()))
             dope_profile_out_file.close()
-            os.remove(dope_profile_temp_out_name)
-            os.remove(dope_profile_script_file_name)
+            # Removes temp files.
+            os.remove(self.script_temp_output_name)
+            os.remove(self.script_file_name)
+            if os.path.isfile("%s.log" % self.script_file_basename):
+                os.remove("%s.log" % self.script_file_basename)
 
         return score
 

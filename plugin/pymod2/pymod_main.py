@@ -1,19 +1,33 @@
 # TODO:
-#     - MODELLER.
 #     - implement ordered dictionaries (test on PyMOL 0.99).
+#     - organize the structure of the PyMod_protocols.
+#         - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
+#         - build well organized classes for the protocols windows.
+#         - rewrite the 'execute_subprocess' method.
+#         - add documentation to protocols.
+#         - take input from gui for alignment protocols.
+#         - intialize_from_gui -> launch_from_gui -> check_parameters_from_gui -> protocol_state -> import_results_in_pymod
+#         - fix BLAST protocols.
+#             - update BLAST clusters.
+#         - fix the log and output of MODELLER processes.
+#             - build a log file on all platforms.
+#             - Win internal
+#             - OSX external
+#         - MODELLER:
+#             - implement the master branch modifications (refinement and optimization).
+#             - implement the "really quick" refinement option.
+#             - build a line in the DOPE plots for the 0.03 threshold.
+#             - sort tables: make a class for tables.
 #     - color the clusters after modifications. Cluster appearance.
 #         - reimplement the collapsed clusters features.
 #     - add raw sequences.
-#     - rewrite the 'execute_subprocess' method.
+#     - reimplement the rest.
+#         - reimplement the "Display" submenu in the main menu.
 #     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
 #         - implement the new tackbacking system.
 #     - RMSD part.
-#     - reimplement the rest.
-#         - reimplement the "Display" submenu in the main menu.
-#     - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
-#         - build well organized classes for the protocols windows.
 #     - integrate the modifications made in the stable branch.
 #         - control the sequences before modeling.
 #     - add the licence part to each file of the plugin.
@@ -29,11 +43,6 @@
 #     - adjust the structure files part.
 #         - add a "pymol_selector attribute".
 #     - color structures and models, structure appearence and user defined colors.
-#     - organize the structure of the PyMod_protocols.
-#         - take input from gui for alignment protocols.
-#         - intialize_from_gui -> launch_from_gui -> check_parameters_from_gui -> protocol_state -> import_results_in_pymod
-#         - fix BLAST protocols.
-#             - update BLAST clusters.
 #     - add an 'Annotations' submenu.
 
 ###########################################################################

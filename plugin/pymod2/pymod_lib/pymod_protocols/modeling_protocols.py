@@ -1,20 +1,3 @@
-# TODO
-#   - build a log file on all platforms.
-#       - Linux internal
-#       - Linux external: ok.
-#       - Win internal
-#       - OSX external
-#       - fix the output of other MODELLER processes.
-
-#   - make sure to reimplement all.
-#   - implement the master branch modifications (refinement and optimization).
-#       - implement the "really quick" refinement option.
-#   - test with all kind of cases.
-#       - hetatms, refinement levels, disulfides, internal and external, models menu, multiple
-#         templates, all the platforms, strange PDB files.
-#   - build a line in the DOPE plots for the 0.03 threshold.
-#   - sort tables: make a class for tables.
-
 import os
 import sys
 import shutil
@@ -36,7 +19,7 @@ try:
 except:
     pass
 
-from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
+from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, MODELLER_common
 from pymod_lib.pymod_protocols.structural_analysis_protocols import DOPE_assessment, show_dope_plot, compute_dope_of_structure_file
 
 import pymod_lib.pymod_vars as pmdt
@@ -90,14 +73,14 @@ class Modeling_session:
         return round(assessment_value, digits_after_point)
 
 
-class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
+class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_session):
     """
     Class to represent an homology model building session with MODELLER.
     """
 
-    def __init__(self, pymod):
-        PyMod_protocol.__init__(self, pymod)
-        self.run_modeller_internally = self.pymod.modeller.run_internally()
+    def __init__(self, pymod, **configs):
+        PyMod_protocol.__init__(self, pymod, **configs)
+        MODELLER_common.__init__(self)
 
 
     def launch_from_gui(self):
@@ -520,6 +503,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #--------------------------------------------------------------------------
         # Apply simmetry restraints to target chains that have the same sequence. -
         #--------------------------------------------------------------------------
+
         if self.multiple_chain_mode and len(self.list_of_symmetry_restraints) > 0:
             # Internal ----------------------------------------------
             if self.run_modeller_internally:
@@ -1815,5 +1799,5 @@ class Full_model:
         self.assessment_data = None
 
 
-class MODELLER_loop_refinement(PyMod_protocol, Modeling_session):
+class MODELLER_loop_refinement(PyMod_protocol, MODELLER_common, Modeling_session):
     pass

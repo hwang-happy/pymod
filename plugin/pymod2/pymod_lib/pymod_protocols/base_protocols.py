@@ -110,6 +110,27 @@ class PyMod_protocol:
         return self.my_stdout.getvalue()
 
 
+class MODELLER_common:
+    """
+    A base class for running MODELLER based scripts. To be used as a parent class along
+    'PyMod_protocol' class.
+    """
+
+    def __init__(self):
+        self.run_modeller_internally = self.pymod.modeller.run_internally()
+
+
+    def _initialiaze_env(self, use_hetatm=True, use_water=True):
+        env = modeller.environ()
+        env.io.atom_files_directory = []
+        env.io.atom_files_directory.append(".")
+        env.io.hetatm = use_hetatm
+        env.io.water = use_water
+        env.libs.topology.read(file='$(LIB)/top_heav.lib')
+        env.libs.parameters.read(file='$(LIB)/par.lib')
+        return env
+
+
 class PSI_BLAST_common:
     """
     A mixin class for using PSI-BLAST in other protocols.
