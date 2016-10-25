@@ -740,8 +740,8 @@ class PyMod:
         self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
         self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
         # PAX domains.
         self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
         self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))

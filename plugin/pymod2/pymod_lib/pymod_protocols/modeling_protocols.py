@@ -5,8 +5,6 @@
 #       - Win internal
 #       - OSX external
 #       - fix the output of other MODELLER processes.
-#   - implement saving of modeling sessions.
-#       - build a well done MODELLER script.
 
 #   - make sure to reimplement all.
 #   - implement the master branch modifications (refinement and optimization).
@@ -65,7 +63,7 @@ class Modeling_session:
     # perform the modellization. It is necessary when using MODELLER as an external coomand line
     # tool, that is, when using MODELLER on PyMOL version which can't import the systemwide
     # 'modeller' library.
-    write_modeller_script = True
+    write_modeller_script_option = True
 
     modeling_directory = ""
     modeling_files_name = "my_model"
@@ -123,6 +121,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             message = "Please select at least one target sequence to use MODELLER."
             self.pymod.show_error_message(title,message)
             return None
+            # TODO: use exceptions instead?
 
         # Checks if all the selected sequences can be used to build a model.
         if False in [s.can_be_modeled() for s in selected_sequences]:
@@ -313,17 +312,29 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #------------------------------------------------------------
 
         # External --------------------------------------------------
-        if self.write_modeller_script:
-            self.modeller_script = open(self.modeling_script_name, "w")
-            print >> self.modeller_script, "import modeller"
-            print >> self.modeller_script, "import modeller.automodel"
-            print >> self.modeller_script, "\n"
-            print >> self.modeller_script, "modeller.log.verbose()"
-            print >> self.modeller_script, "env = modeller.environ()"
+        if self.write_modeller_script_option:
+            self.mod_script_dict = {"environment": "",
+                                    "hetres": "",
+                                    "automodel": {"definition": "",
+                                                  "default_patches": "",
+                                                  "special_patches": {"definition": "",
+                                                                      "multichain": "",
+                                                                      "disulfides": ""},
+                                                  "special_restraints": ""},
+                                    "automodel_init": "",
+                                    "refinement": "",
+                                    "models_indices": "",
+                                    "make": "",
+                                    "external_post_make": ""}
+            self.mod_script_dict["environment"] += "import modeller\n"
+            self.mod_script_dict["environment"] += "import modeller.automodel\n"
+            self.mod_script_dict["environment"] += "\n"
+            self.mod_script_dict["environment"] += "modeller.log.verbose()\n"
+            self.mod_script_dict["environment"] += "env = modeller.environ()\n"
             if not self.run_modeller_internally:
                 env = None
-            print >> self.modeller_script, "env.io.atom_files_directory = []"
-            print >> self.modeller_script, "env.io.atom_files_directory.append('.')" + "\n"
+            self.mod_script_dict["environment"] += "env.io.atom_files_directory = []\n"
+            self.mod_script_dict["environment"] += "env.io.atom_files_directory.append('.')\n"
         #------------------------------------------------------------
 
         #--------------------------------------
@@ -337,8 +348,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             #--------------------------------------------------------
 
             # External ----------------------------------------------
-            if self.write_modeller_script:
-                print >> self.modeller_script, "env.io.hetatm = True"
+            if self.write_modeller_script_option:
+                self.mod_script_dict["hetres"] += "env.io.hetatm = True\n"
             #--------------------------------------------------------
 
             # Use water only if the user chose to include water molecules from some template.
@@ -349,8 +360,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 #----------------------------------------------------
 
                 # External ------------------------------------------
-                if self.write_modeller_script:
-                    print >> self.modeller_script, "env.io.water = True"
+                if self.write_modeller_script_option:
+                    self.mod_script_dict["hetres"] += "env.io.water = True\n"
                 #----------------------------------------------------
 
         # If the user doesn't want to include hetero-atoms and water.
@@ -391,9 +402,8 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #------------------------------------------------------------
 
         # External --------------------------------------------------
-        if self.write_modeller_script:
-            print >> self.modeller_script, "\n"+"class MyModel(modeller.automodel.%s):" % session_automodel_class_name
-            print >> self.modeller_script, "\n"+"    pass" # TODO: remove.
+        if self.write_modeller_script_option:
+            self.mod_script_dict["automodel"]["definition"] += "class MyModel(modeller.automodel.%s):\n" % session_automodel_class_name
         #------------------------------------------------------------
 
         #----------------------------------------------------------------------------------------
@@ -419,10 +429,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                 #----------------------------------------------------
 
                 # External ------------------------------------------
-                if self.write_modeller_script:
-                    print >> self.modeller_script, "\n"
-                    print >> self.modeller_script, "    def default_patches(self,aln):"
-                    print >> self.modeller_script, "        pass"+"\n"
+                if self.write_modeller_script_option:
+                    self.mod_script_dict["automodel"]["default_patches"] += "    def default_patches(self, aln):\n"
+                    self.mod_script_dict["automodel"]["default_patches"] += "        pass\n"
                 #----------------------------------------------------
 
         #-----------------------------------------------------------------------------------
@@ -480,18 +489,18 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #------------------------------------------------------------
 
         # External --------------------------------------------------
-        if self.write_modeller_script:
-            print >> self.modeller_script, "    def special_patches(self, aln):"
+        if self.write_modeller_script_option:
+            self.mod_script_dict["automodel"]["special_patches"]["definition"] += "    def special_patches(self, aln):\n"
             if self.multiple_chain_mode:
-                print >> self.modeller_script, "        # Renumber the residues in the new chains starting from 1."
-                print >> self.modeller_script, "        count_dictionary = {}"
-                print >> self.modeller_script, "        for chain in self.chains:"
-                print >> self.modeller_script, "            if chain.name not in count_dictionary.keys():"
-                print >> self.modeller_script, "                count_dictionary.update({chain.name: 1})"
-                print >> self.modeller_script, "        for chain in self.chains:"
-                print >> self.modeller_script, "            for num, residue in enumerate(chain.residues):"
-                print >> self.modeller_script, "                residue.num = '%d' % (count_dictionary[chain.name])"
-                print >> self.modeller_script, "                count_dictionary[chain.name] += 1" + "\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "        # Renumber the residues of the chains of multichain models starting from 1.\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "        count_dictionary = {}\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "        for chain in self.chains:\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "            if chain.name not in count_dictionary.keys():\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "                count_dictionary.update({chain.name: 1})\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "        for chain in self.chains:\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "            for num, residue in enumerate(chain.residues):\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "                residue.num = '%d' % (count_dictionary[chain.name])\n"
+                self.mod_script_dict["automodel"]["special_patches"]["multichain"] += "                count_dictionary[chain.name] += 1\n"
 
             if self.check_targets_with_cys():
                 if self.use_user_defined_dsb:
@@ -501,11 +510,11 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
                             cys2 = dsb[1][3:]
                             if self.multiple_chain_mode:
                                 chain = mc.get_template_complex_chain().get_chain_id() # TODO: use 'model_chain_id' attribute.
-                                print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.chains['%s'].residues['%s'], self.chains['%s'].residues['%s']))" % (chain,cys1,chain,cys2)
+                                self.mod_script_dict["automodel"]["special_patches"]["disulfides"] += "        self.patch(residue_type='DISU', residues=(self.chains['%s'].residues['%s'], self.chains['%s'].residues['%s']))\n" % (chain,cys1,chain,cys2)
                             else:
-                                print >> self.modeller_script, "        self.patch(residue_type='DISU', residues=(self.residues['%s'], self.residues['%s']))" % (cys1,cys2)
+                                self.mod_script_dict["automodel"]["special_patches"]["disulfides"] += "        self.patch(residue_type='DISU', residues=(self.residues['%s'], self.residues['%s']))\n" % (cys1,cys2)
                 if self.use_auto_dsb:
-                    print >> self.modeller_script, "        self.patch_ss()"
+                    self.mod_script_dict["automodel"]["special_patches"]["disulfides"] += "        self.patch_ss()\n"
         #------------------------------------------------------------
 
         #--------------------------------------------------------------------------
@@ -534,22 +543,17 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             #----------------------------------------------------
 
             # External ----------------------------------------------
-            if self.write_modeller_script:
-                print >> self.modeller_script, "    def special_restraints(self, aln):"
+            if self.write_modeller_script_option:
+                self.mod_script_dict["automodel"]["special_restraints"] += "    def special_restraints(self, aln):\n"
                 for si,symmetry_restraints_group in enumerate(self.list_of_symmetry_restraints):
-                     print >> self.modeller_script, "        # Symmetry restraints group n. %d." % (si+1)
+                     self.mod_script_dict["automodel"]["special_restraints"] += "        # Symmetry restraints group n. %d.\n" % (si+1)
                      for s in symmetry_restraints_group:
-                         print >> self.modeller_script, "        s1 = modeller.selection(self.chains['" +s[0] + "']).only_atom_types('CA')"
-                         print >> self.modeller_script, "        s2 = modeller.selection(self.chains['" +s[1] + "']).only_atom_types('CA')"
-                         print >> self.modeller_script, "        self.restraints.symmetry.append(modeller.symmetry(s1, s2, 1.0))" + "\n"
-                print >> self.modeller_script, "    def user_after_single_model(self):"
-                print >> self.modeller_script, "        self.restraints.symmetry.report(1.0)"
+                         self.mod_script_dict["automodel"]["special_restraints"] += "        s1 = modeller.selection(self.chains['" +s[0] + "']).only_atom_types('CA')\n"
+                         self.mod_script_dict["automodel"]["special_restraints"] += "        s2 = modeller.selection(self.chains['" +s[1] + "']).only_atom_types('CA')\n"
+                         self.mod_script_dict["automodel"]["special_restraints"] += "        self.restraints.symmetry.append(modeller.symmetry(s1, s2, 1.0))\n"
+                self.mod_script_dict["automodel"]["special_restraints"] += "    def user_after_single_model(self):\n"
+                self.mod_script_dict["automodel"]["special_restraints"] += "        self.restraints.symmetry.report(1.0)\n"
             #--------------------------------------------------------
-
-        # External --------------------------------------------------
-        if self.write_modeller_script:
-            print >> self.modeller_script, "\n"+"        pass"+"\n"
-        #------------------------------------------------------------
 
         #------------------------------------------------------
         # Creates the "a" object to perform the modelization. -
@@ -565,12 +569,12 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #------------------------------------------------------------
 
         # External --------------------------------------------------
-        if self.write_modeller_script:
-            print >> self.modeller_script, "a =  MyModel("
-            print >> self.modeller_script, "    env,"
-            print >> self.modeller_script, "    alnfile =  '%s'," % self.pir_file_name
-            print >> self.modeller_script, "    knowns = " + repr(tuple([str(tmpn) for tmpn in self.all_templates_namelist])) + ","
-            print >> self.modeller_script, "    sequence = '%s')" % (str(self.modeller_target_name))
+        if self.write_modeller_script_option:
+            self.mod_script_dict["automodel_init"] += "a =  MyModel(\n"
+            self.mod_script_dict["automodel_init"] += "     env,\n"
+            self.mod_script_dict["automodel_init"] += "     alnfile = '%s',\n" % self.pir_file_name
+            self.mod_script_dict["automodel_init"] += "     knowns = %s,\n" % repr(tuple([str(tmpn) for tmpn in self.all_templates_namelist]))
+            self.mod_script_dict["automodel_init"] += "     sequence = '%s')\n" % (str(self.modeller_target_name))
         #------------------------------------------------------------
 
         #------------------------------------------------
@@ -590,9 +594,9 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             #--------------------------------------------------------
 
             # External ----------------------------------------------
-            if self.write_modeller_script:
-                print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.very_fast"
-                print >> self.modeller_script, "a.md_level = modeller.automodel.refine.very_fast"
+            if self.write_modeller_script_option:
+                self.mod_script_dict["refinement"] += "a.library_schedule = modeller.automodel.autosched.very_fast\n"
+                self.mod_script_dict["refinement"] += "a.md_level = modeller.automodel.refine.very_fast\n"
             #--------------------------------------------------------
 
         elif self.optimization_level == "Mid":
@@ -608,11 +612,11 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             #--------------------------------------------------------
 
             # External ----------------------------------------------
-            if self.write_modeller_script:
-                print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.fast"
-                print >> self.modeller_script, "a.max_var_iterations = 300"
-                print >> self.modeller_script, "a.md_level = modeller.automodel.refine.fast"
-                print >> self.modeller_script, "a.repeat_optimization = 2"
+            if self.write_modeller_script_option:
+                self.mod_script_dict["refinement"] += "a.library_schedule = modeller.automodel.autosched.fast\n"
+                self.mod_script_dict["refinement"] += "a.max_var_iterations = 300\n"
+                self.mod_script_dict["refinement"] += "a.md_level = modeller.automodel.refine.fast\n"
+                self.mod_script_dict["refinement"] += "a.repeat_optimization = 2\n"
             #--------------------------------------------------------
 
         elif self.optimization_level == "High":
@@ -629,12 +633,12 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             #--------------------------------------------------------
 
             # External ----------------------------------------------
-            if self.write_modeller_script:
-                print >> self.modeller_script, "a.library_schedule = modeller.automodel.autosched.slow"
-                print >> self.modeller_script, "a.max_var_iterations = 300"
-                print >> self.modeller_script, "a.md_level = modeller.automodel.refine.slow"
-                print >> self.modeller_script, "a.repeat_optimization = 2"
-                print >> self.modeller_script, "a.max_molpdf = 1e6"
+            if self.write_modeller_script_option:
+                self.mod_script_dict["refinement"] += "a.library_schedule = modeller.automodel.autosched.slow\n"
+                self.mod_script_dict["refinement"] += "a.max_var_iterations = 300\n"
+                self.mod_script_dict["refinement"] += "a.md_level = modeller.automodel.refine.slow\n"
+                self.mod_script_dict["refinement"] += "a.repeat_optimization = 2\n"
+                self.mod_script_dict["refinement"] += "a.max_molpdf = 1e6\n"
             #--------------------------------------------------------
 
         #---------------------------------------
@@ -642,25 +646,28 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #---------------------------------------
 
         # External --------------------------------------------------
-        if self.write_modeller_script:
-            print >> self.modeller_script, "a.starting_model= 1"
-            print >> self.modeller_script, "a.ending_model = " + str(self.ending_model_number)
-            print >> self.modeller_script, "a.make()"
+        if self.write_modeller_script_option:
+            self.mod_script_dict["models_indices"] += "a.starting_model = %s\n" % self.starting_model_number
+            self.mod_script_dict["models_indices"] += "a.ending_model = %s\n" % self.ending_model_number
+            self.mod_script_dict["make"] += "a.make()\n"
 
-            # Saves an output file that will be red by PyMod when MODELLER is executed externally.
+            # Saves an output file that will be read by PyMod when MODELLER is executed externally.
             if not self.run_modeller_internally:
-                print >> self.modeller_script, "\n###################################"
-                print >> self.modeller_script, "# Needed to run MODELLER externally from PyMOL."
-                print >> self.modeller_script, "modeller_outputs_file = open('%s','w')" % self.modeller_temp_output_name
-                print >> self.modeller_script, "modeller_outputs_file.write('[')"
-                print >> self.modeller_script, "for model in a.outputs:"
-                print >> self.modeller_script, "    model_copy = model.copy()"
-                print >> self.modeller_script, "    model_copy.pop('pdfterms')"
-                print >> self.modeller_script, "    modeller_outputs_file.write('%s,' % (repr(model_copy)))"
-                print >> self.modeller_script, "modeller_outputs_file.write(']')"
-                print >> self.modeller_script, "modeller_outputs_file.close()"
+                self.mod_script_dict["external_post_make"] += "##########################################################\n"
+                self.mod_script_dict["external_post_make"] += "# Needed by PyMod to run MODELLER externally from PyMOL. #\n"
+                self.mod_script_dict["external_post_make"] += "# You can comment the following code if running this     #\n"
+                self.mod_script_dict["external_post_make"] += "# script outside PyMod.                                  #\n"
+                self.mod_script_dict["external_post_make"] += "##########################################################\n"
+                self.mod_script_dict["external_post_make"] += "modeller_outputs_file = open('%s','w')\n" % self.modeller_temp_output_name
+                self.mod_script_dict["external_post_make"] += "modeller_outputs_file.write('[')\n"
+                self.mod_script_dict["external_post_make"] += "for model in a.outputs:\n"
+                self.mod_script_dict["external_post_make"] += "    model_copy = model.copy()\n"
+                self.mod_script_dict["external_post_make"] += "    model_copy.pop('pdfterms')\n"
+                self.mod_script_dict["external_post_make"] += "    modeller_outputs_file.write('%s,' % (repr(model_copy)))\n"
+                self.mod_script_dict["external_post_make"] += "modeller_outputs_file.write(']')\n"
+                self.mod_script_dict["external_post_make"] += "modeller_outputs_file.close()\n"
 
-            self.modeller_script.close()
+            self.write_modeller_scrit()
 
         if not self.run_modeller_internally:
             cline = "%s %s" % (self.pymod.modeller.get_exe_file_path(), self.modeling_script_name)
@@ -679,7 +686,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
 
         # Internal --------------------------------------------------
         if self.run_modeller_internally:
-            a.starting_model = 1 # index of the first model
+            a.starting_model = int(self.starting_model_number) # index of the first model
             a.ending_model = int(self.ending_model_number) # index of the last model
             # This is the method that launches the model building phase.
             a.make()
@@ -895,6 +902,7 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
         #--------------------------------------
         # Get options from the 'Options' tab. -
         #--------------------------------------
+        self.starting_model_number = 1
         self.ending_model_number = self.modeling_window.max_models_enf.getvalue()
         self.exclude_hetatms = pmdt.yesno_dict[self.modeling_window.exclude_heteroatoms_rds.getvalue()]
         self.build_all_hydrogen_models = pmdt.yesno_dict[self.modeling_window.build_all_hydrogen_models_rds.getvalue()]
@@ -1370,6 +1378,61 @@ class MODELLER_homology_modeling(PyMod_protocol, Modeling_session):
             return "/"
         else:
             return ""
+
+
+    ###############################################################################################
+    # Prepares the modeling script.                                                               #
+    ###############################################################################################
+
+    def write_modeller_scrit(self):
+        self.modeller_script = open(self.modeling_script_name, "w")
+        # Environment.
+        print >> self.modeller_script, self.mod_script_dict["environment"]
+        print >> self.modeller_script, self.mod_script_dict["hetres"]
+        # Automodel derived class.
+        print >> self.modeller_script, self.mod_script_dict["automodel"]["definition"]
+        if self.check_non_empty_automodel_dict():
+            # Default patches.
+            if self.mod_script_dict["automodel"]["default_patches"]:
+                print >> self.modeller_script, self.mod_script_dict["automodel"]["default_patches"]
+            # Special patches.
+            if self.check_non_empty_special_patches_dict():
+                print >> self.modeller_script, self.mod_script_dict["automodel"]["special_patches"]["definition"]
+                if not "" == self.mod_script_dict["automodel"]["special_patches"]["multichain"]:
+                    print >> self.modeller_script, self.mod_script_dict["automodel"]["special_patches"]["multichain"]
+                if not "" == self.mod_script_dict["automodel"]["special_patches"]["disulfides"]:
+                    print >> self.modeller_script, self.mod_script_dict["automodel"]["special_patches"]["disulfides"]
+            # Special restraints.
+            if self.mod_script_dict["automodel"]["special_restraints"]:
+                print >> self.modeller_script, self.mod_script_dict["automodel"]["special_restraints"]
+        else:
+            print >> self.modeller_script, "    pass\n"
+        # Model building options.
+        print >> self.modeller_script, self.mod_script_dict["automodel_init"]
+        print >> self.modeller_script, self.mod_script_dict["refinement"]
+        print >> self.modeller_script, self.mod_script_dict["models_indices"]
+        print >> self.modeller_script, self.mod_script_dict["make"]
+        if not self.run_modeller_internally:
+             print >> self.modeller_script, self.mod_script_dict["external_post_make"]
+        self.modeller_script.close()
+
+    def check_non_empty_automodel_dict(self):
+        if not "" == self.mod_script_dict["automodel"]["default_patches"]:
+            return True
+        elif self.check_non_empty_special_patches_dict():
+            return True
+        elif not "" == self.mod_script_dict["automodel"]["special_restraints"]:
+            return True
+        else:
+            return False
+
+    def check_non_empty_special_patches_dict(self):
+        if not "" == self.mod_script_dict["automodel"]["special_patches"]["multichain"]:
+            return True
+        elif not "" == self.mod_script_dict["automodel"]["special_patches"]["disulfides"]:
+            return True
+        else:
+            return False
 
 
     ###############################################################################################
