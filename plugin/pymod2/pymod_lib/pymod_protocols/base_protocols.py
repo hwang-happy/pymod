@@ -13,25 +13,31 @@ class PyMod_protocol:
     A base class for PyMod protocols.
     """
 
-    def __init__(self, pymod, output_directory=None):
+    def __init__(self, pymod, output_directory="."):
         self.pymod = pymod
         self.sys_stdout = sys.stdout
         self.my_stdout = None
-
-        # self.output_directory = self.get_output_directory(output_directory)
-
-
-    # def get_output_directory(self, output_directory):
-    #     if output_directory:
-    #         return output_directory
-    #     else:
-    #         return ""
+        self.output_directory = output_directory
 
 
     def get_pymod_elements(self, pymod_elements):
         if pymod_elements == None:
             pymod_elements = self.pymod.get_selected_sequences()
         return pymod_elements
+
+    def launch_from_gui(self):
+
+        pass
+
+        # self.check_parameters_from_gui()
+        #
+        # self.show_options_window()
+        #
+        # self.execute_protocol()
+        #
+        # self.remove_temp_files()
+        #
+        # self.import_results_in_pymod()
 
 
     def build_cluster_lists(self):

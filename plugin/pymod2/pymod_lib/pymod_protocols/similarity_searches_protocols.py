@@ -130,7 +130,7 @@ class Generic_BLAST_search(PyMod_protocol):
         'self.blast_record'.
         """
         # An attribute where is going to be stored a Biopython "Blast" class object.
-        result_handle = open(os.path.join(self.pymod.similarity_searches_directory,self.xml_blast_output_file_name),"r")
+        result_handle = open(os.path.join(self.output_directory,self.xml_blast_output_file_name),"r")
         self.blast_record = self.get_blast_record(result_handle)
         result_handle.close()
 
@@ -190,10 +190,10 @@ class Generic_BLAST_search(PyMod_protocol):
     def remove_blast_temp_files(self):
         output_filename = self.get_blast_output_basename() + ".xml"
         try:
-            os.rename(os.path.join(self.pymod.similarity_searches_directory, self.xml_blast_output_file_name),
-                      os.path.join(self.pymod.similarity_searches_directory, output_filename))
-            files_to_remove = filter(lambda f: not os.path.splitext(f)[-1] == ".xml", os.listdir(self.pymod.similarity_searches_directory))
-            map(lambda f: os.remove(os.path.join(self.pymod.similarity_searches_directory,f)), files_to_remove)
+            os.rename(os.path.join(self.output_directory, self.xml_blast_output_file_name),
+                      os.path.join(self.output_directory, output_filename))
+            files_to_remove = filter(lambda f: not os.path.splitext(f)[-1] == ".xml", os.listdir(self.output_directory))
+            map(lambda f: os.remove(os.path.join(self.output_directory,f)), files_to_remove)
         except:
             pass
 
@@ -560,7 +560,7 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             blast_results = result_handle.read()
             # Saves an XML file that contains the results and that will be used to display them on
             # the results window.
-            save_file = open(os.path.join(self.pymod.similarity_searches_directory, self.xml_blast_output_file_name), "w")
+            save_file = open(os.path.join(self.output_directory, self.xml_blast_output_file_name), "w")
             save_file.write(blast_results)
             save_file.close()
 
@@ -575,7 +575,6 @@ class NCBI_BLAST_search(Generic_BLAST_search):
 
 
     def get_ncbiblast_database(self):
-        # TODO: use ordered dicts.
         text = self.blast_options_window.ncbiblast_database_rds.getvalue()
         for i in self.ncbi_databases:
             if i[0] == text:
@@ -649,7 +648,7 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
         """
         # Builds a temporary file with the sequence of the query needed by psiblast.
         query_file_name = "query"
-        self.pymod.build_sequences_file([self.blast_query_element], query_file_name, file_format="fasta", remove_indels=True, new_directory=self.pymod.similarity_searches_directory)
+        self.pymod.build_sequences_file([self.blast_query_element], query_file_name, file_format="fasta", remove_indels=True, new_directory=self.output_directory)
 
         # Sets some parameters in needed to run PSI-BLAST.
         ncbi_dir = self.pymod.blast_plus["exe_dir_path"].get_value()
@@ -668,10 +667,10 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
             self.execute_psiblast(
                 ncbi_dir = ncbi_dir,
                 db_path = db_path,
-                query = os.path.join(self.pymod.similarity_searches_directory, query_file_name+".fasta"),
+                query = os.path.join(self.output_directory, query_file_name+".fasta"),
                 inclusion_ethresh = evalue_inclusion_cutoff,
                 outfmt = 5,
-                out = os.path.join(self.pymod.similarity_searches_directory, self.xml_blast_output_file_name),
+                out = os.path.join(self.output_directory, self.xml_blast_output_file_name),
                 num_iterations = iterations,
                 evalue = evalue_cutoff,
                 max_target_seqs = max_hits)

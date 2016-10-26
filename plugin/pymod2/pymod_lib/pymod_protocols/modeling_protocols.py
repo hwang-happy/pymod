@@ -931,7 +931,6 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         self.all_templates_namelist = []
         self.modeller_target_name = ""
         self.pir_sequences_dict = {}
-        self.pir_sequence_id = 0 # TODO: just use an ordered dictionary.
 
         if not self.multiple_chain_mode:
             self.all_templates_namelist = self.modeling_clusters_list[0].get_template_nameslist()
@@ -1202,33 +1201,30 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         #             print "pym:", pymod_seq
         ######################################################################################
 
-        #---------------------------------------------------------------
-        # Get the heteroresidues and water molecules of the templates. -
-        #---------------------------------------------------------------
+        #--------------------------------------------------------------------------------------
+        # Prepares the full sequences (with both standard residues and heteroresidues) of the -
+        # target and templates.                                                               -
+        #--------------------------------------------------------------------------------------
         self.hetres_to_use = []
         for modeling_cluster in self.modeling_clusters_list:
+            # Get the heteroresidues and water molecules of the templates.
             for template in modeling_cluster.templates_list:
                 for res in template.get_residues(standard=False, ligands=self.use_hetatm_in_session, modified_residues=self.use_hetatm_in_session, water=self.use_water_in_session):
-                    hetres_dict = {
-                         "residue": res, "use_hetres": modeling_cluster.template_options_dict[template]["hetres_dict"][res],
-                         "insert_index": None,
-                         "template": template, "modeling_cluster": modeling_cluster}
+                    hetres_dict = {"residue": res,
+                                   "use_hetres": modeling_cluster.template_options_dict[template]["hetres_dict"][res],
+                                   "insert_index": None,
+                                   "template": template, "modeling_cluster": modeling_cluster}
                     if not res.is_polymer_residue():
                         hetres_dict["insert_index"] = template.get_next_residue_id(res, aligned_sequence_index=True)
                     else:
                         hetres_dict["insert_index"] = res.get_id_in_aligned_sequence()
                     self.hetres_to_use.append(hetres_dict)
 
-            # Build the templates pir sequences.
-            for template in modeling_cluster.templates_list:
+            # Initializes the templates and target pir sequences.
+            for modeling_element in modeling_cluster.get_modeling_elements():
                 self.pir_sequences_dict.update({
-                    template: {"list_seq": self.get_pir_list(template.my_sequence),
-                               "pir_seq": None, "id":self.pir_sequence_id, "modeling_cluster": modeling_cluster}})
-                self.pir_sequence_id += 1
-            # Build the targets pir sequences.
-            self.pir_sequences_dict.update({
-                modeling_cluster.target: {"list_seq": self.get_pir_list(modeling_cluster.target.my_sequence),
-                                          "pir_seq": None, "id":self.pir_sequence_id+1, "modeling_cluster": modeling_cluster}})
+                    modeling_element: {"list_seq": self.get_pir_list(modeling_element.my_sequence),
+                                       "pir_seq": None, "modeling_cluster": modeling_cluster}})
 
         #--------------------------------------------------------------------------------------
         # Update the sequences insert by inserting in them ligands and water molecules in the -

@@ -515,7 +515,7 @@ class Structure_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         # This is going to contain the checkbox states of the HETRES of the structure.
         self.structure_hetres_states = []
         self.structure_hetres_checkbuttons = []
-        self.structure_hetres_dict = {} # TODO: just use an ordered dict to substitute the three attributes above.
+        self.structure_hetres_dict = {}
         # Hetero-residues frame
         self.hetres_frame = Frame(self, background='black', pady = self.frames_padding)
         self.hetres_frame.grid(row=2, column=0,sticky = "w")

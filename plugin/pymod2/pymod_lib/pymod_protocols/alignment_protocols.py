@@ -55,7 +55,10 @@ except:
 
 
 class Alignment_protocol(PyMod_protocol):
-
+    """
+    A base class for alignment protocols.
+    """
+    
     #################################################################
     # Step 1/4 for performing an alignment from the main menu.      #
     # Methods to launch an alignment program and check if it can be #

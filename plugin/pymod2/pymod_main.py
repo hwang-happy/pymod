@@ -1,5 +1,4 @@
 # TODO:
-#     - implement ordered dictionaries (test on PyMOL 0.99).
 #     - organize the structure of the PyMod_protocols.
 #         - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
 #         - build well organized classes for the protocols windows.
@@ -117,17 +116,22 @@ import pymol
 from pymol import cmd, stored, selector
 
 # PyMod modules.
-from pymod_lib import pymod_os_specific as pmos # Different OS compatibility-related code.
-from pymod_lib import pymod_sequence_manipulation as pmsm # General biological sequence manipulation.
-from pymod_lib import pymod_gui as pmgi # Part of the graphical user interface of PyMod.
-from pymod_lib import pymod_vars as pmdt # PyMod data used throughout the plugin.
-from pymod_lib import pymod_tool as pm_tool # Classes to represent tools used within PyMod.
-from pymod_lib import pymod_plot as pplt # Basic plots for building DOPE profiles and showing distance trees.
-from pymod_lib import pymod_sup as pmsp # Supplementary code for PyMod.
-from pymod_lib import pymod_updater as pmup # Updates PyMod fetching the latest stable version via network.
-from pymod_lib import pymod_element as pmel # Classes to represent sequences and alignments.
-from pymod_lib import pymod_structure as pmstr # Classes to represent 3D structures.
+import pymod_lib.pymod_os_specific as pmos # Different OS compatibility-related code.
+import pymod_lib.pymod_sequence_manipulation as pmsm # General biological sequence manipulation.
+import pymod_lib.pymod_gui as pmgi # Part of the graphical user interface of PyMod.
+import pymod_lib.pymod_vars as pmdt # PyMod data used throughout the plugin.
+import pymod_lib.pymod_tool as pm_tool # Classes to represent tools used within PyMod.
+import pymod_lib.pymod_plot as pplt # Basic plots for building DOPE profiles and showing distance trees.
+import pymod_lib.pymod_sup as pmsp # Supplementary code for PyMod.
+import pymod_lib.pymod_updater as pmup # Updates PyMod fetching the latest stable version via network.
+import pymod_lib.pymod_element as pmel # Classes to represent sequences and alignments.
+import pymod_lib.pymod_structure as pmstr # Classes to represent 3D structures.
 import pymod_lib.pymod_protocols as pmptc # Classes to represent protocols executed using PyMod tools.
+
+try:
+    from collections import OrderedDict
+except:
+    from pymod_lib.pymod_sup import OrderedDict
 
 global DEBUG
 DEBUG = True
@@ -2409,9 +2413,9 @@ class PyMod:
         Called when BLAST or PSI-BLAST is launched from the main menu.
         """
         if blast_version == "blast":
-            blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self)
+            blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self, output_directory=self.similarity_searches_directory)
         elif blast_version == "psi-blast":
-            blast_search = pmptc.similarity_searches_protocols.PSI_BLAST_search(self)
+            blast_search = pmptc.similarity_searches_protocols.PSI_BLAST_search(self, output_directory=self.similarity_searches_directory)
         blast_search.launch_from_gui()
 
 
@@ -2433,27 +2437,29 @@ class PyMod:
         if strategy == "regular":
             # Sequence alignments.
             if program == "clustalw":
-                a = pmptc.alignment_protocols.Clustalw_regular_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.Clustalw_regular_alignment
             elif program == "clustalo":
-                a = pmptc.alignment_protocols.Clustalomega_regular_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_regular_alignment
             elif program == "muscle":
-                a = pmptc.alignment_protocols.MUSCLE_regular_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.MUSCLE_regular_alignment
             elif program == "salign-seq":
-                a = pmptc.alignment_protocols.SALIGN_seq_regular_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
             # Structural alignments.
             elif program == "ce":
-                a = pmptc.alignment_protocols.CEalign_regular_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.CEalign_regular_alignment
             elif program == "salign-str":
-                a = pmptc.alignment_protocols.SALIGN_str_regular_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.SALIGN_str_regular_alignment
         # Profile.
         elif strategy == "profile":
             if program == "clustalw":
-                a = pmptc.alignment_protocols.Clustalw_profile_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.Clustalw_profile_alignment
             elif program == "clustalo":
-                a = pmptc.alignment_protocols.Clustalomega_profile_alignment(self)
+                aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_profile_alignment
             elif program == "salign-seq":
-                a = pmptc.alignment_protocols.SALIGN_seq_profile_alignment(self)
-
+                aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_profile_alignment
+                
+        # Actually launches the alignment protocol.
+        a = aligment_protocol_class(self, output_directory=self.alignments_directory)
         a.launch_alignment_program()
 
 

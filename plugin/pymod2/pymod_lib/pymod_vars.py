@@ -184,7 +184,7 @@ pymod_regular_colors_list = ['red', 'green', 'blue', 'yellow', 'violet', 'cyan',
 
 # PyMOL colors palette. Used to color structures loaded in PyMOL. Takes only a certain number of
 # colors from the full cycle.
-pymol_regular_colors_list = [ # TODO: to be removed when ordered dictionaries are implemented.
+pymol_regular_colors_list = [
     "carbon",
     "cyan",
     "lightmagenta",
