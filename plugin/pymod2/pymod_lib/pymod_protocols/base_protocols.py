@@ -3,6 +3,11 @@ import sys
 import shutil
 from cStringIO import StringIO
 
+try:
+    import modeller
+except:
+    pass
+
 import pymol
 from pymol import cmd, stored
 
@@ -13,17 +18,28 @@ class PyMod_protocol:
     A base class for PyMod protocols.
     """
 
-    def __init__(self, pymod, output_directory="."):
+    def __init__(self, pymod, output_directory="./"):
+        # 'PyMod' class object, used to access all the information of the plugin.
         self.pymod = pymod
+        # Original stdout.
         self.sys_stdout = sys.stdout
+        # Temporary stdout used by some protocols.
         self.my_stdout = None
+        # Directory were the output files of the protocol will be built.
         self.output_directory = output_directory
+        # Perform an additional initialization, which is protocol specific.
+        self.additional_initialization()
+
+
+    def additional_initialization(self):
+        pass
 
 
     def get_pymod_elements(self, pymod_elements):
         if pymod_elements == None:
             pymod_elements = self.pymod.get_selected_sequences()
         return pymod_elements
+
 
     def launch_from_gui(self):
 

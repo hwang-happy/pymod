@@ -1,9 +1,5 @@
 # Copyright (C) 2014-2016 Chengxin Zhang, Giacomo Janson
 
-# TODO:
-#   - quit the process if there are some errors.
-#   - add new options to the various alignment tools.
-
 import os
 import sys
 import shutil
@@ -58,7 +54,7 @@ class Alignment_protocol(PyMod_protocol):
     """
     A base class for alignment protocols.
     """
-    
+
     #################################################################
     # Step 1/4 for performing an alignment from the main menu.      #
     # Methods to launch an alignment program and check if it can be #
@@ -1242,8 +1238,7 @@ class Clustalw_alignment:
     # an alignment.
     alignment_program = "clustalw"
 
-    def __init__(self, pymod):
-        Alignment_protocol.__init__(self, pymod)
+    def additional_initialization(self):
         self.tool = self.pymod.clustalw
 
 
@@ -1322,8 +1317,7 @@ class Clustalomega_alignment:
 
     alignment_program = "clustalo"
 
-    def __init__(self, pymod):
-        Alignment_protocol.__init__(self, pymod)
+    def additional_initialization(self):
         self.tool = self.pymod.clustalo
 
 
@@ -1405,8 +1399,7 @@ class MUSCLE_alignment:
 
     alignment_program = "muscle"
 
-    def __init__(self, pymod):
-        Alignment_protocol.__init__(self, pymod)
+    def additional_initialization(self):
         self.tool = self.pymod.muscle
 
 
@@ -1460,8 +1453,7 @@ class SALIGN_seq_alignment(SALIGN_alignment):
 
     alignment_program = "salign-seq"
 
-    def __init__(self, pymod):
-        Alignment_protocol.__init__(self, pymod)
+    def additional_initialization(self):
         self.tool = self.pymod.modeller
 
 
@@ -1729,9 +1721,9 @@ class SALIGN_str_regular_alignment(SALIGN_alignment, Regular_structural_alignmen
 
     alignment_program = "salign-str"
 
-    def __init__(self, pymod):
-        Alignment_protocol.__init__(self, pymod)
+    def additional_initialization(self):
         self.tool = self.pymod.modeller
+
 
     def get_alignment_window_class(self):
         return pmgi.alignment_components.SALIGN_str_regular_window
@@ -1861,8 +1853,7 @@ class CEalign_alignment:
 
     alignment_program = "ce"
 
-    def __init__(self, pymod):
-        Alignment_protocol.__init__(self, pymod)
+    def additional_initialization(self):
         self.tool = None
 
 

@@ -1,10 +1,5 @@
 # Copyright (C) 2014-2016 Giacomo Janson
 
-# TODO:
-#   - add an "remove gap only columns" option in the CAMPO window.
-#   - fix the bug in gap tossing.
-#   - check the names of the sequences when building trees.
-
 import os
 import sys
 import urllib

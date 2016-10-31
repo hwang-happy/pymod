@@ -77,7 +77,11 @@ modeling_window_explanation = {"font": "comic 8",
                                "background": widgets_background_color,
                                "fg":'white', "anchor":"nw",
                                "padx": 30, "justify":"left"}
-
+modeling_window_explanation_padless = {"font": "comic 8",
+                               "background": widgets_background_color,
+                               "fg":'white', "anchor":"nw",
+                               "justify":"left"}
+                               
 modeling_window_rb_big = {"bg":widgets_background_color,
                           "highlightbackground":widgets_background_color,
                           "fg":"red", "font":"comic 10"}

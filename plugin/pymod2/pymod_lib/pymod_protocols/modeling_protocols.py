@@ -20,7 +20,7 @@ except:
     pass
 
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, MODELLER_common
-from pymod_lib.pymod_protocols.structural_analysis_protocols import DOPE_assessment, show_dope_plot, compute_dope_of_structure_file
+from pymod_lib.pymod_protocols.structural_analysis_protocols import DOPE_assessment, show_dope_plot, compute_dope_of_structure_file, Energy_minimization
 
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
@@ -287,7 +287,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
 
         # Internal --------------------------------------------------
         if self.run_modeller_internally:
-            self.begin_log_file_building_from_stdout(log_file_path=self.modeling_log_name)
+            # self.begin_log_file_building_from_stdout(log_file_path=self.modeling_log_name)
             modeller.log.verbose()
             env = modeller.environ()
             env.io.atom_files_directory = []
@@ -565,9 +565,6 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         # Sets the level of refinment and optimization. -
         #------------------------------------------------
 
-        if self.optimization_level == "None":
-            pass
-
         if self.optimization_level == "Low":
             # Internal ----------------------------------------------
             if self.run_modeller_internally:
@@ -583,15 +580,23 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 self.mod_script_dict["refinement"] += "a.md_level = modeller.automodel.refine.very_fast\n"
             #--------------------------------------------------------
 
+        elif self.optimization_level == "Default":
+            # a.library_schedule = modeller.automodel.autosched.normal
+            # a.max_var_iterations = 200
+            # a.md_level = modeller.automodel.refine.very_fast
+            # a.repeat_optimization = 2
+            # a.max_molpdf = 1e7
+            pass
+
         elif self.optimization_level == "Mid":
             # Internal ----------------------------------------------
             if self.run_modeller_internally:
                 # Thorough VTFM optimization:
                 a.library_schedule = modeller.automodel.autosched.fast
                 a.max_var_iterations = 300
-                # Thorough MD optimization:
+                # Mid MD optimization:
                 a.md_level = modeller.automodel.refine.fast
-                # Repeat the whole cycle 2 times and do not stop unless obj.func. > 1E6
+                # Repeat the whole cycle 2 times.
                 a.repeat_optimization = 2
             #--------------------------------------------------------
 
@@ -674,7 +679,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             a.ending_model = int(self.ending_model_number) # index of the last model
             # This is the method that launches the model building phase.
             a.make()
-            self.finish_log_file_building_from_stdout()
+            # self.finish_log_file_building_from_stdout()
         #------------------------------------------------------------
 
         ###########################################################################################
@@ -685,6 +690,27 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         #-----------------------------------------------------------------------------------
         # Cycles through all models built by MODELLER to import them into PyMod and PyMOL. -
         #-----------------------------------------------------------------------------------
+
+        #------------------------------------------
+        # Perform additional energy minimization. -
+        #------------------------------------------
+        if self.additional_optimization_level == "Use":
+            list_of_optimized_structures_names = []
+            for model in a.outputs:
+                em = Energy_minimization(self.pymod)
+                optimized_structure_name = em.energy_minimization(model_file_path=os.path.join(self.modeling_directory, model['name']),
+                                                         parameters_dict=self.additional_optimization_dict, env=env,
+                                                         use_hetatm = self.exclude_hetatms, use_water=self.use_water_in_session)
+                list_of_optimized_structures_names.append(optimized_structure_name)
+            # Checks if there were some problems in the additional energy minimization process.
+            if not None in list_of_optimized_structures_names:
+                for model, opt_str_name in zip(a.outputs, list_of_optimized_structures_names):
+                    model["name"] = opt_str_name
+            else:
+                title = "Energy Minimization Error"
+                message = "There was an error in the additional energy minimization performed by MODELLER, therefore the final models will not be optimized using the additional energy minimization protocol you selected."
+                self.pymod.show_error_message(title, message)
+
 
         for model_file_number, model in enumerate(a.outputs):
 
@@ -774,7 +800,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         # Create a DOPE profile plot for all models built in this by computing their DOPE scores. -
         #------------------------------------------------------------------------------------------
         self.all_assessed_structures_list = []
-        session_dope_protocol = DOPE_assessment(self.pymod, output_directory=None)
+        session_dope_protocol = DOPE_assessment(self.pymod, output_directory=self.modeling_directory)
         # Actually computes the DOPE profiles the templates and of the models.
         for mc in self.get_modeling_clusters_list(sorted_by_id=True):
             for template in mc.templates_list:
@@ -861,8 +887,8 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
 
         # Reverts the stdout to the system one, and removes the modeling files.
         elif not successful:
-            if self.run_modeller_internally:
-                self.finish_log_file_building_from_stdout()
+            # if self.run_modeller_internally:
+            #     self.finish_log_file_building_from_stdout()
             try:
                 if os.path.isdir(self.modeling_directory):
                     shutil.rmtree(self.modeling_directory)
@@ -891,6 +917,9 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         self.exclude_hetatms = pmdt.yesno_dict[self.modeling_window.exclude_heteroatoms_rds.getvalue()]
         self.build_all_hydrogen_models = pmdt.yesno_dict[self.modeling_window.build_all_hydrogen_models_rds.getvalue()]
         self.optimization_level = self.modeling_window.optimization_level_rds.getvalue()
+        self.additional_optimization_level = self.modeling_window.energy_minimization_rds.getvalue()
+        if self.additional_optimization_level == "Use":
+            self.additional_optimization_dict = self.modeling_window.energy_minimization_frame.get_dict()
         self.superpose_to_templates = pmdt.yesno_dict[self.modeling_window.superpose_models_to_templates_rds.getvalue()]
         self.color_models_by_choice = self.modeling_window.color_models_rds.getvalue()
 

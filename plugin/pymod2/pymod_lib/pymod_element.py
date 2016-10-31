@@ -1,6 +1,3 @@
-# TODO:
-#   - check the attributes and methods that are actually used in the rest of the plugin.
-
 import os
 
 import pymod_vars as pmdt

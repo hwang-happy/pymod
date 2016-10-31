@@ -1,27 +1,9 @@
 # TODO:
-#     - organize the structure of the PyMod_protocols.
-#         - move the gui components of the 'pymod_protocols' in the 'pymod_gui' package.
-#         - build well organized classes for the protocols windows.
-#         - rewrite the 'execute_subprocess' method.
-#         - add documentation to protocols.
-#         - take input from gui for alignment protocols.
-#         - intialize_from_gui -> launch_from_gui -> check_parameters_from_gui -> protocol_state -> import_results_in_pymod
-#         - fix BLAST protocols.
-#             - update BLAST clusters.
-#         - fix the log and output of MODELLER processes.
-#             - build a log file on all platforms.
-#             - Win internal
-#             - OSX external
-#         - MODELLER:
-#             - implement the master branch modifications (refinement and optimization).
-#             - implement the "really quick" refinement option.
-#             - build a line in the DOPE plots for the 0.03 threshold.
-#             - sort tables: make a class for tables.
-#     - color the clusters after modifications. Cluster appearance.
+#     - Cluster appearance.
+#         - color the clusters after modifications.
 #         - reimplement the collapsed clusters features.
 #     - add raw sequences.
-#     - reimplement the rest.
-#         - reimplement the "Display" submenu in the main menu.
+#     - reimplement the "Display" submenu in the main menu.
 #     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
@@ -29,20 +11,20 @@
 #     - RMSD part.
 #     - integrate the modifications made in the stable branch.
 #         - control the sequences before modeling.
+#         - projects.
 #     - add the licence part to each file of the plugin.
-#     - add a "remove indels from sequence(s)" and "remove gap only columns from alignment" options.
-#     - add an "export to .phy file" option when showing distance trees.
-#         - add a similar option for distance matrices, dope profiles and assessment tables.
-#     - 'update structures from PyMOL' and 'move back to original position' part.
-#         - implement a 'Superpose in PyMOL' option in structural alignments.
-#         - save structure to file option.
-#         - buttons for fast controls of structures in PyMOL.
 #     - define modified residues.
-#     - nucleic acids.
 #     - adjust the structure files part.
 #         - add a "pymol_selector attribute".
 #     - color structures and models, structure appearence and user defined colors.
-#     - add an 'Annotations' submenu.
+#     - pymod_vars: remove the unused variables.
+#     - pymod_update: fix the updater (rename files to avoid conflict).
+#     - pymod_element: check the attributes and methods that are actually used in the rest of the plugin.
+#     - evolutionary_analysis_protocol:
+#         - add an "remove gap only columns" option in the CAMPO window.
+#         - fix the bug in gap tossing.
+#         - check the names of the sequences when building trees.
+#     - reimplement the rest.
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
@@ -753,11 +735,11 @@ class PyMod:
         self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
         self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
         # PAX domains.
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))
 
         self.gridder(update_clusters=True, update_menus=True)
 
@@ -2457,7 +2439,7 @@ class PyMod:
                 aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_profile_alignment
             elif program == "salign-seq":
                 aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_profile_alignment
-                
+
         # Actually launches the alignment protocol.
         a = aligment_protocol_class(self, output_directory=self.alignments_directory)
         a.launch_alignment_program()

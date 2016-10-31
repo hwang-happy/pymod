@@ -28,6 +28,8 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
     A class to represent the 'Homology Modeling Window' of PyMod.
     """
 
+    options_frame_grid_options = {"padx": 10, "pady": 10, "sticky": "w"}
+
     def __init__(self, parent, protocol, **configs):
 
         Toplevel.__init__(self, parent, **configs)
@@ -268,12 +270,16 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         # Start to insert modeling options widgets. -
         #--------------------------------------------
 
+        grid_widgets = True
         option_widgets_to_align = []
         # Option to chose the number of models that Modeller has to produce.
         self.max_models_enf = shared_components.PyMod_entryfield(
             self.options_frame, label_text = "Models to Build", value = 1,
             validate = {'validator' : 'integer', 'min' : 1, 'max' : self.current_protocol.max_models_per_session})
-        self.max_models_enf.pack(**shared_components.pack_options_1)
+        if grid_widgets:
+            self.max_models_enf.grid(row=0, **self.options_frame_grid_options)
+        else:
+            self.max_models_enf.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.max_models_enf)
 
         # Option to choose if Modeller is going to include HETATMs.
@@ -281,7 +287,10 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         for choice in ("Yes", "No"):
             self.exclude_heteroatoms_rds.add(choice)
         self.exclude_heteroatoms_rds.setvalue("No")
-        self.exclude_heteroatoms_rds.pack(**shared_components.pack_options_1)
+        if grid_widgets:
+            self.exclude_heteroatoms_rds.grid(row=1, **self.options_frame_grid_options)
+        else:
+            self.exclude_heteroatoms_rds.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.exclude_heteroatoms_rds)
         self.exclude_heteroatoms_rds.button(0).configure(command=lambda: self.switch_all_hetres_checkbutton_states(0)) # Yes, inactivate.
         self.exclude_heteroatoms_rds.button(1).configure(command=lambda: self.switch_all_hetres_checkbutton_states(1)) # No, activate.
@@ -291,17 +300,38 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         for choice in ("Yes", "No"):
             self.build_all_hydrogen_models_rds.add(choice)
         self.build_all_hydrogen_models_rds.setvalue("No")
-        self.build_all_hydrogen_models_rds.pack(**shared_components.pack_options_1)
+        if grid_widgets:
+            self.build_all_hydrogen_models_rds.grid(row=2, **self.options_frame_grid_options)
+        else:
+            self.build_all_hydrogen_models_rds.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.build_all_hydrogen_models_rds)
 
         # Option to choose the level of optimization for Modeller.
-        self.optimization_level_choices = ("None", "Low", "Mid", "High")
+        self.optimization_level_choices = ("Low", "Default", "Mid", "High")
         self.optimization_level_rds = shared_components.PyMod_radioselect(self.options_frame, label_text = 'Optimization Level')
         for choice in self.optimization_level_choices:
             self.optimization_level_rds.add(choice)
-        self.optimization_level_rds.setvalue("None")
-        self.optimization_level_rds.pack(**shared_components.pack_options_1)
+        self.optimization_level_rds.setvalue("Default")
+        if grid_widgets:
+            self.optimization_level_rds.grid(row=3, **self.options_frame_grid_options)
+        else:
+            self.optimization_level_rds.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.optimization_level_rds)
+
+        # Option to choose the level of additional energy optimization.
+        self.energy_minimization_choices = ("None", "Use")
+        self.energy_minimization_rds = shared_components.PyMod_radioselect(self.options_frame, label_text = 'Additional Energy Minimization')
+        for choice in self.energy_minimization_choices:
+            self.energy_minimization_rds.add(choice)
+        self.energy_minimization_rds.setvalue("None")
+        if grid_widgets:
+            self.energy_minimization_rds.grid(row=4, **self.options_frame_grid_options)
+        else:
+            self.energy_minimization_rds.pack(**shared_components.pack_options_1)
+        self.energy_minimization_rds.button(0).configure(command=self.hide_energy_minimization_frame)
+        self.energy_minimization_rds.button(1).configure(command=self.show_energy_minimization_frame)
+        option_widgets_to_align.append(self.energy_minimization_rds)
+        self.energy_minimization_frame = Energy_minimization_frame(self.options_frame)
 
         # Option to choose the way to color the models.
         self.color_models_choices = ("Default", "DOPE Score") # Delta DOPE e b-factor
@@ -309,7 +339,10 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         for choice in self.color_models_choices:
             self.color_models_rds.add(choice)
         self.color_models_rds.setvalue("Default")
-        self.color_models_rds.pack(**shared_components.pack_options_1)
+        if grid_widgets:
+            self.color_models_rds.grid(row=6, **self.options_frame_grid_options)
+        else:
+            self.color_models_rds.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.color_models_rds)
 
         # Option to choose whether to super models to template.
@@ -317,10 +350,24 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_g
         for choice in ("Yes", "No"):
             self.superpose_models_to_templates_rds.add(choice)
         self.superpose_models_to_templates_rds.setvalue("Yes")
-        self.superpose_models_to_templates_rds.pack(**shared_components.pack_options_1)
+        if grid_widgets:
+            self.superpose_models_to_templates_rds.grid(row=7, **self.options_frame_grid_options)
+        else:
+            self.superpose_models_to_templates_rds.pack(**shared_components.pack_options_1)
         option_widgets_to_align.append(self.superpose_models_to_templates_rds)
 
         self.align_set_of_widgets(option_widgets_to_align)
+
+
+    def show_energy_minimization_frame(self):
+        self.energy_minimization_frame.grid(row=5, padx= (25,0), pady= 10, sticky= "w")
+        self.energy_minimization_rds.setvalue("Use")
+        self.options_scrolled_frame.reposition()
+
+    def hide_energy_minimization_frame(self):
+        self.energy_minimization_frame.grid_forget()
+        self.energy_minimization_rds.setvalue("None")
+        self.options_scrolled_frame.reposition()
 
 
     def switch_hetres_checkbutton_states(self, modeling_cluster, het_radio_button_state):
@@ -497,13 +544,13 @@ class Structure_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         # From label. The width is relative to the font size
         self.from_enf = PyMod_entryfield(self.limits_frame, label_text = "From: ", value = 1,
                                        validate = {'validator' : 'integer', 'min' : 1, 'max' : 5000},
-                                       label_style =shared_components.modeling_window_option_style)
+                                       label_style = shared_components.modeling_window_option_style)
         self.from_enf.component("entry").configure(width = 5)
         self.from_enf.pack(side="left", padx=0)
         # To label
         self.to_enf = PyMod_entryfield(self.limits_frame, label_text = "To: ", value = 1000,
                                      validate = {'validator' : 'integer', 'min' : 1, 'max' : 5000},
-                                     label_style= shared_components.modeling_window_option_style)
+                                     label_style = shared_components.modeling_window_option_style)
         self.to_enf.component("entry").configure(width = 5)
         self.to_enf.pack(side="left", padx=(20,0))
 
@@ -1150,3 +1197,146 @@ class User_disulfide_combo(shared_components.PyMod_frame, Modeling_window_mixin)
         self.remove_disulfides_button.destroy()
         self.destroy()
         return self.text1, self.text2
+
+
+#####################################################################
+# Models energy minimization options.                               #
+#####################################################################
+
+class Energy_minimization_common:
+
+    restraints_ckb_grid_options = {"sticky":"nw", "padx":10, "pady":2}
+    minimization_checkbutton = {"background": shared_components.widgets_background_color,
+                                "foreground": "white", "selectcolor": "red",
+                                "highlightbackground": 'black', "font": "comic 8"}
+
+
+class Energy_minimization_frame(shared_components.PyMod_frame, Energy_minimization_common):
+
+    def __init__(self, parent = None, borderwidth=1, relief='groove', pady=5, **configs):
+        shared_components.PyMod_frame.__init__(self, parent, borderwidth=borderwidth, relief=relief, pady=pady, **configs)
+
+        #--------------------------
+        # Minimization protocols. -
+        #--------------------------
+        self.title_label = Label(self, text= "Perform Additional Cycles of Energy Minimization", **shared_components.modeling_window_option_style)
+        self.title_label.pack(side="top", anchor="nw")
+        self.steepest_descent_frame = Energy_optimizer_frame(self, minimization_algorithm="Steepest Descent", initial_state=1, initial_cycles=80)
+        self.steepest_descent_frame.pack(**shared_components.pack_options_1)
+        self.conjugate_gradients_frame = Energy_optimizer_frame(self, minimization_algorithm="Conjugate Gradients", initial_state=1, initial_cycles=20)
+        self.conjugate_gradients_frame.pack(**shared_components.pack_options_1)
+        self.quasi_newton_frame = Energy_optimizer_frame(self, minimization_algorithm="Quasi Newton", initial_state=0, initial_cycles=20)
+        self.quasi_newton_frame.pack(**shared_components.pack_options_1)
+        self.md_frame = Md_optimizer_frame(self, minimization_algorithm="Molecular Dynamics", initial_state=0, initial_cycles=50)
+        self.md_frame.pack(**shared_components.pack_options_1)
+
+        self.minimization_algorithms_frames = [self.steepest_descent_frame,
+                                               self.conjugate_gradients_frame,
+                                               self.quasi_newton_frame,
+                                               self.md_frame]
+
+        #--------------------------
+        # Restranints to satisfy. -
+        #--------------------------
+        self.parameters_title = Label(self, text= "Select Components to Mimimize", **shared_components.modeling_window_option_style)
+        self.parameters_title.pack(side="top", anchor="nw")
+        self.components_frame = shared_components.PyMod_frame(self)
+        self.components_frame.pack(side="top", anchor="nw")
+
+        self.bonds_checkbutton = Restraint_checkbutton(self.components_frame, value=1, text="Bonds", **self.minimization_checkbutton)
+        self.bonds_checkbutton.grid(row=0, column=0, **self.restraints_ckb_grid_options)
+        self.angles_checkbutton = Restraint_checkbutton(self.components_frame, value=1, text="Angles", **self.minimization_checkbutton)
+        self.angles_checkbutton.grid(row=1, column=0, **self.restraints_ckb_grid_options)
+        self.dihedrals_checkbutton = Restraint_checkbutton(self.components_frame, value=1, text="Dihedrals", **self.minimization_checkbutton)
+        self.dihedrals_checkbutton.grid(row=2, column=0, **self.restraints_ckb_grid_options)
+        self.impropers_checkbutton = Restraint_checkbutton(self.components_frame, value=1, text="Impropers", **self.minimization_checkbutton)
+        self.impropers_checkbutton.grid(row=3, column=0, **self.restraints_ckb_grid_options)
+
+        self.lj_checkbutton = Restraint_checkbutton(self.components_frame, value=1, text="Lennard-Jones", **self.minimization_checkbutton)
+        self.lj_checkbutton.grid(row=0, column=1, **self.restraints_ckb_grid_options)
+        self.coulomb_checkbutton = Restraint_checkbutton(self.components_frame, value=1, text="Coulomb", **self.minimization_checkbutton)
+        self.coulomb_checkbutton.grid(row=1, column=1, **self.restraints_ckb_grid_options)
+
+
+        self.list_of_parameters_checkbuttons = [self.bonds_checkbutton,
+                                                self.angles_checkbutton,
+                                                self.dihedrals_checkbutton,
+                                                self.impropers_checkbutton,
+                                                self.lj_checkbutton,
+                                                self.coulomb_checkbutton]
+
+        self.non_bondend_cutoff_rds = Pmw.EntryField(self.components_frame, value = 10.0,
+                                                     label_text = "Non Bonded Cutoff (%s): " % (u"\u212B"), labelpos = "w",
+                                                     validate = {'validator' : 'real', 'min' : 1.0, 'max' : 250.0})
+        self.non_bondend_cutoff_rds.grid(row=2, column=1, sticky="nw", padx=(15,0), pady=2)
+        self.non_bondend_cutoff_rds.component("entry").configure(width=4)
+        self.non_bondend_cutoff_rds.component("label").configure(bd=0, **shared_components.modeling_window_explanation_padless)
+        self.non_bondend_cutoff_rds.component("hull").configure(bd=0, background="black", highlightbackground="black")
+
+    def get_dict(self):
+        try:
+            nb_cutoff = float(self.non_bondend_cutoff_rds.getvalue())
+        except:
+            nb_cutoff = 4.0
+        additional_optimization_dict = {
+            "steepest_descent": {"use": self.steepest_descent_frame.use_var.get(), "cycles": int(self.steepest_descent_frame.iterations_enf.getvalue())},
+            "conjugate_gradients": {"use": self.conjugate_gradients_frame.use_var.get(), "cycles": int(self.conjugate_gradients_frame.iterations_enf.getvalue())},
+            "quasi_newton": {"use": self.quasi_newton_frame.use_var.get(), "cycles": int(self.quasi_newton_frame.iterations_enf.getvalue())},
+            "molecular_dynamics": {"use": self.md_frame.use_var.get(), "cycles": int(self.md_frame.iterations_enf.getvalue()), "temperature": int(self.md_frame.temperature_enf.getvalue())},
+            "restraints": {"bond": self.bonds_checkbutton.getvalue(),
+                           "angle": self.angles_checkbutton.getvalue(),
+                           "dihedral": self.dihedrals_checkbutton.getvalue(),
+                           "improper": self.impropers_checkbutton.getvalue(),
+                           "coulomb": self.lj_checkbutton.getvalue(),
+                           "lj": self.coulomb_checkbutton.getvalue()},
+           "non_bonded_cutoff": nb_cutoff}
+        return additional_optimization_dict
+
+class Restraint_checkbutton(Checkbutton):
+
+    def __init__(self, parent, value=1, **configs):
+        self.var = IntVar()
+        self.var.set(value)
+        Checkbutton.__init__(self, parent, variable=self.var, **configs)
+
+    def getvalue(self):
+        return self.var.get()
+
+
+class Energy_optimizer_frame(shared_components.PyMod_frame, Energy_minimization_common):
+
+    def __init__(self, parent = None, minimization_algorithm=None, additional_information="", initial_state=0, initial_cycles=1, **configs):
+        shared_components.PyMod_frame.__init__(self, parent, **configs)
+        self.minimization_algorithm = minimization_algorithm
+        self.additional_information = additional_information
+        self.use_var = IntVar()
+        self.use_var.set(initial_state)
+        self.checkbutton = Checkbutton(self, text="Perform ", variable=self.use_var, **self.minimization_checkbutton)
+        self.checkbutton.pack(side="left")
+        self.iterations_enf = Pmw.EntryField(self, value = initial_cycles, labelpos = None,
+                                             validate = {'validator' : 'integer', 'min' : 1, 'max' : 1000})
+        self.iterations_enf.component("entry").configure(width = 4)
+        self.iterations_enf.pack(side="left")
+        self.algorithm_label = Label(self, text= " steps of %s %s" % (self.minimization_algorithm, self.additional_information), **shared_components.modeling_window_explanation_padless)
+        self.algorithm_label.pack(side="left")
+
+    def check_parameters(self):
+        if self.iterations_enf.getvalue() != "":
+            return True
+        else:
+            return False
+
+
+class Md_optimizer_frame(Energy_optimizer_frame):
+    def __init__(self, parent = None, minimization_algorithm=None, additional_information="at temparature (K): ", initial_state=0, initial_cycles=1, **configs):
+        Energy_optimizer_frame.__init__(self, parent = parent, minimization_algorithm=minimization_algorithm, additional_information=additional_information, initial_state=initial_state, initial_cycles=initial_cycles, **configs)
+        self.temperature_enf = Pmw.EntryField(self, value = 293, labelpos = None,
+                                              validate = {'validator' : 'integer', 'min' : 1, 'max' : 1000})
+        self.temperature_enf.component("entry").configure(width = 4)
+        self.temperature_enf.pack(side="left")
+
+    def check_parameters(self):
+        if self.iterations_enf.getvalue() != "" and self.temperature_enf.getvalue():
+            return True
+        else:
+            return False

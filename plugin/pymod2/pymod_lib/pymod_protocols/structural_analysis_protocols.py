@@ -7,6 +7,8 @@ from distutils.spawn import find_executable as which # Used in a method to run k
 
 import numpy
 
+import Bio.PDB
+
 from Tkinter import *
 from tkFileDialog import *
 import tkMessageBox
@@ -479,19 +481,12 @@ class DOPE_assessment(PyMod_protocol, MODELLER_common):
     script_file_name = "%s.py" % script_file_basename
     script_temp_output_name = "dope_profile_temp_out.txt"
 
-    def __init__(self, pymod, selected_sequences=None, output_directory=None):
-        PyMod_protocol.__init__(self, pymod)
+    def additional_initialization(self):
         MODELLER_common.__init__(self)
-
         self.selected_sequences = []
         self.unfiltered_dope_scores_dict = {} # Items will contain DOPE scores for ligands and water molecules.
         self.dope_scores_dict = {} # Items will contain DOPE scores of only polymer residues.
         self.assessed_structures_list = [] # TODO: this is redundant with 'dope_scores_dict'.
-        if not output_directory: # TODO: replace with the default routine on the base class.
-            self.output_directory = self.pymod.structures_directory
-        else:
-            self.output_directory = output_directory
-
 
     def launch_from_gui(self):
         """
@@ -824,6 +819,244 @@ def compute_dope_of_structure_file(pymod, str_file_path, profile_file_path, env=
     model_dope_protocol = DOPE_assessment(pymod)
     dope_score = model_dope_protocol._compute_dope_of_structure_file(str_file_path, profile_file_path, env=env)
     return dope_score
+
+
+    #################################################################
+    # Energy minimization using MODELLER.                           #
+    #################################################################
+
+class Energy_minimization(PyMod_protocol, MODELLER_common):
+
+    def additional_initialization(self):
+        MODELLER_common.__init__(self)
+
+    def energy_minimization(self, model_file_path, parameters_dict, env=None, use_hetatm=True, use_water=True, check_structure=True):
+        model_file_directory = os.path.dirname(model_file_path)
+        model_file_name = os.path.basename(model_file_path)
+        opt_code = model_file_name[:-4]+"_optB"
+        #----------------------------------------------------
+        if self.run_modeller_internally:
+            if env == None:
+                env = modeller.environ()
+                if use_hetatm:
+                    env.io.hetatm = True
+                    if use_water:
+                        env.io.water = True
+                env.libs.topology.read(file='$(LIB)/top_heav.lib')
+                env.libs.parameters.read(file='$(LIB)/par.lib')
+
+            # This will optimize stereochemistry of a given model, including non-bonded contacts.
+            old_dynamic_coulomb = env.edat.dynamic_coulomb
+            env.edat.dynamic_coulomb = True
+            old_dynamic_lennard = env.edat.dynamic_lennard
+            env.edat.dynamic_lennard = True
+            old_contact_shell = env.edat.contact_shell
+            env.edat.contact_shell = parameters_dict["non_bonded_cutoff"]
+            mdl = complete_pdb(env, model_file_path)
+            mdl.write(file=os.path.join(model_file_directory, opt_code+'.ini'))
+            # Select all atoms:
+            atmsel = modeller.selection(mdl)
+            # Generate the restraints:
+            if parameters_dict["restraints"]["bond"]:
+                mdl.restraints.make(atmsel, restraint_type='bond', spline_on_site=False)
+            if parameters_dict["restraints"]["angle"]:
+                mdl.restraints.make(atmsel, restraint_type='angle', spline_on_site=False)
+            if parameters_dict["restraints"]["dihedral"]:
+                mdl.restraints.make(atmsel, restraint_type='dihedral', spline_on_site=False)
+            if parameters_dict["restraints"]["improper"]:
+                mdl.restraints.make(atmsel, restraint_type='improper', spline_on_site=False)
+            if parameters_dict["restraints"]["coulomb"]:
+                mdl.restraints.make(atmsel, restraint_type='coulomb', spline_on_site=False)
+            if parameters_dict["restraints"]["lj"]:
+                mdl.restraints.make(atmsel, restraint_type='lj', spline_on_site=False)
+            mdl.restraints.write(file=os.path.join(model_file_directory, opt_code+'.rsr'))
+            mpdf = atmsel.energy()
+
+            class SteepestDescent(modeller.optimizers.state_optimizer):
+                """
+                Very simple steepest descent optimizer, in Python, as reported at:
+                http://www.salilab.org/modeller/9v4/manual/node252.html
+                """
+                # Add options for our optimizer
+                _ok_keys = modeller.optimizers.state_optimizer._ok_keys + ('min_atom_shift', 'min_e_diff', 'step_size', 'max_iterations')
+                def __init__(self, step_size=0.0001, min_atom_shift=0.01, min_e_diff=1.0, max_iterations=None, **vars):
+                    modeller.optimizers.state_optimizer.__init__(self, step_size=step_size,
+                                             min_atom_shift=min_atom_shift,
+                                             min_e_diff=min_e_diff,
+                                             max_iterations=max_iterations, **vars)
+
+                def optimize(self, atmsel, **vars):
+                    # Do normal optimization startup
+                    modeller.optimizers.state_optimizer.optimize(self, atmsel, **vars)
+                    # Get all parameters
+                    alpha = self.get_parameter('step_size')
+                    minshift = self.get_parameter('min_atom_shift')
+                    min_ediff = self.get_parameter('min_e_diff')
+                    maxit = self.get_parameter('max_iterations')
+                    # Main optimization loop
+                    state = self.get_state()
+                    (olde, dstate) = self.energy(state)
+                    while True:
+                        for i in range(len(state)):
+                            state[i] -= alpha * dstate[i]
+                        (newe, dstate) = self.energy(state)
+                        if abs(newe - olde) < min_ediff:
+                            print "Finished at step %d due to energy criterion" % self.step
+                            break
+                        elif self.shiftmax < minshift:
+                            print "Finished at step %d due to shift criterion" % self.step
+                            break
+                        elif maxit is not None and self.step >= maxit:
+                            print "Finished at step %d due to step criterion" % self.step
+                            break
+                        if newe < olde:
+                            alpha *= 2
+                        else:
+                            alpha /= 2
+                        olde = newe
+                        self.next_step()
+                    self.finish()
+
+            # Open a file to get basic stats on each optimization.
+            trcfil = file(os.path.join(model_file_directory, opt_code+'.D00000001'),'w')
+            # Create optimizer objects and set defaults for all further optimizations.
+            if parameters_dict["steepest_descent"]["use"]:
+                sd = SteepestDescent(max_iterations=parameters_dict["steepest_descent"]["cycles"]) # Optimize with our custom optimizer.
+                sd.optimize(atmsel, actions=modeller.optimizers.actions.trace(5))
+            if parameters_dict["conjugate_gradients"]["use"]:
+                cg = modeller.optimizers.conjugate_gradients(output='REPORT')
+                # Run CG on the all-atom selection; write stats every 5 steps.
+                cg.optimize(atmsel, max_iterations=parameters_dict["conjugate_gradients"]["cycles"], actions=modeller.optimizers.actions.trace(5, trcfil))
+            if parameters_dict["quasi_newton"]["use"]:
+                qn = modeller.optimizers.conjugate_gradients(output='REPORT')
+                qn.optimize(atmsel, max_iterations=parameters_dict["quasi_newton"]["cycles"], actions=modeller.optimizers.actions.trace(5, trcfil))
+            if parameters_dict["molecular_dynamics"]["use"]:
+                md = modeller.optimizers.molecular_dynamics(output='REPORT')
+                # Run MD; write out a PDB structure (called 'model_name.D9999xxxx.pdb')
+                # every 10 steps during the run, and write stats every 10 steps.
+                md.optimize(atmsel,
+                    temperature=parameters_dict["molecular_dynamics"]["temperature"],
+                    max_iterations=parameters_dict["molecular_dynamics"]["cycles"],
+                    actions=modeller.optimizers.actions.trace(10, trcfil))
+                    # actions=[modeller.optimizers.actions.write_structure(10, opt_code+'.D9999%04d.pdb'),
+                    #          modeller.optimizers.actions.trace(10, trcfil)])
+
+            mpdf = atmsel.energy()
+            mdl.write(file=os.path.join(model_file_directory, opt_code+'.pdb'))
+
+            env.edat.dynamic_lennard = old_dynamic_lennard
+            env.edat.dynamic_coulomb = old_dynamic_coulomb
+            env.edat.contact_shell = old_contact_shell
+        #----------------------------------------------------
+
+        #####################################################
+        else:
+            optimize_script_file_path = os.path.join(model_file_directory, "optimize.py")
+            optimize_fh = open(optimize_script_file_path, "w")
+            print >> optimize_fh, "import modeller, modeller.optimizers"
+            print >> optimize_fh, "from modeller.scripts import complete_pdb"
+            print >> optimize_fh, "env = modeller.environ()"
+            if use_hetatm:
+                print >> optimize_fh, "env.io.hetatm = True"
+                if use_water:
+                    print >> optimize_fh, "env.io.water = True"
+            print >> optimize_fh, "env.edat.dynamic_sphere = True"
+            print >> optimize_fh, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
+            print >> optimize_fh, "env.libs.parameters.read(file='$(LIB)/par.lib')"
+            print >> optimize_fh, 'code = "%s"' % opt_code
+            print >> optimize_fh, 'env.edat.dynamic_coulomb = True'
+            print >> optimize_fh, 'env.edat.dynamic_lennard = True'
+            print >> optimize_fh, 'env.edat.contact_shell = %s' % parameters_dict["non_bonded_cutoff"]
+            print >> optimize_fh, 'mdl = complete_pdb(env, "%s")' % os.path.join(model_file_directory, model_file_name)
+            print >> optimize_fh, "mdl.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.ini')
+            print >> optimize_fh, "atmsel = modeller.selection(mdl)"
+            # Generate the restraints:
+            if parameters_dict["restraints"]["bond"]:
+                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='bond', spline_on_site=False)"
+            if parameters_dict["restraints"]["angle"]:
+                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='angle', spline_on_site=False)"
+            if parameters_dict["restraints"]["dihedral"]:
+                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='dihedral', spline_on_site=False)"
+            if parameters_dict["restraints"]["improper"]:
+                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='improper', spline_on_site=False)"
+            if parameters_dict["restraints"]["coulomb"]:
+                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='coulomb', spline_on_site=False)"
+            if parameters_dict["restraints"]["lj"]:
+                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='lj', spline_on_site=False)"
+            print >> optimize_fh, "mdl.restraints.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.rsr')
+            print >> optimize_fh, "mpdf = atmsel.energy()"
+            print >> optimize_fh, 'class SteepestDescent(modeller.optimizers.state_optimizer):'
+            print >> optimize_fh, '   """'
+            print >> optimize_fh, '   Very simple steepest descent optimizer, in Python, as reported at:'
+            print >> optimize_fh, '   http://www.salilab.org/modeller/9v4/manual/node252.html'
+            print >> optimize_fh, '   """'
+            print >> optimize_fh, "   _ok_keys = modeller.optimizers.state_optimizer._ok_keys + ('min_atom_shift', 'min_e_diff', 'step_size', 'max_iterations')"
+            print >> optimize_fh, "   def __init__(self, step_size=0.0001, min_atom_shift=0.01, min_e_diff=1.0, max_iterations=None, **vars):"
+            print >> optimize_fh, '       modeller.optimizers.state_optimizer.__init__(self, step_size=step_size,'
+            print >> optimize_fh, '                                min_atom_shift=min_atom_shift,'
+            print >> optimize_fh, '                                min_e_diff=min_e_diff,'
+            print >> optimize_fh, '                                max_iterations=max_iterations, **vars)'
+            print >> optimize_fh, "   def optimize(self, atmsel, **vars):"
+            print >> optimize_fh, "        modeller.optimizers.state_optimizer.optimize(self, atmsel, **vars)"
+            print >> optimize_fh, "        alpha = self.get_parameter('step_size')"
+            print >> optimize_fh, "        minshift = self.get_parameter('min_atom_shift')"
+            print >> optimize_fh, "        min_ediff = self.get_parameter('min_e_diff')"
+            print >> optimize_fh, "        maxit = self.get_parameter('max_iterations')"
+            print >> optimize_fh, "        state = self.get_state()"
+            print >> optimize_fh, "        (olde, dstate) = self.energy(state)"
+            print >> optimize_fh, "        while True:"
+            print >> optimize_fh, "            for i in range(len(state)):"
+            print >> optimize_fh, "                state[i] -= alpha * dstate[i]"
+            print >> optimize_fh, "            (newe, dstate) = self.energy(state)"
+            print >> optimize_fh, "            if abs(newe - olde) < min_ediff:"
+            print >> optimize_fh, '                print "Finished at step" + str(self.step) + "due to energy criterion"'
+            print >> optimize_fh, '                break'
+            print >> optimize_fh, '            elif self.shiftmax < minshift:'
+            print >> optimize_fh, '                print "Finished at step" + str(self.step) + "due to shift criterion"'
+            print >> optimize_fh, '                break'
+            print >> optimize_fh, '            elif maxit is not None and self.step >= maxit:'
+            print >> optimize_fh, '                print "Finished at step" + str(self.step) + "due to step criterion"'
+            print >> optimize_fh, '                break'
+            print >> optimize_fh, '            if newe < olde:'
+            print >> optimize_fh, '                alpha *= 2'
+            print >> optimize_fh, '            else:'
+            print >> optimize_fh, '                alpha /= 2'
+            print >> optimize_fh, '            olde = newe'
+            print >> optimize_fh, '            self.next_step()'
+            print >> optimize_fh, '        self.finish()'
+            print >> optimize_fh, "trcfil = file('%s','w')" % os.path.join(model_file_directory, opt_code+'.D00000001')
+            if parameters_dict["steepest_descent"]["use"]:
+                print >> optimize_fh, "sd = SteepestDescent(max_iterations=%s)" % parameters_dict["steepest_descent"]["cycles"]
+                print >> optimize_fh, "sd.optimize(atmsel, actions=modeller.optimizers.actions.trace(5))"
+            if parameters_dict["conjugate_gradients"]["use"]:
+                print >> optimize_fh, "cg = modeller.optimizers.conjugate_gradients(output='REPORT')"
+                print >> optimize_fh, "cg.optimize(atmsel, max_iterations=%s, actions=modeller.optimizers.actions.trace(5, trcfil))" % parameters_dict["conjugate_gradients"]["cycles"]
+            if parameters_dict["quasi_newton"]["use"]:
+                print >> optimize_fh, "qn = modeller.optimizers.conjugate_gradients(output='REPORT')"
+                print >> optimize_fh, "qn.optimize(atmsel, max_iterations=%s, actions=modeller.optimizers.actions.trace(5, trcfil))" % parameters_dict["quasi_newton"]["cycles"]
+            if parameters_dict["molecular_dynamics"]["use"]:
+                print >> optimize_fh, "md = modeller.optimizers.molecular_dynamics(output='REPORT')"
+                print >> optimize_fh, "md.optimize(atmsel, temperature=%s, max_iterations=%s, actions=modeller.optimizers.actions.trace(10, trcfil))" % (parameters_dict["molecular_dynamics"]["temperature"], parameters_dict["molecular_dynamics"]["cycles"])
+            print >> optimize_fh, "mpdf = atmsel.energy()"
+            print >> optimize_fh, "mdl.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.pdb')
+            optimize_fh.close()
+            cline= "%s %s" % (self.pymod.modeller.get_exe_file_path(), optimize_script_file_path)
+            self.pymod.execute_subprocess(cline, executing_modeller=True)
+            os.remove(optimize_script_file_path)
+        #####################################################
+
+        # Checks if all the atomic coordinates of the refined structure are valid.
+        if check_structure:
+            optmized_structure_file_name = os.path.join(model_file_directory, opt_code+'.pdb')
+            fh = open(optmized_structure_file_name, "rU")
+            try:
+                parsed_biopython_structure = Bio.PDB.PDBParser(PERMISSIVE=1).get_structure(optmized_structure_file_name, fh)
+                fh.close()
+            except:
+                fh.close()
+                return None
+
+        return opt_code+'.pdb'
 
 
 #     #################################################################
