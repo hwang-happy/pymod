@@ -44,12 +44,16 @@ class PyMod_main_window_mixin:
     # Gridding system.                                              #
     #################################################################
 
-    def gridder(self, set_grid_index_only=False, update_element_text=False, color_elements = False, clear_selection=False, update_clusters=False, update_menus=False):
+    def gridder(self, set_grid_index_only=False, elements_to_update=None, update_elements=False, clear_selection=False, update_clusters=False, update_menus=False):
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
+        When new elements are added to PyMod using the 'add_pymod_element_widgets' method of the
+        'PyMod' class, their Tkinter widgets are initializated, but they are not displayed in PyMod
+        main window. This method actually displayes the widgets.
+
         """
-        # TODO: to make it faster, use an 'elements_to_update' argument, so that only those elements
-        #       will be colored and edited (however all elements will be gridded).
+        t1 = time.time() # TEST.
+
         #---------------------------------------
         # Update clusters elements appearance. -
         #---------------------------------------
@@ -77,7 +81,7 @@ class PyMod_main_window_mixin:
         self.global_grid_row_index = 0
         self.global_grid_column_index = 0
         for pymod_element in self.pymod.root_element.get_children():
-            self.grid_descendants(pymod_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+            self.grid_descendants(pymod_element, set_grid_index_only, update_elements=update_elements)
             self.global_grid_row_index += 1
 
         #---------------------------------------------
@@ -90,23 +94,26 @@ class PyMod_main_window_mixin:
             self.build_alignment_submenu()
             self.build_models_submenu()
 
+        t2 = time.time() # TEST.
+        print "Gridded in: %s" % (t2-t1) # TEST.
 
-    def grid_descendants(self, pymod_element, set_grid_index_only=False, update_element_text=False, color_elements=False):
+
+    def grid_descendants(self, pymod_element, set_grid_index_only=False, update_elements=False):
         """
         Grid a single element and all its descendants.
         """
         if pymod_element.is_mother():
             self.global_grid_column_index += 1
-            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+            self.grid_element(pymod_element, set_grid_index_only, update_element=update_elements)
             if self.dict_of_elements_widgets[pymod_element].show_children:
                 for child_element in pymod_element.get_children():
-                    self.grid_descendants(child_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+                    self.grid_descendants(child_element, set_grid_index_only, update_elements=update_elements)
             self.global_grid_column_index -= 1
         else:
-            self.grid_element(pymod_element, set_grid_index_only, update_element_text=update_element_text, color_elements=color_elements)
+            self.grid_element(pymod_element, set_grid_index_only, update_element=update_elements)
 
 
-    def grid_element(self, pymod_element, set_grid_index_only=False, update_element_text=False, color_elements=False):
+    def grid_element(self, pymod_element, set_grid_index_only=False, update_element=False):
         """
         Grids a single element.
         """
@@ -114,7 +121,7 @@ class PyMod_main_window_mixin:
         self.set_grid_column_index(pymod_element, self.global_grid_column_index)
         self.global_grid_row_index += 1
         if not set_grid_index_only:
-            self.show_widgets(pymod_element, update_element_text=update_element_text, color_elements=color_elements)
+            self.show_widgets(pymod_element, update_element_text=update_element, color_elements=update_element)
 
 
     #################################################################
@@ -481,7 +488,7 @@ class PyMod_main_window_mixin:
         pymod_cluster_widgets_group.cluster_button_text.set('-')
         pymod_cluster_widgets_group.cluster_button["disabledbackground"] = "gray"
         pymod_cluster_widgets_group.show_children = True
-        self.pymod.gridder()
+        self.pymod.main_window.gridder()
 
     def collapse_cluster(self, pymod_cluster):
         pymod_cluster_widgets_group = self.dict_of_elements_widgets[pymod_cluster]
@@ -530,53 +537,57 @@ class PyMod_main_window_mixin:
         Toggles elements selection state.
         """
         if pymod_element.selected: # Inactivate.
-            self.deselect_recursively(pymod_element)
-            if pymod_element.is_child():
-                self.deselect_ancestry_recursively(pymod_element, is_in_cluster=True)
-                self.color_headers_on_toggle(pymod_element)
-
+            self.deselect_element(pymod_element)
         else: # Activate.
-            self.select_recursively(pymod_element)
+            self.select_element(pymod_element)
+
+
+    def deselect_element(self, pymod_element, deselect_all=False):
+        """
+        Deselects an element. The 'deselect_all' should be set to 'True' only when deselecting all
+        elements from PyMod main menu.
+        """
+        if not deselect_all:
+            self._deselect_recursively(pymod_element)
             if pymod_element.is_child():
-                self.select_ancestry_recursively(pymod_element, is_in_cluster=True)
-                self.color_headers_on_toggle(pymod_element)
+                self._deselect_ancestry_recursively(pymod_element, is_in_cluster=True)
+                self._color_headers_on_toggle(pymod_element)
+        else:
+            self._turn_selection_off(pymod_element)
 
-
-    def deselect_recursively(self, pymod_element, is_in_cluster=False):
-        """
-        Deselect an element and all its children recursively.
-        """
-        self.deselect_element(pymod_element, is_in_cluster)
-        if pymod_element.is_mother():
-            for c in pymod_element.get_children():
-                self.deselect_recursively(c, is_in_cluster)
-
-    def select_recursively(self, pymod_element, is_in_cluster=False):
-        """
-        Select an element and all its children recursively.
-        """
-        self.select_element(pymod_element, is_in_cluster)
-        if pymod_element.is_mother():
-            for c in pymod_element.get_children():
-                self.select_recursively(c, is_in_cluster)
-
-
-    def select_element(self,pymod_element, is_in_cluster=False):
+    def select_element(self, pymod_element, select_all=False):
         """
         Selects an element.
         """
-        pymod_element.selected = True
-        self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'green'
+        if not select_all:
+            self._select_recursively(pymod_element)
+            if pymod_element.is_child():
+                self._select_ancestry_recursively(pymod_element, is_in_cluster=True)
+                self._color_headers_on_toggle(pymod_element)
+        else:
+            self._turn_selection_on(pymod_element)
 
-    def deselect_element(self, pymod_element, is_in_cluster=False):
+
+    def _deselect_recursively(self, pymod_element, is_in_cluster=False):
         """
-        Deselects an element.
+        Deselect an element and all its children recursively.
         """
-        pymod_element.selected = False
-        self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'red'
+        self._turn_selection_off(pymod_element, is_in_cluster)
+        if pymod_element.is_mother():
+            for c in pymod_element.get_children():
+                self._deselect_recursively(c, is_in_cluster)
+
+    def _select_recursively(self, pymod_element, is_in_cluster=False):
+        """
+        Select an element and all its children recursively.
+        """
+        self._turn_selection_on(pymod_element, is_in_cluster)
+        if pymod_element.is_mother():
+            for c in pymod_element.get_children():
+                self._select_recursively(c, is_in_cluster)
 
 
-    def deselect_ancestry_recursively(self, pymod_element, is_in_cluster=False):
+    def _deselect_ancestry_recursively(self, pymod_element, is_in_cluster=False):
         """
         Deselects the ancestry an element (that is, its mother and its mother's mother, and so on
         recursively).
@@ -586,11 +597,11 @@ class PyMod_main_window_mixin:
         mother = pymod_element.mother
         # Modify the mother and the siblings according to what happens to the children.
         if mother.selected:
-            self.deselect_element(mother, is_in_cluster=True)
+            self._turn_selection_off(mother, is_in_cluster=True)
         if mother.is_child():
-            self.deselect_ancestry_recursively(mother, is_in_cluster=True)
+            self._deselect_ancestry_recursively(mother, is_in_cluster=True)
 
-    def select_ancestry_recursively(self, pymod_element, is_in_cluster=False):
+    def _select_ancestry_recursively(self, pymod_element, is_in_cluster=False):
         """
         Selects the ancestry of an element recursively.
         """
@@ -605,12 +616,27 @@ class PyMod_main_window_mixin:
             # elements in the cluster will be selected and the mother will also be selected.
             siblings = child.get_siblings()
             if not False in [c.selected for c in siblings]:
-                self.select_element(mother)
+                self._turn_selection_on(mother)
         if mother.is_child():
-            self.select_ancestry_recursively(mother, is_in_cluster=False)
+            self._select_ancestry_recursively(mother, is_in_cluster=False)
 
 
-    def color_headers_on_toggle(self, pymod_element):
+    def _turn_selection_on(self, pymod_element, is_in_cluster=False):
+        """
+        Selects an element.
+        """
+        pymod_element.selected = True
+        self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'green'
+
+    def _turn_selection_off(self, pymod_element, is_in_cluster=False):
+        """
+        Deselects an element.
+        """
+        pymod_element.selected = False
+        self.dict_of_elements_widgets[pymod_element].header_entry["disabledforeground"] = 'red'
+
+
+    def _color_headers_on_toggle(self, pymod_element):
           """
           Adjust the color of unselected headers in a cluster.
           """
@@ -634,7 +660,7 @@ class PyMod_main_window_mixin:
     # #     if self.selected:
     # #         self.deselect_element()
     # #     else:
-    # #         self.select_element()
+    # #         self._turn_selection_on()
 
 
     #################################################################
@@ -904,13 +930,13 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         # self.default_font_size = 12 # "14"
         # self.menu_sequence_font_size.set(self.default_font_size)
         # self.font_menu = Menu(self.display_menu, tearoff = 0)
-        # self.font_menu.add_radiobutton(label="6",value="6",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        # self.font_menu.add_radiobutton(label="8",value="8",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        # self.font_menu.add_radiobutton(label="10",value="10",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        # self.font_menu.add_radiobutton(label="12",value="12",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        # self.font_menu.add_radiobutton(label="14",value="14",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        # self.font_menu.add_radiobutton(label="16",value="16",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
-        # self.font_menu.add_radiobutton(label="18",value="18",variable=self.menu_sequence_font_size, command=self.pymod.gridder)
+        # self.font_menu.add_radiobutton(label="6",value="6",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
+        # self.font_menu.add_radiobutton(label="8",value="8",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
+        # self.font_menu.add_radiobutton(label="10",value="10",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
+        # self.font_menu.add_radiobutton(label="12",value="12",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
+        # self.font_menu.add_radiobutton(label="14",value="14",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
+        # self.font_menu.add_radiobutton(label="16",value="16",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
+        # self.font_menu.add_radiobutton(label="18",value="18",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
         # self.display_menu.add_cascade(label = "Font size", menu = self.font_menu)
         #
         # # Adds the "Display" menu to the main menu.
@@ -1043,7 +1069,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
     def press_down_key(self, event):
         self.move_elements_from_key_press("down")
 
-
     def move_elements_from_key_press(self, direction):
         self.pymod.move_elements(direction)
 
@@ -1053,7 +1078,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
     #################################################################
 
     def add_pymod_element_widgets(self, pymod_element):
-        # TODO: put this in the mixin.
         pewp = PyMod_element_widgets_group(left_pane=self.leftpan.interior(),
                                            right_pane=self.rightpan.interior(),
                                            pymod_element=pymod_element)
@@ -1144,7 +1168,6 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
             self.collapse_cluster(self.pymod_element)
         elif not self.show_children:
             self.expand_cluster(self.pymod_element)
-
 
 
 ###################################################################################################
@@ -1664,14 +1687,14 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Extracts an element from an alignment.
         """
         self.pymod.extract_element_from_cluster(self.pymod_element)
-        self.pymod.gridder(update_clusters=True, update_menus=True)
+        self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
 
     def extract_selection_from_cluster(self):
         selected_sequences = self.pymod.get_selected_sequences()
         # Using 'reversed' keeps them in their original order once extracted.
         for e in reversed(selected_sequences):
             self.pymod.extract_element_from_cluster(e)
-        self.pymod.gridder(update_clusters=True, update_menus=True)
+        self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
 
     def extract_selection_to_new_cluster_from_left_menu(self):
         # 'gridder' is called in this method.
@@ -1679,11 +1702,11 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def make_lead_from_left_menu(self):
         self.pymod.make_cluster_lead(self.pymod_element)
-        self.pymod.gridder()
+        self.pymod.main_window.gridder()
 
     def remove_lead_from_left_menu(self):
         self.pymod.remove_cluster_lead(self.pymod_element)
-        self.pymod.gridder()
+        self.pymod.main_window.gridder()
 
 
     #------------------
@@ -1740,12 +1763,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Duplicates a single sequence.
         """
         self.pymod.duplicate_sequence(self.pymod_element)
-        self.pymod.gridder()
+        self.pymod.main_window.gridder()
 
     def duplicate_selection(self):
         for e in self.pymod.get_selected_sequences():
             self.pymod.duplicate_sequence(e)
-        self.pymod.gridder()
+        self.pymod.main_window.gridder()
 
 
     def delete_sequence_from_the_left_pane(self):
@@ -1753,14 +1776,14 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Delete option in the popup menu.
         """
         self.pymod.delete_element_from_pymod(self.pymod_element)
-        self.pymod.gridder(update_clusters=True, update_menus=True)
+        self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
 
     def delete_many_sequences(self):
         # Delete the selected sequences.
         for element in self.pymod.get_selected_sequences():
             self.pymod.delete_element_from_pymod(element)
         # Empty cluster elements will be deleted in the 'gridder' method.
-        self.pymod.gridder(update_clusters=True, update_menus=True)
+        self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
 
 
     #------------------------------

@@ -1,8 +1,9 @@
 # TODO:
 #     - Cluster appearance.
-#         - color the clusters after modifications.
 #         - reimplement the collapsed clusters features.
-#     - add raw sequences.
+#         - cluster behaviour (selection of a collapsed cluster).
+#     - add gaps to a sequence with the mouse.
+#     - add raw sequences and edit sequences.
 #     - reimplement the "Display" submenu in the main menu.
 #     - Ramachandran plot.
 #     - superpose.
@@ -741,7 +742,7 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))
 
-        self.gridder(update_clusters=True, update_menus=True)
+        self.main_window.gridder(update_clusters=True, update_menus=True)
 
 
     #################################################################
@@ -849,7 +850,7 @@ class PyMod:
         if refresh:
             self.deselect_all_sequences()
         if grid:
-            self.gridder()
+            self.main_window.gridder()
 
 
     def show_info_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
@@ -955,25 +956,18 @@ class PyMod:
     # METHODS TO MANIPULATE THE ELEMENTS: POD (PyMod object model).                               #
     ###############################################################################################
 
-    def make_cluster_lead(self, new_lead, grid=False):
+    def make_cluster_lead(self, new_lead):
         for sibling in new_lead.get_siblings():
             sibling.remove_all_lead_statuses()
         new_lead.set_as_lead()
-        if grid:
-            self.gridder()
 
-    def make_cluster_query(self, new_lead, grid=False):
+    def make_cluster_query(self, new_lead):
         for sibling in new_lead.get_siblings():
             sibling.remove_all_lead_statuses()
         new_lead.set_as_blast_query()
-        if grid:
-            self.gridder()
 
-    def remove_cluster_lead(self, pymod_element, grid=False):
+    def remove_cluster_lead(self, pymod_element):
         pymod_element.remove_all_lead_statuses()
-        if grid:
-            self.gridder()
-        # TODO: use a decorator so that the methods may call gridder at the end.
 
 
     #################################################################
@@ -1004,7 +998,9 @@ class PyMod:
     def add_element_to_pymod(self, element, adjust_header=True, load_in_pymol=False, color=None, use_pymod_old_color_scheme=False):
         """
         Used to add elements to the pymod_elements_list. Once an element is added to children of the
-        'root_element' by this method, it will be displayed in the PyMod main window.
+        'root_element' by this method, it will be displayed in the PyMod main window. This method
+        will initialize the element Tkinter widgets, but it will not display them in the main
+        window.
         """
         # Adds the element to the children of PyMod root element.
         self.root_element.add_children(element)
@@ -1020,7 +1016,7 @@ class PyMod:
         if color:
             element.my_color = color
         elif use_pymod_old_color_scheme and element.has_structure():
-            # Use the old color shceme of PyMod.
+            # Use the old color scheme of PyMod.
             color=self.color_struct()
 
         # Builds for it some Tkinter widgets to show in PyMod window. They will be gridded later.
@@ -1312,9 +1308,10 @@ class PyMod:
     # Load sequence files.                                          #
     #################################################################
 
-    def open_sequence_file(self, file_full_path, file_format="fasta", grid=False):
+    def open_sequence_file(self, file_full_path, file_format="fasta"):
         """
-        Method for loading in PyMod new sequences parsed from sequence files.
+        Method for loading in PyMod new sequences parsed from sequence files. It will build new
+        PyMod elements, but it will not display its widgets in the main window.
         """
         if not os.path.isfile(file_full_path):
             raise Exception("File does not exist: %s." % file_full_path)
@@ -1328,12 +1325,9 @@ class PyMod:
             c = self.build_pymod_element_from_seqrecord(record)
             self.add_element_to_pymod(c)
         fn.close()
-        # Shows the new elements in PyMod main window.
-        if grid:
-            self.gridder()
 
 
-    def build_cluster_from_alignment_file(self, alignment_file, extension="fasta", grid=False):
+    def build_cluster_from_alignment_file(self, alignment_file, extension="fasta"):
         """
         Creates a cluster with all the sequences contained in an alignment file.
         """
@@ -1347,15 +1341,13 @@ class PyMod:
             aligned_elements.append(new_child_element)
         fh.close()
         new_cluster = self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
-        if grid:
-            self.gridder(update_clusters=True)
 
 
     #################################################################
     # Opening PDB files.                                            #
     #################################################################
 
-    def open_structure_file(self, pdb_file_full_path, file_format="pdb", grid=False):
+    def open_structure_file(self, pdb_file_full_path, file_format="pdb"):
         """
         Opens a PDB file (specified in 'pdb_file_full_path'), reads its content, imports in PyMod
         the sequences of the polypeptide chains and loads in PyMOL their 3D structures.
@@ -1365,8 +1357,7 @@ class PyMod:
         p = pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
         for element in p.get_pymod_elements():
             self.add_element_to_pymod(element, load_in_pymol=True)
-        if grid:
-            self.gridder()
+
 
     def color_struct(self):
         color_to_return = pmdt.pymod_regular_colors_list[self.color_index % len(pmdt.pymod_regular_colors_list)]
@@ -1465,7 +1456,7 @@ class PyMod:
                 self.show_error_message("Sequence Error", "Please provide a sequence with only standard amino acid characters.", parent_window=child)
                 return None
             pymod_element.set_sequence(edited_sequence, permissive=True)
-            self.gridder(update_clusters=True)
+            self.main_window.gridder(update_clusters=True)
             child.destroy()
 
         # Submit button.
@@ -1546,7 +1537,7 @@ class PyMod:
         original_cluster_index = self.get_pymod_element_index_in_container(selected_sequences[0].mother) + 1
         new_cluster = self.add_new_cluster_to_pymod(cluster_type="generic", child_elements=selected_sequences, algorithm="extracted")
         self.change_pymod_element_list_index(new_cluster, original_cluster_index)
-        self.gridder(update_clusters=True, update_menus=True)
+        self.main_window.gridder(update_clusters=True, update_menus=True)
 
 
     #################################################################
@@ -1609,7 +1600,7 @@ class PyMod:
                 match["target-seq"].set_sequence(str(match["external-seq"].seq))
                 correspondance_list.remove(match)
 
-        self.gridder(update_clusters=True)
+        self.main_window.gridder(update_clusters=True)
 
 
     def delete_cluster_dialog(self, cluster_element):
@@ -1632,7 +1623,7 @@ class PyMod:
                 self.extract_element_from_cluster(c)
             self.delete_element_from_pymod(cluster_element)
 
-        self.gridder(update_menus=True)
+        self.main_window.gridder(update_menus=True)
 
 
     #################################################################
@@ -1727,7 +1718,7 @@ class PyMod:
         #         self.show_associate_structure_error(parent_window = self.associate_structure_window)
         #         return False
         #     self.associate_structure_window.destroy()
-        #     self.gridder()
+        #     self.main_window.gridder()
 
 
     def show_associate_structure_error(self, parent_window = None):
@@ -1860,19 +1851,6 @@ class PyMod:
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False, update_element_text=False, color_elements = False, clear_selection=False, update_clusters=False, update_menus=False):
-        """
-        Grids the PyMod elements widgets in PyMod main window.
-        """
-        self.main_window.gridder(
-            set_grid_index_only=set_grid_index_only,
-            update_element_text=update_element_text,
-            color_elements = color_elements,
-            clear_selection=clear_selection,
-            update_clusters=update_clusters,
-            update_menus=update_menus)
-
-
     #########################################
     # Extract elements from their clusters. #
     #########################################
@@ -1913,7 +1891,7 @@ class PyMod:
             container.list_of_children = filter(lambda e: e != None, container.list_of_children)
         # Shows the the elements in the new order.
         if elements_to_move != []:
-            self.gridder()
+            self.main_window.gridder()
 
 
     def move_single_element(self, direction, element, container_list):
@@ -2179,7 +2157,8 @@ class PyMod:
                 title = "File Type Error"
                 message = "The selected File is not a valid %s." % (pmdt.supported_sequence_file_types[extension])
                 self.show_error_message(title, message)
-        self.gridder()
+                return None
+        self.main_window.gridder()
 
 
     def open_alignment_from_main_menu(self):
@@ -2189,7 +2168,7 @@ class PyMod:
         openfilename, extension = self.choose_alignment_file()
         if not None in (openfilename, extension):
             self.build_cluster_from_alignment_file(openfilename, extension)
-        self.gridder(update_menus=True)
+        self.main_window.gridder(update_menus=True)
 
 
     #################################################################
@@ -2220,7 +2199,7 @@ class PyMod:
         #                 element_type="sequence")
         #             self.add_element_to_pymod(c,"mother")
         #             self.raw_seq_window.destroy()
-        #             self.gridder()
+        #             self.main_window.gridder()
         #         else:
         #             title = 'Name Error'
         #             message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
@@ -2808,17 +2787,15 @@ class PyMod:
         self.select_all_sequences()
 
     def select_all_sequences(self):
-        for element in self.get_all_sequences():
-            if not element.selected:
-                self.main_window.toggle_element(element)
+        for element in self.get_pymod_elements_list():
+            self.main_window.select_element(element, select_all=True)
 
     def deselect_all_from_main_menu(self):
         self.deselect_all_sequences()
 
     def deselect_all_sequences(self):
-        for element in self.get_all_sequences():
-            if element.selected:
-                self.main_window.toggle_element(element)
+        for element in self.get_pymod_elements_list():
+            self.main_window.deselect_element(element, deselect_all=True)
 
 
     def show_all_structures_from_main_menu(self):

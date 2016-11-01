@@ -876,7 +876,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         was encountered.
         """
         # Displayes the models in PyMod main window, if some were built.
-        self.pymod.gridder(update_menus=True, clear_selection=True, update_element_text=successful)
+        self.pymod.main_window.gridder(update_menus=True, clear_selection=True, update_elements=successful)
         if successful:
             # Colors the models and templates according to their DOPE values.
             for element in self.all_assessed_structures_list:
@@ -1018,6 +1018,10 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         if not self.check_max_model_entry_input():
             return False
 
+        if self.additional_optimization_level == "Use":
+            if not self.check_energy_minimization_parameters():
+                return False
+
         # Checks if the parameters of all the "modeling clusters" are correct.
         for mc in self.modeling_clusters_list:
             if not self.check_modeling_cluster_parameters(mc):
@@ -1061,6 +1065,22 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             return False
         else:
             return True
+
+
+    def check_energy_minimization_parameters(self):
+        if not self.modeling_window.energy_minimization_frame.check_options_entries():
+            self.modelization_parameters_error = "Invalid parameters in the Additional Energy Minimization Options!"
+            return False
+        if not self.modeling_window.energy_minimization_frame.check_algorithms_selection():
+            self.modelization_parameters_error = "Please select at least one Additional Energy Minimization algorithm!"
+            return False
+        if not self.modeling_window.energy_minimization_frame.check_restraints_selection():
+            self.modelization_parameters_error = "Please select at least one feature to minimize!"
+            return False
+        if not self.modeling_window.energy_minimization_frame.check_non_bonded_cutoff():
+            self.modelization_parameters_error = "Please insert a non bonded cutoff value!"
+            return False
+        return True
 
 
     def check_modeling_cluster_parameters(self, modeling_cluster):

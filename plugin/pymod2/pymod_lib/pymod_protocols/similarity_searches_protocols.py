@@ -496,7 +496,7 @@ class Generic_BLAST_search(PyMod_protocol):
         # Updates the sequences according to the BLAST pseudo alignment.
         ba.update_pymod_elements(elements_to_update)
 
-        self.pymod.gridder(clear_selection=True, update_clusters=True, update_menus=True)
+        self.pymod.main_window.gridder(clear_selection=True, update_clusters=True, update_menus=True, update_elements=True)
 
 
 ###################################################################################################

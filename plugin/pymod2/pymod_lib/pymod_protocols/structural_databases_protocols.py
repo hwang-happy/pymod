@@ -26,8 +26,8 @@ class Fetch_structure_file(PyMod_protocol):
     Class for downloading a PDB file from the sequences retrived from BLAST.
     """
 
-    def __init__(self, pymod, mode=None, structures_to_fetch=None, import_mode=None):
-        PyMod_protocol.__init__(self, pymod)
+    def __init__(self, pymod, output_directory=None, mode=None, structures_to_fetch=None, import_mode=None):
+        PyMod_protocol.__init__(self, pymod, output_directory)
         self.mode = mode
         self.structures_to_fetch = structures_to_fetch
         self.import_mode = import_mode
@@ -67,7 +67,7 @@ class Fetch_structure_file(PyMod_protocol):
         """
         for element in self.structures_to_fetch:
             self._fetch_single_element(element)
-        self.pymod.gridder(update_element_text=True, update_clusters=True)
+        self.pymod.main_window.gridder(update_elements=True, update_clusters=True)
 
 
     def _get_pdb_code_from_header(self, pymod_element):

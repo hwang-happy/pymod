@@ -220,7 +220,7 @@ class Alignment_protocol(PyMod_protocol):
         # Alignment objects built using different algorithms, store different additional data.
         self.update_additional_information()
 
-        self.pymod.gridder(clear_selection=True, update_clusters=True, update_menus=True, update_element_text=True, color_elements=True)
+        self.pymod.main_window.gridder(clear_selection=True, update_clusters=True, update_menus=True, update_elements=True)
 
 
     def update_aligned_sequences(self):

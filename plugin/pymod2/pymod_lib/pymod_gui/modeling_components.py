@@ -1278,19 +1278,37 @@ class Energy_minimization_frame(shared_components.PyMod_frame, Energy_minimizati
             nb_cutoff = float(self.non_bondend_cutoff_rds.getvalue())
         except:
             nb_cutoff = 4.0
-        additional_optimization_dict = {
-            "steepest_descent": {"use": self.steepest_descent_frame.use_var.get(), "cycles": int(self.steepest_descent_frame.iterations_enf.getvalue())},
-            "conjugate_gradients": {"use": self.conjugate_gradients_frame.use_var.get(), "cycles": int(self.conjugate_gradients_frame.iterations_enf.getvalue())},
-            "quasi_newton": {"use": self.quasi_newton_frame.use_var.get(), "cycles": int(self.quasi_newton_frame.iterations_enf.getvalue())},
-            "molecular_dynamics": {"use": self.md_frame.use_var.get(), "cycles": int(self.md_frame.iterations_enf.getvalue()), "temperature": int(self.md_frame.temperature_enf.getvalue())},
-            "restraints": {"bond": self.bonds_checkbutton.getvalue(),
-                           "angle": self.angles_checkbutton.getvalue(),
-                           "dihedral": self.dihedrals_checkbutton.getvalue(),
-                           "improper": self.impropers_checkbutton.getvalue(),
-                           "coulomb": self.lj_checkbutton.getvalue(),
-                           "lj": self.coulomb_checkbutton.getvalue()},
-           "non_bonded_cutoff": nb_cutoff}
+        try:
+            additional_optimization_dict = {
+                "steepest_descent": {"use": self.steepest_descent_frame.use_var.get(), "cycles": int(self.steepest_descent_frame.iterations_enf.getvalue())},
+                "conjugate_gradients": {"use": self.conjugate_gradients_frame.use_var.get(), "cycles": int(self.conjugate_gradients_frame.iterations_enf.getvalue())},
+                "quasi_newton": {"use": self.quasi_newton_frame.use_var.get(), "cycles": int(self.quasi_newton_frame.iterations_enf.getvalue())},
+                "molecular_dynamics": {"use": self.md_frame.use_var.get(), "cycles": int(self.md_frame.iterations_enf.getvalue()), "temperature": int(self.md_frame.temperature_enf.getvalue())},
+                "restraints": {"bond": self.bonds_checkbutton.getvalue(),
+                               "angle": self.angles_checkbutton.getvalue(),
+                               "dihedral": self.dihedrals_checkbutton.getvalue(),
+                               "improper": self.impropers_checkbutton.getvalue(),
+                               "coulomb": self.lj_checkbutton.getvalue(),
+                               "lj": self.coulomb_checkbutton.getvalue()},
+               "non_bonded_cutoff": nb_cutoff}
+        except:
+            additional_optimization_dict = {}
         return additional_optimization_dict
+
+    def check_options_entries(self):
+        return not False in [frame.check_parameters() for frame in self.minimization_algorithms_frames]
+
+    def check_algorithms_selection(self):
+        return 1 in [frame.use_var.get() for frame in self.minimization_algorithms_frames]
+
+    def check_restraints_selection(self):
+        return 1 in [checkbutton.getvalue() for checkbutton in self.list_of_parameters_checkbuttons]
+
+    def check_non_bonded_cutoff(self):
+        if 1 in [self.lj_checkbutton.getvalue(), self.coulomb_checkbutton.getvalue()]:
+            return not self.non_bondend_cutoff_rds.getvalue() == ""
+        else:
+            return True
 
 class Restraint_checkbutton(Checkbutton):
 
