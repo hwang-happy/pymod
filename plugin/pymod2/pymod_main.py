@@ -1,7 +1,9 @@
 # TODO:
 #     - Cluster appearance.
 #         - reimplement the collapsed clusters features.
+#         - update menus.
 #         - cluster behaviour (selection of a collapsed cluster).
+#     - fix multiple BLAST runs bug.
 #     - add gaps to a sequence with the mouse.
 #     - add raw sequences and edit sequences.
 #     - reimplement the "Display" submenu in the main menu.
@@ -25,6 +27,7 @@
 #         - add an "remove gap only columns" option in the CAMPO window.
 #         - fix the bug in gap tossing.
 #         - check the names of the sequences when building trees.
+#     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
 
 ###########################################################################
@@ -714,6 +717,8 @@ class PyMod:
         self.load_uniprot_random()
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
 
+        # Simple clusters.
+        self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
         # Rubic.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/rubic 1/run.fasta"))
 
@@ -733,8 +738,8 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
         # Ubiquitin.
-        self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
         # Simple heteromer.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
@@ -742,7 +747,7 @@ class PyMod:
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))
 
-        self.main_window.gridder(update_clusters=True, update_menus=True)
+        self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 
 
     #################################################################
@@ -1124,7 +1129,7 @@ class PyMod:
             cluster_element.add_children(child_elements)
             # Computes the stars of the new alignment element.
             if update_stars:
-                self.update_stars(cluster_element)
+                cluster_element.update_stars()
 
         # Sets the leader of the cluster.
         if cluster_type == "blast-cluster" and query != None:
@@ -1481,21 +1486,6 @@ class PyMod:
     # Clusters.                                                     #
     #################################################################
 
-    def adjust_aligned_elements_length(self, elements, remove_right_indels=True):
-        if len(set([len(e.my_sequence) for e in elements])) == 1:
-            return False
-        # First remove indels at the end of the sequences.
-        if remove_right_indels:
-            for e in elements:
-                e.my_sequence = str(e.my_sequence).rstrip("-")
-        # Then pad each sequence with the right number of indels to make them of the same length as
-        # the longest sequence.
-        max_length = max([len(e.my_sequence) for e in elements])
-        for e in elements:
-            e.my_sequence = str(e.my_sequence).ljust(max_length,"-")
-            # e.set_sequence(str(e.my_sequence).ljust(max_length,"-"), permissive=False)
-
-
     def update_cluster_sequences(self, cluster_element):
         """
         Updates the sequences of a cluster when some sequences are removed or added from the
@@ -1503,33 +1493,12 @@ class PyMod:
         """
         children = cluster_element.get_children()
         if len(children) > 1:
-            self.adjust_aligned_elements_length(children) # TODO: insert in update_stars?
-            self.update_stars(cluster_element)
+            cluster_element.adjust_aligned_children_length()
+            cluster_element.update_stars()
         else:
             if len(children) == 1:
                 self.extract_element_from_cluster(children[0])
             self.delete_element_from_pymod(cluster_element)
-
-
-    def update_stars(self, cluster_element):
-        stars = pmsm.compute_stars(cluster_element.get_children())
-        cluster_element.my_sequence = stars
-
-
-    def remove_gap_only_columns(self, cluster_element):
-        """
-        Remove the columns containing only gaps in the child elements of a PyMod cluster element.
-        """
-        children = cluster_element.get_children()
-        all_gaps_columns = []
-        columns_to_keep = []
-        print [len(c.my_sequence) for c in children]
-        for i in range(0, len(children[0].my_sequence)):
-            if pmsm.all_gaps_column([c.my_sequence[i] for c in children]):
-                all_gaps_columns.append(i)
-        for child in children:
-            seq = "".join([t[1] for t in enumerate(child.my_sequence) if not t[0] in all_gaps_columns])
-            child.set_sequence(seq)
 
 
     def extract_selection_to_new_cluster(self):
@@ -2031,7 +2000,7 @@ class PyMod:
         output_file_handler = open(alignment_file_path, 'w')
 
         if same_length:
-            self.adjust_aligned_elements_length(elements)
+            pmsm.adjust_aligned_elements_length(elements)
 
         if first_element != None:
             elements.remove(first_element)
@@ -2168,7 +2137,7 @@ class PyMod:
         openfilename, extension = self.choose_alignment_file()
         if not None in (openfilename, extension):
             self.build_cluster_from_alignment_file(openfilename, extension)
-        self.main_window.gridder(update_menus=True)
+        self.main_window.gridder(update_menus=True, update_elements=True)
 
 
     #################################################################

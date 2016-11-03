@@ -271,7 +271,17 @@ class PyMod_cluster_element(PyMod_element):
                 return child
         return None
 
-    # TODO: insert here the methods like "update_stars", etc...
+
+    def update_stars(self):
+        stars = pmsm.compute_stars(self.get_children())
+        self.my_sequence = stars
+
+
+    def remove_gap_only_columns(self):
+        pmsm.remove_gap_only_columns(self.get_children())
+
+    def adjust_aligned_children_length(self):
+        pmsm.adjust_aligned_elements_length(self.get_children())
 
 
 class PyMod_root_element(PyMod_cluster_element):

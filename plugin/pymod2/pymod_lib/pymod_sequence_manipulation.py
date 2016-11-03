@@ -187,6 +187,41 @@ def get_limit_residues_ids(seq1, seq2):
 
 
 #######################
+# Alignments.         #
+#######################
+
+def adjust_aligned_elements_length(elements, remove_right_indels=True):
+    if len(set([len(e.my_sequence) for e in elements])) == 1:
+        return False
+    # First remove indels at the end of the sequences.
+    if remove_right_indels:
+        for e in elements:
+            e.my_sequence = str(e.my_sequence).rstrip("-")
+    # Then pad each sequence with the right number of indels to make them of the same length as
+    # the longest sequence.
+    max_length = max([len(e.my_sequence) for e in elements])
+    for e in elements:
+        e.my_sequence = str(e.my_sequence).ljust(max_length,"-")
+        # e.set_sequence(str(e.my_sequence).ljust(max_length,"-"), permissive=False)
+
+
+def remove_gap_only_columns(children):
+    """
+    Remove the columns containing only gaps in the child elements of a PyMod cluster element.
+    """
+    # all_gaps_columns = []
+    # columns_to_keep = []
+    # print [len(c.my_sequence) for c in children]
+    # for i in range(0, len(children[0].my_sequence)):
+    #     if pmsm.all_gaps_column([c.my_sequence[i] for c in children]):
+    #         all_gaps_columns.append(i)
+    # for child in children:
+    #     seq = "".join([t[1] for t in enumerate(child.my_sequence) if not t[0] in all_gaps_columns])
+    #     child.set_sequence(seq)
+    pass
+
+
+#######################
 # Clean up sequences. #
 #######################
 
