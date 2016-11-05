@@ -1,10 +1,8 @@
 # TODO:
-#     - Cluster appearance.
-#         - reimplement the collapsed clusters features.
+#     - Collapsed clusters appearance and behaviour.
 #         - update menus.
-#         - cluster behaviour (selection of a collapsed cluster).
+#         - selections.
 #     - fix multiple BLAST runs bug.
-#     - add gaps to a sequence with the mouse.
 #     - add raw sequences and edit sequences.
 #     - reimplement the "Display" submenu in the main menu.
 #     - Ramachandran plot.
@@ -27,8 +25,10 @@
 #         - add an "remove gap only columns" option in the CAMPO window.
 #         - fix the bug in gap tossing.
 #         - check the names of the sequences when building trees.
+#     - add gaps to a sequence with the mouse.
 #     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
+#     - remove TEST.
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
@@ -718,7 +718,10 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
 
         # Simple clusters.
-        self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+        a = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+        c = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+        a.add_child(c)
+
         # Rubic.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/rubic 1/run.fasta"))
 
@@ -1346,7 +1349,7 @@ class PyMod:
             aligned_elements.append(new_child_element)
         fh.close()
         new_cluster = self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=aligned_elements, algorithm="imported")
-
+        return new_cluster
 
     #################################################################
     # Opening PDB files.                                            #
