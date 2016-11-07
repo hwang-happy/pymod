@@ -1,18 +1,21 @@
 # TODO:
 #     - Collapsed clusters appearance and behaviour.
 #         - update menus.
-#         - selections.
+#         - move leads of collapsed clusters.
+#         - selections (select whole cluster command for leads of collapsed clusters).
+#         - when performing alignments and selecting a collapsed cluster, ask to extend the
+#           selection to the whole cluster.
+#         - fix appearance when building alignments with collapsed clusters with leads.
 #     - fix multiple BLAST runs bug.
 #     - add raw sequences and edit sequences.
 #     - reimplement the "Display" submenu in the main menu.
 #     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
-#         - implement the new tackbacking system.
+#         - implement the new trackbacking system.
 #     - RMSD part.
 #     - integrate the modifications made in the stable branch.
 #         - control the sequences before modeling.
-#         - projects.
 #     - add the licence part to each file of the plugin.
 #     - define modified residues.
 #     - adjust the structure files part.
@@ -28,6 +31,8 @@
 #     - add gaps to a sequence with the mouse.
 #     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
+#         - all the options for alignment algorithms.
+#     - implement the new aid system in the GUI.
 #     - remove TEST.
 
 ###########################################################################

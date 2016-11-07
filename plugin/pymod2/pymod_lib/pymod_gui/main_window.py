@@ -477,6 +477,7 @@ class PyMod_main_window_mixin:
     #################################################################
     # Expand and collapse clusters.                                 #
     #################################################################
+
     def _toggle_cluster_click(self, pymod_element, cluster_lead_action, cluster_element_action):
         if not pymod_element.is_cluster():
             cluster_lead_action(pymod_element)
@@ -488,7 +489,7 @@ class PyMod_main_window_mixin:
             else:
                 cluster_element_action(pymod_cluster)
 
-    def expand_cluster_click(self, pymod_element): # elaion!
+    def expand_cluster_click(self, pymod_element):
         self._toggle_cluster_click(pymod_element, self._expand_cluster_lead, self._expand_cluster_element)
 
     def _expand_cluster_element(self, pymod_cluster):
@@ -566,6 +567,9 @@ class PyMod_main_window_mixin:
         # Show the lead cluster button.
         cluster_lead_widgets_group._show_cluster_button = True
         cluster_lead_widgets_group._grid_cluster_button()
+
+    def is_lead_of_collapsed_cluster(self, pymod_element):
+        return pymod_element.is_child() and pymod_element.is_lead() and self.dict_of_elements_widgets[pymod_element.mother]._collapsed_cluster
 
 
     #################################################################
@@ -1426,7 +1430,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         In order to make this work the "Selection" item always has to be in the last position in all
         kind of menus.
         """
-        if len(self.pymod.get_selected_sequences()) > 1: # and not self.is_cluster():
+        if len(self.pymod.get_selected_sequences()) > 1:
             self.header_popup_menu.entryconfig(self.header_popup_menu.index(END), state=NORMAL)
             self.build_selection_menu()
         elif not self.pymod_element.is_cluster():
@@ -1435,13 +1439,12 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def build_single_sequence_header_popup_menu(self):
 
-        # TODO: implement again.
         # # If the sequence is a lead of a cluster, build the "Cluster" menu, to manage the cluster.
-        # if self.is_lead_of_collapsed_cluster():
-        #     self.cluster_lead_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
-        #     self.build_cluster_popup_menu(self.cluster_lead_menu, mode="lead")
-        #     self.header_popup_menu.add_cascade(menu=self.cluster_lead_menu, label="Cluster")
-        #     self.header_popup_menu.add_separator()
+        if self.is_lead_of_collapsed_cluster(self.pymod_element): # elaion!
+            self.cluster_lead_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            self.build_cluster_popup_menu(self.cluster_lead_menu, mode="lead")
+            self.header_popup_menu.add_cascade(menu=self.cluster_lead_menu, label="Cluster")
+            self.header_popup_menu.add_separator()
 
         # Build the "Sequence" menu.
         self.build_sequence_menu()
@@ -1543,7 +1546,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         # Build PyMod color palette.
         self.build_color_palette_submenu(color_mode, elements_to_color, target_menu, "PyMod Colors", pmdt.pymod_regular_colors_list)
 
-        # Custom color selection.
+        # Custom color selection. # TODO.
         '''
         from Tkinter import *
         from tkColorChooser import askcolor

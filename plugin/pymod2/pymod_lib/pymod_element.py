@@ -163,6 +163,7 @@ class PyMod_element:
 
     def extract_to_upper_level(self):
         new_mother = self.mother.mother
+        self.remove_all_lead_statuses()
         new_mother.add_child(self)
 
 
