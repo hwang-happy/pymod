@@ -1,8 +1,6 @@
 # TODO:
 #     - Collapsed clusters appearance and behaviour.
-#         - update menus.
 #         - move leads of collapsed clusters.
-#         - selections (select whole cluster command for leads of collapsed clusters).
 #         - when performing alignments and selecting a collapsed cluster, ask to extend the
 #           selection to the whole cluster.
 #         - fix appearance when building alignments with collapsed clusters with leads.
@@ -725,7 +723,7 @@ class PyMod:
         # Simple clusters.
         a = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
         c = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
-        a.add_child(c)
+        # a.add_child(c)
 
         # Rubic.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/rubic 1/run.fasta"))
@@ -1052,7 +1050,7 @@ class PyMod:
                 self.delete_element_from_pymod(c)
         # Actually delete the element.
         element.remove_from_cluster()
-        self.main_window.delete_pymod_element_widgets(element)
+        self.main_window.delete_pymod_element_widgets(element) # TODO: place the GUI part in the 'pymod_gui' module.
 
 
     def replace_element(self, old_element, new_element, keep_old_header=False):
