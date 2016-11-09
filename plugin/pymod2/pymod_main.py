@@ -1,9 +1,7 @@
 # TODO:
 #     - Collapsed clusters appearance and behaviour.
-#         - move leads of collapsed clusters.
 #         - when performing alignments and selecting a collapsed cluster, ask to extend the
 #           selection to the whole cluster.
-#         - fix appearance when building alignments with collapsed clusters with leads.
 #     - fix multiple BLAST runs bug.
 #     - add raw sequences and edit sequences.
 #     - reimplement the "Display" submenu in the main menu.
@@ -723,6 +721,8 @@ class PyMod:
         # Simple clusters.
         a = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
         c = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+        self.make_cluster_lead(a.get_children()[0])
+        self.make_cluster_lead(c.get_children()[0])
         # a.add_child(c)
 
         # Rubic.
@@ -1837,52 +1837,9 @@ class PyMod:
             self.change_pymod_element_list_index(pymod_element, old_mother_index)
 
 
-    ###################################################################
-    # Move elements up and down by one position in PyMod main window. #
-    ###################################################################
-
-    def move_elements(self, direction, elements_to_move=None):
-        """
-        Move 'up' or 'down' by a single position a series of elements in PyMod main window.
-        """
-        # Gets the elements to move.
-        if elements_to_move == None:
-            elements_to_move = self.get_selected_elements()
-        # Allow to move elements on the bottom of the list.
-        if direction == "down":
-            elements_to_move.reverse()
-        # Temporarily adds 'None' elements to the list, so that multiple elements at the top or
-        # bottom of container lists can be moved correctly.
-        containers_set = set([e.mother for e in elements_to_move if not e.mother.selected]) # in elements_to_move
-        for container in containers_set:
-            container.list_of_children.append(None)
-            container.list_of_children.insert(0, None)
-        # Actually move the elements in their container lists.
-        for element in elements_to_move:
-            if not element.mother.selected:
-                self.move_single_element(direction, element, element.mother.get_children())
-        # Remove the 'None' values added before.
-        for container in containers_set:
-            container.list_of_children = filter(lambda e: e != None, container.list_of_children)
-        # Shows the the elements in the new order.
-        if elements_to_move != []:
-            self.main_window.gridder()
-
-
-    def move_single_element(self, direction, element, container_list):
-        """
-        Move 'up' or 'down' by a single position a single element in a list.
-        """
-        change_index = 0
-        old_index = container_list.index(element)
-        if direction == "up":
-            change_index -= 1
-        elif direction == "down":
-            # if old_index == len(container_list) - 1:
-            #     return None
-            change_index += 1
-        self.change_pymod_element_list_index(element, old_index + change_index)
-
+    #########################################################
+    # Changes elements positions in PyMod list of elements. #
+    #########################################################
 
     def change_element_list_index(self, element, container_list, new_index):
         old_index = container_list.index(element)

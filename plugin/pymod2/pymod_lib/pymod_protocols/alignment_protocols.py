@@ -183,7 +183,7 @@ class Alignment_protocol(PyMod_protocol):
         #-------------------------------------------
         self.create_alignment_element()
         self.update_aligned_elements()
-        if 0:
+        if 0: # TODO.
             self.remove_alignment_temp_files()
         self.finish_alignment()
 
@@ -1101,7 +1101,7 @@ class Profile_alignment(Alignment_protocol):
                                                 # cluster_name=ali_name,
                                                 child_elements=self.elements_to_align,
                                                 algorithm=self.alignment_program+"-joined",
-                                                update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
+                                                update_stars=True)
             # Moves the new element from the bottom of the list to its new position.
             self.pymod.change_pymod_element_list_index(new_cluster, lowest_index)
 

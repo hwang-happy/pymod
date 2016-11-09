@@ -255,6 +255,7 @@ class PyMod_cluster_element(PyMod_element):
         if child.is_child(exclude_root_element=False):
             old_mother = child.mother
             old_mother.remove_child(child)
+            child.remove_all_lead_statuses()
         # Add to new mother.
         child.mother = self
         self.list_of_children.append(child)
