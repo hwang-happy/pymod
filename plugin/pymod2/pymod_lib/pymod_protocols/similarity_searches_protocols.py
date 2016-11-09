@@ -449,7 +449,7 @@ class Generic_BLAST_search(PyMod_protocol):
             keep_in_mother_cluster = False
             if keep_in_mother_cluster:
                 if not query_container.is_root():
-                    query_container.add_children(new_blast_cluster)
+                    query_container.add_children(new_blast_cluster) # TODO.
                 self.pymod.change_pymod_element_list_index(new_blast_cluster, query_original_index)
             else:
                 if query_container.is_root():
@@ -488,7 +488,7 @@ class Generic_BLAST_search(PyMod_protocol):
                 cs = self.pymod.build_pymod_element_from_hsp(h)
                 self.pymod.add_element_to_pymod(cs)
                 elements_to_update.append(cs)
-                new_blast_cluster.add_children(cs)
+                new_blast_cluster.add_children(cs) # TODO.
 
             # Sets the query elements as the lead of its cluster.
             self.pymod.make_cluster_query(self.blast_query_element)

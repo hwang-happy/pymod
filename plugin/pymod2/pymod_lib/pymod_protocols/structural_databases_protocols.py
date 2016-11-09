@@ -127,7 +127,7 @@ class Fetch_structure_file(PyMod_protocol):
                 else:
                     # Deletes the original hit sequence retrieved by BLAST and replaces it with
                     # a new element with an associated structure loaded in PyMOL.
-                    self.pymod.delete_element_from_pymod(old_element)
+                    old_element.delete()
                     self.pymod.add_element_to_pymod(new_element, load_in_pymol=True)
 
 

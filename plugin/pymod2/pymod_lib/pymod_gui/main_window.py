@@ -29,6 +29,7 @@ class PyMod_main_window_mixin:
 
     pymod = None
     dict_of_elements_widgets = {}
+    # TODO: update these from the commands of the 'Display' menu.
     sequence_font_type = shared_components.fixed_width_font
     sequence_font_size = 10 # 12 TODO.
     sequence_font = "%s %s" % (sequence_font_type, sequence_font_size) # The default one is "courier 12".
@@ -41,9 +42,9 @@ class PyMod_main_window_mixin:
     sequence_name_bar = None
     residue_bar = None
 
-    #################################################################
-    # Gridding system.                                              #
-    #################################################################
+    ###############################################################################################
+    # Gridding system.                                                                            #
+    ###############################################################################################
 
     def gridder(self, set_grid_index_only=False, elements_to_update=None, update_elements=False, clear_selection=False, update_clusters=False, update_menus=False):
         """
@@ -83,20 +84,10 @@ class PyMod_main_window_mixin:
         #----------------------------
         # Assigns the grid indices. -
         #----------------------------
-
-        #############################################################
-        # self.global_grid_row_index = 0
-        # self.global_grid_column_index = 0
-        # for pymod_element in self.pymod.root_element.get_children():
-        #     self.grid_descendants(pymod_element, set_grid_index_only, update_elements=update_elements)
-        #     self.global_grid_row_index += 1
-        #############################################################
-
         self.global_grid_row_index = 0
         self.global_grid_column_index = 0
         for pymod_element in self.pymod.root_element.get_children():
             self._set_descendants_grid_indices(pymod_element)
-            self.global_grid_row_index += 1
 
         #--------------------------------------------
         # Grids the widgets with their new indices. -
@@ -118,6 +109,10 @@ class PyMod_main_window_mixin:
         print "Gridded in: %s" % (t2-t1) # TEST.
 
 
+    #################################################################
+    # Set elements grid indices.                                    #
+    #################################################################
+
     def _set_descendants_grid_indices(self, pymod_element):
         if pymod_element.is_mother():
             self.global_grid_column_index += 1
@@ -135,7 +130,7 @@ class PyMod_main_window_mixin:
 
 
     #################################################################
-    # Display widgets in the PyMod main window.                     #
+    # Grid widgets in the PyMod main window.                        #
     #################################################################
 
     def _grid_descendants(self, pymod_element, update_elements=False):
@@ -148,6 +143,10 @@ class PyMod_main_window_mixin:
     def _grid_element(self, pymod_element, update_element=False):
         self.grid_widgets(pymod_element, update_element_text=update_element, color_elements=update_element)
 
+
+    #################################################################
+    # Display widgets in the PyMod main window.                     #
+    #################################################################
 
     def grid_widgets(self, pymod_element, update_element_text=False, color_elements=False):
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
@@ -187,21 +186,22 @@ class PyMod_main_window_mixin:
     #     self.color_element(pymod_element, color_pdb=False)
 
 
-    def hide_widgets(self, pymod_element_widgets_group, target="all"):
+    def hide_widgets(self, pymod_element, target="all"):
+        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
         pymod_element_widgets_group._grid_forget_header_entry()
         pymod_element_widgets_group._grid_forget_child_sign()
         pymod_element_widgets_group._grid_forget_cluster_button()
         pymod_element_widgets_group._grid_forget_sequence_text()
 
 
-    def delete_pymod_element_widgets(self, pymod_element):
+    def delete_element_widgets(self, pymod_element):
         """
         Remove the widgets of a PyMod element which has to be deleted.
         """
-        self.hide_widgets(self.dict_of_elements_widgets[pymod_element])
+        self.hide_widgets(pymod_element)
         self.dict_of_elements_widgets.pop(pymod_element)
 
-    def update_cluster_appearance(self, pymod_cluster):
+    def update_cluster_appearance(self, pymod_cluster): # leafs!
         """
         If the lead of collapsed cluster is deleted or extracted, then show the collapsed cluster
         again.
@@ -302,8 +302,8 @@ class PyMod_main_window_mixin:
         pymod_cluster_widgets_group._grid_forget_sequence_text()
         # Hide all the descendants widgets.
         for child in pymod_cluster.get_descendants():
-            self.dict_of_elements_widgets[child].show = False
-            self.hide_widgets(self.dict_of_elements_widgets[child])
+            self.dict_of_elements_widgets[child].show = False # elaion! hide
+            self.hide_widgets(child) # elaion! hide
 
     def _collapse_cluster_lead(self, cluster_lead):
         cluster_lead_widgets_group = self.dict_of_elements_widgets[cluster_lead]
@@ -314,11 +314,11 @@ class PyMod_main_window_mixin:
         # Hides the widgets of other elements of the cluster.
         for child in cluster_lead.mother.get_descendants():
             if not cluster_lead == child:
-                self.dict_of_elements_widgets[child].show = False
-                self.hide_widgets(self.dict_of_elements_widgets[child])
-        mother_widgets_group.show = False
+                self.dict_of_elements_widgets[child].show = False # elaion! hide
+                self.hide_widgets(child) # elaion! hide
         mother_widgets_group._collapsed_cluster = True
-        self.hide_widgets(mother_widgets_group)
+        mother_widgets_group.show = False # elaion! hide
+        self.hide_widgets(cluster_lead.mother) # elaion! hide
         # Show the lead cluster button.
         cluster_lead_widgets_group._show_cluster_button = True
         cluster_lead_widgets_group._grid_cluster_button()
@@ -1858,22 +1858,15 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         Extracts an element from an alignment.
         """
-        self.extract_element_from_cluster(self.pymod_element)
+        self.pymod_element.extract_to_upper_level()
         self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
 
     def extract_selection_from_cluster(self):
         selected_sequences = self.pymod.get_selected_sequences()
         # Using 'reversed' keeps them in their original order once extracted.
         for e in reversed(selected_sequences):
-            self.extract_element_from_cluster(e)
+            e.extract_to_upper_level()
         self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
-
-    def extract_element_from_cluster(self, pymod_element):
-        self.pymod.extract_element_from_cluster(pymod_element)
-        if not pymod_element.is_cluster():
-            # TODO: make a method for this.
-            self.dict_of_elements_widgets[pymod_element]._show_cluster_button = False
-            self.dict_of_elements_widgets[pymod_element]._grid_forget_cluster_button()
 
     def extract_selection_to_new_cluster_from_left_menu(self):
         # 'gridder' is called in this method.
@@ -1961,13 +1954,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         Delete option in the popup menu.
         """
-        self.pymod.delete_element_from_pymod(self.pymod_element)
+        self.pymod_element.delete()
         self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
 
     def delete_many_sequences(self):
         # Delete the selected sequences.
         for element in self.pymod.get_selected_sequences():
-            self.pymod.delete_element_from_pymod(element)
+            element.delete()
         # Empty cluster elements will be deleted in the 'gridder' method.
         self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
 

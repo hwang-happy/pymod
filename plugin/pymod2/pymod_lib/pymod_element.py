@@ -3,7 +3,11 @@ import os
 import pymod_vars as pmdt
 import pymod_sequence_manipulation as pmsm
 
-class PyMod_element:
+###################################################################################################
+# PYMOD ELEMENTS.                                                                                 #
+###################################################################################################
+
+class PyMod_element(object):
     """
     A base that stores all the informations of a sequence or sequence cluster.
     """
@@ -162,14 +166,17 @@ class PyMod_element:
 
 
     def extract_to_upper_level(self):
+        """
+        Extracts an element to the upper level. Overridden by subclasses.
+        """
         new_mother = self.mother.mother
         self.remove_all_lead_statuses()
         new_mother.add_child(self)
 
 
-    def remove_from_cluster(self):
-        mother = self.mother
-        mother.remove_child(self)
+    def delete(self):
+         mother = self.mother
+         mother.remove_child(self)
 
 
     #################################################################
@@ -187,7 +194,7 @@ class PyMod_element:
     # Cluster leads.                                                #
     #################################################################
 
-    def set_as_lead(self):
+    def set_as_lead(self): # leafs!
         self.remove_all_lead_statuses()
         self.lead = True
 
@@ -229,6 +236,7 @@ class PyMod_element:
 ###################################################################################################
 # CLUSTERS.                                                                                       #
 ###################################################################################################
+
 class PyMod_cluster_element(PyMod_element):
 
     cluster = True
@@ -241,8 +249,7 @@ class PyMod_cluster_element(PyMod_element):
         self.initial_number_of_sequences = None
         self.my_sequence = sequence
 
-
-    def add_children(self, children):
+    def add_children(self, children): # TODO: use the 'set_initial_number_of_sequences' argument.
         if not hasattr(children, "__iter__"):
             children = [children]
         for child in children:
@@ -694,19 +701,85 @@ class PyMod_model_element(PyMod_sequence_element):
         PyMod_sequence_element.__init__(self, **configs)
 
 
-class PyMod_polypeptide_element:
-    pass
+# class PyMod_polypeptide_element:
+#     pass
+#
+#
+# class PyMod_nucleic_acid_element:
+#     pass
 
 
-class PyMod_nucleic_acid_element:
-    pass
+###################################################################################################
+# CLASSES FOR EXTENDING PYMOD ELEMENTS TO CONTROL DATA OF THE PLUGIN.                             #
+###################################################################################################
+
+class Added_PyMod_element(object):
+    """
+    A class for PyMod elements storing information about the whole PyMod plugin.
+    """
+
+    def initialize(self, pymod):
+        self.pymod = pymod
+
+    def extract_to_upper_level(self, place_below_mother=True):
+        """
+        Extract elements from their clusters. Also changes the position of the item in the list of
+        PyMod elements.
+        """
+        old_mother_index = self.pymod.get_pymod_element_index_in_container(self.mother) + 1
+        PyMod_element.extract_to_upper_level(self)
+        if place_below_mother:
+            self.pymod.change_pymod_element_list_index(self, old_mother_index)
+
+    def delete(self):
+        """
+        Used to remove definitively an element from PyMod.
+        """
+        if self.has_structure():
+            self.pymod.delete_pdb_file_in_pymol(self)
+        if self.is_mother():
+            children = self.get_children()
+            for c in children[:]:
+                c.delete()
+        # Actually delete the element.
+        PyMod_element.delete(self)
+
+
+###################################################################################################
+# CLASSES FOR EXTENDING PYMOD ELEMENTS BEHAVIOUR TO CONTROL PYMOD GUI.                            #
+###################################################################################################
+
+class PyMod_element_GUI(Added_PyMod_element):
+
+    def initialize(self, *args, **configs):
+        Added_PyMod_element.initialize(self, *args, **configs)
+        # Builds for it some Tkinter widgets to show in PyMod window. They will be gridded later.
+        self.pymod.main_window.add_pymod_element_widgets(self)
+
+    def extract_to_upper_level(self, *args, **configs):
+        """
+        Extract elements from their clusters. Also modifies its widgets.
+        """
+        Added_PyMod_element.extract_to_upper_level(self, *args, **configs)
+        if not self.is_cluster():
+            # TODO: make a method for this.
+            self.pymod.main_window.dict_of_elements_widgets[self]._show_cluster_button = False
+            self.pymod.main_window.dict_of_elements_widgets[self]._grid_forget_cluster_button()
+
+    def delete(self, *args, **configs):
+        """
+        Extract elements from their clusters. Also modifies its widgets.
+        """
+        Added_PyMod_element.delete(self, *args, **configs)
+        # Remove its widgets.
+        self.pymod.main_window.delete_element_widgets(self)
 
 
 ###################################################################################################
 # SEQUENCES AND RESIDUES.                                                                         #
 ###################################################################################################
 
-class PyMod_residue:
+class PyMod_residue(object):
 
     def __init__(self, three_letter_code, one_letter_code, index=None, seq_index=None, db_index=None):
         self.three_letter_code = three_letter_code

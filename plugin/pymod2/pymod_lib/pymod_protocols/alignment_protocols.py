@@ -862,7 +862,7 @@ class Regular_alignment(Alignment_protocol):
             self.alignment_element = self.involved_clusters_list[self.target_cluster_index]
             # Appends new sequences to the target cluster.
             for element in self.elements_to_add:
-                self.alignment_element.add_children(element)
+                self.alignment_element.add_children(element) # TODO.
             # Updates the alignment element with new information about the new alignment.
             self.alignment_element.algorithm = "merged"
             # alignment_description = "merged with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])
@@ -1076,7 +1076,7 @@ class Profile_alignment(Alignment_protocol):
             self.alignment_element = self.involved_clusters_list[self.target_cluster_index]
             # Appends new sequences to the target cluster.
             for element in self.elements_to_add:
-                self.alignment_element.add_children(element)
+                self.alignment_element.add_children(element) # TODO.
             # Updates the alignment element with new information about the new alignment.
             self.alignment_element.algorithm = "merged"
             # alignment_description = "merged with %s" % (pmdt.algorithms_full_names_dict[self.alignment_program])

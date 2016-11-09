@@ -1,5 +1,6 @@
 # TODO:
 #     - Collapsed clusters appearance and behaviour.
+#         - fix the code of the main window and clusters.
 #         - when performing alignments and selecting a collapsed cluster, ask to extend the
 #           selection to the whole cluster.
 #     - fix multiple BLAST runs bug.
@@ -844,6 +845,9 @@ class PyMod:
     # INTERACTIONS WITH THE GUI.                                                                  #
     ###############################################################################################
 
+    def element_has_widgets(self, pymod_element):
+        return self.main_window.dict_of_elements_widgets.has_key(pymod_element)
+
     def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True, grid=False):
         """
         Displays error or warning messages and refreshes the sequence window.
@@ -1014,7 +1018,7 @@ class PyMod:
         window.
         """
         # Adds the element to the children of PyMod root element.
-        self.root_element.add_children(element)
+        self.root_element.add_children(element) # TODO.
         # Sets its unique index.
         element.unique_index = self.unique_index
         self.unique_index += 1
@@ -1030,27 +1034,14 @@ class PyMod:
             # Use the old color scheme of PyMod.
             color=self.color_struct()
 
-        # Builds for it some Tkinter widgets to show in PyMod window. They will be gridded later.
-        self.main_window.add_pymod_element_widgets(element)
+        # Dinamically changes the class of the PyMod element.
+        element.__class__ = type('Dynamic_element', (pmel.PyMod_element_GUI, element.__class__), {})
+        # Adds widgets that will be gridded later.
+        element.initialize(self)
 
         # Load its structure in PyMOL.
         if element.has_structure() and load_in_pymol:
             self.load_element_in_pymol(element)
-
-
-    def delete_element_from_pymod(self, element):
-        """
-        Used to remove definitively an element from PyMod.
-        """
-        if element.has_structure():
-            self.delete_pdb_file_in_pymol(element)
-        if element.is_mother():
-            children = element.get_children()
-            for c in children[:]:
-                self.delete_element_from_pymod(c)
-        # Actually delete the element.
-        element.remove_from_cluster()
-        self.main_window.delete_pymod_element_widgets(element) # TODO: place the GUI part in the 'pymod_gui' module.
 
 
     def replace_element(self, old_element, new_element, keep_old_header=False):
@@ -1064,7 +1055,7 @@ class PyMod:
         # Actually replaces the old element with the new one.
         if keep_old_header:
             pass
-        self.delete_element_from_pymod(old_element)
+        old_element.delete()
         if not new_element in self.get_pymod_elements_list():
             self.add_element_to_pymod(new_element, load_in_pymol=True)
         # Put the new element in the same cluster (with the same position) of the old one.
@@ -1503,8 +1494,8 @@ class PyMod:
             cluster_element.update_stars()
         else:
             if len(children) == 1:
-                self.extract_element_from_cluster(children[0])
-            self.delete_element_from_pymod(cluster_element)
+                children[0].extract_to_upper_level()
+            cluster_element.delete()
 
 
     def extract_selection_to_new_cluster(self):
@@ -1590,13 +1581,13 @@ class PyMod:
 
         # Delete all the sequences.
         if remove_children_choice:
-            self.delete_element_from_pymod(cluster_element)
+            cluster_element.delete()
         # Delete only the cluster element and extract the sequences.
         else:
             children = cluster_element.get_children()
             for c in reversed(children[:]):
-                self.extract_element_from_cluster(c)
-            self.delete_element_from_pymod(cluster_element)
+                c.extract_to_upper_level()
+            cluster_element.delete()
 
         self.main_window.gridder(update_menus=True)
 
@@ -1825,17 +1816,6 @@ class PyMod:
     ###############################################################################################
     # SHOW SEQUENCES AND CLUSTERS IN PYMOD MAIN WINDOW.                                           #
     ###############################################################################################
-
-    #########################################
-    # Extract elements from their clusters. #
-    #########################################
-
-    def extract_element_from_cluster(self, pymod_element, place_below_mother=True):
-        old_mother_index = self.get_pymod_element_index_in_container(pymod_element.mother) + 1
-        pymod_element.extract_to_upper_level()
-        if place_below_mother:
-            self.change_pymod_element_list_index(pymod_element, old_mother_index)
-
 
     #########################################################
     # Changes elements positions in PyMod list of elements. #
