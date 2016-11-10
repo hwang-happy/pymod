@@ -1,6 +1,5 @@
 # TODO:
 #     - Collapsed clusters appearance and behaviour.
-#         - fix the code of the main window and clusters.
 #         - when performing alignments and selecting a collapsed cluster, ask to extend the
 #           selection to the whole cluster.
 #     - fix multiple BLAST runs bug.
@@ -722,8 +721,8 @@ class PyMod:
         # Simple clusters.
         a = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
         c = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
-        self.make_cluster_lead(a.get_children()[0])
-        self.make_cluster_lead(c.get_children()[0])
+        a.get_children()[0].set_as_lead()
+        c.get_children()[0].set_as_lead()
         # a.add_child(c)
 
         # Rubic.
@@ -971,20 +970,6 @@ class PyMod:
     # METHODS TO MANIPULATE THE ELEMENTS: POD (PyMod object model).                               #
     ###############################################################################################
 
-    def make_cluster_lead(self, new_lead):
-        for sibling in new_lead.get_siblings():
-            sibling.remove_all_lead_statuses()
-        new_lead.set_as_lead()
-
-    def make_cluster_query(self, new_lead):
-        for sibling in new_lead.get_siblings():
-            sibling.remove_all_lead_statuses()
-        new_lead.set_as_blast_query()
-
-    def remove_cluster_lead(self, pymod_element):
-        pymod_element.remove_all_lead_statuses()
-
-
     #################################################################
     # Build PyMod elements.                                         #
     #################################################################
@@ -1018,7 +1003,7 @@ class PyMod:
         window.
         """
         # Adds the element to the children of PyMod root element.
-        self.root_element.add_children(element) # TODO.
+        self.root_element.add_child(element)
         # Sets its unique index.
         element.unique_index = self.unique_index
         self.unique_index += 1
@@ -1861,7 +1846,6 @@ class PyMod:
         # Finally sets the 'my_header' attribute.
         self.set_header(pymod_element)
         # For elements with structures, also set the name of their structures to be loaded in PyMOL.
-        # elaion!
         if pymod_element.has_structure():
             self.set_structure_header(pymod_element)
 

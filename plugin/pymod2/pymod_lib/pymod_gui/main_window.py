@@ -63,9 +63,6 @@ class PyMod_main_window_mixin:
             # First updates the cluster sequences and removes clusters with one or zero children.
             for cluster in self.pymod.get_cluster_elements():
                 self.pymod.update_cluster_sequences(cluster)
-            # Then update their appearance.
-            for cluster in self.pymod.get_cluster_elements():
-                self.update_cluster_appearance(cluster)
 
         ###################################################
         # if 0: # TODO: remove.
@@ -141,40 +138,17 @@ class PyMod_main_window_mixin:
                     self._grid_descendants(child_element, update_elements=update_elements)
 
     def _grid_element(self, pymod_element, update_element=False):
-        self.grid_widgets(pymod_element, update_element_text=update_element, color_elements=update_element)
+        self.grid_element_widgets(pymod_element, update_element_text=update_element, color_elements=update_element)
 
 
     #################################################################
     # Display widgets in the PyMod main window.                     #
     #################################################################
 
-    def grid_widgets(self, pymod_element, update_element_text=False, color_elements=False):
-        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
-
-        #-------------------------------
-        # Shows the left pane widgets. -
-        #-------------------------------
-        pymod_element_widgets_group.grid_header()
-
-        #--------------------------------------------
-        # Updates and shows the right pane widgets. -
-        #--------------------------------------------
-        # Adds buttons to clusters.
-        if pymod_element.is_cluster() or pymod_element_widgets_group._show_cluster_button:
-            pymod_element_widgets_group._grid_cluster_button()
-
-        # Modifier that allows to display the symbol '|_' of a child sequence.
-        if pymod_element.is_child():
-            pymod_element_widgets_group._grid_child_sign()
-        else:
-            # Don't show the modifier if the element is not a child.
-            pymod_element_widgets_group._grid_forget_child_sign()
-
-        # Adds the sequence of the element.
-        if pymod_element_widgets_group._show_sequence_text:
-            pymod_element_widgets_group._grid_sequence_text(update_element_text=update_element_text)
-
-        # Colors the element sequence.
+    def grid_element_widgets(self, pymod_element, update_element_text=False, color_elements=False):
+        # Shows/updates the widgets in PyMod main window.
+        self.dict_of_elements_widgets[pymod_element].grid_widgets(update_element_text=update_element_text)
+        # Colors the element sequence in PyMod main window.
         if color_elements:
             self.color_element(pymod_element, color_pdb=False)
 
@@ -186,38 +160,16 @@ class PyMod_main_window_mixin:
     #     self.color_element(pymod_element, color_pdb=False)
 
 
-    def hide_widgets(self, pymod_element, target="all"):
-        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
-        pymod_element_widgets_group._grid_forget_header_entry()
-        pymod_element_widgets_group._grid_forget_child_sign()
-        pymod_element_widgets_group._grid_forget_cluster_button()
-        pymod_element_widgets_group._grid_forget_sequence_text()
+    def hide_element_widgets(self, pymod_element, save_status=True, target="all"):
+        self.dict_of_elements_widgets[pymod_element].hide_widgets(save_status=save_status)
 
 
     def delete_element_widgets(self, pymod_element):
         """
         Remove the widgets of a PyMod element which has to be deleted.
         """
-        self.hide_widgets(pymod_element)
+        self.hide_element_widgets(pymod_element)
         self.dict_of_elements_widgets.pop(pymod_element)
-
-    def update_cluster_appearance(self, pymod_cluster): # leafs!
-        """
-        If the lead of collapsed cluster is deleted or extracted, then show the collapsed cluster
-        again.
-        """
-        # TODO: use this for all elements, not only for cluster elements.
-        if not pymod_cluster.get_lead() and self.dict_of_elements_widgets[pymod_cluster]._collapsed_cluster:
-            self.dict_of_elements_widgets[pymod_cluster].show = True
-        for child in pymod_cluster.get_children():
-            # Removes the cluster buttons of children that are no more leads.
-            if not child.is_lead() and self.dict_of_elements_widgets[child]._show_cluster_button:
-                self.dict_of_elements_widgets[child]._show_cluster_button = False
-                self.dict_of_elements_widgets[child]._grid_forget_cluster_button()
-            # TODO: modify this for multiple levels.
-            if not self.dict_of_elements_widgets[pymod_cluster]._collapsed_cluster:
-                if not self.dict_of_elements_widgets[child]._collapsed_cluster:
-                    self.dict_of_elements_widgets[child].show = True
 
 
     #################################################################
@@ -240,11 +192,9 @@ class PyMod_main_window_mixin:
 
     def _expand_cluster_element(self, pymod_cluster):
         pymod_cluster_widgets_group = self.dict_of_elements_widgets[pymod_cluster]
-        pymod_cluster_widgets_group._change_cluster_button_on_expand()
+        pymod_cluster_widgets_group.change_cluster_button_on_expand()
         # Shows the text of the collapsed cluster.
-        pymod_cluster_widgets_group._show_sequence_text = True
-        pymod_cluster_widgets_group._collapsed_cluster = False
-        pymod_cluster_widgets_group._grid_sequence_text(update_element_text=True)
+        pymod_cluster_widgets_group.show_sequence_text(update_element_text=True)
         # Show the children of the collapsed cluster.
         for child in pymod_cluster.get_children():
             self._show_descendants(child)
@@ -253,27 +203,26 @@ class PyMod_main_window_mixin:
     def _expand_cluster_lead(self, cluster_lead):
         # Change the cluster buttons of the lead and the cluster element itself.
         cluster_lead_widgets_group = self.dict_of_elements_widgets[cluster_lead]
-        cluster_lead_widgets_group._change_cluster_button_on_expand()
+        cluster_lead_widgets_group.change_cluster_button_on_expand()
         mother_widgets_group = self.dict_of_elements_widgets[cluster_lead.mother]
-        mother_widgets_group._change_cluster_button_on_expand()
+        mother_widgets_group.change_cluster_button_on_expand()
+        # Updates the mother widgets.
         # Set to 'show' all the other elements of the cluster.
         for child in cluster_lead.mother.get_children():
             self._show_descendants(child)
         mother_widgets_group.show = True
-        mother_widgets_group._collapsed_cluster = False
-        mother_widgets_group._show_sequence_text = True
-        mother_widgets_group._grid_sequence_text(update_element_text=True)
+        mother_widgets_group.show_sequence_text(update_element_text=True)
         # Hide the lead cluster button.
-        cluster_lead_widgets_group._show_cluster_button = False
-        cluster_lead_widgets_group._grid_forget_cluster_button()
+        cluster_lead_widgets_group.hide_cluster_button()
         # Actually shows the elements in the main window.
         self.pymod.main_window.gridder()
 
     def _show_descendants(self, pymod_element):
+        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
         if pymod_element.is_cluster():
             # If the element is not a collapsed cluster, then show it and all its children.
-            if not self.dict_of_elements_widgets[pymod_element]._collapsed_cluster:
-                self.dict_of_elements_widgets[pymod_element].show = True
+            if not pymod_element_widgets_group._collapsed_cluster:
+                pymod_element_widgets_group.show = True
                 for child in pymod_element.get_children():
                     self._show_descendants(child)
             # If the element is a collapsed cluster.
@@ -284,47 +233,43 @@ class PyMod_main_window_mixin:
                     self.dict_of_elements_widgets[pymod_element.get_lead()].show = True
                 # If the cluster doesn't have a lead, show only the cluster.
                 else:
-                    self.dict_of_elements_widgets[pymod_element].show = True
+                    pymod_element_widgets_group.show = True
         else:
-            self.dict_of_elements_widgets[pymod_element].show = True
+            pymod_element_widgets_group.show = True
 
 
     def collapse_cluster_click(self, pymod_element):
         self._toggle_cluster_click(pymod_element, self._collapse_cluster_lead, self._collapse_cluster_element)
 
-    # TODO: reorganize the code in order to minimize it.
     def _collapse_cluster_element(self, pymod_cluster):
         pymod_cluster_widgets_group = self.dict_of_elements_widgets[pymod_cluster]
-        pymod_cluster_widgets_group._change_cluster_button_on_collapse()
+        pymod_cluster_widgets_group.change_cluster_button_on_collapse()
         # Hide the cluster element text.
-        pymod_cluster_widgets_group._show_sequence_text = False
-        pymod_cluster_widgets_group._collapsed_cluster = True
-        pymod_cluster_widgets_group._grid_forget_sequence_text()
+        pymod_cluster_widgets_group.hide_sequence_text()
         # Hide all the descendants widgets.
         for child in pymod_cluster.get_descendants():
-            self.dict_of_elements_widgets[child].show = False # elaion! hide
-            self.hide_widgets(child) # elaion! hide
+            self.hide_element_widgets(child)
 
     def _collapse_cluster_lead(self, cluster_lead):
+        # Changes the cluster buttons of the lead element and of its mother.
         cluster_lead_widgets_group = self.dict_of_elements_widgets[cluster_lead]
-        cluster_lead_widgets_group._change_cluster_button_on_collapse()
+        cluster_lead_widgets_group.change_cluster_button_on_collapse()
         mother_widgets_group = self.dict_of_elements_widgets[cluster_lead.mother]
-        mother_widgets_group._change_cluster_button_on_collapse()
-        mother_widgets_group._show_sequence_text = False
+        mother_widgets_group.change_cluster_button_on_collapse()
         # Hides the widgets of other elements of the cluster.
         for child in cluster_lead.mother.get_descendants():
             if not cluster_lead == child:
-                self.dict_of_elements_widgets[child].show = False # elaion! hide
-                self.hide_widgets(child) # elaion! hide
-        mother_widgets_group._collapsed_cluster = True
-        mother_widgets_group.show = False # elaion! hide
-        self.hide_widgets(cluster_lead.mother) # elaion! hide
+                self.hide_element_widgets(child)
+        mother_widgets_group.hide_sequence_text() # Remembers not to show the sequence text.
+        mother_widgets_group.hide_widgets()
         # Show the lead cluster button.
-        cluster_lead_widgets_group._show_cluster_button = True
-        cluster_lead_widgets_group._grid_cluster_button()
+        cluster_lead_widgets_group.show_cluster_button()
 
     def is_lead_of_collapsed_cluster(self, pymod_element):
         return pymod_element.is_child() and pymod_element.is_lead() and self.dict_of_elements_widgets[pymod_element.mother]._collapsed_cluster
+
+    def is_collapsed_cluster(self, pymod_cluster):
+        return pymod_cluster.is_cluster() and self.dict_of_elements_widgets[pymod_cluster]._collapsed_cluster
 
 
     #################################################################
@@ -1298,18 +1243,92 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
     # Display widgets.                                              #
     #################################################################
 
+    # Control all widgets.
+    def grid_widgets(self, update_element_text=False):
+        #-------------------------------
+        # Shows the left pane widgets. -
+        #-------------------------------
+        self.grid_header()
+
+        #--------------------------------------------
+        # Updates and shows the right pane widgets. -
+        #--------------------------------------------
+        # Adds buttons to clusters.
+        if self.pymod_element.is_cluster() or self._show_cluster_button:
+            self._grid_cluster_button()
+
+        # Modifier that allows to display the symbol '|_' of a child sequence.
+        if self.pymod_element.is_child():
+            self._grid_child_sign()
+        else:
+            # Don't show the modifier if the element is not a child.
+            self._grid_forget_child_sign()
+
+        # Adds the sequence of the element.
+        if self._show_sequence_text:
+            self._grid_sequence_text(update_element_text=update_element_text)
+
+
+    def hide_widgets(self, save_status=True):
+        if save_status:
+            self.show = False
+        self._grid_forget_header_entry()
+        self._grid_forget_child_sign()
+        self._grid_forget_cluster_button()
+        self._grid_forget_sequence_text()
+
+    # Header.
     def grid_header(self):
         self.header_entry.grid(row = self.grid_row_index, sticky = 'nw')
+
+    def _grid_forget_header_entry(self):
+        self.header_entry.grid_forget()
+
+    # Cluster button.
+    def show_cluster_button(self, save_status=True):
+        if save_status:
+            self._show_cluster_button = True
+        self._grid_cluster_button()
 
     def _grid_cluster_button(self):
         self.cluster_button.grid(column = self.grid_column_index,
                                  row = self.grid_row_index,
                                  sticky='nw', padx=5, pady=0,ipadx=3,ipady=0)
+
+    def hide_cluster_button(self, save_status=True):
+        if save_status:
+            self._show_cluster_button = False
+        self._grid_forget_cluster_button()
+
+    def _grid_forget_cluster_button(self):
+        self.cluster_button.grid_forget()
+
+    def change_cluster_button_on_expand(self):
+        self.cluster_button_text.set('-')
+        self.cluster_button["disabledbackground"] = "gray"
+        self._cluster_button_state = True
+        if self.pymod_element.is_cluster():
+            self._collapsed_cluster = False
+
+    def change_cluster_button_on_collapse(self):
+        self.cluster_button_text.set('+')
+        self.cluster_button["disabledbackground"] = "red"
+        self._cluster_button_state = False
+        if self.pymod_element.is_cluster():
+            self._collapsed_cluster = True
+
+    # Child sign.
     def _grid_child_sign(self):
         self.set_child_sign()
         self.child_sign.grid(column = self.grid_column_index,
                              row = self.grid_row_index,
                              sticky='nw', padx=0, pady=0,ipadx=0,ipady=0)
+
+    # Sequence text.
+    def show_sequence_text(self, save_status=True, update_element_text=False):
+        if save_status:
+            self._show_sequence_text = True
+        self._grid_sequence_text(update_element_text=update_element_text)
 
     def _grid_sequence_text(self, update_element_text=False):
         if update_element_text:
@@ -1318,27 +1337,17 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
                                 row = self.grid_row_index,
                                 sticky='nw')
 
-    def _grid_forget_header_entry(self):
-        self.header_entry.grid_forget()
+    def hide_sequence_text(self, save_status=True):
+        if save_status:
+            self._show_sequence_text = False
+        self._grid_forget_sequence_text()
 
     def _grid_forget_sequence_text(self):
         self.sequence_text.grid_forget()
 
+    # Child sign.
     def _grid_forget_child_sign(self):
         self.child_sign.grid_forget()
-
-    def _grid_forget_cluster_button(self):
-        self.cluster_button.grid_forget()
-
-    def _change_cluster_button_on_expand(self):
-        self.cluster_button_text.set('-')
-        self.cluster_button["disabledbackground"] = "gray"
-        self._cluster_button_state = True
-
-    def _change_cluster_button_on_collapse(self):
-        self.cluster_button_text.set('+')
-        self.cluster_button["disabledbackground"] = "red"
-        self._cluster_button_state = False
 
 
 ###################################################################################################
@@ -1873,11 +1882,11 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.pymod.extract_selection_to_new_cluster()
 
     def make_lead_from_left_menu(self):
-        self.pymod.make_cluster_lead(self.pymod_element)
+        self.pymod_element.set_as_lead()
         self.pymod.main_window.gridder()
 
     def remove_lead_from_left_menu(self):
-        self.pymod.remove_cluster_lead(self.pymod_element)
+        self.pymod_element.remove_all_lead_statuses()
         self.pymod.main_window.gridder()
 
     def select_all_sequences_of_collapsed_cluster(self):

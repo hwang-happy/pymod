@@ -87,11 +87,6 @@ class PyMod_element(object):
         #-------------------
         self.tree_file_path = None
 
-        #########
-        # TEMP. #
-        #########
-        self.dope_items = []
-
 
     #################################################################
     # Methods for managing PyMod clusters.                          #
@@ -194,17 +189,17 @@ class PyMod_element(object):
     # Cluster leads.                                                #
     #################################################################
 
-    def set_as_lead(self): # leafs!
+    def set_as_lead(self):
         self.remove_all_lead_statuses()
         self.lead = True
 
-    def set_as_blast_query(self):
+    def set_as_query(self):
         self.remove_all_lead_statuses()
         self.blast_query = True
 
     def remove_all_lead_statuses(self):
-        self.lead = False # remove_lead
-        self.blast_query = False # remove_blast_query_status
+        self.lead = False
+        self.blast_query = False
 
 
     def is_blast_query(self):
@@ -262,7 +257,6 @@ class PyMod_cluster_element(PyMod_element):
         if child.is_child(exclude_root_element=False):
             old_mother = child.mother
             old_mother.remove_child(child)
-            child.remove_all_lead_statuses()
         # Add to new mother.
         child.mother = self
         self.list_of_children.append(child)
@@ -270,6 +264,7 @@ class PyMod_cluster_element(PyMod_element):
 
     def remove_child(self, child):
         self.list_of_children.remove(child)
+        child.remove_all_lead_statuses()
 
     def get_children(self):
         return self.list_of_children
@@ -569,11 +564,10 @@ class PyMod_sequence_element(PyMod_element):
         """
         Decorator method to check if PyMod_element object hasn an associated 3D structure.
         """
-        # TODO: modify this so that it can that multiple arguments.
-        def checker(self, **config):
+        def checker(self, *args, **config):
             if not self.has_structure():
                 raise PyModMissingStructure("The element does not have a structure.")
-            return method(self, **config)
+            return method(self, *args, **config)
         return checker
 
 
@@ -715,11 +709,25 @@ class PyMod_model_element(PyMod_sequence_element):
 
 class Added_PyMod_element(object):
     """
-    A class for PyMod elements storing information about the whole PyMod plugin.
+    A class for PyMod elements storing information about the whole PyMod plugin. It extends their
+    methods so that they will also control other elements of PyMod.
     """
 
     def initialize(self, pymod):
         self.pymod = pymod
+
+    def set_as_lead(self):
+        """
+        Also remove other lead statuses from siblings, since there can be only one lead per cluster.
+        """
+        for sibling in self.get_siblings():
+            sibling.remove_all_lead_statuses()
+        PyMod_element.set_as_lead(self)
+
+    def make_cluster_query(self):
+        for sibling in self.get_siblings():
+            sibling.remove_all_lead_statuses()
+        PyMod_element.set_as_query(self)
 
     def extract_to_upper_level(self, place_below_mother=True):
         """
@@ -735,8 +743,10 @@ class Added_PyMod_element(object):
         """
         Used to remove definitively an element from PyMod.
         """
+        # Delete its structure in PyMOL.
         if self.has_structure():
             self.pymod.delete_pdb_file_in_pymol(self)
+        # Delete its children.
         if self.is_mother():
             children = self.get_children()
             for c in children[:]:
@@ -750,29 +760,55 @@ class Added_PyMod_element(object):
 ###################################################################################################
 
 class PyMod_element_GUI(Added_PyMod_element):
+    """
+    Extends the behaviour of 'PyMod_element' objects, so that their methods will also control the
+    elements' widgets in PyMod main window.
+    """
 
     def initialize(self, *args, **configs):
         Added_PyMod_element.initialize(self, *args, **configs)
         # Builds for it some Tkinter widgets to show in PyMod window. They will be gridded later.
         self.pymod.main_window.add_pymod_element_widgets(self)
 
+    def remove_all_lead_statuses(self):
+        self.show_collapsed_mother_widgets()
+        PyMod_element.remove_all_lead_statuses(self)
+        # Removes the cluster button of leads of collapsed clusters.
+        self.pymod.main_window.dict_of_elements_widgets[self].hide_cluster_button()
+
     def extract_to_upper_level(self, *args, **configs):
         """
-        Extract elements from their clusters. Also modifies its widgets.
+        Extract elements from their clusters. Also modifies its widgets and those of their parents.
         """
+        self.show_collapsed_mother_widgets()
         Added_PyMod_element.extract_to_upper_level(self, *args, **configs)
-        if not self.is_cluster():
-            # TODO: make a method for this.
-            self.pymod.main_window.dict_of_elements_widgets[self]._show_cluster_button = False
-            self.pymod.main_window.dict_of_elements_widgets[self]._grid_forget_cluster_button()
 
     def delete(self, *args, **configs):
         """
         Extract elements from their clusters. Also modifies its widgets.
         """
+        self.show_collapsed_mother_widgets()
         Added_PyMod_element.delete(self, *args, **configs)
-        # Remove its widgets.
+        # Remove the element widgets.
         self.pymod.main_window.delete_element_widgets(self)
+
+    def show_collapsed_mother_widgets(self):
+        """
+        If the element is a lead of a collapsed cluster, then show the widgets of the cluster (which
+        were hidden) after the element lead element is extracted.
+        """
+        if self.is_lead() and self.pymod.main_window.is_collapsed_cluster(self.mother):
+            self.pymod.main_window.dict_of_elements_widgets[self.mother].show = True
+
+    def add_child(self, child, *args, **configs):
+        PyMod_cluster_element.add_child(self, child, *args, **configs)
+        # If the cluster is not collapsed, show the widgets of the children.
+        if not self.pymod.main_window.is_collapsed_cluster(self):
+            if not self.pymod.main_window.is_collapsed_cluster(child):
+                self.pymod.main_window.dict_of_elements_widgets[child].show = True
+        # If the cluster is collapsed hide it.
+        elif self.pymod.main_window.is_collapsed_cluster(self):
+            self.pymod.main_window.hide_element_widgets(child)
 
 
 ###################################################################################################
