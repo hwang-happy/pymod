@@ -18,7 +18,7 @@ class PyMod_protocol:
     A base class for PyMod protocols.
     """
 
-    def __init__(self, pymod, output_directory="./"):
+    def __init__(self, pymod, output_directory=os.path.curdir):
         # 'PyMod' class object, used to access all the information of the plugin.
         self.pymod = pymod
         # Original stdout.
@@ -54,6 +54,25 @@ class PyMod_protocol:
         # self.remove_temp_files()
         #
         # self.import_results_in_pymod()
+
+
+    def extend_selection_to_hidden_children(self):
+        selected_elements = self.pymod.get_selected_sequences()
+        extend_selection = None
+        # Checks if in the selection there are some cluster leads of which mothers are not selected.
+        if False in [e.mother.selected for e in selected_elements if self.pymod.main_window.is_lead_of_collapsed_cluster(e)]:
+            # Ask to include the hidden children of the collapsed clusters.
+            title = "Selection Message"
+            message = "Would you like to include in the alignment the hidden sequences of the collapsed clusters?"
+            extend_selection = self.pymod.main_window.askyesno_dialog(title, message)
+        else:
+            extend_selection = False
+        if not extend_selection:
+            return None
+        # Actually selects the hidden children.
+        for e in selected_elements:
+            if self.pymod.main_window.is_lead_of_collapsed_cluster(e) and not e.mother.selected:
+                self.pymod.main_window.select_collapsed_cluster_descendants(e.mother)
 
 
     def build_cluster_lists(self):

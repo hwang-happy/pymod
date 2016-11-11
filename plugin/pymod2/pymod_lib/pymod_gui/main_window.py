@@ -311,6 +311,10 @@ class PyMod_main_window_mixin:
         else:
             self._turn_selection_on(pymod_element)
 
+    def select_collapsed_cluster_descendants(self, pymod_element):
+        for descendant in pymod_element.get_descendants() + [pymod_element]:
+            self.pymod.main_window.select_element(descendant, select_all=True)
+
 
     def _deselect_recursively(self, pymod_element, is_in_cluster=False):
         """
@@ -1139,6 +1143,13 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
 
 
     #################################################################
+    # Dialogs.                                                      #
+    #################################################################
+
+    def askyesno_dialog(self, title, message):
+        return tkMessageBox.askyesno(title, message, parent=self)
+
+    #################################################################
     # Handle PyMod data.                                            #
     #################################################################
 
@@ -1566,7 +1577,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         # Build an extra command for leads of collapsed clusters.
         if self.is_lead_of_collapsed_cluster(self.pymod_element):
             target_menu.add_separator()
-            target_menu.add_command(label="Select All Sequences in Cluster", command=self.select_all_sequences_of_collapsed_cluster)
+            target_menu.add_command(label="Select All Sequences in Cluster", command=self.select_collapsed_cluster_descendants_from_left_menu)
 
 
     def build_sequence_menu(self):
@@ -1889,12 +1900,11 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.pymod_element.remove_all_lead_statuses()
         self.pymod.main_window.gridder()
 
-    def select_all_sequences_of_collapsed_cluster(self):
+    def select_collapsed_cluster_descendants_from_left_menu(self):
         """
         Select all the elements in a collapsed cluster having a lead.
         """
-        for descendant in self.pymod_element.mother.get_descendants() + [self.pymod_element.mother]:
-            self.pymod.main_window.select_element(descendant, select_all=True)
+        self.pymod.main_window.select_collapsed_cluster_descendants(self.pymod_element.mother)
 
 
     #------------------

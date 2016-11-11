@@ -1,7 +1,4 @@
 # TODO:
-#     - Collapsed clusters appearance and behaviour.
-#         - when performing alignments and selecting a collapsed cluster, ask to extend the
-#           selection to the whole cluster.
 #     - fix multiple BLAST runs bug.
 #     - add raw sequences and edit sequences.
 #     - reimplement the "Display" submenu in the main menu.
@@ -51,6 +48,9 @@
 # along with this library; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 ###########################################################################
+
+import time # TEST.
+t1 = time.time() # TEST.
 
 # Tkinter.
 from Tkinter import *
@@ -122,6 +122,9 @@ except:
 
 global DEBUG
 DEBUG = True
+
+t2 = time.time() # TEST.
+print "PyMod dependencies loaded in %s." % (t2-t1)
 
 # Function that launches PyMod from the plugin menu of PyMOL.
 def pymod_launcher(app, pymod_plugin_name, pymod_version, pymod_revision):

@@ -90,43 +90,36 @@ class Alignment_protocol(PyMod_protocol):
 
     def initialize_alignment(self):
         """
-        This method will check if there is a correct selection in order to perform an
-        alignment, and it will create a window with the alignment options if necessary.
+        This method will check if there is a correct selection in order to perform an alignment, and
+        it will create a window with the alignment options if necessary.
         """
         # A list of all kind of elements (both sequences, alignment and blast-search) that were
         # selected by the user. This is going to be used in other methods too, later in the Pymod
         # alignment process.
         self.selected_elements = []
 
-        # # If among the selected sequences there are some leader sequences of some collapsed cluster,
-        # # ask users if they want to include their hidden siblings in the alignment.
-        # include_hidden_children_choice = None
-        # if True in [seq.is_lead_of_collapsed_cluster() for seq in self.pymod.get_selected_sequences()]:
-        #     title = "Selection Message"
-        #     message = "Would you like to include in the alignment the hidden sequences of the collapsed clusters?"
-        #     include_hidden_children_choice = tkMessageBox.askyesno(title, message,parent=self.pymod.main_window)
-        # self.selected_elements = self.get_selected_elements(include_hidden_children=include_hidden_children_choice)
+        # If among the selected sequences there are some leader sequences of some collapsed cluster,
+        # ask users if they want to include their hidden siblings in the alignment.
+        self.extend_selection_to_hidden_children()
+
+        # Builds a list of the selected elements.
         self.selected_elements = self.pymod.get_selected_elements()
 
-        # This will build a series of lists containing informations about which cluster was
-        # selected by the user.
+        # This will build a series of lists containing informations about which cluster was selected
+        # by the user.
         self.build_cluster_lists()
 
         # Check if there are some sequences with an associated structure involved.
-        if True in [e.has_structure() for e in self.pymod.get_selected_sequences()]:
-            self.structures_are_selected = True
-        else:
-            self.structures_are_selected = False
+        self.structures_are_selected = True in [e.has_structure() for e in self.selected_elements]
 
         # First check if the selection is correct.
         if not self.check_alignment_selection():
             self.selection_not_valid()
             return None
 
-        # Ask if the user wants to proceed with rebuild-entire-old-alignment or extract-siblings
-        # if needed.
+        # Ask if the user wants to proceed with rebuild-entire-old-alignment or extract-siblings if
+        # needed.
         if not self.check_sequences_level():
-            self.finish_alignment()
             return None
 
         # Programs that need a window to display their options.
