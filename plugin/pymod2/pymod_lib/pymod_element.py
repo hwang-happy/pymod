@@ -724,7 +724,7 @@ class Added_PyMod_element(object):
             sibling.remove_all_lead_statuses()
         PyMod_element.set_as_lead(self)
 
-    def make_cluster_query(self):
+    def set_as_query(self):
         for sibling in self.get_siblings():
             sibling.remove_all_lead_statuses()
         PyMod_element.set_as_query(self)

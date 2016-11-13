@@ -184,6 +184,8 @@ class PSI_BLAST_common:
         Execute the locally installed PSI-BLAST. Used when running PSI-BLAST through the 'PSI-BLAST'
         command on the plugin main menu or when predicting secondary structures with PSIPRED.
         """
+        # TODO: modify this in order to  integrate it with 'execute_subprocess'.
+
         # Gests the prefix of the database folder.
         moved_to_db_dir = False
         try:

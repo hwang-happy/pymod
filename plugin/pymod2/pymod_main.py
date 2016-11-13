@@ -1,5 +1,4 @@
 # TODO:
-#     - fix multiple BLAST runs bug.
 #     - add raw sequences and edit sequences.
 #     - reimplement the "Display" submenu in the main menu.
 #     - Ramachandran plot.
@@ -26,6 +25,7 @@
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
 #     - implement the new aid system in the GUI.
+#     - optimize namespaces.
 #     - remove TEST.
 
 ###########################################################################
@@ -718,7 +718,7 @@ class PyMod:
 
         # Fetch sequences from the PDB.
         # self.open_sequence_file(os.path.join(seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
-        self.load_uniprot_random()
+        # self.load_uniprot_random()
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
 
         # Simple clusters.
@@ -1118,7 +1118,7 @@ class PyMod:
 
         # Sets the leader of the cluster.
         if cluster_type == "blast-cluster" and query != None:
-            self.make_cluster_query(query)
+            query.set_as_query()
 
         return cluster_element
 
