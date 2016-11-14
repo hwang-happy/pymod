@@ -81,7 +81,7 @@ modeling_window_explanation_padless = {"font": "comic 8",
                                "background": widgets_background_color,
                                "fg":'white', "anchor":"nw",
                                "justify":"left"}
-                               
+
 modeling_window_rb_big = {"bg":widgets_background_color,
                           "highlightbackground":widgets_background_color,
                           "fg":"red", "font":"comic 10"}
@@ -137,6 +137,54 @@ class PyMod_gui_mixin:
         return gui_input != ""
 
 
+class PyMod_window_mixin(PyMod_gui_mixin):
+    # def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True, grid=False):
+    #     """
+    #     Displays error or warning messages and refreshes the sequence window.
+    #     """
+    #     if parent_window == None:
+    #         parent_window = self.main_window
+    #
+    #     if popup_type == "error":
+    #         tkMessageBox.showerror(title_to_show, message_to_show, parent=parent_window)
+    #     elif popup_type == "info":
+    #         tkMessageBox.showinfo(title_to_show, message_to_show, parent=parent_window)
+    #     elif popup_type == "warning":
+    #         tkMessageBox.showwarning(title_to_show, message_to_show, parent=parent_window)
+    #
+    #     if refresh:
+    #         self.deselect_all_sequences()
+    #     if grid:
+    #         self.main_window.gridder()
+
+
+    def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE"):
+        """
+        Displays error or warning messages.
+        """
+        if popup_type == "error":
+            tkMessageBox.showerror(title_to_show, message_to_show, parent=self)
+        elif popup_type == "info":
+            tkMessageBox.showinfo(title_to_show, message_to_show, parent=self)
+        elif popup_type == "warning":
+            tkMessageBox.showwarning(title_to_show, message_to_show, parent=self)
+
+    # def show_info_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
+    #     self.show_popup_message("info",title_to_show,message_to_show,parent_window,refresh)
+
+    def show_info_message(self, title_to_show, message_to_show):
+        self.show_popup_message("info", title_to_show,message_to_show)
+
+    def show_warning_message(self, title_to_show, message_to_show):
+        self.show_popup_message("warning", title_to_show,message_to_show)
+
+    def show_error_message(self, title_to_show, message_to_show):
+        self.show_popup_message("error", title_to_show,message_to_show)
+
+    def askyesno_dialog(self, title, message):
+        return tkMessageBox.askyesno(title, message, parent=self)
+
+
 class PyMod_frame(Frame, PyMod_gui_mixin):
     """
     A class for frames created in the PyMod GUI.
@@ -149,7 +197,7 @@ class PyMod_frame(Frame, PyMod_gui_mixin):
 # WINDOWS USED IN THE PLUGIN.                                                                     #
 ###################################################################################################
 
-class PyMod_base_window(Toplevel, PyMod_gui_mixin):
+class PyMod_base_window(Toplevel, PyMod_window_mixin):
     """
     A class for a base window created in PyMod.
     """
@@ -180,7 +228,7 @@ class PyMod_tool_window(PyMod_base_window):
     """
     def __init__(self, parent = None, title = "PyMod window", upper_frame_title="Here you can...", submit_command=None, with_frame=False, pack_options=None , **configs):
 
-        PyMod_base_window.__init__(self, parent, title, **configs)
+        PyMod_base_window.__init__(self, parent, title=title, **configs)
 
         # Builds the upper frame with the title.
         self.upperframe = PyMod_frame(self.main_frame, borderwidth=5, relief='groove', pady=15)
@@ -529,3 +577,71 @@ class Modeller_exec_entryfield(PyMod_path_entryfield):
         self.choose_path_button.grid_forget()
         self.not_necessary_label.grid(column=3,row=2, padx=(15,0))
         self.component("entry").configure(state="readonly")
+
+
+#####################################################################
+# Window for new sequences.                                         #
+#####################################################################
+
+class Raw_sequence_window(PyMod_tool_window):
+
+    build_name_entry = True
+    build_sequence_entry = True
+
+    def __init__(self, parent, *args, **configs):
+
+        PyMod_tool_window.__init__(self, parent, *args, **configs)
+
+        if self.build_name_entry:
+            self.L1 = Label(self.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
+            self.L1.grid(row=0, column=0, sticky="e", pady=5, padx=5)
+
+            # Creates an Entry for the name of the new sequence.
+            self.seq_name=Entry(self.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
+                        selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % fixed_width_font)
+            self.seq_name.grid(row=0, column=1,columnspan=2, sticky="nwe", pady=5)
+            self.seq_name.focus_set()
+            self.seq_name.bind("<Button-3><ButtonRelease-3>", self.show_menu)
+
+        if self.build_sequence_entry:
+            self.L2 = Label(self.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
+            self.L2.grid(row=1, column=0, sticky="ne", ipadx=0, padx=5)
+
+            self.scrollbar = Scrollbar(self.midframe)
+            self.scrollbar.grid(row=1, column=2, sticky="ns")
+
+            # Creates an Entry widget for the sequence.
+            self.textarea=Text(self.midframe, yscrollcommand=self.scrollbar.set,
+                          font = "%s 12" % fixed_width_font, height=10,
+                          bd=0, foreground = 'black',
+                          background = 'white', selectbackground='black',
+                          selectforeground='white', width = 60)
+            self.textarea.config(state=NORMAL)
+            self.textarea.tag_config("normal", foreground="black")
+            self.textarea.grid(row=1, column=1, sticky="nw", padx=0)
+            self.textarea.bind("<Button-3><ButtonRelease-3>", self.show_menu)
+            self.scrollbar.config(command=self.textarea.yview)
+
+            self.the_menu = Menu(self.textarea, tearoff=0)
+            self.the_menu.add_command(label="Paste")
+
+    def show_menu(self, e):
+        self.the_menu.entryconfigure("Paste", command=lambda: e.widget.event_generate("<<Paste>>"))
+        self.the_menu.tk.call("tk_popup", self.the_menu, e.x_root, e.y_root)
+
+    def get_sequence(self):
+        return pmsm.clean_white_spaces_from_input(self.textarea.get(1.0, "end")).upper()
+
+    def get_sequence_name(self):
+        return self.seq_name.get()
+
+
+class Edit_sequence_window(Raw_sequence_window):
+
+    build_name_entry = False
+    build_sequence_entry = True
+
+    def __init__(self, parent, pymod_element, *args, **configs):
+        Raw_sequence_window.__init__(self, parent, *args, **configs)
+        self.pymod_element = pymod_element
+        self.textarea.insert(END, self.pymod_element.my_sequence)

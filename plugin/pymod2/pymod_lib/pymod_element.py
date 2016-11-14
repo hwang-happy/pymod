@@ -739,6 +739,9 @@ class Added_PyMod_element(object):
         if place_below_mother:
             self.pymod.change_pymod_element_list_index(self, old_mother_index)
 
+    def remove_all_lead_statuses(self):
+        PyMod_element.remove_all_lead_statuses(self)
+
     def delete(self):
         """
         Used to remove definitively an element from PyMod.
@@ -772,7 +775,7 @@ class PyMod_element_GUI(Added_PyMod_element):
 
     def remove_all_lead_statuses(self):
         self.show_collapsed_mother_widgets()
-        PyMod_element.remove_all_lead_statuses(self)
+        Added_PyMod_element.remove_all_lead_statuses(self)
         # Removes the cluster button of leads of collapsed clusters.
         self.pymod.main_window.dict_of_elements_widgets[self].hide_cluster_button()
 

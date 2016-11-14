@@ -1,6 +1,7 @@
 # TODO:
-#     - add raw sequences and edit sequences.
+#     - modify the classess for PyMod elements.
 #     - reimplement the "Display" submenu in the main menu.
+#     - update the text of hidden elements (collapsed children).
 #     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
@@ -10,6 +11,7 @@
 #         - control the sequences before modeling.
 #     - add the licence part to each file of the plugin.
 #     - define modified residues.
+#     - interchain modified residues.
 #     - adjust the structure files part.
 #         - add a "pymol_selector attribute".
 #     - color structures and models, structure appearence and user defined colors.
@@ -486,7 +488,7 @@ class PyMod:
             if not os.path.isdir(new_pymod_directory_parent):
                 title = 'PyMod directory Error'
                 message = "The path where you would like to create your 'PyMod Directory' does not exist on your system. Please select an existing path."
-                self.show_error_message(title, message, parent_window=self.pymod_dir_window)
+                self.pymod_dir_window.show_error_message(title, message)
                 return False
 
             # Check if a PyMod directory already exists in the parent folder.
@@ -568,7 +570,7 @@ class PyMod:
         except Exception,e:
             title = "PyMod Directory Error"
             message = "Unable to write the PyMod configuration directory '%s' because of the following error: %s." % (self.cfg_directory_path, e)
-            self.show_error_message(title, message, parent_window=self.pymod_dir_window)
+            self.pymod_dir_window.show_error_message(title, message)
             return False
 
         # Begin a new PyMod job.
@@ -847,44 +849,13 @@ class PyMod:
     # INTERACTIONS WITH THE GUI.                                                                  #
     ###############################################################################################
 
-    def element_has_widgets(self, pymod_element):
-        return self.main_window.dict_of_elements_widgets.has_key(pymod_element)
-
-    def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True, grid=False):
-        """
-        Displays error or warning messages and refreshes the sequence window.
-        """
-        if parent_window == None:
-            parent_window = self.main_window
-
-        if popup_type == "error":
-            tkMessageBox.showerror(title_to_show, message_to_show, parent=parent_window)
-        elif popup_type == "info":
-            tkMessageBox.showinfo(title_to_show, message_to_show, parent=parent_window)
-        elif popup_type == "warning":
-            tkMessageBox.showwarning(title_to_show, message_to_show, parent=parent_window)
-
-        if refresh:
-            self.deselect_all_sequences()
-        if grid:
-            self.main_window.gridder()
-
-
-    def show_info_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
-        self.show_popup_message("info",title_to_show,message_to_show,parent_window,refresh)
-
-    def show_warning_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
-        self.show_popup_message("warning",title_to_show,message_to_show,parent_window,refresh)
-
-    def show_error_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
-        self.show_popup_message("error",title_to_show,message_to_show,parent_window,refresh)
-
-
     def general_error(self,e=''):
         title = "Unknown Error"
         message = "PyMod has experienced an unknown error:\n"+str(e)
         self.show_error_message(title,message)
 
+    def element_has_widgets(self, pymod_element):
+        return self.main_window.dict_of_elements_widgets.has_key(pymod_element)
 
     def confirm_close(self, parent=None):
         """
@@ -898,6 +869,15 @@ class PyMod:
         answer = tkMessageBox.askyesno(message="Are you really sure you want to exit PyMod?", title="Exit PyMod?", parent=parent_window)
         if answer:
             self.main_window.destroy()
+
+    def show_info_message(self, title_to_show, message_to_show):
+        self.main_window.show_info_message(title_to_show, message_to_show)
+
+    def show_warning_message(self, title_to_show, message_to_show):
+        self.main_window.show_warning_message(title_to_show, message_to_show)
+
+    def show_error_message(self, title_to_show, message_to_show):
+        self.main_window.show_error_message(title_to_show, message_to_show)
 
 
     def work_in_progress(self):
@@ -976,6 +956,9 @@ class PyMod:
     #################################################################
     # Build PyMod elements.                                         #
     #################################################################
+
+    def build_pymod_element_from_args(self, sequence_name, sequence):
+        return pmel.PyMod_sequence_element(sequence, sequence_name)
 
     def build_pymod_element_from_seqrecord(self, seqrecord):
         """
@@ -1406,55 +1389,32 @@ class PyMod:
         """
         Edit a sequence.
         """
-        # TODO: move this in the GUI submodule.
-        # Builds the GUI.
-        child=Toplevel(pymod.main_window)
-        child.resizable(0,0)
-        #  self.child.geometry('400x500-10+40')
-        child.title("<< Edit Sequence >>")
-        child.config()
-        try:
-            child.grab_set()
-        except:
-            pass
-        ch_main = Frame(child, background='black')
-        ch_main.pack(expand = YES, fill = BOTH)
-        midframe = Frame(ch_main, background='black')
-        midframe.pack(side = TOP, fill = BOTH, anchor="n", ipadx = 5, ipady = 5)
-        lowerframe = Frame(ch_main, background='black')
-        lowerframe.pack(side = BOTTOM, expand = NO, fill = Y, anchor="center", ipadx = 5, ipady = 5)
-        L1 = Label(midframe,font = "comic 12", text="", bg="black", fg= "red")
-        L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
-        scrollbar = Scrollbar(midframe)
-        scrollbar.grid(row=1, column=2, sticky="ns")
-        textarea=Text(midframe, yscrollcommand=scrollbar.set, font = "comic 12",
-                      height=10, bd=0, foreground = 'black', background = 'white',
-                      selectbackground='black', selectforeground='white', width = 60 )
-        textarea.config(state=NORMAL)
-        textarea.tag_config("normal", foreground="black")
-        textarea.insert(END, pymod_element.my_sequence)
-        textarea.grid( row=1, column=1, sticky="nw", padx=0)
-        scrollbar.config(command=textarea.yview)
+        self.edit_sequence_window = pmgi.shared_components.Edit_sequence_window(self.main_window,
+                                                    pymod_element = pymod_element,
+                                                    title = "Edit Sequence",
+                                                    upper_frame_title = "Edit your Sequence",
+                                                    submit_command = self.edit_sequence_window_state)
 
-        # Accept the new sequence.
-        def submit():
-            edited_sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
-            if not pmgi.shared_components.check_non_empty_input(edited_sequence):
-                self.show_error_message("Sequence Error", "Please submit a non empty string.", parent_window=child)
-                return None
-            if not pmsm.check_correct_sequence(edited_sequence):
-                self.show_error_message("Sequence Error", "Please provide a sequence with only standard amino acid characters.", parent_window=child)
-                return None
-            pymod_element.set_sequence(edited_sequence, permissive=True)
-            self.main_window.gridder(update_clusters=True)
-            child.destroy()
-
-        # Submit button.
-        sub_button=Button(lowerframe, text="SUBMIT", command=submit, relief="raised", borderwidth="3", bg="black", fg="white")
-        sub_button.pack()
+    def edit_sequence_window_state(self):
+        """
+        Accept the new sequence.
+        """
+        edited_sequence = self.edit_sequence_window.get_sequence()
+        if not len(edited_sequence):
+            self.edit_sequence_window.show_error_message("Sequence Error", "Please submit a non empty string.")
+            return None
+        if not pmsm.check_correct_sequence(edited_sequence):
+            self.edit_sequence_window.show_error_message("Sequence Error", "Please provide a sequence with only standard amino acid characters.")
+            return None
+        self.edit_sequence_window.pymod_element.set_sequence(edited_sequence, permissive=True)
+        self.main_window.gridder(update_clusters=True, update_elements=True)
+        self.edit_sequence_window.destroy()
 
 
     def duplicate_sequence(self, element_to_duplicate):
+        """
+        Make a copy of a certain element.
+        """
         if element_to_duplicate.has_structure():
             p = pmstr.Parsed_pdb_file(element_to_duplicate.get_structure_file(name_only=False),
                 output_directory=self.structures_directory,
@@ -1678,7 +1638,7 @@ class PyMod:
     def show_associate_structure_error(self, parent_window = None):
         title = "Associate Structure Failure"
         message = "The amminoacid sequences of the target chain and the chain in the PDB structure do not match."
-        self.show_error_message(title, message, parent_window = parent_window)
+        self.show_error_message(title, message)
 
     # TODO!!
     def associate_structure(self, parsed_pdb_file, chain_id, pymod_element):
@@ -2074,75 +2034,42 @@ class PyMod:
     # Add new sequences.                                            #
     #################################################################
 
-    def raw_seq_input(self):
+    def show_raw_seq_input_window(self):
         """
         Launched when the user wants to add a new sequence by directly typing it into a Text entry.
         """
-        pass
-        # def show_menu(e):
-        #     w = e.widget
-        #     the_menu.entryconfigure("Paste",
-        #     command=lambda: w.event_generate("<<Paste>>"))
-        #     the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
-        #
-        # # This is called when the SUBMIT button packed below is pressed.
-        # def submit():
-        #     def special_match(strg, search=re.compile(r'[^A-Z-]').search):
-        #         return not bool(search(strg))
-        #     def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
-        #         return not bool(search2(strg))
-        #     sequence = textarea.get(1.0, "end").replace('\n','').replace('\r','').replace(' ','').replace('\t','').upper()
-        #     if special_match(sequence) and len(sequence):
-        #         if len(seq_name.get()) and name_match(seq_name.get()):
-        #             c = PyMod_element(sequence, seq_name.get(),
-        #                 element_type="sequence")
-        #             self.add_element_to_pymod(c,"mother")
-        #             self.raw_seq_window.destroy()
-        #             self.main_window.gridder()
-        #         else:
-        #             title = 'Name Error'
-        #             message = 'Please Check The Sequence Name:\n  Only Letters, Numbers and "_" Allowed'
-        #             self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-        #     else:
-        #         title = 'Sequence Error'
-        #         message = 'Please Check Your Sequence:\n Only A-Z and "-" Allowed'
-        #         self.show_error_message(title,message,parent_window=self.raw_seq_window,refresh=False)
-        #
-        # self.raw_seq_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-        #     title = "Add Raw Sequence",
-        #     upper_frame_title = "Type or Paste your Sequence",
-        #     submit_command = submit)
-        #
-        # L1 = Label(self.raw_seq_window.midframe,font = "comic 12", text="Name:", bg="black", fg= "red")
-        # L1.grid( row=0, column=0, sticky="e", pady=5, padx=5)
-        #
-        # # Creates an Entry for the name of the new sequence.
-        # seq_name=Entry(self.raw_seq_window.midframe, bd=0, disabledforeground = 'red', disabledbackground = 'black',
-        #             selectbackground = 'black', selectforeground = 'white', width=60, font = "%s 12" % pmgi.shared_components.fixed_width_font)
-        # seq_name.grid( row=0, column=1,columnspan=2, sticky="nwe", pady=5, )
-        # seq_name.focus_set()
-        # seq_name.bind("<Button-3><ButtonRelease-3>", show_menu)
-        #
-        # L2 = Label(self.raw_seq_window.midframe, text="Sequence: ", bg="black", fg= "red", font = "comic 12")
-        # L2.grid( row=1, column=0, sticky="ne", ipadx=0, padx=5)
-        #
-        # scrollbar = Scrollbar(self.raw_seq_window.midframe)
-        # scrollbar.grid(row=1, column=2, sticky="ns")
-        #
-        # # Creates an Entry widget for the sequence.
-        # textarea=Text(self.raw_seq_window.midframe, yscrollcommand=scrollbar.set,
-        #               font = "%s 12" % pmgi.shared_components.fixed_width_font, height=10,
-        #               bd=0, foreground = 'black',
-        #               background = 'white', selectbackground='black',
-        #               selectforeground='white', width = 60)
-        # textarea.config(state=NORMAL)
-        # textarea.tag_config("normal", foreground="black")
-        # textarea.grid( row=1, column=1, sticky="nw", padx=0)
-        # textarea.bind("<Button-3><ButtonRelease-3>", show_menu)
-        # scrollbar.config(command=textarea.yview)
-        #
-        # the_menu = Menu(seq_name, tearoff=0)
-        # the_menu.add_command(label="Paste")
+        self.raw_seq_window = pmgi.shared_components.Raw_sequence_window(self.main_window,
+            title = "Add Raw Sequence",
+            upper_frame_title = "Type or Paste your Sequence",
+            submit_command = self.raw_seq_input_window_state)
+
+
+    def raw_seq_input_window_state(self):
+        """
+        This is called when the SUBMIT button of the 'Add Raw Sequence' is pressed.
+        """
+        def special_match(strg, search=re.compile(r'[^A-Z-]').search):
+            return not bool(search(strg))
+        def name_match(strg, search2=re.compile(r'[^a-zA-Z0-9_]').search):
+            return not bool(search2(strg))
+
+        sequence = self.raw_seq_window.get_sequence()
+        sequence_name = self.raw_seq_window.get_sequence_name()
+
+        if special_match(sequence) and len(sequence):
+            if len(sequence_name) and name_match(sequence_name):
+                sequence = pmsm.clean_sequence_from_input(sequence)
+                self.add_element_to_pymod(self.build_pymod_element_from_args(sequence_name, sequence))
+                self.raw_seq_window.destroy()
+                self.main_window.gridder()
+            else:
+                title = 'Sequence Name Error'
+                message = 'Please check the sequence name:\n only letters, numbers and "_" are allowed.'
+                self.raw_seq_window.show_error_message(title, message)
+        else:
+            title = 'Sequence Error'
+            message = 'Please check your dequence:\n only A-Z and "-" are allowed.'
+            self.raw_seq_window.show_error_message(title, message)
 
 
     #################################################################
@@ -2409,7 +2336,7 @@ class PyMod:
         if not os.path.isdir(new_projects_dir):
             title = "Configuration Error"
             message = "The PyMod Projects Directory you specified ('%s') does not exist on your system. Please choose an existing directory." % (new_projects_dir)
-            self.show_error_message(title, message, parent_window=self.pymod_options_window)
+            self.pymod_options_window.show_error_message(title, message)
             return False
 
         # Saves the changes to PyMod configuration file.
@@ -2424,15 +2351,15 @@ class PyMod:
         pickle.dump(pymod_config_data, cfgfile)
         cfgfile.close()
 
-        # Then updates the values of the parameters of the tools contained in "self.pymod_tools"
-        # so that they can be used in the current PyMod session.
+        # Then updates the values of the parameters of the tools contained in "self.pymod_tools" so
+        # that they can be used in the current PyMod session.
         try:
             # Prevents the user from changing the project directory during a session.
             self.get_parameters_from_configuration_file()
             if old_projects_dir != new_projects_dir:
                 title = "Configuration Updated"
                 message = "You changed PyMod projects directory, the new directory will be used the next time you launch PyMod."
-                self.show_warning_message(title, message, parent_window=self.pymod_options_window)
+                self.pymod_options_window.show_warning_message(title, message)
             self.pymod_options_window.destroy()
 
         except Exception,e:
@@ -2790,9 +2717,10 @@ class PyMod:
         pymod_plugin_dir = os.path.dirname(os.path.dirname(__file__))
         update_results = pmup.update_pymod(plugin_zipfile_temp_name, pymod_plugin_dir)
         if update_results[0]:
-            self.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
+            self.main_window.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
         else:
             self.show_error_message("Update Failed", update_results[1])
+
 
     ###############################################################################################
     # TO BE REMOVED.                                                                              #

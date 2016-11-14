@@ -91,8 +91,6 @@ class BLAST_base_options_window(shared_components.PyMod_tool_window):
 # CLASSES ACTUALLY USED IN THE PLUGIN.                                                            #
 ###################################################################################################
 
-
-
 class BLAST_options_window(BLAST_base_options_window):
     """
     Window for BLAST searches.
@@ -184,6 +182,6 @@ class PSI_BLAST_options_window(BLAST_base_options_window):
                 self.current_protocol.databases_directories_list[0]["full-path"] = None
                 title = "Selection Error"
                 message = "The directory you specified does not seem to contain a valid set of sequence database files."
-                self.current_protocol.pymod.show_error_message(title, message, parent_window = self, refresh=False)
+                self.show_error_message(title, message)
         # Selects the 'browse' button once users click on it.
         self.psiblast_database_rds.setvalue("browse")

@@ -225,15 +225,18 @@ def remove_gap_only_columns(children):
 # Clean up sequences. #
 #######################
 
-def correct_sequence(sequence):
-    sequence = sequence.replace("Z","X") # ambiguity, E or Q
-    sequence = sequence.replace("B","X") # ambiguity, D or N
-    sequence = sequence.replace("J","X") # ambiguity, I or L
-    sequence = sequence.replace("O","X") # pyrrolysine
-    sequence = sequence.replace("U","X") # selenocysteine
-    sequence = sequence.replace(".","X") # selenocysteine
-    return sequence
+def clean_sequence_from_input(sequence):
+    #     sequence = sequence.replace("Z","X") # ambiguity, E or Q
+    #     sequence = sequence.replace("B","X") # ambiguity, D or N
+    #     sequence = sequence.replace("J","X") # ambiguity, I or L
+    #     sequence = sequence.replace("O","X") # pyrrolysine
+    #     sequence = sequence.replace("U","X") # selenocysteine
+    #     sequence = sequence.replace(".","X") # selenocysteine
+    cleaned_seq = re.sub(pmdt.non_prot_standard_regex, pmdt.modified_residue_one_letter, clean_white_spaces_from_input(sequence))
+    return cleaned_seq.upper()
 
+def clean_white_spaces_from_input(string):
+    return string.replace('\n','').replace('\r','').replace(' ','').replace('\t','')
 
 def check_correct_sequence(sequence, remove_indels=True):
     """

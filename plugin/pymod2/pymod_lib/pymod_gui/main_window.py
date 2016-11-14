@@ -693,7 +693,7 @@ class PyMod_main_window_mixin:
         self.sequence_name_bar.helpmessage(message_bar_text)
 
 
-class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
+class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyMod_window_mixin):
     """
     A class for the Tkinter PyMod main window.
     """
@@ -808,7 +808,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
         self.sequence_menu = Menu(self.filemenu, tearoff = 0)
         self.filemenu.add_cascade(label = "Sequences", menu = self.sequence_menu)
         self.sequence_menu.add_command(label = "Open from File", command = self.pymod.open_file_from_the_main_menu)
-        # self.sequence_menu.add_command(label = "Add Raw Sequence", command = self.pymod.raw_seq_input)
+        self.sequence_menu.add_command(label = "Add Raw Sequence", command = self.pymod.show_raw_seq_input_window)
         # self.sequence_menu.add_command(label = "Import PyMOL Objects", command = self.pymod.import_selections)
         # self.sequence_menu.add_separator()
         # self.sequence_menu.add_command(label = "Save All", command = self.pymod.save_all_files_from_main_menu)
@@ -1141,13 +1141,6 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin):
             change_index += 1
         self.pymod.change_pymod_element_list_index(element, old_index + change_index)
 
-
-    #################################################################
-    # Dialogs.                                                      #
-    #################################################################
-
-    def askyesno_dialog(self, title, message):
-        return tkMessageBox.askyesno(title, message, parent=self)
 
     #################################################################
     # Handle PyMod data.                                            #

@@ -148,7 +148,7 @@ class Generic_BLAST_search(PyMod_protocol):
         # Exit the whole process if no hits were found.
         if len(self.blast_record.alignments) == 0:
             blast_version = pmdt.algorithms_full_names_dict[self.blast_version]
-            self.pymod.show_warning_message("%s Message" % blast_version, "No hits were found by %s for %s." % (blast_version, self.blast_query_element.compact_header))
+            self.pymod.main_window.show_warning_message("%s Message" % blast_version, "No hits were found by %s for %s." % (blast_version, self.blast_query_element.compact_header))
             return False
         else:
             # Returns 'True' if some hits were found.
@@ -572,7 +572,7 @@ class NCBI_BLAST_search(Generic_BLAST_search):
         except:
             title = "Connection Error"
             message = 'Can not connect to the NCBI BLAST server. Please check your Internet access.'
-            self.pymod.show_error_message(title,message, parent_window=self.blast_options_window)
+            self.blast_options_window.show_error_message(title,message)
             return False
 
 
@@ -781,12 +781,12 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
         if db_full_path == None:
             title = "Input Error"
             message = "Please choose a valid database."
-            self.pymod.show_error_message(title, message, parent_window=self.blast_options_window, refresh=None)
+            self.blast_options_window.show_error_message(title, message)
             return False
         if not pmos.verify_valid_blast_dbdir(db_full_path):
             title = "Input Error"
             message = "The database '%s' directory does not contain a valid set of database files." % (db_full_path)
-            self.pymod.show_error_message(title, message, parent_window=self.blast_options_window, refresh=None)
+            self.blast_options_window.show_error_message(title, message)
             return False
         # Check all the other input fields.
         if not self.blast_options_window.check_general_input():
@@ -845,10 +845,9 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
                 evalue = evalue_cutoff,
                 max_target_seqs = max_hits)
         except:
-            self.pymod.show_error_message(
+            self.blast_options_window.show_error_message(
                 "PSI-BLAST Error",
-                "There was an error while running PSI-BLAST for %s." % (self.blast_query_element.my_header),
-                parent_window=self.blast_options_window)
+                "There was an error while running PSI-BLAST for %s." % (self.blast_query_element.my_header))
             return False
         # If everything went ok, return 'True', so that the results window can be opened.
         return True

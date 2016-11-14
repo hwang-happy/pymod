@@ -1857,7 +1857,7 @@ class CEalign_alignment:
     def alignment_program_not_found(self):
         title = "CE-alignment Error"
         message = "CE-alignment is not available on your PyMod installation. If you want to use this function please see CE-alignment installation instructions on PyMod's User Guide."
-        self.pymod.show_popup_message("error", title, message)
+        self.pymod.main_window.show_error_message(title, message)
 
 
     def update_aligned_sequences(self):

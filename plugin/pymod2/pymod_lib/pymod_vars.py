@@ -491,6 +491,8 @@ prot_standard_one_letter = ("A","C","D","E","F","G","H","I","K","L","M","N","P",
 prot_standard_one_letter_set = set(prot_standard_one_letter)
 prot_standard_and_x_one_letter = ("A","C","D","E","F","G","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y","X")
 prot_standard_and_x_one_letter_set = set(prot_standard_and_x_one_letter)
+non_prot_standard_regex = "[^ACDEFGHIKLMNPQRSTVWY-]"
+non_prot_standard_and_x_regex = "[^ACDEFGHIKLMNPQRSTVWYX-]"
 
 # Three letters.
 prot_standard_three_letters = ("ALA","CYS","ASP","GLU","PHE","GLY","HIS","ILE","LYS","LEU","MET","ASN","PRO","GLN","ARG","SER","THR","VAL","TRP","TYR")
