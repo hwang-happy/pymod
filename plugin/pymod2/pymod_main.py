@@ -1,5 +1,4 @@
 # TODO:
-#     - modify the classess for PyMod elements.
 #     - reimplement the "Display" submenu in the main menu.
 #     - update the text of hidden elements (collapsed children).
 #     - Ramachandran plot.
@@ -728,6 +727,8 @@ class PyMod:
         c = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
         a.get_children()[0].set_as_lead()
         c.get_children()[0].set_as_lead()
+        e = self.build_pymod_element_from_args("test", "KLAPPALLAIQYAMNCVVVXQWERTASDFLAPHKF")
+        self.replace_element(a.get_children()[1], e)
         # a.add_child(c)
 
         # Rubic.
@@ -755,8 +756,8 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/heteromer/seqs.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/heteromer/5aqq.pdb"))
         # PAX domains.
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/pax/3cmy_pax.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/pax/pax6.fasta"))
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 
@@ -957,15 +958,22 @@ class PyMod:
     # Build PyMod elements.                                         #
     #################################################################
 
+    def build_pymod_element(self, base_class, *args, **configs):
+        """
+        Dynamically builds the class of the PyMod element.
+        """
+        return type("Dynamic_element", (pmel.PyMod_element_GUI, base_class), {})(*args, **configs)
+
+
     def build_pymod_element_from_args(self, sequence_name, sequence):
-        return pmel.PyMod_sequence_element(sequence, sequence_name)
+        return self.build_pymod_element(pmel.PyMod_sequence_element, sequence, sequence_name)
 
     def build_pymod_element_from_seqrecord(self, seqrecord):
         """
         Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
         to the it.
         """
-        new_element = pmel.PyMod_sequence_element(str(seqrecord.seq), seqrecord.id, description=seqrecord.description)
+        new_element = self.build_pymod_element(pmel.PyMod_sequence_element, str(seqrecord.seq), seqrecord.id, description=seqrecord.description)
         return new_element
 
 
@@ -977,7 +985,7 @@ class PyMod:
         # Gives them the query mother_index, to make them its children.
         # TODO: use only Biopython objects.
         hsp_header = hsp["title"] # record_header = self.correct_name(hsp["title"])
-        cs = pmel.PyMod_sequence_element(str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
+        cs = self.build_pymod_element(pmel.PyMod_sequence_element, str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
         return cs
 
 
@@ -1005,8 +1013,6 @@ class PyMod:
             # Use the old color scheme of PyMod.
             color=self.color_struct()
 
-        # Dinamically changes the class of the PyMod element.
-        element.__class__ = type('Dynamic_element', (pmel.PyMod_element_GUI, element.__class__), {})
         # Adds widgets that will be gridded later.
         element.initialize(self)
 
@@ -1086,7 +1092,7 @@ class PyMod:
         #----------------------------------------------------------------------
         # Creates a cluster element and add the new cluster element to PyMod. -
         #----------------------------------------------------------------------
-        cluster_element = pmel.PyMod_cluster_element(sequence="...", header=cluster_name,
+        cluster_element = self.build_pymod_element(pmel.PyMod_cluster_element, sequence="...", header=cluster_name,
                                              description=None, color="white",
                                              algorithm=algorithm, cluster_type=cluster_type,
                                              cluster_id=self.alignment_count)
@@ -1327,7 +1333,7 @@ class PyMod:
         """
         if not self.is_valid_structure_file(pdb_file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
-        p = pmstr.Parsed_pdb_file(pdb_file_full_path, output_directory=self.structures_directory)
+        p = pmstr.Parsed_pdb_file(self, pdb_file_full_path, output_directory=self.structures_directory)
         for element in p.get_pymod_elements():
             self.add_element_to_pymod(element, load_in_pymol=True)
 
@@ -1416,14 +1422,14 @@ class PyMod:
         Make a copy of a certain element.
         """
         if element_to_duplicate.has_structure():
-            p = pmstr.Parsed_pdb_file(element_to_duplicate.get_structure_file(name_only=False),
+            p = pmstr.Parsed_pdb_file(self, element_to_duplicate.get_structure_file(name_only=False),
                 output_directory=self.structures_directory,
                 new_file_name=pmdt.copied_chain_name % self.new_objects_index) # "copy_"+element_to_duplicate.get_structure_file_root()), "copied_object_%s"
             self.new_objects_index += 1
             for element in p.get_pymod_elements():
                 self.add_element_to_pymod(element, load_in_pymol=True, color=element_to_duplicate.my_color) # Add this to use the old color shceme of PyMod: color=self.color_struct()
         else:
-            duplicated_element = pmel.PyMod_sequence_element(element_to_duplicate.my_sequence, element_to_duplicate.my_header_root)
+            duplicated_element = self.build_pymod_element(pmel.PyMod_sequence_element, element_to_duplicate.my_sequence, element_to_duplicate.my_header_root)
             self.add_element_to_pymod(duplicated_element)
 
 

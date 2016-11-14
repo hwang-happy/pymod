@@ -49,10 +49,10 @@ class Parsed_pdb_file:
     parsed_file_code = "parsed_by_pymod"
     blank_chain_character = "X"
 
-    def __init__(self, pdb_file_path, output_directory="", new_file_name=None, copy_original_file=True, save_chains_files=True):
+    def __init__(self, pymod, pdb_file_path, output_directory="", new_file_name=None, copy_original_file=True, save_chains_files=True):
 
         # self.list_of_structure_dicts = []
-
+        self.pymod = pymod
         st1 = time.time()
 
         #------------------------------------------------------------------------------------
@@ -231,7 +231,7 @@ class Parsed_pdb_file:
         return pmdt.structure_temp_name % Parsed_pdb_file.counter
 
     def _build_pymod_element(self, residues, element_header, color):
-        return pmel.PyMod_sequence_element(residues=residues, header=element_header, color=color)
+        return self.pymod.build_pymod_element(pmel.PyMod_sequence_element, residues=residues, header=element_header, color=color)
 
     def _get_chain_color(self, chain_number):
         list_of_model_chains_colors = pmdt.pymol_regular_colors_list
@@ -304,12 +304,12 @@ class Parsed_pdb_file:
 
 class Parsed_model_pdb_file(Parsed_pdb_file):
 
-    def __init__(self, pdb_file_path, model_root_name="", **configs):
+    def __init__(self, pymod, pdb_file_path, model_root_name="", **configs):
         self.model_root_name = model_root_name
-        Parsed_pdb_file.__init__(self, pdb_file_path, **configs)
+        Parsed_pdb_file.__init__(self, pymod, pdb_file_path, **configs)
 
     def _build_pymod_element(self, residues, element_header, color):
-        return pmel.PyMod_model_element(residues=residues, header=element_header, color=color, model_root_name=self.model_root_name)
+        return self.pymod.build_pymod_element(pmel.PyMod_model_element, residues=residues, header=element_header, color=color, model_root_name=self.model_root_name)
 
 
 class PyMod_structure:

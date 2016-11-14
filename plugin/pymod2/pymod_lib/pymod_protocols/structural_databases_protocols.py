@@ -119,7 +119,7 @@ class Fetch_structure_file(PyMod_protocol):
         #--------------------------------------------------------------------------------------
         elif self.import_mode == "multiple-chains":
             # Builds a 'Parsed_pdb_file' object.
-            p = pmstr.Parsed_pdb_file(os.path.abspath(pdb_file_shortcut), output_directory=self.pymod.structures_directory)
+            p = pmstr.Parsed_pdb_file(self.pymod, os.path.abspath(pdb_file_shortcut), output_directory=self.pymod.structures_directory)
             # Builds 'Pymod_elements' objects for each chain present in the PDB file.
             for new_element in p.get_pymod_elements():
                 if new_element.get_chain_id() != pdb_chain_id:
@@ -189,7 +189,7 @@ class Associate_structure(PyMod_protocol):
         self.output_directory = self.pymod.structures_directory
 
         # Parses the source structure file.
-        p = pmstr.Parsed_pdb_file(pdb_file_path, copy_original_file=False, save_chains_files=False)
+        p = pmstr.Parsed_pdb_file(self.pymod, pdb_file_path, copy_original_file=False, save_chains_files=False)
         self.structure_chain_element = p.get_pymod_element_by_chain(self.chain_id)
 
         # Check if the the target sequence and the sequence of the structure to associate match by
@@ -249,7 +249,7 @@ class Associate_structure(PyMod_protocol):
         #----------------------------------------------------------------------------------
         # Builds a 'Parsed_pdb_file' object for the PDB file of the structure just saved. -
         #----------------------------------------------------------------------------------
-        p = pmstr.Parsed_pdb_file(os.path.abspath(cropped_structure_file_shortcut), output_directory=self.output_directory)
+        p = pmstr.Parsed_pdb_file(self.pymod, os.path.abspath(cropped_structure_file_shortcut), output_directory=self.output_directory)
         new_element_with_structure = p.get_pymod_element_by_chain(self.chain_id)
         adjust_to_sequence = self.target_element.my_sequence
         self.pymod.replace_element(self.target_element, new_element_with_structure)

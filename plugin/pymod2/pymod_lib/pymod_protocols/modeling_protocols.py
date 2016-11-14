@@ -723,7 +723,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             # Builds a new file name for the model.
             pymod_model_name = "m%s_%s" % (self.get_model_number()+1, self.modeller_target_name)
             # Parses the PDB file of the model.
-            parsed_model_file = pmstr.Parsed_model_pdb_file(model_file_full_path,
+            parsed_model_file = pmstr.Parsed_model_pdb_file(self.pymod, model_file_full_path,
                                                             output_directory=self.pymod.structures_directory,
                                                             new_file_name=pymod_model_name,
                                                             model_root_name=self.modeller_target_name)

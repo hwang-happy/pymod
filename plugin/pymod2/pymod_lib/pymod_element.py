@@ -709,8 +709,8 @@ class PyMod_model_element(PyMod_sequence_element):
 
 class Added_PyMod_element(object):
     """
-    A class for PyMod elements storing information about the whole PyMod plugin. It extends their
-    methods so that they will also control other elements of PyMod.
+    A mixin class for PyMod elements storing information about the whole PyMod plugin. It extends
+    their methods so that they will also control other elements of PyMod.
     """
 
     def initialize(self, pymod):
@@ -722,12 +722,12 @@ class Added_PyMod_element(object):
         """
         for sibling in self.get_siblings():
             sibling.remove_all_lead_statuses()
-        PyMod_element.set_as_lead(self)
+        super(Added_PyMod_element, self).set_as_lead()
 
     def set_as_query(self):
         for sibling in self.get_siblings():
             sibling.remove_all_lead_statuses()
-        PyMod_element.set_as_query(self)
+        super(Added_PyMod_element, self).set_as_query()
 
     def extract_to_upper_level(self, place_below_mother=True):
         """
@@ -735,12 +735,9 @@ class Added_PyMod_element(object):
         PyMod elements.
         """
         old_mother_index = self.pymod.get_pymod_element_index_in_container(self.mother) + 1
-        PyMod_element.extract_to_upper_level(self)
+        super(Added_PyMod_element, self).extract_to_upper_level()
         if place_below_mother:
             self.pymod.change_pymod_element_list_index(self, old_mother_index)
-
-    def remove_all_lead_statuses(self):
-        PyMod_element.remove_all_lead_statuses(self)
 
     def delete(self):
         """
@@ -755,7 +752,7 @@ class Added_PyMod_element(object):
             for c in children[:]:
                 c.delete()
         # Actually delete the element.
-        PyMod_element.delete(self)
+        super(Added_PyMod_element, self).delete()
 
 
 ###################################################################################################
@@ -764,8 +761,8 @@ class Added_PyMod_element(object):
 
 class PyMod_element_GUI(Added_PyMod_element):
     """
-    Extends the behaviour of 'PyMod_element' objects, so that their methods will also control the
-    elements' widgets in PyMod main window.
+    A mixin class extending the behaviour of 'PyMod_element' objects, so that their methods will
+    also control the elements' widgets in PyMod main window.
     """
 
     def initialize(self, *args, **configs):
@@ -775,7 +772,7 @@ class PyMod_element_GUI(Added_PyMod_element):
 
     def remove_all_lead_statuses(self):
         self.show_collapsed_mother_widgets()
-        Added_PyMod_element.remove_all_lead_statuses(self)
+        super(PyMod_element_GUI, self).remove_all_lead_statuses()
         # Removes the cluster button of leads of collapsed clusters.
         self.pymod.main_window.dict_of_elements_widgets[self].hide_cluster_button()
 
@@ -784,14 +781,14 @@ class PyMod_element_GUI(Added_PyMod_element):
         Extract elements from their clusters. Also modifies its widgets and those of their parents.
         """
         self.show_collapsed_mother_widgets()
-        Added_PyMod_element.extract_to_upper_level(self, *args, **configs)
+        super(PyMod_element_GUI, self).extract_to_upper_level(*args, **configs)
 
     def delete(self, *args, **configs):
         """
         Extract elements from their clusters. Also modifies its widgets.
         """
         self.show_collapsed_mother_widgets()
-        Added_PyMod_element.delete(self, *args, **configs)
+        super(PyMod_element_GUI, self).delete(*args, **configs)
         # Remove the element widgets.
         self.pymod.main_window.delete_element_widgets(self)
 
@@ -804,7 +801,7 @@ class PyMod_element_GUI(Added_PyMod_element):
             self.pymod.main_window.dict_of_elements_widgets[self.mother].show = True
 
     def add_child(self, child, *args, **configs):
-        PyMod_cluster_element.add_child(self, child, *args, **configs)
+        super(PyMod_element_GUI, self).add_child(child, *args, **configs)
         # If the cluster is not collapsed, show the widgets of the children.
         if not self.pymod.main_window.is_collapsed_cluster(self):
             if not self.pymod.main_window.is_collapsed_cluster(child):
