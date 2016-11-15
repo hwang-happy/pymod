@@ -131,11 +131,16 @@ class PyMod_main_window_mixin:
     #################################################################
 
     def _grid_descendants(self, pymod_element, update_elements=False):
+        # If the element is visible, grid it and update it (if necessary).
         if self.dict_of_elements_widgets[pymod_element].show:
             self._grid_element(pymod_element, update_element=update_elements)
             if pymod_element.is_mother():
                 for child_element in pymod_element.get_children():
                     self._grid_descendants(child_element, update_elements=update_elements)
+        # If the element is hidden, only update it.
+        else:
+            if update_elements:
+                self._update_widgets_recursively(pymod_element)
 
     def _grid_element(self, pymod_element, update_element=False):
         self.grid_element_widgets(pymod_element, update_element_text=update_element, color_elements=update_element)
@@ -153,11 +158,17 @@ class PyMod_main_window_mixin:
             self.color_element(pymod_element, color_pdb=False)
 
 
-    # def update_widgets(self, pymod_element):
-    #     pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
-    #     pymod_element_widgets_group.sequence_text.update_text()
-    #     pymod_element_widgets_group.header_entry.update_title()
-    #     self.color_element(pymod_element, color_pdb=False)
+    def _update_widgets_recursively(self, pymod_element):
+        self.update_widgets(pymod_element)
+        if pymod_element.is_mother():
+            for child_element in pymod_element.get_children():
+                self._update_widgets_recursively(child_element)
+
+    def update_widgets(self, pymod_element):
+        pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
+        pymod_element_widgets_group.sequence_text.update_text()
+        pymod_element_widgets_group.header_entry.update_title()
+        # self.color_element(pymod_element, color_pdb=False)
 
 
     def hide_element_widgets(self, pymod_element, save_status=True, target="all"):

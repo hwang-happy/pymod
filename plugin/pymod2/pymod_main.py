@@ -1,5 +1,4 @@
 # TODO:
-#     - update the text of hidden elements (collapsed children).
 #     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
