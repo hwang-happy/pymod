@@ -693,10 +693,24 @@ class PyMod_main_window_mixin:
         self.sequence_name_bar.helpmessage(message_bar_text)
 
 
+    #################################################################
+    # Elements appearance.                                          #
+    #################################################################
+
+    def update_font(self, new_font_type=None, new_font_size=None):
+        if new_font_type:
+            PyMod_main_window_mixin.sequence_font_type = new_font_type
+        if new_font_size:
+            PyMod_main_window_mixin.sequence_font_size = new_font_size
+        PyMod_main_window_mixin.sequence_font = "%s %s" % (PyMod_main_window_mixin.sequence_font_type, PyMod_main_window_mixin.sequence_font_size)
+
+
 class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyMod_window_mixin):
     """
     A class for the Tkinter PyMod main window.
     """
+
+    available_font_sizes = (6, 8, 10, 12, 14, 16, 18)
 
     def __init__(self, parent = None, pymod = None, **configs):
 
@@ -927,35 +941,30 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
         #------------------
         # "Display" menu. -
         #------------------
-        # self.display_menu = Menu(self.menubar, tearoff = 0)
-        #
-        # # Color menu.
-        # self.main_color_menu = Menu(self.display_menu, tearoff = 0)
-        # self.main_color_menu.add_command(label = "By Regular Color Scheme", command=lambda: self.pymod.color_selection("all", None, "regular"))
-        # # Residues.
-        # self.main_residues_colors_menu = Menu(self.main_color_menu,tearoff=0)
-        # self.main_residues_colors_menu.add_command(label="Polarity",command=lambda: self.pymod.color_selection("all", None, "residue"))
-        # self.main_color_menu.add_cascade(menu=self.main_residues_colors_menu, label="By residue properties")
-        # # Secondary structure.
-        # self.main_color_menu.add_command(label="Secondary Structure",command=lambda: self.pymod.color_selection("all", None, "secondary-auto"))
-        # self.display_menu.add_cascade(menu=self.main_color_menu, label="Color all Sequences")
-        #
-        # # Font size menu.
-        # self.menu_sequence_font_size = StringVar()
-        # self.default_font_size = 12 # "14"
-        # self.menu_sequence_font_size.set(self.default_font_size)
-        # self.font_menu = Menu(self.display_menu, tearoff = 0)
-        # self.font_menu.add_radiobutton(label="6",value="6",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
-        # self.font_menu.add_radiobutton(label="8",value="8",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
-        # self.font_menu.add_radiobutton(label="10",value="10",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
-        # self.font_menu.add_radiobutton(label="12",value="12",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
-        # self.font_menu.add_radiobutton(label="14",value="14",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
-        # self.font_menu.add_radiobutton(label="16",value="16",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
-        # self.font_menu.add_radiobutton(label="18",value="18",variable=self.menu_sequence_font_size, command=self.pymod.main_window.gridder)
-        # self.display_menu.add_cascade(label = "Font size", menu = self.font_menu)
-        #
-        # # Adds the "Display" menu to the main menu.
-        # self.menubar.add_cascade(label = "Display", menu = self.display_menu)
+        self.display_menu = Menu(self.menubar, tearoff = 0)
+
+        # Color menu.
+        self.main_color_menu = Menu(self.display_menu, tearoff = 0)
+        self.main_color_menu.add_command(label = "By Regular Color Scheme", command=lambda: self.color_selection("all", None, "regular"))
+        # Residues.
+        self.main_residues_colors_menu = Menu(self.main_color_menu,tearoff=0)
+        self.main_residues_colors_menu.add_command(label="Polarity",command=lambda: self.color_selection("all", None, "polarity"))
+        self.main_color_menu.add_cascade(menu=self.main_residues_colors_menu, label="By residue properties")
+        # Secondary structure.
+        self.main_color_menu.add_command(label="Secondary Structure",command=lambda: self.color_selection("all", None, "secondary-auto"))
+        self.display_menu.add_cascade(menu=self.main_color_menu, label="Color all Sequences")
+
+        # Font size menu.
+        self.menu_sequence_font_size = StringVar()
+        self.menu_sequence_font_size.set(self.sequence_font_size)
+        self.font_menu = Menu(self.display_menu, tearoff = 0)
+        for font_size in self.available_font_sizes:
+            font_size_str = str(font_size)
+            self.font_menu.add_radiobutton(label=font_size_str, value=font_size_str, variable=self.menu_sequence_font_size, command=lambda fs=font_size_str: self.change_font_size(fs))
+        self.display_menu.add_cascade(label = "Font size", menu = self.font_menu)
+
+        # Adds the "Display" menu to the main menu.
+        self.menubar.add_cascade(label = "Display", menu = self.display_menu)
 
         #---------------
         # "Help" menu. -
@@ -1143,6 +1152,20 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
 
 
     #################################################################
+    # Display menu.                                                 #
+    #################################################################
+
+    def change_font_size(self, new_font_size):
+        self.update_font(new_font_size=int(new_font_size))
+        for element in self.pymod.get_pymod_elements_list():
+            element_widgets_group = self.dict_of_elements_widgets[element]
+            element_widgets_group.sequence_text["font"] = self.sequence_font
+            element_widgets_group.header_entry["font"] = self.sequence_font
+            element_widgets_group.cluster_button["font"] = self.sequence_font
+            element_widgets_group.child_sign["font"] = self.sequence_font
+        self.gridder(update_elements=True)
+
+    #################################################################
     # Handle PyMod data.                                            #
     #################################################################
 
@@ -1252,7 +1275,7 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
         #-------------------------------
         # Shows the left pane widgets. -
         #-------------------------------
-        self.grid_header()
+        self.grid_header(update_element_header=update_element_text)
 
         #--------------------------------------------
         # Updates and shows the right pane widgets. -
@@ -1282,7 +1305,9 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
         self._grid_forget_sequence_text()
 
     # Header.
-    def grid_header(self):
+    def grid_header(self, update_element_header=False):
+        if update_element_header:
+            self.header_entry.update_title()
         self.header_entry.grid(row = self.grid_row_index, sticky = 'nw')
 
     def _grid_forget_header_entry(self):
@@ -1371,7 +1396,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
         # This is used only here to set the textvarialble of the entry as the header of the sequence.
         self.header_entry_var = StringVar()
-        self.update_title()
 
         Entry.__init__(self, self.parent,
             font = self.sequence_font,
@@ -1387,6 +1411,8 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             justify = LEFT,
             width = int(len(self.header_entry_var.get())),
             **configs)
+
+        self.update_title()
 
         # Left menu object building and binding of the mouse events to the entries.
         self.build_header_popup_menu()
@@ -2073,6 +2099,7 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         self.delete(1.0,END)
         self.insert(END, self.pymod_element.my_sequence,"normal")
         self["width"] = len(self.pymod_element.my_sequence)
+        self["font"] = self.sequence_font
         # self.color_element(on_grid=True,color_pdb=False)
         self.config(state=DISABLED)
 

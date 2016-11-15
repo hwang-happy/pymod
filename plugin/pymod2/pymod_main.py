@@ -1,5 +1,4 @@
 # TODO:
-#     - reimplement the "Display" submenu in the main menu.
 #     - update the text of hidden elements (collapsed children).
 #     - Ramachandran plot.
 #     - superpose.
