@@ -1,7 +1,4 @@
 # TODO:
-#     - RMSD part.
-#     - integrate the modifications made in the stable branch.
-#         - control the sequences before modeling.
 #     - interchain disulfides.
 #     - define modified residues.
 #     - adjust the structure files part.
@@ -20,6 +17,8 @@
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
 #     - implement the new aid system in the GUI.
+#     - integrate the modifications made in the stable branch.
+#         - control the sequences before modeling.
 #     - optimize namespaces.
 #     - color structures and models, structure appearence and user defined colors.
 #     - add the licence part to each file of the plugin.
@@ -2435,40 +2434,28 @@ class PyMod:
         self.show_table(sequences_names, sequences_names, identity_matrix, title)
 
 
-    def display_rmsd_matrix(self,alignment_unique_id):
+    def display_rmsd_matrix(self, alignment_element):
         """
         Computes the current identity matrix of an alignment and shows it in a new window.
         """
-        pass
+        aligned_elements = alignment_element.get_children()
+        rmsd_dict = alignment_element.rmsd_dict
+        rmsd_matrix_to_display = []
+        n = len(aligned_elements)
+        rmsd_matrix_to_display = [[None]*n for a in range(n)]
 
-        # # Get the cluster element.
-        # alignment_element = self.get_element_by_unique_index(alignment_unique_id)
-        # # Then get all its children (the aligned elements).
-        # aligned_elements = self.get_children(alignment_element)
-        #
-        # rmsd_list = alignment_element.alignment.rmsd_list
-        # rmsd_matrix_to_display = []
-        # n = len(aligned_elements)
-        # for a in range(n):
-        #     rmsd_matrix_to_display.append([None]*n)
-        #
-        # for i,ei in enumerate(aligned_elements):
-        #     for j,ej in enumerate(aligned_elements):
-        #         if j >= i:
-        #             # This will fill "half" of the matrix.
-        #             rmsd = rmsd_list[(ei.unique_index,ej.unique_index)]
-        #             rmsd_matrix_to_display[i][j] = rmsd
-        #             # This will fill the rest of the matrix. Comment this if want an "half" matrix.
-        #             rmsd = rmsd_list[(ej.unique_index,ei.unique_index)]
-        #             rmsd_matrix_to_display[j][i] = rmsd
-        #
-        # # Build the list of sequences names.
-        # sequences_names = []
-        # for e in aligned_elements:
-        #     sequences_names.append(e.compact_header)
-        #
-        # title = 'RMSD matrix for ' + alignment_element.my_header
-        # self.show_table(sequences_names, sequences_names, rmsd_matrix_to_display, title)
+        for i,ei in enumerate(aligned_elements):
+            for j,ej in enumerate(aligned_elements):
+                if j >= i:
+                    # This will fill "half" of the matrix.
+                    rmsd_matrix_to_display[i][j] = rmsd_dict[(ei.unique_index, ej.unique_index)]
+                    # This will fill the rest of the matrix. Comment this if want an "half" matrix.
+                    rmsd_matrix_to_display[j][i] = rmsd_dict[(ej.unique_index, ei.unique_index)]
+
+        # Build the list of sequences names.
+        sequences_names = [e.compact_header for e in aligned_elements]
+        title = 'RMSD matrix for ' + alignment_element.my_header
+        self.show_table(sequences_names, sequences_names, rmsd_matrix_to_display, title)
 
 
     def show_table(self, column_headers=None, row_headers=None, data_array=[], title = "New Table", columns_title = None, rows_title = None, number_of_tabs=2, width=800, height=450, rowheader_width=20):

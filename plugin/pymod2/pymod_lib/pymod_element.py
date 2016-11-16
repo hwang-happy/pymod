@@ -243,6 +243,7 @@ class PyMod_cluster_element(PyMod_element):
         self.cluster_id = cluster_id
         self.initial_number_of_sequences = None
         self.my_sequence = sequence
+        self.rmsd_dict = None
 
     def add_children(self, children): # TODO: use the 'set_initial_number_of_sequences' argument.
         if not hasattr(children, "__iter__"):
@@ -441,8 +442,9 @@ class PyMod_sequence_element(PyMod_element):
 
 
     def trackback_sequence(self, sequence_to_align):
-        ali = pmsm.global_pairwise_alignment(self.my_sequence, sequence_to_align)
+        ali = pmsm.global_pairwise_alignment(self.my_sequence.replace("-",""), sequence_to_align)
         self.set_sequence(ali["seq1"])
+
 
     ################################
     # def set_sequence(self, sequence, adjust_sequence=True):
@@ -451,6 +453,7 @@ class PyMod_sequence_element(PyMod_element):
     #     else:
     #         self.my_sequence = sequence
     ################################
+
 
     ###############################################################################################
     # Residues related.                                                                           #

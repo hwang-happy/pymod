@@ -3,6 +3,8 @@ import sys
 import shutil
 from cStringIO import StringIO
 
+import numpy
+
 try:
     import modeller
 except:
@@ -111,6 +113,61 @@ class PyMod_protocol:
             cmd.align(mobile_selection, fixed_selection)
         if save_superposed_structure:
             cmd.save(os.path.join(output_directory, mobile_selection+".pdb"), mobile_selection)
+
+
+    def get_rmsd(self, element_1, element_2):
+        """
+        Takes two 'PyMod_elements' objects and computes a RMSD deviation between their structures
+        loaded in PyMOL. The RMSD is computed between a list of residues pairs defined by the
+        alignment currently existing in PyMod between the two sequences.
+        """
+        list_of_matching_ids_1 = []
+        list_of_matching_ids_2 = []
+        ali_id = 0
+        for id_1, id_2 in zip(element_1.my_sequence, element_2.my_sequence):
+            if id_1 != "-" and id_2 != "-":
+                list_of_matching_ids_1.append(element_1.get_residue_by_index(ali_id, aligned_sequence_index=True).db_index)
+                list_of_matching_ids_2.append(element_2.get_residue_by_index(ali_id, aligned_sequence_index=True).db_index)
+            ali_id += 1
+
+        objsel_1 = element_1.get_pymol_object_name()
+        objsel_2 = element_2.get_pymol_object_name()
+        list_of_distances = []
+
+        for resid_1, resid_2 in zip(list_of_matching_ids_1, list_of_matching_ids_2):
+            res1_arg = "object %s and n. CA and i. %s" % (objsel_1, resid_1)
+            res2_arg = "object %s and n. CA and i. %s" % (objsel_2, resid_2)
+            try:
+                d = cmd.get_distance(res1_arg, res2_arg)
+            except:
+                print "# ERROR IN COMPUTING THE DISTANCE."
+                print res1_arg, res2_arg
+                d = 0.0
+            list_of_distances.append(d)
+
+        # Remove outliers: sometimes CE-align aligns residues that, even if actually homologous,
+        # are found distant from each other, such as residues in proteins' flexible N- or
+        # C-terminus.
+        """
+        from scipy import stats
+        n = len(list_of_distances)
+        mean = numpy.mean(list_of_distances)
+        std = numpy.std(list_of_distances)
+        for d in list_of_distances[:]:
+            tval = (d - mean)/std
+            pval = stats.t.sf(numpy.abs(tval), n-1)*2
+            remove = "keep"
+            if pval*n <= 0.5:
+                list_of_distances.remove(d)
+                remove = "remove"
+            print 't-val = %6.3f p-val = %6.4f, %s' % (tval, pval, remove)
+        """
+        for d in list_of_distances[:]:
+            if d >= 6.5:
+                list_of_distances.remove(d)
+        rmsd = numpy.sqrt(numpy.sum(numpy.square(list_of_distances))/len(list_of_distances))
+
+        return rmsd
 
 
     ###############################################################################################

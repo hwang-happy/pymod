@@ -1018,7 +1018,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
                 matrices_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Matrices", menu = matrices_submenu)
                 matrices_submenu.add_command(label = "Identity matrix", command = lambda e=alignment_element: self.pymod.display_identity_matrix(e))
-                if alignment_element.algorithm in pmdt.can_show_rmsd_matrix: # TODO: and alignment_element.rmsd_list != None:
+                if alignment_element.algorithm in pmdt.can_show_rmsd_matrix and alignment_element.rmsd_dict != None:
                     matrices_submenu.add_command(label = "RMSD matrix", command = lambda e=alignment_element: self.pymod.display_rmsd_matrix(e))
 
                 # Trees.

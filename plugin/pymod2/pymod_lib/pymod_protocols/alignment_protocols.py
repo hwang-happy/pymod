@@ -160,6 +160,8 @@ class Alignment_protocol(PyMod_protocol):
         # Gets the parameters from the GUI in order to chose the kind of alignment to perform.
         self.define_alignment_mode()
 
+        self.get_options_from_gui()
+
         # This list is going to be used inside in other methods of this class needed to perform the
         # alignment.
         self.elements_to_align = []
@@ -179,6 +181,9 @@ class Alignment_protocol(PyMod_protocol):
         if 0: # TODO.
             self.remove_alignment_temp_files()
         self.finish_alignment()
+
+    def get_options_from_gui(self):
+        pass
 
 
     def build_elements_to_align_dict(self, elements_to_align):
@@ -201,14 +206,6 @@ class Alignment_protocol(PyMod_protocol):
 
         # Performs additional operations on the aligned sequences.
         self.perform_additional_sequence_editing()
-        # # Structural alignments tools might have output files which need the
-        # # "display_hybrid_al" method in order to be displayed in the PyMod main window.
-        # if self.alignment_program in pmdt.structural_alignment_tools:
-        #     # Add information to build a root mean square deviation matrix. These RMSD will be
-        #     # computed only once, when the structural alignment first built.
-        #     if pmdt.yesno_dict[self.compute_rmsd_rds.getvalue()]:
-        #         rmsd_list = self.compute_rmsd_list(self.elements_to_align)
-        #         self.alignment_element.alignment.set_rmsd_list(rmsd_list)
 
         # Alignment objects built using different algorithms, store different additional data.
         self.update_additional_information()
@@ -900,13 +897,13 @@ class Regular_alignment(Alignment_protocol):
             # ali_name = "Joined " + self.pymod.set_alignment_element_name(alignment_description, self.pymod.alignment_count)
             # ali_object = self.build_alignment_object(self.alignment_program+"-joined", self.pymod.alignment_count)
             # Builds the new "PyMod_element" object for the new alignment.
-            new_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
+            self.alignment_element = self.pymod.add_new_cluster_to_pymod(cluster_type="alignment",
                                                 # cluster_name=ali_name,
                                                 child_elements=new_elements,
                                                 algorithm=self.alignment_program+"-joined",
                                                 update_stars=True) # sorted(self.elements_to_align,key=lambda el: (el.mother_index,el.child_index)):
             # Moves the new element from the bottom of the list to its new position.
-            self.pymod.change_pymod_element_list_index(new_cluster, lowest_index)
+            self.pymod.change_pymod_element_list_index(self.alignment_element, lowest_index)
 
 
 ###################################################################################################
@@ -955,6 +952,36 @@ class Regular_structural_alignment(Regular_alignment):
         title = "Structures Selection Error"
         message = "Please select two or more structures."
         self.pymod.show_error_message(title, message)
+
+
+    def get_options_from_gui(self):
+        self.compute_rmsd_option = self.alignment_window.get_compute_rmsd_option_value()
+
+
+    def compute_rmsd_dict(self, aligned_elements):
+        """
+        Add information to build a root mean square deviation matrix. These RMSD will be computed
+        only once, when the structural alignment first built.
+        """
+        rmsd_dict =  {}
+        for i, ei in enumerate(aligned_elements):
+            for j, ej in enumerate(aligned_elements):
+                if j > i:
+                    rmsd = self.get_rmsd(ei,ej)
+                    # This will fill "half" of the matrix.
+                    rmsd_dict.update({(ei.unique_index, ej.unique_index): rmsd})
+                    # This will fill the rest of the matrix. Comment this to get an "half" matrix.
+                    rmsd_dict.update({(ej.unique_index, ei.unique_index): rmsd})
+                if j == i:
+                    rmsd_dict.update({(ei.unique_index, ej.unique_index): 0.0})
+        return rmsd_dict
+
+
+    def update_additional_information(self):
+        if self.compute_rmsd_option:
+            self.alignment_element.rmsd_dict = self.compute_rmsd_dict(self.elements_to_align)
+        else:
+            self.alignment_element.rmsd_dict = None
 
 
 ###################################################################################################

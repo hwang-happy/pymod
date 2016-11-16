@@ -3,6 +3,7 @@ from Tkinter import *
 import os
 import sys
 
+import pymod_lib.pymod_vars as pmdt
 from pymod_lib.pymod_gui import shared_components
 
 
@@ -329,14 +330,28 @@ class SALIGN_seq_base_window:
             return False
 
 
-class CEalign_base_window:
-    def build_algorithm_options_widgets(self):
-        pass
+class Structural_alignment_base_window:
+
+    def build_rmsd_option(self):
+        self.compute_rmsd_rds = shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Compute RMSD Matrix')
+        for option in ("Yes","No"):
+            self.compute_rmsd_rds.add(option)
+        self.compute_rmsd_rds.setvalue("Yes")
+        self.compute_rmsd_rds.pack(side = 'top', anchor="w", pady = 10)
+        self.compute_rmsd_rds.set_input_widget_width(10)
+
+    def get_compute_rmsd_option_value(self):
+        return pmdt.yesno_dict[self.compute_rmsd_rds.getvalue()]
 
 
-class SALIGN_str_base_window:
+class CEalign_base_window(Structural_alignment_base_window):
     def build_algorithm_options_widgets(self):
-        pass
+        self.build_rmsd_option()
+
+
+class SALIGN_str_base_window(Structural_alignment_base_window):
+    def build_algorithm_options_widgets(self):
+        self.build_rmsd_option()
 
 
 ###################################################################################################
