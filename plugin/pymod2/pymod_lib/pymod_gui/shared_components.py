@@ -138,25 +138,6 @@ class PyMod_gui_mixin:
 
 
 class PyMod_window_mixin(PyMod_gui_mixin):
-    # def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE", parent_window=None, refresh=True, grid=False):
-    #     """
-    #     Displays error or warning messages and refreshes the sequence window.
-    #     """
-    #     if parent_window == None:
-    #         parent_window = self.main_window
-    #
-    #     if popup_type == "error":
-    #         tkMessageBox.showerror(title_to_show, message_to_show, parent=parent_window)
-    #     elif popup_type == "info":
-    #         tkMessageBox.showinfo(title_to_show, message_to_show, parent=parent_window)
-    #     elif popup_type == "warning":
-    #         tkMessageBox.showwarning(title_to_show, message_to_show, parent=parent_window)
-    #
-    #     if refresh:
-    #         self.deselect_all_sequences()
-    #     if grid:
-    #         self.main_window.gridder()
-
 
     def show_popup_message(self, popup_type="warning", title_to_show="ALLERT", message_to_show="THIS IS AN ALLERT MESSAGE"):
         """
@@ -168,9 +149,6 @@ class PyMod_window_mixin(PyMod_gui_mixin):
             tkMessageBox.showinfo(title_to_show, message_to_show, parent=self)
         elif popup_type == "warning":
             tkMessageBox.showwarning(title_to_show, message_to_show, parent=self)
-
-    # def show_info_message(self, title_to_show,message_to_show,parent_window=None,refresh=True):
-    #     self.show_popup_message("info",title_to_show,message_to_show,parent_window,refresh)
 
     def show_info_message(self, title_to_show, message_to_show):
         self.show_popup_message("info", title_to_show,message_to_show)

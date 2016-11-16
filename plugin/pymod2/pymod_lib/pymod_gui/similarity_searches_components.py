@@ -1,8 +1,5 @@
 from Tkinter import *
 from tkFileDialog import *
-import tkMessageBox
-import tkFont
-import Pmw
 
 import os
 import sys
@@ -17,11 +14,9 @@ class BLAST_base_options_window(shared_components.PyMod_tool_window):
     Base class for windows used in the various alignment protocols.
     """
 
-    def __init__(self, parent = None, protocol = None, title = "PyMod window", upper_frame_title="Here you can...", submit_command=None, with_frame=True, pack_options=None , **configs):
+    def __init__(self, parent = None, protocol = None, **configs):
 
-        shared_components.PyMod_tool_window.__init__(self, parent=parent, title=title, upper_frame_title=upper_frame_title,
-                                   submit_command=submit_command, with_frame=with_frame,
-                                   pack_options=pack_options , **configs)
+        shared_components.PyMod_tool_window.__init__(self, parent=parent, **configs)
         self.current_protocol = protocol
 
         self.current_pack_options = shared_components.pack_options_1

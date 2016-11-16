@@ -892,7 +892,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
         # Structural analysis.
         self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
-        # self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot)
+        self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot_from_main_menu)
         self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
         self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
 

@@ -1,5 +1,4 @@
 # TODO:
-#     - Ramachandran plot.
 #     - superpose.
 #     - adjust the importing of sequences from the MODELLER based algorithms.
 #         - implement the new trackbacking system.
@@ -8,7 +7,7 @@
 #         - control the sequences before modeling.
 #     - add the licence part to each file of the plugin.
 #     - define modified residues.
-#     - interchain modified residues.
+#     - interchain disulfides.
 #     - adjust the structure files part.
 #         - add a "pymol_selector attribute".
 #     - color structures and models, structure appearence and user defined colors.
@@ -23,6 +22,8 @@
 #     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
+#         - associate structure.
+#         - import elements from PyMOL.
 #     - implement the new aid system in the GUI.
 #     - optimize namespaces.
 #     - remove TEST.
@@ -2270,12 +2271,13 @@ class PyMod:
         dope_assessment = pmptc.structural_analysis_protocols.DOPE_assessment(self)
         dope_assessment.launch_from_gui()
 
-#     def ramachandran_plot(self): # TODO.
-#         """
-#         PROCHEK style Ramachandran Plot.
-#         """
-#         pass
 
+    def ramachandran_plot_from_main_menu(self):
+        """
+        PROCHEK style Ramachandran Plot.
+        """
+        ramachandran_plot = pmptc.structural_analysis_protocols.Ramachandran_plot(self)
+        ramachandran_plot.launch_from_gui()
 
     def launch_psipred_from_main_menu(self):
         """

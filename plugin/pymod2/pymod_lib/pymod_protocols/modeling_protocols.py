@@ -3,10 +3,6 @@ import sys
 import shutil
 import subprocess
 
-from Tkinter import *
-import tkMessageBox
-import Pmw
-
 import Bio.SeqIO
 
 import pymol

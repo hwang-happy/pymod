@@ -9,11 +9,6 @@ import numpy
 
 import Bio.PDB
 
-from Tkinter import *
-from tkFileDialog import *
-import tkMessageBox
-import Pmw
-
 import pymol
 from pymol import cmd, stored
 
@@ -27,7 +22,10 @@ import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_sequence_manipulation as pmsm
 import pymod_lib.pymod_plot as pplt
+import pymod_lib.pymod_sup as pmsp
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, MODELLER_common, PSI_BLAST_common
+import pymod_lib.pymod_gui as pmgi
+
 
 ###################################################################################################
 # SECONDARY STRUCTURE ASSIGNMENT.                                                                 #
@@ -517,7 +515,7 @@ class DOPE_assessment(PyMod_protocol, MODELLER_common):
         # Ask users if they would like to color the sequences according to their DOPE values.
         title = "Color Option"
         message = "Would you like to color the selected sequences by their DOPE values, once they have been calculated?"
-        color_by_dope_choice = tkMessageBox.askyesno(message=message, title=title, parent=self.pymod.main_window)
+        color_by_dope_choice = self.pymod.main_window.askyesno_dialog(message=message, title=title)
 
         #------------------------
         # Initializes MODELLER. -
@@ -1059,142 +1057,69 @@ class Energy_minimization(PyMod_protocol, MODELLER_common):
         return opt_code+'.pdb'
 
 
-#     #################################################################
-#     # Ramachandran plot.                                            #
-#     #################################################################
-#
-#     def ramachandran_plot(self):
-#         """
-#         PROCHEK style Ramachandran Plot.
-#         """
-#         selected_sequences = self.get_selected_sequences()
-#
-#         # If there is only one selected sequence and it has a structure loaded into PyMOL.
-#         if len(selected_sequences) == 1 and selected_sequences[0].has_structure():
-#             if not len(str(selected_sequences[0].my_sequence).replace('-','')):
-#                 tkMessageBox.showerror("Selection Error",
-#                     "No residue for Ramachandran Plot generation")
-#                 return
-#
-#             PDB_file=[]
-#             title=''
-#             filename = os.path.join(self.structures_directory, selected_sequences[0].structure.chain_pdb_file_name_root + ".pdb")
-#             header = selected_sequences[0].my_header
-#             if os.path.isfile(filename):
-#                 PDB_file.append(filename)
-#                 if title:
-#                     title=title+", "+header
-#                 else:
-#                     title=header
-#
-#             if PDB_file:
-#                 self.ramachandran_option(PDB_file,title)
-#
-#         else:
-#             self.pymod.show_error_message("Selection Error","Please select one structure to display its Ramachandran Plot.")
-#
-#
-#     def ramachandran_option(self,PDB_file,title): # choose kind of aa to plot
-#
-#         self.child=Toplevel(self.main_window)
-#         self.child.resizable(0,0)
-#         #self.child.geometry('400x500-10+40')
-#         self.child.title("<< Ramachandran Plot Options >>")
-#         self.child.config()
-#         try:
-#             self.child.grab_set()
-#         except:
-#             pass
-#
-#         self.ch_main = Frame(self.child, background="black")
-#         self.ch_main.pack(expand = YES, fill = BOTH)
-#
-#         self.upperframe = Frame(self.ch_main, borderwidth=5,
-#             background="black", relief="groove", pady=15)
-#         self.upperframe.pack(side = TOP, expand = NO, fill = X,
-#                               ipadx = 3, ipady = 3, pady=15)
-#
-#         self.midframe = Frame(self.ch_main, background="black")
-#         self.midframe.pack(side=TOP,fill=BOTH,anchor="n",ipadx=5,ipady=5)
-#
-#         self.lowerframe = Frame(self.ch_main, background="black")
-#         self.lowerframe.pack(side = BOTTOM, expand = NO, fill = Y,
-#             anchor="center", ipadx = 5, ipady = 5)
-#
-#         self.mess=Label(self.upperframe, font = "comic 12", height = 1,
-#             text="Options for Ramachandran Plot",
-#             background="black", fg="white", pady = 2)
-#         self.mess.pack(fill="x")
-#
-#         self.aa_sele_label=Label(self.midframe, font="comic 12", height=1,
-#             text= "Select Amino Acids", background="black", fg="red",
-#             borderwidth = 1, padx = 20)
-#         self.aa_sele_label.grid(row=0, column=0, sticky = W+E+N+S)
-#
-#         def show_select_single_aa_frame():
-#             self.select_single_aa_frame.grid(row=2, column=1, sticky = "w")
-#
-#         def hide_select_single_aa_frame():
-#             self.select_single_aa_frame.grid_remove()
-#
-#         self.aa_sele_options_var = StringVar()
-#         self.aa_sele_options_var.set("all") # ['all','single']
-#
-#         self.use_all_aa = Radiobutton(self.midframe,
-#             text="Use all amino acids", variable=self.aa_sele_options_var,
-#             value="all", background="black", foreground = "white",
-#             selectcolor = "red", highlightbackground="black",
-#             command=hide_select_single_aa_frame)
-#         self.use_all_aa.grid(row=0, column=1, sticky='w')
-#
-#         self.select_single_aa = Radiobutton(self.midframe,
-#             text="Select amino acids", variable=self.aa_sele_options_var,
-#             value="single", background="black", foreground = "white",
-#             selectcolor = "red", highlightbackground="black",
-#             command=show_select_single_aa_frame)
-#         self.select_single_aa.grid(row=1, column=1, sticky='w')
-#
-#         self.select_single_aa_frame=Frame(self.midframe,background="black")
-#
-#         AA_one_letter_list='ACDEFGHIKLMNPQRSTVWY'
-#         self.aa_sele_var=dict()
-#         self.aa_checkbutton=dict()
-#         for i,aa in enumerate(AA_one_letter_list):
-#             self.aa_sele_var[aa]=IntVar()
-#             aa_freq=str(self.get_selected_sequences()[0].my_sequence
-#                 ).count(aa)
-#             self.aa_checkbutton[aa]=Checkbutton(
-#                 self.select_single_aa_frame,
-#                 text=self.one2three(aa)+" ("+str(aa_freq)+")",
-#                 variable=self.aa_sele_var[aa], background="black",
-#                 foreground="white",selectcolor="red",
-#                 highlightbackground="black")
-#             self.aa_checkbutton[aa].grid(row=i%10,column=i/10,sticky='w')
-#             # Only enable selection of aa present in primary sequence
-#             if not aa_freq:
-#                 self.aa_checkbutton[aa].config(state=DISABLED)
-#
-#
-#         def state():
-#             AA_list=None
-#             title_append=''
-#             if self.aa_sele_options_var.get()=="single":
-#                 AA_list=''
-#                 for aa in AA_one_letter_list:
-#                     if self.aa_sele_var[aa].get():
-#                         AA_list+=aa
-#                 if AA_list:
-#                     title_append=" (Amino Acid: "+AA_list+")"
-#                 else:
-#                     tkMessageBox.showerror("Selection Error",
-#                         "No residue for Ramachandran Plot generation")
-#                     return
-#             pmsp.ramachandran(PDB_file,title+title_append,AA_list=AA_list)
-#             self.child.destroy()
-#
-#         self.submit=Button(self.lowerframe, text="SUBMIT", command=state,
-#             relief="raised", borderwidth="3", bg="black", fg="white")
-#         self.submit.pack()
+class Ramachandran_plot(PyMod_protocol):
+
+    AA_one_letter_list='ACDEFGHIKLMNPQRSTVWY'
+
+    def __init__(self, pymod, target_sequences=None):
+        PyMod_protocol.__init__(self, pymod)
+        self.target_sequences = self.get_pymod_elements(target_sequences)
+
+
+    def launch_from_gui(self):
+        """
+        PROCHEK style Ramachandran Plot.
+        """
+        if not len(self.target_sequences) == 1 or not self.target_sequences[0].has_structure():
+            self.pymod.main_window.show_error_message("Selection Error","Please select one structure to display its Ramachandran Plot.")
+            return None
+
+        if not len(str(self.target_sequences[0].my_sequence).replace('-','')):
+            self.pymod.main_window.show_error_message("Selection Error", "No residue for Ramachandran Plot generation")
+            return None
+
+        self.target_sequence = self.target_sequences[0]
+
+        self.PDB_file=[]
+        self.title=''
+        filename = self.target_sequence.get_structure_file(name_only=False)
+        header = self.target_sequence.my_header
+        if os.path.isfile(filename):
+            self.PDB_file.append(filename)
+            if self.title:
+                self.title=title+", "+header
+            else:
+                self.title=header
+
+        if self.PDB_file:
+            self.ramachandran_option(self.PDB_file,self.title)
+
+
+    def ramachandran_option(self,PDB_file,title): # choose kind of aa to plot
+        self.options_window = pmgi.structural_analysis_components.Ramachandran_plot_options_window(
+            parent=self.pymod.main_window,
+            protocol=self,
+            title = "Ramachandran Plot Options",
+            upper_frame_title = "Options for Ramachandran Plot",
+            submit_command = self.options_window_state)
+
+
+    def options_window_state(self):
+        AA_list=None
+        title_append=''
+        if self.options_window.aa_sele_options_var.get()=="single":
+            AA_list=''
+            for aa in self.AA_one_letter_list:
+                if self.options_window.aa_sele_var[aa].get():
+                    AA_list+=aa
+            if AA_list:
+                title_append=" (Amino Acid: "+AA_list+")"
+            else:
+                self.options_window.show_error_message("Selection Error",
+                    "No residue for Ramachandran Plot generation")
+                return
+        pmsp.ramachandran(self.PDB_file,self.title+title_append,AA_list=AA_list)
+        self.options_window.destroy()
 
 
 #     #################################################################
