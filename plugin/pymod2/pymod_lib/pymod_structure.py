@@ -248,20 +248,18 @@ class Parsed_pdb_file:
             dsb_chain_i = self._correct_chain_id(dsb["chain_i"])
             # Get the chain of the second SG.
             dsb_chain_j = self._correct_chain_id(dsb["chain_j"])
+            new_dsb = Disulfide_bridge(cys1=dsb["residue_i"][1], cys2=dsb["residue_j"][1],
+                                       cys1_seq_index=self.get_pymod_element_by_chain(dsb_chain_i).get_residue_seq_id_from_db_id(dsb["residue_i"][1]),
+                                       cys2_seq_index=self.get_pymod_element_by_chain(dsb_chain_j).get_residue_seq_id_from_db_id(dsb["residue_j"][1]),
+                                       cys1_chain=dsb_chain_i, cys2_chain=dsb_chain_j,
+                                       distance=dsb["distance"], chi3_dihedral=dsb["chi3_dihedral"])
             # For intrachain residues.
             if dsb_chain_i == dsb_chain_j:
-                chain_element = self.get_pymod_element_by_chain(dsb_chain_i)
-                new_dsb = Disulfide_bridge(cys1=dsb["residue_i"][1], cys2=dsb["residue_j"][1],
-                                           cys1_seq_index=chain_element.get_residue_seq_id_from_db_id(dsb["residue_i"][1]),
-                                           cys2_seq_index=chain_element.get_residue_seq_id_from_db_id(dsb["residue_j"][1]),
-                                           cys1_chain=dsb_chain_i, cys2_chain=dsb_chain_j,
-                                           distance=dsb["distance"], chi3_dihedral=dsb["chi3_dihedral"])
-                chain_element.add_disulfide(disulfide=new_dsb)
+                self.get_pymod_element_by_chain(dsb_chain_i).add_disulfide(disulfide=new_dsb)
             # For interchain residues.
             else:
-                raise Exception("interchain")
-                # self.get_pymod_element_by_chain(dsb_chain_j).add_disulfide(disulfide=dsb)
-                # self.get_pymod_element_by_chain(dsb_chain_i).add_disulfide(disulfide=dsb)
+                self.get_pymod_element_by_chain(dsb_chain_j).add_disulfide(disulfide=new_dsb)
+                self.get_pymod_element_by_chain(dsb_chain_i).add_disulfide(disulfide=new_dsb)
 
 
     def get_pymod_element_by_chain(self, chain_id):
