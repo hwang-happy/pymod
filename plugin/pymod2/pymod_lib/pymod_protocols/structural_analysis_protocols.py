@@ -1122,26 +1122,30 @@ class Ramachandran_plot(PyMod_protocol):
         self.options_window.destroy()
 
 
-#     #################################################################
-#     # Superpose.                                                    #
-#     #################################################################
-#
-#     def superpose(self):
-#         """
-#         Called from the main menu. This will superpose to a 'fixed' structure (the first one in the
-#         selection) one or more 'mobile' structures.
-#         """
-#         correct_selection = False
-#         structures_to_superpose = self.get_selected_sequences()
-#         if len(structures_to_superpose) >= 2:
-#             if not False in [e.has_structure() for e in structures_to_superpose]:
-#                 correct_selection = True
-#         if correct_selection:
-#             for i in range(1, len(structures_to_superpose)):
-#                 sel1 = structures_to_superpose[0].build_chain_selector_for_pymol()
-#                 sel2 = structures_to_superpose[i].build_chain_selector_for_pymol()
-#                 self.superpose_in_pymol(sel2, sel1)
-#         else:
-#             self.show_error_message("Selection Error","Please select at least two structures before superposing")
-#
-#
+###################################################################################################
+# Superpose.                                                                                      #
+###################################################################################################
+
+class Superpose(PyMod_protocol):
+
+    def __init__(self, pymod, target_sequences=None):
+        PyMod_protocol.__init__(self, pymod)
+        self.target_sequences = self.get_pymod_elements(target_sequences)
+
+    def launch_from_gui(self):
+        if len(self.target_sequences) >= 2 and not False in [e.has_structure() for e in self.target_sequences]:
+            self.superpose()
+        else:
+            self.pymod.main_window.show_error_message("Selection Error","Please select at least two structures before superposing.")
+
+
+    def superpose(self):
+        """
+        Called from the main menu. This will superpose to a 'fixed' structure (the first one in the
+        selection) one or more 'mobile' structures.
+        """
+        structures_to_superpose = self.target_sequences
+        for i in range(1, len(structures_to_superpose)):
+            sel1 = structures_to_superpose[0].get_pymol_object_name()
+            sel2 = structures_to_superpose[i].get_pymol_object_name()
+            self.superpose_in_pymol(sel2, sel1)

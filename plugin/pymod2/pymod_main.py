@@ -1,16 +1,13 @@
 # TODO:
-#     - superpose.
-#     - adjust the importing of sequences from the MODELLER based algorithms.
-#         - implement the new trackbacking system.
 #     - RMSD part.
 #     - integrate the modifications made in the stable branch.
 #         - control the sequences before modeling.
-#     - add the licence part to each file of the plugin.
-#     - define modified residues.
 #     - interchain disulfides.
+#     - define modified residues.
 #     - adjust the structure files part.
 #         - add a "pymol_selector attribute".
-#     - color structures and models, structure appearence and user defined colors.
+#         - associate structures.
+#         - import elements from PyMOL.
 #     - pymod_vars: remove the unused variables.
 #     - pymod_update: fix the updater (rename files to avoid conflict).
 #     - pymod_element: check the attributes and methods that are actually used in the rest of the plugin.
@@ -22,10 +19,10 @@
 #     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
-#         - associate structure.
-#         - import elements from PyMOL.
 #     - implement the new aid system in the GUI.
 #     - optimize namespaces.
+#     - color structures and models, structure appearence and user defined colors.
+#     - add the licence part to each file of the plugin.
 #     - remove TEST.
 
 ###########################################################################
@@ -723,9 +720,9 @@ class PyMod:
 
         # Simple clusters.
         a = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
-        c = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
         a.get_children()[0].set_as_lead()
-        c.get_children()[0].set_as_lead()
+        # c = self.build_cluster_from_alignment_file(os.path.join(seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+        # c.get_children()[0].set_as_lead()
         e = self.build_pymod_element_from_args("test", "KLAPPALLAIQYAMNCVVVXQWERTASDFLAPHKF")
         self.replace_element(a.get_children()[1], e)
         # a.add_child(c)
@@ -734,13 +731,13 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/rubic 1/run.fasta"))
 
         # Dimer: complex case.
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
         # CXCR4.
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0.pdb"))
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
@@ -2287,7 +2284,9 @@ class PyMod:
         psipred_protocol.launch_from_gui()
 
 
-    # TODO: superpose.
+    def superpose_from_main_menu(self):
+        psipred_protocol = pmptc.structural_analysis_protocols.Superpose(self)
+        psipred_protocol.launch_from_gui()
 
 
     ###############################################################################################

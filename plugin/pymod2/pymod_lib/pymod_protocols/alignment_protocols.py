@@ -236,59 +236,63 @@ class Alignment_protocol(PyMod_protocol):
 
     def update_aligned_sequences_inserting_modres(self, replace_modres_symbol=None):
         """
-        When saving alignments from PyMOL object built using cealign, PyMOL removes heteroresidues.
-        This code will be needed to reinsert them in the aligned sequences parsed from the alignment
-        output file built by PyMOL.
+        When importing alignments built by programs that remove the modified residues (X symbols),
+        from the sequences this method will reinsert them in the sequences.
         """
         # Gets from an alignment file the aligned sequences.
         input_handle = open(os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".aln"), "rU")
         records = list(SeqIO.parse(input_handle, "clustal"))
         input_handle.close()
-        lnseq_list = []
-        elements_to_update = []
+        # Updates the sequences.
         for a, r in enumerate(records):
-            if replace_modres_symbol:
-                lnseq_list.append(filter(lambda p: p != replace_modres_symbol, list(str(r.seq))))
-            else:
-                lnseq_list.append(list(str(r.seq)))
             element_to_update = self.elements_to_align_dict[str(r.id)]
-            elements_to_update.append(element_to_update)
-        # Define where the new heteroresidues will have to be inserted in the updated sequences.
-        modres_insert_indices_dict = {}
-        for element, lnseq in zip(elements_to_update, lnseq_list):
-            modres_count = 0
-            modres_gapless_indices = [i for i,r in enumerate(element.residues) if r.is_modified_residue()]
-            for modres_index in modres_gapless_indices:
-                rc = 0
-                insert_index = -1
-                for i,p in enumerate(lnseq):
-                    if p != "-":
-                        if rc == modres_index:
-                            insert_index = i + modres_count
-                            modres_count += 1
-                        rc += 1
-                if insert_index == -1:
-                    insert_index = len(lnseq) + modres_count
-                if not insert_index in modres_insert_indices_dict.keys():
-                    modres_insert_indices_dict.update({insert_index: [element]})
-                else:
-                    modres_insert_indices_dict[insert_index].append(element)
-        # Updates the sequences with the missing heteroresidues.
-        modres_count = 0
-        for insert_index in sorted(modres_insert_indices_dict.keys()):
-            for e, lnseq in zip(elements_to_update, lnseq_list):
-                if e in modres_insert_indices_dict[insert_index]:
-                    lnseq.insert(insert_index + modres_count, pmdt.modified_residue_one_letter)
-                else:
-                    lnseq.insert(insert_index + modres_count, "-")
-            modres_count += 1
-        # Updated the sequences in PyMod.
-        for e, lnseq in zip(elements_to_update, lnseq_list):
-            self.update_single_element_sequence(e, "".join(lnseq))
+            element_to_update.trackback_sequence(r.seq)
+
+        # lnseq_list = []
+        # elements_to_update = []
+        # for a, r in enumerate(records):
+        #     if replace_modres_symbol:
+        #         lnseq_list.append(filter(lambda p: p != replace_modres_symbol, list(str(r.seq))))
+        #     else:
+        #         lnseq_list.append(list(str(r.seq)))
+        #     element_to_update = self.elements_to_align_dict[str(r.id)]
+        #     elements_to_update.append(element_to_update)
+        # # Define where the new heteroresidues will have to be inserted in the updated sequences.
+        # modres_insert_indices_dict = {}
+        # for element, lnseq in zip(elements_to_update, lnseq_list):
+        #     modres_count = 0
+        #     modres_gapless_indices = [i for i,r in enumerate(element.residues) if r.is_modified_residue()]
+        #     for modres_index in modres_gapless_indices:
+        #         rc = 0
+        #         insert_index = -1
+        #         for i,p in enumerate(lnseq):
+        #             if p != "-":
+        #                 if rc == modres_index:
+        #                     insert_index = i + modres_count
+        #                     modres_count += 1
+        #                 rc += 1
+        #         if insert_index == -1:
+        #             insert_index = len(lnseq) + modres_count
+        #         if not insert_index in modres_insert_indices_dict.keys():
+        #             modres_insert_indices_dict.update({insert_index: [element]})
+        #         else:
+        #             modres_insert_indices_dict[insert_index].append(element)
+        # # Updates the sequences with the missing heteroresidues.
+        # modres_count = 0
+        # for insert_index in sorted(modres_insert_indices_dict.keys()):
+        #     for e, lnseq in zip(elements_to_update, lnseq_list):
+        #         if e in modres_insert_indices_dict[insert_index]:
+        #             lnseq.insert(insert_index + modres_count, pmdt.modified_residue_one_letter)
+        #         else:
+        #             lnseq.insert(insert_index + modres_count, "-")
+        #     modres_count += 1
+        # # Updated the sequences in PyMod.
+        # for e, lnseq in zip(elements_to_update, lnseq_list):
+        #     self.update_single_element_sequence(e, "".join(lnseq))
 
 
     def update_single_element_sequence(self, element_to_update, new_sequence):
-        element_to_update.set_sequence(str(new_sequence)) # self.correct_sequence
+        element_to_update.set_sequence(str(new_sequence))
 
 
     def perform_additional_sequence_editing(self):
@@ -1607,7 +1611,7 @@ class SALIGN_seq_alignment(SALIGN_alignment):
 
 
     def update_aligned_sequences(self):
-        self.update_aligned_sequences_inserting_modres(replace_modres_symbol=".")
+        self.update_aligned_sequences_inserting_modres()
 
 
 class SALIGN_seq_regular_alignment(SALIGN_seq_alignment, Regular_sequence_alignment):

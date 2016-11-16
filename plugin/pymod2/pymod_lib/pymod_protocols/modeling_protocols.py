@@ -872,7 +872,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         was encountered.
         """
         # Displayes the models in PyMod main window, if some were built.
-        self.pymod.main_window.gridder(update_menus=True, clear_selection=True, update_elements=successful)
+        self.pymod.main_window.gridder(update_menus=True, clear_selection=True, update_elements=successful, update_clusters=successful)
         if successful:
             # Colors the models and templates according to their DOPE values.
             for element in self.all_assessed_structures_list:
