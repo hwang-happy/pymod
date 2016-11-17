@@ -15,6 +15,7 @@
 #     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
+#         - structures submenu in the main menu.
 #     - implement the new aid system in the GUI.
 #     - integrate the modifications made in the stable branch.
 #         - control the sequences before modeling.
@@ -731,11 +732,11 @@ class PyMod:
         # Dimer: complex case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/complex_dimer/th.fasta"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
         # CXCR4.
-        # self.open_structure_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0.pdb"))
-        # self.open_sequence_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
+        self.open_structure_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0.pdb"))
+        self.open_sequence_file(os.path.join(seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/casp_dimer/t2.fasta"))
@@ -744,7 +745,7 @@ class PyMod:
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
         # Interchain disulfides.
-        self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/1ru9.pdb"))
+        # self.open_structure_file(os.path.join(seqs_dir,"modeling/disulfides/1ru9.pdb"))
         # Ubiquitin.
         # self.open_sequence_file(os.path.join(seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
         # self.open_structure_file(os.path.join(seqs_dir,"modeling/ubiquitin/1ubi.pdb"))

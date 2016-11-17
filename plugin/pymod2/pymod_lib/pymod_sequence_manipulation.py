@@ -1,6 +1,6 @@
 import re
 import Bio
-from Bio.pairwise2 import format_alignment
+import Bio.pairwise2 # from Bio.pairwise2 import format_alignment
 
 import pymod_vars as pmdt
 
@@ -152,11 +152,21 @@ def count_indels_to_next_residue(seq, start_real_id):
              "end-aligned-id": start_aligned_id+1}
 
 
-def global_pairwise_alignment(seq1, seq2, toss_modres=False):
+def global_pairwise_alignment(seq1, seq2, toss_modres=False, use_matrix=False):
     """
     If seq1 contains gaps, also aseq1 will maintain these gaps.
     """
-    ali = Bio.pairwise2.align.globalms(seq1, seq2, 2, -1, -.5, -.1)
+
+    if use_matrix:
+        from Bio.SubsMat import MatrixInfo as matlist
+        matrix = matlist.blosum62.copy()
+        matrix.update({("X","X"):5})
+        [matrix.update({("-", i):-1}) for i in "QWERTYIPASDFGHKLXCVNM"]
+        [matrix.update({(i, "-"):-1}) for i in "QWERTYIPASDFGHKLXCVNM"]
+        ali = Bio.pairwise2.align.globaldx(seq1, seq2, matrix)
+    else:
+        ali = Bio.pairwise2.align.globalms(seq1, seq2, 2, -1, -.5, -.1)
+
     aseq1 = ali[0][0]
     aseq2 = ali[0][1]
     seqid, matches = compute_sequence_identity(aseq1, aseq2, return_matches=True, toss_modres=toss_modres)
