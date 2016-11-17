@@ -242,80 +242,35 @@ class Alignment_protocol(PyMod_protocol):
         input_handle.close()
 
         # Aligns the full sequences (with 'X' characters) to the sequence without 'X' characters.
+        elements_to_update = [self.elements_to_align_dict[str(r.id)] for r in records]
         residues_to_insert_dict = {}
         elements_seqlist_dict = {}
-        inserted_res_ids = {}
-        elements_to_update = [self.elements_to_align_dict[str(r.id)] for r in records]
         for e, r in zip(elements_to_update, records):
             new_seq, old_seq = e.trackback_sequence(r.seq)
             # Gets the list of indices where 'X' were inserted.
-            ids = [i for i, (rn, ro) in enumerate(zip(new_seq, old_seq)) if rn == "X" and ro == "-"]
-            residues_to_insert_dict.update({e: ids})
-            inserted_res_ids.update({e:[]})
+            for i, (rn, ro) in enumerate(zip(new_seq, old_seq)):
+                if rn == "X" and ro == "-":
+                    if residues_to_insert_dict.has_key(i):
+                        residues_to_insert_dict[i].append(e)
+                    else:
+                        residues_to_insert_dict.update({i:[e]})
             # Builds lists from sequences.
             elements_seqlist_dict.update({e: list(e.my_sequence)})
 
-        # # For each inserted 'X' in a sequence, insert gaps in other sequences.
-        # res_id_counter = 0
-        # for ei in elements_to_update:
-        #     for ej in elements_to_update:
-        #         if not ei == ej:
-        #             for res_id in residues_to_insert_dict[ei]:
-        #                 if not res_id in residues_to_insert_dict[ej] and not res_id in inserted_res_ids[ej]:
-        #                     elements_seqlist_dict[ej].insert(res_id,"-")
-        #                     inserted_res_ids[ej].append(res_id+1)
-        #                     # Updates the indices of other residues to insert.
-        #                     for e in elements_to_update:
-        #                         for i,r in enumerate(residues_to_insert_dict[e]):
-        #                             if res_id <= r:
-        #                                 residues_to_insert_dict[e][i] += 1
-        #                             # elif res_id == r:
-        #                             #     residues_to_insert_dict[e].remove(r)
-        # # Actually updates the sequences.
-        # for e in elements_to_update:
-        #     e.set_sequence("".join(elements_seqlist_dict[e]))
+        # For each inserted 'X' in a sequence, insert gaps in other sequences.
+        inserted_res_count = 0
+        for res_id in sorted(residues_to_insert_dict.keys()):
+            inserted = False
+            for e in elements_to_update:
+                if not e in residues_to_insert_dict[res_id]:
+                    elements_seqlist_dict[e].insert(res_id+inserted_res_count,"-")
+                    inserted = True
+            if inserted:
+                inserted_res_count += 1
 
-        # lnseq_list = []
-        # elements_to_update = []
-        # for a, r in enumerate(records):
-        #     if replace_modres_symbol:
-        #         lnseq_list.append(filter(lambda p: p != replace_modres_symbol, list(str(r.seq))))
-        #     else:
-        #         lnseq_list.append(list(str(r.seq)))
-        #     element_to_update = self.elements_to_align_dict[str(r.id)]
-        #     elements_to_update.append(element_to_update)
-        # # Define where the new heteroresidues will have to be inserted in the updated sequences.
-        # modres_insert_indices_dict = {}
-        # for element, lnseq in zip(elements_to_update, lnseq_list):
-        #     modres_count = 0
-        #     modres_gapless_indices = [i for i,r in enumerate(element.residues) if r.is_modified_residue()]
-        #     for modres_index in modres_gapless_indices:
-        #         rc = 0
-        #         insert_index = -1
-        #         for i,p in enumerate(lnseq):
-        #             if p != "-":
-        #                 if rc == modres_index:
-        #                     insert_index = i + modres_count
-        #                     modres_count += 1
-        #                 rc += 1
-        #         if insert_index == -1:
-        #             insert_index = len(lnseq) + modres_count
-        #         if not insert_index in modres_insert_indices_dict.keys():
-        #             modres_insert_indices_dict.update({insert_index: [element]})
-        #         else:
-        #             modres_insert_indices_dict[insert_index].append(element)
-        # # Updates the sequences with the missing heteroresidues.
-        # modres_count = 0
-        # for insert_index in sorted(modres_insert_indices_dict.keys()):
-        #     for e, lnseq in zip(elements_to_update, lnseq_list):
-        #         if e in modres_insert_indices_dict[insert_index]:
-        #             lnseq.insert(insert_index + modres_count, pmdt.modified_residue_one_letter)
-        #         else:
-        #             lnseq.insert(insert_index + modres_count, "-")
-        #     modres_count += 1
-        # # Updated the sequences in PyMod.
-        # for e, lnseq in zip(elements_to_update, lnseq_list):
-        #     self.update_single_element_sequence(e, "".join(lnseq))
+        # Actually updates the sequences.
+        for e in elements_to_update:
+            e.set_sequence("".join(elements_seqlist_dict[e]))
 
 
     def update_single_element_sequence(self, element_to_update, new_sequence):
