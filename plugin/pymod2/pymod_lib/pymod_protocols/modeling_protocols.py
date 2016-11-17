@@ -1201,9 +1201,9 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         #---------------------------------------
         self.pir_file_path = os.path.join(self.modeling_directory, self.pir_file_name)
 
-        #--------------------------------------------------------------------
-        # Chenages the current working directory to the modeling directory. -
-        #--------------------------------------------------------------------
+        #-------------------------------------------------------------------
+        # Changes the current working directory to the modeling directory. -
+        #-------------------------------------------------------------------
         # The current directory has to be changed beacause in Modeller the user can't change the
         # output directory, it has to be the current directory.
         os.chdir(self.modeling_directory)

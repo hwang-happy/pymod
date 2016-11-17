@@ -1,5 +1,4 @@
 # TODO:
-#     - define modified residues.
 #     - adjust the structure files part.
 #         - add a "pymol_selector attribute".
 #         - associate structures.

@@ -129,7 +129,7 @@ class Parsed_pdb_file:
                     if hetfield[0] == "H":
                         # Check if the current HETRES is a modified residue. Modified residues will
                         # be added to the primary sequence.
-                        if self._check_modified_residue(residue):
+                        if self._check_modified_residue(residue, chain):
                             parsed_chain["residues"].append(pmel.PyMod_modified_residue(three_letter_code=resname, one_letter_code=pmdt.modified_residue_one_letter, db_index=pdb_position))
                         else:
                             parsed_chain["residues"].append(pmel.PyMod_ligand(three_letter_code=resname, one_letter_code=pmdt.ligand_one_letter, db_index=pdb_position))
@@ -201,23 +201,107 @@ class Parsed_pdb_file:
         Parsed_pdb_file.counter += 1
 
 
-    def get_pymod_elements(self):
-        return self.list_of_pymod_elements
-
-    def get_structure_args(self):
-        return self.list_of_chains_structure_args
-
-
     def _correct_chain_id(self, chain_id):
         if chain_id != " ":
             return chain_id
         else:
             return self.blank_chain_character
 
-    def _check_modified_residue(self, residue):
-        # TODO: make this better.
+
+    def get_pymod_elements(self):
+        return self.list_of_pymod_elements
+
+    def get_structure_args(self):
+        return self.list_of_chains_structure_args
+
+    def get_pymod_element_by_chain(self, chain_id):
+        for e in self.list_of_pymod_elements:
+            if e.get_chain_id() == chain_id:
+                return e
+        raise Exception("No element with chain '%s' was built from the parsed PDB file." % chain_id)
+
+    def get_structure_args_by_chain(self, chain_id):
+        for e in self.list_of_chains_structure_args:
+            if e.chain_id == chain_id:
+                return e
+        raise Exception("No chain with id '%s' is present in the parsed PDB file." % chain_id)
+
+
+    #################################################################
+    # Check if a residue is part of a molecule.                     #
+    #################################################################
+
+    peptide_bond_distance = 1.8
+
+    def _check_modified_residue(self, residue, chain):
+        """
+        Returns 'True' if the residue is a modified residue, 'False' if is a ligand.
+        """
+        if not self._check_polypetide_atoms(residue):
+            return False
+        # Checks if the heteroresidue is forming a peptide bond with its N amino atom.
+        has_carboxy_link = self._find_links(residue, chain, self._get_carboxy_atom, self._get_amino_atom, "N")
+        # Checks if the heteroresidue is forming a peptide bond with its C carboxy atom.
+        has_amino_link = self._find_links(residue, chain, self._get_carboxy_atom, self._get_amino_atom, "C")
+        return has_carboxy_link or has_amino_link
+
+    def _check_polypetide_atoms(self, residue):
+        """
+        Checks if a residue has the necessary atoms to make peptide bonds.
+        """
         return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
 
+    def _find_links(self, residue, chain, get_neighbour_atoms, get_residue_atom, link="N"):
+        # Find other residues in the chain having an atom which can make a peptide bond with the
+        # 'residue' provided in the argument.
+        neighbour_atoms = []
+        for res in chain.get_residues():
+            if not res == residue:
+                neighbour_atom = get_neighbour_atoms(res)
+                if neighbour_atom:
+                    neighbour_atoms.append(neighbour_atom)
+        # Get either the N amino or C carboxy atom of the residue.
+        residue_atom = get_residue_atom(residue)
+        # Check if there is a neighbour atom close enough to make a peptide bond with it. If such
+        # atom is found, the residue is a part of a polypeptide chain.
+        for atom in neighbour_atoms:
+            distance = atom - residue_atom
+            if distance < 1.8:
+                print "Found %s-link:" % link, residue, atom.get_parent() # TODO: remove.
+                return True
+        return False
+
+    def _get_carboxy_atom(self, residue):
+        return self._get_atom_by_type(residue, ("C", "C1"))
+
+    def _get_amino_atom(self, residue):
+        return self._get_atom_by_type(residue, ("N", "N2"))
+
+    def _get_atom_by_type(self, residue, atom_types_tuple):
+        for atom_type in atom_types_tuple:
+            if residue.child_dict.has_key(atom_type):
+                return residue.child_dict[atom_type]
+        return None
+
+    def _get_flanking_residues(self, residue, chain):
+        residues_list = list(chain.get_residues())
+        # Get the previous residue.
+        previous_index = residues_list.index(residue) - 1
+        if previous_index < 0:
+            previous_residue = None
+        else:
+            previous_residue = residues_list[previous_index]
+        # Get the next residue.
+        try:
+            next_residue = residues_list[residues_list.index(residue) + 1]
+        except IndexError:
+            next_residue = None
+        return previous_residue, next_residue
+
+
+    #################################################################
+    # Build files and PyMod elements from the parsed structure.     #
+    #################################################################
 
     def _get_structure_chain_file_name(self, chain_id):
         return pmdt.structure_chain_temp_name % (Parsed_pdb_file.counter, chain_id)
@@ -237,6 +321,10 @@ class Parsed_pdb_file:
         list_of_model_chains_colors = pmdt.pymol_regular_colors_list
         return list_of_model_chains_colors[chain_number % len(list_of_model_chains_colors)]
 
+
+    #################################################################
+    # Analyze structural features.                                  #
+    #################################################################
 
     def _assign_disulfide_bridges(self):
         """
@@ -260,19 +348,6 @@ class Parsed_pdb_file:
             else:
                 self.get_pymod_element_by_chain(dsb_chain_j).add_disulfide(disulfide=new_dsb)
                 self.get_pymod_element_by_chain(dsb_chain_i).add_disulfide(disulfide=new_dsb)
-
-
-    def get_pymod_element_by_chain(self, chain_id):
-        for e in self.list_of_pymod_elements:
-            if e.get_chain_id() == chain_id:
-                return e
-        raise Exception("No element with chain '%s' was built from the parsed PDB file." % chain_id)
-
-    def get_structure_args_by_chain(self, chain_id):
-        for e in self.list_of_chains_structure_args:
-            if e.chain_id == chain_id:
-                return e
-        raise Exception("No chain with id '%s' is present in the parsed PDB file." % chain_id)
 
 
     # def _get_sequence_using_ppb(pdb_file_path, output_directory=""):
