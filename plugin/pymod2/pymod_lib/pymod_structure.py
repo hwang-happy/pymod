@@ -237,6 +237,7 @@ class Parsed_pdb_file:
         """
         Returns 'True' if the residue is a modified residue, 'False' if is a ligand.
         """
+        return False
         if not self._check_polypetide_atoms(residue):
             return False
         # Checks if the heteroresidue is forming a peptide bond with its N amino atom.

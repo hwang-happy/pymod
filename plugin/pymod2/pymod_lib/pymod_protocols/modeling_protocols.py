@@ -262,7 +262,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         if not self.check_all_modeling_parameters():
             # "Please Fill all the Fields"
             title = "Input Error"
-            self.pymod.show_error_message(title, self.modelization_parameters_error, self.modeling_window, refresh=False)
+            self.modeling_window.show_error_message(title, self.modelization_parameters_error)
             return None
 
         self.set_modeling_options()
@@ -1048,6 +1048,10 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             if not self.check_symmetry_restraints_vars():
                 return False
 
+        # Check if the alignments can be given as correct input to MODELLER.
+        if not self.check_alignments():
+            return False
+
         # Returns 'True' only if all parameters are correct.
         return True
 
@@ -1155,6 +1159,19 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             return self.modeling_clusters_list
 
 
+    def check_alignments(self):
+        """
+        Checks if correct alignments are being provided.
+        """
+        for modeling_cluster in self.modeling_clusters_list:
+            for template in modeling_cluster.templates_list:
+                for target_char, template_char in zip(modeling_cluster.target.my_sequence, template.my_sequence):
+                    if target_char == "X" and template_char == "-":
+                        self.modelization_parameters_error = "No aligned template residues for an X residue of '%s' target sequence. Make sure that each X residues in your target sequences is aligned with your templates." % (modeling_cluster.target_name)
+                        return False
+        return True
+
+
     #################################################################
     # Get modeling paremeters from the GUI.                         #
     #################################################################
@@ -1251,7 +1268,9 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         # target and templates.                                                               -
         #--------------------------------------------------------------------------------------
         self.hetres_to_use = []
+
         for modeling_cluster in self.modeling_clusters_list:
+
             # Get the heteroresidues and water molecules of the templates.
             for template in modeling_cluster.templates_list:
                 for res in template.get_residues(standard=False, ligands=self.use_hetatm_in_session, modified_residues=self.use_hetatm_in_session, water=self.use_water_in_session):
@@ -1259,10 +1278,12 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                                    "use_hetres": modeling_cluster.template_options_dict[template]["hetres_dict"][res],
                                    "insert_index": None,
                                    "template": template, "modeling_cluster": modeling_cluster}
-                    if not res.is_polymer_residue():
-                        hetres_dict["insert_index"] = template.get_next_residue_id(res, aligned_sequence_index=True)
-                    else:
+                    # Modified residues.
+                    if res.is_polymer_residue():
                         hetres_dict["insert_index"] = res.get_id_in_aligned_sequence()
+                    # Ligands and water molecules.
+                    else:
+                        hetres_dict["insert_index"] = template.get_next_residue_id(res, aligned_sequence_index=True)
                     self.hetres_to_use.append(hetres_dict)
 
             # Initializes the templates and target pir sequences.
@@ -1293,7 +1314,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         # Write the template sequences. -
         #--------------------------------
 
-        # First write the template complex block.
+        # First write the template complex block (only for multiple chain mode).
         if self.multiple_chain_mode:
             print >> pir_align_file_handle, ">P1;%s" % self.template_complex_modeller_name
             print >> pir_align_file_handle, "structure:%s:.:.:.:.::::" % self.template_complex_modeller_name # TODO: (template_code,template_chain,template_chain)
@@ -1346,9 +1367,15 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 return False
 
         for modeling_cluster in self.modeling_clusters_list:
-            for seq in modeling_cluster.get_modeling_elements():
-                for ri in filter(lambda r: r["modeling_cluster"] == modeling_cluster and select_residues(r["residue"]), self.hetres_to_use):
+            hetres_to_insert_count_dict = {}
+            for e in modeling_cluster.get_modeling_elements():
+                hetres_to_insert_count_dict.update({e: 0})
+            for ri in filter(lambda r: r["modeling_cluster"] == modeling_cluster and select_residues(r["residue"]), self.hetres_to_use):
+                for seq in modeling_cluster.get_modeling_elements():
+            # for seq in modeling_cluster.get_modeling_elements():
+            #     for ri in filter(lambda r: r["modeling_cluster"] == modeling_cluster and select_residues(r["residue"]), self.hetres_to_use):
                     # Ligands and water molecules.
+
                     if not ri["residue"].is_polymer_residue():
                         # Choose the symbol to use for the heteroresidue.
                         if seq == ri["template"]:
@@ -1364,8 +1391,11 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                         if ri["insert_index"] == -1:
                             self.pir_sequences_dict[seq]["list_seq"].append(symbol_to_insert)
                         else:
-                            self.pir_sequences_dict[seq]["list_seq"].insert(ri["insert_index"]+self.hetres_to_insert_count, symbol_to_insert)
-                        self.hetres_to_insert_count += 1
+                            print "@@@@@@@@@@@@@@@@@@@@@@@"
+                            print ri["insert_index"], symbol_to_insert
+                            # self.pir_sequences_dict[seq]["list_seq"].insert(ri["insert_index"]+self.hetres_to_insert_count, symbol_to_insert)
+                            self.pir_sequences_dict[seq]["list_seq"].insert(ri["insert_index"]+hetres_to_insert_count_dict[seq], symbol_to_insert)
+                            hetres_to_insert_count_dict[seq] += 1
 
                     # Modified residues.
                     else:

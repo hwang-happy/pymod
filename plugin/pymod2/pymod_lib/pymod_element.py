@@ -527,23 +527,36 @@ class PyMod_sequence_element(PyMod_element):
 
 
     def get_next_residue_id(self, residue, aligned_sequence_index=False, only_polymer=True):
+
+        if not only_polymer:
+            assert not aligned_sequence_index
+
         if only_polymer:
             residues = self.get_polymer_residues()
         else:
             residues = self.residues
+
         next_residue = None
         for res in residues:
-            if res.index + 1 == residues.index:
+            if res.index > residue.index: # if res.index + 1 == residue.index:
                 next_residue = res
                 break
 
-        if not next_residue:
-            return -1
+        # If the residue is the last one.
+        if next_residue == None:
+            index_to_return = -1
         else:
             if aligned_sequence_index:
-                return self.get_residue_by_index(next_residue.index, aligned_sequence_index=True, only_polymer=only_polymer)
+                index_to_return = next_residue.get_id_in_aligned_sequence()
             else:
-                return next_residue.index
+                index_to_return = next_residue.index
+        print "---"
+        print residue.index, residue.db_index, residue.three_letter_code
+        if next_residue:
+            print next_residue.index, index_to_return, next_residue.three_letter_code
+        else:
+            print index_to_return
+        return index_to_return
 
 
     ###############################################################################################
@@ -877,6 +890,8 @@ class PyMod_residue(object):
 
 
     def get_id_in_aligned_sequence(self):
+        # Only polymer residues can be included in alignments.
+        assert self.is_polymer_residue()
         res_counter = 0
         index = self.pymod_element.get_polymer_residues().index(self)
         for i, p in enumerate(self.pymod_element.my_sequence):
@@ -885,6 +900,7 @@ class PyMod_residue(object):
                     return i
                 res_counter += 1
         return None
+
 
     def get_parent_structure_chain_id(self):
         return self.pymod_element.get_chain_id()

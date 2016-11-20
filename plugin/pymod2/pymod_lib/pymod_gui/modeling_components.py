@@ -23,7 +23,7 @@ class Modeling_window_mixin:
 # GUI of the homology modeling window.                                                        #
 ###############################################################################################
 
-class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_gui_mixin):
+class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_window_mixin):
     """
     A class to represent the 'Homology Modeling Window' of PyMod.
     """
