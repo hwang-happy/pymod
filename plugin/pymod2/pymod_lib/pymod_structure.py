@@ -237,7 +237,6 @@ class Parsed_pdb_file:
         """
         Returns 'True' if the residue is a modified residue, 'False' if is a ligand.
         """
-        return False
         if not self._check_polypetide_atoms(residue):
             return False
         # Checks if the heteroresidue is forming a peptide bond with its N amino atom.
@@ -256,7 +255,7 @@ class Parsed_pdb_file:
         # Find other residues in the chain having an atom which can make a peptide bond with the
         # 'residue' provided in the argument.
         neighbour_atoms = []
-        for res in chain.get_residues():
+        for res in chain:
             if not res == residue:
                 neighbour_atom = get_neighbour_atoms(res)
                 if neighbour_atom:
@@ -268,7 +267,6 @@ class Parsed_pdb_file:
         for atom in neighbour_atoms:
             distance = atom - residue_atom
             if distance < 1.8:
-                print "Found %s-link:" % link, residue, atom.get_parent() # TODO: remove.
                 return True
         return False
 
@@ -285,7 +283,7 @@ class Parsed_pdb_file:
         return None
 
     def _get_flanking_residues(self, residue, chain):
-        residues_list = list(chain.get_residues())
+        residues_list = [res for res in chain]
         # Get the previous residue.
         previous_index = residues_list.index(residue) - 1
         if previous_index < 0:
@@ -545,7 +543,7 @@ class PDB_joiner:
         return "%s%s%s" % (line[:6], str(new_atom_index).rjust(5), line[11:])
 
     def _build_ter_line(self, last_atom_line):
-        return "TER   %s      %s" % (al[6:11], al[17:26])
+        return "TER   %s      %s" % (last_atom_line[6:11], last_atom_line[17:26])
 
     def _build_end_line(self, end_line):
         return "END"

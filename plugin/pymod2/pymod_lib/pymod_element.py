@@ -550,12 +550,7 @@ class PyMod_sequence_element(PyMod_element):
                 index_to_return = next_residue.get_id_in_aligned_sequence()
             else:
                 index_to_return = next_residue.index
-        print "---"
-        print residue.index, residue.db_index, residue.three_letter_code
-        if next_residue:
-            print next_residue.index, index_to_return, next_residue.three_letter_code
-        else:
-            print index_to_return
+
         return index_to_return
 
 
@@ -632,7 +627,7 @@ class PyMod_sequence_element(PyMod_element):
     #################################################################
 
     @check_structure
-    def get_pymol_object_name(self):
+    def get_pymol_selector(self):
         return os.path.splitext(os.path.basename(self.structure.current_chain_file_path))[0]
 
 
@@ -886,7 +881,7 @@ class PyMod_residue(object):
         # Selectors that work:
         #     #     /1UBI_Chain_A//A/LEU`43/CA
         #     #     1UBI_Chain_A and resi 43
-        return "%s and resi %s" % (self.pymod_element.get_pymol_object_name(), self.db_index)
+        return "%s and resi %s" % (self.pymod_element.get_pymol_selector(), self.db_index)
 
 
     def get_id_in_aligned_sequence(self):

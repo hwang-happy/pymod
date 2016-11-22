@@ -130,8 +130,8 @@ class PyMod_protocol:
                 list_of_matching_ids_2.append(element_2.get_residue_by_index(ali_id, aligned_sequence_index=True).db_index)
             ali_id += 1
 
-        objsel_1 = element_1.get_pymol_object_name()
-        objsel_2 = element_2.get_pymol_object_name()
+        objsel_1 = element_1.get_pymol_selector()
+        objsel_2 = element_2.get_pymol_selector()
         list_of_distances = []
 
         for resid_1, resid_2 in zip(list_of_matching_ids_1, list_of_matching_ids_2):

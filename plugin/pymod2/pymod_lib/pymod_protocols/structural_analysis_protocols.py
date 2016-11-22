@@ -212,7 +212,7 @@ class Secondary_structure_assignment(PyMod_protocol):
         Uses PyMOL's DSS algorithm to assign the secondary structure to a sequence according to atom
         coordinates of its PDB file.
         """
-        selection = "object %s and n. CA" % self.pymod_element.get_pymol_object_name()
+        selection = "object %s and n. CA" % self.pymod_element.get_pymol_selector()
         stored.resi_set = set()
         stored.temp_sec_str = []
         stored.pymol_info = []
@@ -1146,6 +1146,6 @@ class Superpose(PyMod_protocol):
         """
         structures_to_superpose = self.target_sequences
         for i in range(1, len(structures_to_superpose)):
-            sel1 = structures_to_superpose[0].get_pymol_object_name()
-            sel2 = structures_to_superpose[i].get_pymol_object_name()
+            sel1 = structures_to_superpose[0].get_pymol_selector()
+            sel2 = structures_to_superpose[i].get_pymol_selector()
             self.superpose_in_pymol(sel2, sel1)

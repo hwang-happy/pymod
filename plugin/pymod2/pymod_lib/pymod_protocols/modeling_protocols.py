@@ -747,10 +747,10 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
 
             # Just superpose the model's chain to the first template.
             if self.superpose_to_templates and not self.multiple_chain_mode:
-                super_template_selector = self.modeling_clusters_list[0].templates_list[0].get_pymol_object_name()
+                super_template_selector = self.modeling_clusters_list[0].templates_list[0].get_pymol_selector()
                 # Builds only a selector for the first and only chain models.
                 for mod_e in current_model_chains_elements:
-                    self.superpose_in_pymol(mod_e.get_pymol_object_name(), super_template_selector)
+                    self.superpose_in_pymol(mod_e.get_pymol_selector(), super_template_selector)
 
             # Superposing for multichain modeling is more complex, and follows a different strategy.
             elif self.superpose_to_templates and self.multiple_chain_mode:
@@ -760,7 +760,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                     # Superpose each separated chain of the template complex to the corresponding
                     # chains of the full template complex.
                     for mc in self.get_modeling_clusters_list(sorted_by_id=True):
-                        self.superpose_in_pymol(mc.get_template_complex_chain().get_pymol_object_name(),          # Single template complex chain selector.
+                        self.superpose_in_pymol(mc.get_template_complex_chain().get_pymol_selector(),          # Single template complex chain selector.
                                                 "%s and chain %s" % (self.tc_temp_pymol_name, mc.model_chain_id), # Same chain of the full template complex structure.
                                                 save_superposed_structure=False)
                 # Loads the full model complex file.
@@ -771,7 +771,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 # cmd.save(os.path.join(self.pymod.structures_directory, model['name']), self.mc_temp_pymol_name)
                 # Superpose single model chains to the correspondig one of the full model complex.
                 for mod_e in current_model_chains_elements:
-                    self.superpose_in_pymol(mod_e.get_pymol_object_name(),
+                    self.superpose_in_pymol(mod_e.get_pymol_selector(),
                                             "%s and chain %s" % (self.mc_temp_pymol_name, mod_e.get_chain_id()),
                                             save_superposed_structure=False)
                 # Cleans up after having superposed the last multiple chain model.
@@ -1340,7 +1340,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 print >> pir_align_file_handle, self.get_pir_formatted_sequence(sct_pir_string)
 
         # Finally write the target block.
-        print >> pir_align_file_handle , ">P1;%s" % self.modeller_target_name # mc.target_name
+        print >> pir_align_file_handle , ">P1;%s" % self.modeller_target_name
         print >> pir_align_file_handle , "sequence:%s:.:.:.:.::::" % self.modeller_target_name
         targets_pir_string = ""
         for target in self.get_targets_list(sorted_by_id=True):
@@ -1372,10 +1372,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 hetres_to_insert_count_dict.update({e: 0})
             for ri in filter(lambda r: r["modeling_cluster"] == modeling_cluster and select_residues(r["residue"]), self.hetres_to_use):
                 for seq in modeling_cluster.get_modeling_elements():
-            # for seq in modeling_cluster.get_modeling_elements():
-            #     for ri in filter(lambda r: r["modeling_cluster"] == modeling_cluster and select_residues(r["residue"]), self.hetres_to_use):
                     # Ligands and water molecules.
-
                     if not ri["residue"].is_polymer_residue():
                         # Choose the symbol to use for the heteroresidue.
                         if seq == ri["template"]:
@@ -1391,8 +1388,6 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                         if ri["insert_index"] == -1:
                             self.pir_sequences_dict[seq]["list_seq"].append(symbol_to_insert)
                         else:
-                            print "@@@@@@@@@@@@@@@@@@@@@@@"
-                            print ri["insert_index"], symbol_to_insert
                             # self.pir_sequences_dict[seq]["list_seq"].insert(ri["insert_index"]+self.hetres_to_insert_count, symbol_to_insert)
                             self.pir_sequences_dict[seq]["list_seq"].insert(ri["insert_index"]+hetres_to_insert_count_dict[seq], symbol_to_insert)
                             hetres_to_insert_count_dict[seq] += 1
@@ -1400,13 +1395,12 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                     # Modified residues.
                     else:
                         if seq == modeling_cluster.target and ri["use_hetres"]:
-                            # TODO: modify the insert index.
-                            self.pir_sequences_dict[seq]["list_seq"][ri["insert_index"]] = "."
+                            self.pir_sequences_dict[seq]["list_seq"][ri["insert_index"]+hetres_to_insert_count_dict[seq]] = "."
 
 
-    #@@@@@@@@@@@@@@@@@@@@@@@@@
-    # PIR alignment related. @
-    #@@@@@@@@@@@@@@@@@@@@@@@@@
+    ##########################
+    # PIR alignment related. #
+    ##########################
 
     def get_pir_list(self, sequence):
         return map(lambda p: p.replace(pmdt.modified_residue_one_letter, "."), list(sequence))

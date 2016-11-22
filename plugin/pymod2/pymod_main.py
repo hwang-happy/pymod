@@ -1,9 +1,6 @@
 # TODO:
-#     - adjust PIR alignment file building.
-#     - adjust the structure files part.
-#         - add a "pymol_selector attribute".
-#         - associate structures.
-#         - import elements from PyMOL.
+#     - associate structures.
+#     - import elements from PyMOL.
 #     - pymod_vars: remove the unused variables.
 #     - pymod_update: fix the updater (rename files to avoid conflict).
 #     - pymod_element: check the attributes and methods that are actually used in the rest of the plugin.
@@ -12,6 +9,7 @@
 #         - fix the bug in gap tossing.
 #         - check the names of the sequences when building trees.
 #     - add gaps to a sequence with the mouse.
+#     - position the new controls of the plot window.
 #     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
@@ -713,7 +711,7 @@ class PyMod:
             self.load_uniprot_random()
 
         # Loads random structures from the PDB.
-        n_str = 0
+        n_str = 1
         for i in range(0, n_str):
             elements = self.load_pdb_random()
             for e in elements:
@@ -1052,7 +1050,7 @@ class PyMod:
     def delete_pdb_file_in_pymol(self, element):
         # If the sequence has a PDB file loaded inside PyMOL, then delete it.
         try:
-            cmd.delete(element.get_pymol_object_name())
+            cmd.delete(element.get_pymol_selector())
         except:
             pass
 
@@ -1763,7 +1761,7 @@ class PyMod:
         Loads the PDB structure of the chain into PyMol.
         """
         file_to_load = element.get_structure_file(name_only=False)
-        pymol_object_name = element.get_pymol_object_name()
+        pymol_object_name = element.get_pymol_selector()
         cmd.load(file_to_load, pymol_object_name)
         cmd.color(element.my_color, pymol_object_name)
         cmd.hide("everything", pymol_object_name)
@@ -1773,14 +1771,14 @@ class PyMod:
         cmd.center(pymol_object_name)
 
     def center_chain_in_pymol(self, pymod_element):
-        cmd.center(pymod_element.get_pymol_object_name())
+        cmd.center(pymod_element.get_pymol_selector())
 
     def hide_chain_in_pymol(self, pymod_element):
         # Use enable or disable?
-        cmd.disable(pymod_element.get_pymol_object_name())
+        cmd.disable(pymod_element.get_pymol_selector())
 
     def show_chain_in_pymol(self, pymod_element):
-        cmd.enable(pymod_element.get_pymol_object_name())
+        cmd.enable(pymod_element.get_pymol_selector())
 
 
     ###############################################################################################
@@ -2763,7 +2761,7 @@ class PyMod:
     def randomize_sequence(self, sequence):
         import random
 
-        amino_acids = "QWERTYPASDFGHKLXCVNM"
+        amino_acids = "QWERTYPASDFGHKLCVNM" # + "X"
         list_seq = list(sequence)
 
         n_substitutions = int(30.0*len(list_seq)/100.0)
@@ -2771,7 +2769,7 @@ class PyMod:
             seq_len = len(list_seq)
             random_index = random.randint(0, seq_len-1)
             list_seq.pop(random_index)
-            list_seq.insert(random_index, amino_acids[random.randint(0, len(amino_acids)-1)])
+            list_seq.insert(random_index, random.choice(amino_acids))
 
         n_gaps = 3
         max_gap_length = 10
@@ -2789,7 +2787,7 @@ class PyMod:
             random_index = random.randint(0, seq_len-1)
             insertion_length = random.randint(0, max_insertion_length)
             for l in range(0, insertion_length):
-                list_seq.insert(random_index, amino_acids[random.randint(0, len(amino_acids)-1)])
+                list_seq.insert(random_index, random.choice(amino_acids))
 
         return "".join(list_seq)
 

@@ -564,7 +564,7 @@ class PyMod_main_window_mixin:
         """
         Colors the PDB structure of an element loaded into PyMOL.
         """
-        chain_sel = element.get_pymol_object_name()
+        chain_sel = element.get_pymol_selector()
         # Colors the structure according to some particular color scheme.
         if element.color_by != "regular":
             get_residue_color_method = self.assign_residue_coloring_method(element, "structure")

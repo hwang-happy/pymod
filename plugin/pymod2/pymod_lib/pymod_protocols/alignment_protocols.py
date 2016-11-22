@@ -1997,7 +1997,7 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
             def prepare_data_for_ce_alignment(element,n):
                 chain_id = element.get_chain_id()
                 sel_file = element.get_structure_file(strip_extension=True) # element.structure.chain_pdb_file_name_root
-                sel = element.get_pymol_object_name() # element.my_header.replace(":", "_")
+                sel = element.get_pymol_selector() # element.my_header.replace(":", "_")
                 return chain_id, sel_file, sel
 
             #########################################################################
@@ -2246,8 +2246,8 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
             if retain_order:
                 cmd.set("retain_order", 1)
 
-            sel1 = elements_to_align[0].get_pymol_object_name()
-            sel2 = elements_to_align[1].get_pymol_object_name()
+            sel1 = elements_to_align[0].get_pymol_selector()
+            sel2 = elements_to_align[1].get_pymol_selector()
 
             # Sets temporary names.
             tsel1 = elements_to_align[0].get_unique_index_header()
