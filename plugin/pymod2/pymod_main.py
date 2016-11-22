@@ -1,24 +1,25 @@
 # TODO:
 #     - associate structures.
 #     - import elements from PyMOL.
-#     - pymod_vars: remove the unused variables.
-#     - pymod_update: fix the updater (rename files to avoid conflict).
-#     - pymod_element: check the attributes and methods that are actually used in the rest of the plugin.
+#     - add gaps to a sequence with the mouse.
+#     - position the new controls of the plot window.
 #     - evolutionary_analysis_protocol:
 #         - add an "remove gap only columns" option in the CAMPO window.
 #         - fix the bug in gap tossing.
 #         - check the names of the sequences when building trees.
-#     - add gaps to a sequence with the mouse.
-#     - position the new controls of the plot window.
-#     - reimplement sessions (make modifications to the code).
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
 #         - structures submenu in the main menu.
+#         - integrate the modifications made in the stable branch.
+#             - control the sequences before modeling.
+#             - new project loading system.
 #     - implement the new aid system in the GUI.
-#     - integrate the modifications made in the stable branch.
-#         - control the sequences before modeling.
-#     - optimize namespaces.
 #     - color structures and models, structure appearence and user defined colors.
+#     - reimplement sessions (make modifications to the code).
+#     - pymod_vars: remove the unused variables.
+#     - pymod_update: fix the updater (rename files to avoid conflict).
+#     - pymod_element: check the attributes and methods that are actually used in the rest of the plugin.
+#     - optimize namespaces.
 #     - add the licence part to each file of the plugin.
 #     - remove TEST.
 
@@ -42,9 +43,6 @@
 # along with this library; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 ###########################################################################
-
-import time # TEST.
-t1 = time.time() # TEST.
 
 # Tkinter.
 from Tkinter import *
@@ -111,9 +109,6 @@ import pymod_lib.pymod_protocols as pmptc # Classes to represent protocols execu
 
 global DEBUG
 DEBUG = True
-
-t2 = time.time() # TEST.
-print "PyMod dependencies loaded in %s." % (t2-t1)
 
 # Function that launches PyMod from the plugin menu of PyMOL.
 def pymod_launcher(app, pymod_plugin_name, pymod_version, pymod_revision):
@@ -711,7 +706,7 @@ class PyMod:
             self.load_uniprot_random()
 
         # Loads random structures from the PDB.
-        n_str = 1
+        n_str = 0
         for i in range(0, n_str):
             elements = self.load_pdb_random()
             for e in elements:
@@ -740,8 +735,8 @@ class PyMod:
         # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
         # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
         # CXCR4.
-        self.open_structure_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0.pdb"))
-        self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
+        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0.pdb"))
+        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
@@ -760,9 +755,9 @@ class PyMod:
         # PAX domains.
         # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
-        # Modified residues.
-        # self.open_structure_file(os.path.join(self.seqs_dir, "modeling/modified_residues/1V5I.pdb"))
-        # self.open_sequence_file(os.path.join(self.seqs_dir, "modeling/modified_residues/target.fasta"))
+        # Associate structures.
+        self.open_sequence_file(os.path.join(self.seqs_dir, "modeling/associate/5fjo.fasta.txt"))
+        self.open_structure_file(os.path.join(self.seqs_dir, "modeling/associate/5fjo.pdb"))
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 
@@ -1579,109 +1574,7 @@ class PyMod:
         Launched when users press the 'Associate 3D Structure' from the leeft popup menu.
         """
         pass
-        # # This will be set to 'True' once the users select a valid PDB file and press the 'SUBMIT'
-        # # button.
-        # self.select_associate_chain = False
-        # # This will contain the 'Parsed_pdb_file' object of the structure to associate.
-        # self.associate_pdb_file = None
-        # # The 'PyMod_element' object of the target seequence (the sequence to be associated with a
-        # # structure).
-        # self.associate_target_element = target_element
-        #
-        # # Builds a new window.
-        # self.associate_structure_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-        #     title = "Associate Structure",
-        #     upper_frame_title = "Associate 3D Structure Options",
-        #     submit_command = self.associate_structure_state)
-        #
-        # # An entryfield to select the structure file.
-        # self.structure_file_enf = pmgi.shared_components.PyMod_path_entryfield(self.associate_structure_window.midframe,
-        #     label_text = "Select Structure File",
-        #     label_style = pmgi.shared_components.label_style_1,
-        #     path_type = "file",
-        #     file_types = pmdt.all_structure_file_types_atl,
-        #     askpath_title = "Select Structure File")
-        # self.structure_file_enf.pack(**pmgi.shared_components.pack_options_1)
-        # self.associate_structure_window.add_widget_to_align(self.structure_file_enf)
-        # self.associate_structure_window.add_widget_to_validate(self.structure_file_enf)
-        #
-        # self.associate_structure_window.align_widgets(15)
-
-
-    # TODO!!
-    def associate_structure_state(self):
-        pass
-        # # Checks if a correct structure file has been provided as input.
-        # if not self.select_associate_chain:
-        #     if not self.check_general_input(self.associate_structure_window):
-        #         return False
-        #     pdb_file_path = self.structure_file_enf.getvalue()
-        #
-        #     if not self.is_pdb(pdb_file_path, show_error=False):
-        #         title = "File Type Error"
-        #         message = "Please select a valid PDB file."
-        #         self.show_error_message(title,message, parent_window=self.associate_structure_window)
-        #         return False
-        #     # Removes the entryfield to select the structure file.
-        #     self.structure_file_enf.pack_forget()
-        #
-        #     # Parses the structure file.
-        #     self.associate_pdb_file = Parsed_pdb_file(pdb_file_path)
-        #     self.associate_pdb_file.copy_to_structures_directory()
-        #     self.associate_pdb_file.parse_pdb_file()
-        #     # Gets its chains.
-        #     available_chains = self.associate_pdb_file.get_chains_ids()
-        #
-        #     # Displays a combobox to select the chain id of corresponind to the structure to be
-        #     # associated with the target sequence.
-        #     self.chain_selection_cbx = pmgi.shared_components.PyMod_combobox(self.associate_structure_window.midframe,
-        #         label_text = 'Select Chain to Associate',
-        #         label_style = pmgi.shared_components.label_style_1,
-        #         scrolledlist_items=available_chains)
-        #     self.chain_selection_cbx.pack(**pmgi.shared_components.pack_options_1)
-        #     self.chain_selection_cbx.selectitem(0)
-        #     self.associate_structure_window.add_widget_to_align(self.chain_selection_cbx)
-        #     self.associate_structure_window.align_widgets(15)
-        #
-        #     self.select_associate_chain = True
-        #
-        # # If a valid structure file has been provided, this will try to associate the structure of
-        # # the chain specified in the combobox to the target element.
-        # elif self.select_associate_chain:
-        #     if not self.associate_structure(self.associate_pdb_file, self.chain_selection_cbx.get(), self.associate_target_element):
-        #         self.show_associate_structure_error(parent_window = self.associate_structure_window)
-        #         return False
-        #     self.associate_structure_window.destroy()
-        #     self.main_window.gridder()
-
-
-    def show_associate_structure_error(self, parent_window = None):
-        title = "Associate Structure Failure"
-        message = "The amminoacid sequences of the target chain and the chain in the PDB structure do not match."
-        self.show_error_message(title, message)
-
-    # TODO!!
-    def associate_structure(self, parsed_pdb_file, chain_id, pymod_element):
-        """
-        Gets a 'Parsed_pdb_file' object and a 'PyMod_element' object as arguments, and associates
-        the structure with chain id specified in 'chain_id' to the PyMod element.
-        """
-        pass
-        # # Builds 'Pymod_elements' objects for each chain present in the PDB file.
-        # parsed_pdb_file.build_structure_objects(add_to_pymod_pdb_list = False)
-        # # Crops the structure.
-        # sequences_match = parsed_pdb_file.crop_structure_chain(chain_id, adjust_to_sequence = pymod_element.my_sequence)
-        # if not sequences_match:
-        #     return False
-        # # Build a 'PyMod_element' object representing the cropped chain and transfer its
-        # # data to the element if the hit sequence.
-        # cropped_element = parsed_pdb_file.get_chain_pymod_element(chain_id)
-        # pymod_element.update_element(new_sequence=cropped_element.my_sequence, new_header=cropped_element.my_header, new_structure=cropped_element.structure)
-        # pymod_element.my_color = self.color_struct()
-        # self.load_element_in_pymol(pymod_element)
-        # parsed_pdb_file.add_to_pdb_list()
-        # return True
-
+        
 
     def import_selections(self):
         """
