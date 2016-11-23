@@ -242,10 +242,10 @@ class Parsed_pdb_file:
         """
         if not self._check_polypetide_atoms(residue):
             return False
-        # Checks if the heteroresidue is forming a peptide bond with its N amino atom.
-        has_carboxy_link = self._find_links(residue, chain, self._get_carboxy_atom, self._get_amino_atom, "N")
         # Checks if the heteroresidue is forming a peptide bond with its C carboxy atom.
-        has_amino_link = self._find_links(residue, chain, self._get_carboxy_atom, self._get_amino_atom, "C")
+        has_carboxy_link = self._find_links(residue, chain, self._get_carboxy_atom, self._get_amino_atom, "N")
+        # Checks if the heteroresidue is forming a peptide bond with its N amino atom.
+        has_amino_link = self._find_links(residue, chain, self._get_amino_atom, self._get_carboxy_atom, "C")
         return has_carboxy_link or has_amino_link
 
     def _check_polypetide_atoms(self, residue):
@@ -254,13 +254,13 @@ class Parsed_pdb_file:
         """
         return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
 
-    def _find_links(self, residue, chain, get_neighbour_atoms, get_residue_atom, link="N"):
+    def _find_links(self, residue, chain, get_residue_atom, get_neighbour_atom, link="N"):
         # Find other residues in the chain having an atom which can make a peptide bond with the
         # 'residue' provided in the argument.
         neighbour_atoms = []
         for res in chain:
             if not res == residue:
-                neighbour_atom = get_neighbour_atoms(res)
+                neighbour_atom = get_neighbour_atom(res)
                 if neighbour_atom:
                     neighbour_atoms.append(neighbour_atom)
         # Get either the N amino or C carboxy atom of the residue.
@@ -282,7 +282,8 @@ class Parsed_pdb_file:
     def _get_atom_by_type(self, residue, atom_types_tuple):
         for atom_type in atom_types_tuple:
             if residue.child_dict.has_key(atom_type):
-                return residue.child_dict[atom_type]
+                if not residue.child_dict[atom_type].is_disordered():
+                    return residue.child_dict[atom_type]
         return None
 
     def _get_flanking_residues(self, residue, chain):

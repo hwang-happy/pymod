@@ -706,7 +706,7 @@ class PyMod:
             self.load_uniprot_random()
 
         # Loads random structures from the PDB.
-        n_str = 1
+        n_str = 0
         for i in range(0, n_str):
             elements = self.load_pdb_random()
             for e in elements:
@@ -721,6 +721,9 @@ class PyMod:
         # e = self.build_pymod_element_from_args("test", "KLAPPALLAIQYAMNCVVVXQWERTASDFLAPHKF")
         # self.replace_element(a.get_children()[1], e)
         # a.add_child(c)
+
+        # Large clusters.
+        self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
 
         # Fetch sequences from the PDB.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
