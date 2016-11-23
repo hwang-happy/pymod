@@ -1,5 +1,4 @@
 # TODO:
-#     - associate structures.
 #     - import elements from PyMOL.
 #     - add gaps to a sequence with the mouse.
 #     - position the new controls of the plot window.
@@ -706,7 +705,7 @@ class PyMod:
             self.load_uniprot_random()
 
         # Loads random structures from the PDB.
-        n_str = 0
+        n_str = 1
         for i in range(0, n_str):
             elements = self.load_pdb_random()
             for e in elements:
@@ -755,9 +754,6 @@ class PyMod:
         # PAX domains.
         # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
-        # Associate structures.
-        self.open_sequence_file(os.path.join(self.seqs_dir, "modeling/associate/5fjo.fasta.txt"))
-        self.open_structure_file(os.path.join(self.seqs_dir, "modeling/associate/5fjo.pdb"))
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 
@@ -1573,8 +1569,9 @@ class PyMod:
         """
         Launched when users press the 'Associate 3D Structure' from the leeft popup menu.
         """
-        pass
-        
+        a = pmptc.structural_databases_protocols.Associate_structure(self, target_element)
+        a.launch_from_gui()
+
 
     def import_selections(self):
         """

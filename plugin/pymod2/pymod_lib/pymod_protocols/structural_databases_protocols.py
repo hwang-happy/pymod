@@ -108,8 +108,8 @@ class Fetch_structure_file(PyMod_protocol):
         # to the region identified by BLAST.                                                  -
         #--------------------------------------------------------------------------------------
         if self.import_mode == "single-chain":
-            a = Associate_structure(self.pymod, pdb_file_shortcut, pdb_chain_id, old_element)
-            a.associate()
+            a = Associate_structure(self.pymod, old_element)
+            a.associate(pdb_file_shortcut, pdb_chain_id)
 
         #--------------------------------------------------------------------------------------
         # Load each chain found in the PDB file where the 3D structure of the hit sequence is -
@@ -176,21 +176,32 @@ class Associate_structure(PyMod_protocol):
     temp_full_name = "pymod_full_temp"
     temp_fragment_name = "pymod_fragment_temp"
 
-    def __init__(self, pymod, pdb_file_path, chain_id, pymod_element):
-
+    def __init__(self, pymod, pymod_element):
         PyMod_protocol.__init__(self, pymod)
-
-        self.original_pdb_file_path = pdb_file_path
-        self.target_element = pymod_element
-        self.chain_id = chain_id
         # Directory in which to save the temporary files.
         self.temp_directory = self.pymod.temp_directory_name
         # Directory in which to save the final output files.
         self.output_directory = self.pymod.structures_directory
+        self.target_element = pymod_element
+        self.associate_pdb_file = None
+
+    def associate(self, pdb_file_path, chain_id):
+        """
+        Actually associates the structure.
+        """
+        self._set_options(pdb_file_path, chain_id)
 
         # Parses the source structure file.
-        p = pmstr.Parsed_pdb_file(self.pymod, pdb_file_path, copy_original_file=False, save_chains_files=False)
-        self.structure_chain_element = p.get_pymod_element_by_chain(self.chain_id)
+        if not self.associate_pdb_file:
+            self.associate_pdb_file = pmstr.Parsed_pdb_file(self.pymod, self.original_pdb_file_path, copy_original_file=False, save_chains_files=False)
+
+        #-----------------------------------------------------------------------
+        # Check if the pymod element can be associated to the structure chain. -
+        #-----------------------------------------------------------------------
+        if not self.chain_id in self.associate_pdb_file.get_chains_ids():
+            raise PyModAssociateStructureError("The structure file '%s' does not have chain '%s'." % (self.original_pdb_file_path, self.chain_id))
+
+        self.structure_chain_element = self.associate_pdb_file.get_pymod_element_by_chain(self.chain_id)
 
         # Check if the the target sequence and the sequence of the structure to associate match by
         # aligning the two sequences using dynamic programming.
@@ -199,13 +210,7 @@ class Associate_structure(PyMod_protocol):
                                                   toss_modres=True)
         # If the sequences do not match, interrupt the process.
         if self.ali["id"] < 99.9: # TODO: use a 'PyMod_alignment' class.
-            raise PyModAssociateStructureError("The target sequence does not match with the sequence of the structure to associate (id=%s)." % self.ali["id"])
-
-
-    def associate(self):
-        """
-        Actually associates the structure.
-        """
+            raise PyModAssociateStructureError("The target sequence does not match with the sequence of the structure to associate (sequence identity percentage = %s)." % self.ali["id"])
 
         #-------------------------------------------------------------------------------------
         # Gets information about matching and missing residues in the two aligned sequences. -
@@ -276,114 +281,72 @@ class Associate_structure(PyMod_protocol):
         new_sequence = "".join(new_sequence)
         new_element_with_structure.set_sequence(new_sequence)
 
+    def _set_options(self, pdb_file_path, chain_id):
+        self.original_pdb_file_path = pdb_file_path
+        self.chain_id = chain_id
 
-    # def associate_structure_from_popup_menu(self, target_element):
-    #     """
-    #     Launched when users press the 'Associate 3D Structure' from the leeft popup menu.
-    #     """
-    #     pass
-    #     # # This will be set to 'True' once the users select a valid PDB file and press the 'SUBMIT'
-    #     # # button.
-    #     # self.select_associate_chain = False
-    #     # # This will contain the 'Parsed_pdb_file' object of the structure to associate.
-    #     # self.associate_pdb_file = None
-    #     # # The 'PyMod_element' object of the target seequence (the sequence to be associated with a
-    #     # # structure).
-    #     # self.associate_target_element = target_element
-    #     #
-    #     # # Builds a new window.
-    #     # self.associate_structure_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-    #     #     title = "Associate Structure",
-    #     #     upper_frame_title = "Associate 3D Structure Options",
-    #     #     submit_command = self.associate_structure_state)
-    #     #
-    #     # # An entryfield to select the structure file.
-    #     # self.structure_file_enf = pmgi.shared_components.PyMod_path_entryfield(self.associate_structure_window.midframe,
-    #     #     label_text = "Select Structure File",
-    #     #     label_style = pmgi.shared_components.label_style_1,
-    #     #     path_type = "file",
-    #     #     file_types = pmdt.all_structure_file_types_atl,
-    #     #     askpath_title = "Select Structure File")
-    #     # self.structure_file_enf.pack(**pmgi.shared_components.pack_options_1)
-    #     # self.associate_structure_window.add_widget_to_align(self.structure_file_enf)
-    #     # self.associate_structure_window.add_widget_to_validate(self.structure_file_enf)
-    #     #
-    #     # self.associate_structure_window.align_widgets(15)
-    #
-    #
-    # # TODO!!
-    # def associate_structure_state(self):
-    #     pass
-    #     # # Checks if a correct structure file has been provided as input.
-    #     # if not self.select_associate_chain:
-    #     #     if not self.check_general_input(self.associate_structure_window):
-    #     #         return False
-    #     #     pdb_file_path = self.structure_file_enf.getvalue()
-    #     #
-    #     #     if not self.is_pdb(pdb_file_path, show_error=False):
-    #     #         title = "File Type Error"
-    #     #         message = "Please select a valid PDB file."
-    #     #         self.show_error_message(title,message, parent_window=self.associate_structure_window)
-    #     #         return False
-    #     #     # Removes the entryfield to select the structure file.
-    #     #     self.structure_file_enf.pack_forget()
-    #     #
-    #     #     # Parses the structure file.
-    #     #     self.associate_pdb_file = Parsed_pdb_file(pdb_file_path)
-    #     #     self.associate_pdb_file.copy_to_structures_directory()
-    #     #     self.associate_pdb_file.parse_pdb_file()
-    #     #     # Gets its chains.
-    #     #     available_chains = self.associate_pdb_file.get_chains_ids()
-    #     #
-    #     #     # Displays a combobox to select the chain id of corresponind to the structure to be
-    #     #     # associated with the target sequence.
-    #     #     self.chain_selection_cbx = pmgi.shared_components.PyMod_combobox(self.associate_structure_window.midframe,
-    #     #         label_text = 'Select Chain to Associate',
-    #     #         label_style = pmgi.shared_components.label_style_1,
-    #     #         scrolledlist_items=available_chains)
-    #     #     self.chain_selection_cbx.pack(**pmgi.shared_components.pack_options_1)
-    #     #     self.chain_selection_cbx.selectitem(0)
-    #     #     self.associate_structure_window.add_widget_to_align(self.chain_selection_cbx)
-    #     #     self.associate_structure_window.align_widgets(15)
-    #     #
-    #     #     self.select_associate_chain = True
-    #     #
-    #     # # If a valid structure file has been provided, this will try to associate the structure of
-    #     # # the chain specified in the combobox to the target element.
-    #     # elif self.select_associate_chain:
-    #     #     if not self.associate_structure(self.associate_pdb_file, self.chain_selection_cbx.get(), self.associate_target_element):
-    #     #         self.show_associate_structure_error(parent_window = self.associate_structure_window)
-    #     #         return False
-    #     #     self.associate_structure_window.destroy()
-    #     #     self.main_window.gridder()
-    #
-    #
-    # def show_associate_structure_error(self, parent_window = None):
-    #     title = "Associate Structure Failure"
-    #     message = "The amminoacid sequences of the target chain and the chain in the PDB structure do not match."
-    #     self.show_error_message(title, message)
-    #
-    # # TODO!!
-    # def associate_structure(self, parsed_pdb_file, chain_id, pymod_element):
-    #     """
-    #     Gets a 'Parsed_pdb_file' object and a 'PyMod_element' object as arguments, and associates
-    #     the structure with chain id specified in 'chain_id' to the PyMod element.
-    #     """
-    #     pass
-    #     # # Builds 'Pymod_elements' objects for each chain present in the PDB file.
-    #     # parsed_pdb_file.build_structure_objects(add_to_pymod_pdb_list = False)
-    #     # # Crops the structure.
-    #     # sequences_match = parsed_pdb_file.crop_structure_chain(chain_id, adjust_to_sequence = pymod_element.my_sequence)
-    #     # if not sequences_match:
-    #     #     return False
-    #     # # Build a 'PyMod_element' object representing the cropped chain and transfer its
-    #     # # data to the element if the hit sequence.
-    #     # cropped_element = parsed_pdb_file.get_chain_pymod_element(chain_id)
-    #     # pymod_element.update_element(new_sequence=cropped_element.my_sequence, new_header=cropped_element.my_header, new_structure=cropped_element.structure)
-    #     # pymod_element.my_color = self.color_struct()
-    #     # self.load_element_in_pymol(pymod_element)
-    #     # parsed_pdb_file.add_to_pdb_list()
-    #     # return True
+
+    #################################################################
+    # Launch from the GUI.                                          #
+    #################################################################
+
+    def launch_from_gui(self):
+        # Builds a new window.
+        self.associate_structure_window = pmgi.structural_databases_components.Associate_structure_window( # TODO: import only Associate_structure_window
+            parent = self.pymod.main_window,
+            protocol = self,
+            title = "Associate Structure",
+            upper_frame_title = "Associate 3D Structure Options",
+            submit_command = self.associate_structure_state)
+        # This will be set to 'True' once the users select a valid PDB file and press the 'SUBMIT'
+        # button.
+        self._select_associate_chain = False
+
+
+    def associate_structure_state(self):
+        """
+        Called when users press the 'SUBMIT' window of the 'Associate Structure' protocol. This is
+        actually both when selecting the structure file path and when selecting a chain of the file.
+        """
+        #-----------------------------------------------------------------
+        # Checks if a correct structure file has been provided as input. -
+        #-----------------------------------------------------------------
+        if not self._select_associate_chain:
+
+            if not self.associate_structure_window.check_general_input():
+                return False
+
+            self.pdb_file_path_from_gui = self.associate_structure_window.get_structure_file()
+
+            if not os.path.isfile(self.pdb_file_path_from_gui):
+                self.associate_structure_window.show_error_message("File Error", "Please select a valid file path.")
+                return False
+
+            if not self.pymod.is_valid_structure_file(self.pdb_file_path_from_gui, show_error=False):
+                self.associate_structure_window.show_error_message("File Type Error", "Please select a valid PDB file.")
+                return False
+
+            # Parses the structure file.
+            self.associate_pdb_file = pmstr.Parsed_pdb_file(self.pymod, self.pdb_file_path_from_gui, copy_original_file=False, save_chains_files=False)
+            # Gets its chains.
+            self.available_chains = self.associate_pdb_file.get_chains_ids()
+            self.associate_structure_window.show_chain_selection_frame()
+
+            self._select_associate_chain = True
+
+        #----------------------------------------------------------------------------------------
+        # If a valid structure file has been provided, this will try to associate the structure -
+        # of the chain specified in the combobox to the target element.                         -
+        #----------------------------------------------------------------------------------------
+        elif self._select_associate_chain:
+            try:
+                self.associate(self.pdb_file_path_from_gui, self.associate_structure_window.get_structure_chain())
+                self.associate_structure_window.destroy()
+                self.pymod.main_window.gridder(update_elements=True, update_clusters=True)
+            except Exception, e:
+                title = "Associate Structure Failure"
+                message = "The structure association failed because of the following error: %s" % e
+                self.associate_structure_window.show_error_message(title, message)
 
 
 ###################################################################################################

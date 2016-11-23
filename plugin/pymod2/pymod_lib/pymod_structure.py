@@ -211,6 +211,9 @@ class Parsed_pdb_file:
     def get_pymod_elements(self):
         return self.list_of_pymod_elements
 
+    def get_chains_ids(self):
+        return [struct.chain_id for struct in self.list_of_chains_structure_args]
+
     def get_structure_args(self):
         return self.list_of_chains_structure_args
 

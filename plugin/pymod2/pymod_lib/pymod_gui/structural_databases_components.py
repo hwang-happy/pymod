@@ -9,6 +9,8 @@ import tkMessageBox
 import Pmw
 
 import pymod_lib.pymod_vars as pmdt
+from pymod_lib.pymod_gui import shared_components
+
 
 class Fetch_pdb_dialog(Pmw.MessageDialog):
     """
@@ -31,3 +33,43 @@ class Fetch_pdb_dialog(Pmw.MessageDialog):
                                    buttons = (self.import_all_text, self.import_single_text) )
         self.component("message").configure(justify="left")
         self.configure(command=self.current_protocol.fetch_pdb_files_state)
+
+
+class Associate_structure_window(shared_components.PyMod_tool_window):
+
+    def __init__(self, parent = None, protocol = None, **configs):
+        shared_components.PyMod_tool_window.__init__(self, parent=parent , **configs)
+        self.current_protocol = protocol
+        # An entryfield to select the structure file.
+        self.structure_file_enf = shared_components.PyMod_path_entryfield(self.midframe,
+            label_text = "Select Structure File",
+            label_style = shared_components.label_style_1,
+            path_type = "file",
+            file_types = pmdt.all_structure_file_types_atl,
+            askpath_title = "Select Structure File")
+        self.structure_file_enf.pack(**shared_components.pack_options_1)
+        self.add_widget_to_align(self.structure_file_enf)
+        self.add_widget_to_validate(self.structure_file_enf)
+        self.align_widgets(15)
+
+    def get_structure_file(self):
+        return self.structure_file_enf.getvalue()
+
+
+    def show_chain_selection_frame(self):
+        # Removes the entryfield to select the structure file.
+        self.structure_file_enf.pack_forget()
+
+        # Displays a combobox to select the chain id of corresponind to the structure to be
+        # associated with the target sequence.
+        self.chain_selection_cbx = shared_components.PyMod_combobox(self.midframe,
+            label_text = 'Select Chain to Associate',
+            label_style = shared_components.label_style_1,
+            scrolledlist_items=self.current_protocol.available_chains)
+        self.chain_selection_cbx.pack(**shared_components.pack_options_1)
+        self.chain_selection_cbx.selectitem(0)
+        self.add_widget_to_align(self.chain_selection_cbx)
+        self.align_widgets(15)
+
+    def get_structure_chain(self):
+        return self.chain_selection_cbx.get()
