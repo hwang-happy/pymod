@@ -623,3 +623,27 @@ class Edit_sequence_window(Raw_sequence_window):
         Raw_sequence_window.__init__(self, parent, *args, **configs)
         self.pymod_element = pymod_element
         self.textarea.insert(END, self.pymod_element.my_sequence)
+
+
+class Import_from_pymol_window(PyMod_tool_window):
+
+    def __init__(self, parent, selections_list=None, *args, **configs):
+        PyMod_tool_window.__init__(self, parent, *args, **configs)
+
+        # Builds a combobox for each PyMOL object to import.
+        self.combobox_frame = Frame(self.midframe, background='black')
+        self.combobox_frame.pack(side = TOP, fill = BOTH, anchor="center", ipadx = 5, ipady = 5, pady=5)
+        self.sele_var=dict() # whether a PyMOL object is selected
+        self.sele_checkbutton=dict() # checkbuttons for object selection
+        row=0 # vetical location of checkbuttons
+        for sele in selections_list:
+            self.sele_var[sele]=IntVar()
+            self.sele_checkbutton[sele]=Checkbutton(self.combobox_frame,
+                text=sele, variable=self.sele_var[sele],
+                background="black", foreground="white",
+                selectcolor="red", highlightbackground="black")
+            self.sele_checkbutton[sele].grid(row=row,column=0,sticky='w')
+            row+=1
+
+    def get_objects_to_import(self):
+        return [sele for sele in self.sele_var.keys() if self.sele_var[sele].get()]

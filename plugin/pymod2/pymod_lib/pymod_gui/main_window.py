@@ -834,7 +834,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
         self.filemenu.add_cascade(label = "Sequences", menu = self.sequence_menu)
         self.sequence_menu.add_command(label = "Open from File", command = self.pymod.open_file_from_the_main_menu)
         self.sequence_menu.add_command(label = "Add Raw Sequence", command = self.pymod.show_raw_seq_input_window)
-        # self.sequence_menu.add_command(label = "Import PyMOL Objects", command = self.pymod.import_selections)
+        self.sequence_menu.add_command(label = "Import PyMOL Objects", command = self.pymod.import_pymol_selections_from_main_menu)
         # self.sequence_menu.add_separator()
         # self.sequence_menu.add_command(label = "Save All", command = self.pymod.save_all_files_from_main_menu)
         self.filemenu.add_separator()

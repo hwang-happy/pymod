@@ -1,5 +1,4 @@
 # TODO:
-#     - import elements from PyMOL.
 #     - add gaps to a sequence with the mouse.
 #     - position the new controls of the plot window.
 #     - evolutionary_analysis_protocol:
@@ -12,15 +11,17 @@
 #         - integrate the modifications made in the stable branch.
 #             - control the sequences before modeling.
 #             - new project loading system.
+#         - check all the 2.0 functionalities (check the menus)
 #     - implement the new aid system in the GUI.
 #     - color structures and models, structure appearence and user defined colors.
 #     - reimplement sessions (make modifications to the code).
+#     - fix the updater (rename files to avoid conflict).
 #     - pymod_vars: remove the unused variables.
-#     - pymod_update: fix the updater (rename files to avoid conflict).
 #     - pymod_element: check the attributes and methods that are actually used in the rest of the plugin.
 #     - optimize namespaces.
 #     - add the licence part to each file of the plugin.
 #     - remove TEST.
+#     - update the installer.
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
@@ -1573,69 +1574,46 @@ class PyMod:
         a.launch_from_gui()
 
 
-    def import_selections(self):
+    def import_pymol_selections_from_main_menu(self):
         """
         Method for importing PyMOL Selections into PyMod. It saves PyMOL objects selected by users
         to file, and loads it into PyMOL using 'open_structure_file()'.
         """
-        pass
-        # # Find all structures already loaded into PyMod: items in struct_list are excluded from
-        # # importable PyMOL object list.
-        # struct_list=[]
-        # for member in self.pymod_elements_list:
-        #     if member.has_structure():
-        #         struct_list.append(member.build_chain_selector_for_pymol())
-        #
-        # scrolledlist_items=[] # importable PyMOL objects
-        # for obj in cmd.get_names("objects"):
-        #     if not obj in struct_list and cmd.get_type(obj) == "object:molecule":
-        #         scrolledlist_items.append(str(obj))
-        #
-        # if not len(scrolledlist_items):
-        #     if struct_list:
-        #         self.show_error_message("No Importabled Object", "All PyMOL objects are already imported into PyMod.")
-        #     else:
-        #         self.show_error_message("No Importabled Object", "No PyMOL object to import.")
-        #     return
-        #
-        # # Builds a new window.
-        # self.import_from_pymol_window = pmgi.shared_components.PyMod_tool_window(self.main_window,
-        #     title = "Import from PyMOL",
-        #     upper_frame_title = "Load PyMOL Objects into PyMod",
-        #     submit_command = self.import_selected_pymol_object)
-        #
-        # # Builds a combobox for each PyMOL object to import.
-        # self.combobox_frame = Frame(self.import_from_pymol_window.midframe, background='black')
-        # self.combobox_frame.pack(side = TOP, fill = BOTH, anchor="center", ipadx = 5, ipady = 5, pady=5)
-        # self.sele_var=dict() # whether a PyMOL object is selected
-        # self.sele_checkbutton=dict() # checkbuttons for object selection
-        # row=0 # vetical location of checkbuttons
-        # for sele in scrolledlist_items:
-        #     self.sele_var[sele]=IntVar()
-        #     self.sele_checkbutton[sele]=Checkbutton(self.combobox_frame,
-        #         text=sele, variable=self.sele_var[sele],
-        #         background="black", foreground="white",
-        #         selectcolor="red", highlightbackground="black")
-        #     self.sele_checkbutton[sele].grid(row=row,column=0,sticky='w')
-        #     row+=1
+        # Find all structures already loaded into PyMod: items in struct_list are excluded from
+        # importable PyMOL object list.
+        struct_list = [member.get_pymol_selector() for member in self.get_pymod_elements_list() if member.has_structure()]
 
+        # Importable PyMOL objects.
+        scrolledlist_items = [str(obj) for obj in cmd.get_names("objects") if not obj in struct_list and cmd.get_type(obj) == "object:molecule"]
+
+        if not len(scrolledlist_items):
+            if struct_list:
+                self.main_window.show_error_message("No Importabled Object", "All PyMOL objects are already imported into PyMod.")
+            else:
+                self.main_window.show_error_message("No Importabled Object", "No PyMOL object to import.")
+            return
+
+        # Builds a new window.
+        self.import_from_pymol_window = pmgi.shared_components.Import_from_pymol_window(self.main_window,
+            title = "Import from PyMOL",
+            upper_frame_title = "Load PyMOL Objects into PyMod",
+            submit_command = self.import_selected_pymol_object,
+            selections_list=scrolledlist_items)
 
     def import_selected_pymol_object(self):
-        pass
-        # selected_num=0
-        # for sele in self.sele_var:
-        #     if self.sele_var[sele].get():
-        #         selected_num+=1
-        #         filename=sele+".pdb"
-        #         pdb_file_shortcut = os.path.join(self.structures_directory, filename)
-        #         cmd.save(pdb_file_shortcut,sele)
-        #         cmd.delete(sele)
-        #         self.open_structure_file(os.path.abspath(pdb_file_shortcut))
-        # if not selected_num:
-        #     tkMessageBox.showerror( "Selection Error",
-        #         "Please select at least one object to import.")
-        # else:
-        #     self.import_from_pymol_window.destroy()
+        selections_to_import = self.import_from_pymol_window.get_objects_to_import()
+        if len(selections_to_import) > 0:
+            for selected_num, sele in enumerate(selections_to_import):
+                selected_num+=1
+                filename=sele+".pdb"
+                pdb_file_shortcut = os.path.join(self.structures_directory, filename)
+                cmd.save(pdb_file_shortcut,sele)
+                cmd.delete(sele)
+                self.open_structure_file(os.path.abspath(pdb_file_shortcut))
+            self.import_from_pymol_window.destroy()
+            self.main_window.gridder(update_elements=True)
+        else:
+            self.import_from_pymol_window.show_error_message("Selection Error", "Please select at least one object to import.")
 
 
     def show_pdb_info(self):
