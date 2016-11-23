@@ -11,6 +11,7 @@
 #         - integrate the modifications made in the stable branch.
 #             - control the sequences before modeling.
 #             - new project loading system.
+#             - color by CAMPO in the right way.
 #         - check all the 2.0 functionalities (check the menus)
 #     - implement the new aid system in the GUI.
 #     - color structures and models, structure appearence and user defined colors.

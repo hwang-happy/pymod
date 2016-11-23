@@ -2126,9 +2126,10 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     def bind_events_to_sequence_entry(self):
         self.bind("<Leave>", self.leave_entry)
         self.bind("<Motion>", self.set_messagebar_info)
-        # self.sequence_entry.bind("<Button-1>", self.on_sequence_left_click)
-        # self.sequence_entry.bind("<ButtonRelease-1>", self.on_sequence_left_release)
-        # self.sequence_entry.bind("<Enter>", self.enter_entry)
+        # elaion!
+        self.bind("<Button-1>", self.on_sequence_left_click)
+        self.bind("<ButtonRelease-1>", self.on_sequence_left_release)
+        self.bind("<Enter>", self.enter_entry) # Needed for adding indels with the mouse.
         # # Centers and selects the residue in PyMOL by clicking on it with the middle mouse button.
         self.bind("<Button-2>", self.click_residue_with_middle_button)
         # self.sequence_entry.bind("<ButtonRelease-3>", self.on_sequence_right_click)
@@ -2213,39 +2214,43 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         return "Alignment: %s" % (self.get_highlighted_position_index() + 1)
 
 
-    # #######################################
-    # # Methods needed to drag sequences    #
-    # # and to add/remove gaps to them.     #
-    # #######################################
-    #
-    # # Stores the X position of an aa when click (useful to calculate the shifting of a sequence
-    # # when dragging).
-    # def on_sequence_left_click(self,event):
-    #     self.mypos=self.sequence_entry.index("@%d,%d" % (event.x, event.y))
-    #     self.sequence_entry.config(state=NORMAL)
-    #     # Sets state to 'NORMAL', so that the sequences can be modified with indels.
-    #     if self.is_child and not self.is_lead_of_collapsed_cluster():
-    #         for sibling in pymod.get_siblings(self):
-    #             sibling.sequence_entry.config(state=NORMAL)
-    #
-    # def on_sequence_left_release(self,event):
-    #     # Sets state to 'DISABLED', so that the sequences can't be modified with keyborad input
-    #     # from the user.
-    #     self.sequence_entry.config(state=DISABLED)
-    #     if self.is_child and not self.is_lead_of_collapsed_cluster():
-    #         for sibling in pymod.get_siblings(self):
-    #             sibling.sequence_entry.config(state=DISABLED)
-    #
-    # def enter_entry(self,event):
-    #     if not self.is_cluster():
-    #         self.sequence_entry.bind("<B1-Motion>", self.on_motion)
-    #
-    # # Allows to insert/remove gaps '-' dragging the mouse
-    # def on_motion(self,event):
-    #
-    #     # self.sequence_entry.config(state=NORMAL)
-    #
-    #     drag = None
+    #######################################
+    # Methods needed to drag sequences    #
+    # and to add/remove gaps to them.     #
+    #######################################
+
+    # elaion!
+    # TODO: time it.
+    def on_sequence_left_click(self,event):
+        # Stores the X position of an aa when click (useful to calculate the shifting of a sequence
+        # when dragging).
+        self.mypos=self.index("@%d,%d" % (event.x, event.y))
+        self.config(state=NORMAL)
+        # Sets state to 'NORMAL', so that the sequences can be modified with indels.
+        # if self.pymod_element.is_child() and not self.is_lead_of_collapsed_cluster():
+        #     for sibling in pymod.get_siblings(self):
+        #         sibling.config(state=NORMAL)
+
+    def on_sequence_left_release(self,event):
+        # Sets state to 'DISABLED', so that the sequences can't be modified with keyborad input
+        # from the user.
+        self.config(state=DISABLED)
+        # if self.is_child and not self.is_lead_of_collapsed_cluster():
+        #     for sibling in pymod.get_siblings(self):
+        #         sibling.config(state=DISABLED)
+
+    def enter_entry(self,event):
+        if not self.pymod_element.is_cluster():
+            self.bind("<B1-Motion>", self.on_motion)
+
+    # Allows to insert/remove gaps '-' dragging the mouse
+    def on_motion(self,event):
+
+        # self.sequence_entry.config(state=NORMAL)
+
+        drag = None
+        print "OK."
+        print self.mypos
     #
     #     # If dragging to the right insert an indel '-'.
     #     if int(self.sequence_entry.index("@%d,%d" % (event.x, event.y)).split(".")[1]) > int(self.mypos.split(".")[1]):
