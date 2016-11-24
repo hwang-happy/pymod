@@ -1,10 +1,11 @@
 # TODO:
-#     - add gaps to a sequence with the mouse.
+#     - add gaps to a sequence with the mouse for cluster leads.
 #     - position the new controls of the plot window.
 #     - evolutionary_analysis_protocol:
 #         - add an "remove gap only columns" option in the CAMPO window.
 #         - fix the bug in gap tossing.
 #         - check the names of the sequences when building trees.
+#     - fix the "to new cluster" option.
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
 #         - structures submenu in the main menu.

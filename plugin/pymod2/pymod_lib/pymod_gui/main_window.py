@@ -2126,17 +2126,13 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     def bind_events_to_sequence_entry(self):
         self.bind("<Leave>", self.leave_entry)
         self.bind("<Motion>", self.set_messagebar_info)
-        # elaion!
         self.bind("<Button-1>", self.on_sequence_left_click)
         self.bind("<ButtonRelease-1>", self.on_sequence_left_release)
+        self.bind("<B1-Motion>", self.on_motion)
         self.bind("<Enter>", self.enter_entry) # Needed for adding indels with the mouse.
         # # Centers and selects the residue in PyMOL by clicking on it with the middle mouse button.
         self.bind("<Button-2>", self.click_residue_with_middle_button)
         # self.sequence_entry.bind("<ButtonRelease-3>", self.on_sequence_right_click)
-
-
-    def leave_entry(self,event):
-        self.unbind("<B1-Motion>")
 
 
     #################################################################
@@ -2219,182 +2215,156 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     # and to add/remove gaps to them.     #
     #######################################
 
-    # elaion!
-    # TODO: time it.
     def on_sequence_left_click(self,event):
         # Stores the X position of an aa when click (useful to calculate the shifting of a sequence
         # when dragging).
         self.mypos=self.index("@%d,%d" % (event.x, event.y))
-        self.config(state=NORMAL)
+        self.drag_left = None
+        self.drag_right = None
         # Sets state to 'NORMAL', so that the sequences can be modified with indels.
-        # if self.pymod_element.is_child() and not self.is_lead_of_collapsed_cluster():
-        #     for sibling in pymod.get_siblings(self):
-        #         sibling.config(state=NORMAL)
+        self.config(state=NORMAL)
+        self.original_sequence_length = len(self.pymod_element.my_sequence)
+
 
     def on_sequence_left_release(self,event):
+
+        # Modifies the sequence text of other elements of the cluster.
+        if self.pymod_element.is_child() and (self.drag_left or self.drag_right):
+
+            #######################################################################################
+            # NOTE: an optimal way to do this would be to rstrip all the sequences, then to ljust #
+            # them to the lenght of the "longest" one. However Tkinter is too slow to do this, it #
+            # takes too much time to update all the sequences in big clusters at the same time,   #
+            # therefore as long as Tkinter is used, the following code has to be applied. This    #
+            # code prevents every sequence of a cluster from being updated every time an indel is #
+            # added, and it tries to update only the necessary sequences.                         #
+            #######################################################################################
+
+            mother = self.pymod_element.mother
+            children = mother.get_children()
+            siblings = self.pymod_element.get_siblings()
+
+            # Activates the sequence text of the siblings and of the mother.
+            for element in siblings + [mother]:
+                self.dict_of_elements_widgets[element].sequence_text.config(state=NORMAL)
+
+            # Removes extra gaps from the sequence being modified.
+            self.rstrip_entry()
+            rstripped_length = self.get_sequence_entry_length()
+            maxlength = self.get_cluster_max_length(children)
+
+            if self.drag_right:
+                # If after dragging it the rstripped sequence is shorter than the others, adds extra
+                # indels to it.
+                if rstripped_length < maxlength:
+                    self.ljust_entry(maxlength)
+                # If the rstripped sequence is longer, adds extra gaps to other sequences to adjust
+                # them to the same length.
+                else:
+                    for element in siblings + [mother]:
+                         self.dict_of_elements_widgets[element].sequence_text.ljust_entry(maxlength)
+
+            elif self.drag_left:
+                self.ljust_entry(maxlength)
+                self.dict_of_elements_widgets[mother].sequence_text.ljust_entry(maxlength)
+
+            # Inactivates the sequence text of the siblings and of the mother.
+            for element in siblings + [mother]:
+                self.dict_of_elements_widgets[element].sequence_text.config(state=DISABLED)
+
         # Sets state to 'DISABLED', so that the sequences can't be modified with keyborad input
         # from the user.
         self.config(state=DISABLED)
-        # if self.is_child and not self.is_lead_of_collapsed_cluster():
-        #     for sibling in pymod.get_siblings(self):
-        #         sibling.config(state=DISABLED)
+
+
+    def leave_entry(self,event):
+        self.unbind("<B1-Motion>")
 
     def enter_entry(self,event):
         if not self.pymod_element.is_cluster():
             self.bind("<B1-Motion>", self.on_motion)
 
-    # Allows to insert/remove gaps '-' dragging the mouse
     def on_motion(self,event):
+        """
+        Allows to insert or remove gaps '-' dragging the mouse.
+        """
 
-        # self.sequence_entry.config(state=NORMAL)
+        t1 = time.time()
 
-        drag = None
-        print "OK."
-        print self.mypos
-    #
-    #     # If dragging to the right insert an indel '-'.
-    #     if int(self.sequence_entry.index("@%d,%d" % (event.x, event.y)).split(".")[1]) > int(self.mypos.split(".")[1]):
-    #         # Change the sequence itself.
-    #         self.sequence_entry.insert(self.mypos, "-",("normal"))
-    #         self.mypos=self.sequence_entry.index("@%d,%d" % (event.x, event.y))
-    #         # Updates the sequence with new indels.
-    #         # self.sequence_entry.config(width=int(self.sequence_entry['width'])+1)
-    #         # self.my_sequence = self.sequence_entry.get("1.0", "%s-1c" % END) # This fixes a bug on Ubuntu 14.04.
-    #         self.update_sequence_from_entry()
-    #         drag = "right"
-    #
-    #     # If dragging to the left remove the gap '-' (if it exists).
-    #     if int(self.sequence_entry.index("@%d,%d" % (event.x, event.y)).split(".")[1]) < int(self.mypos.split(".")[1]) :
-    #         if self.sequence_entry.get(self.sequence_entry.index("@%d,%d" % (event.x, event.y))) == "-":
-    #             self.sequence_entry.delete("%s" % ("@%d,%d" % (event.x, event.y)))
-    #             self.mypos=self.sequence_entry.index("@%d,%d" % (event.x, event.y))
-    #             self.update_sequence_from_entry()
-    #             drag = "left"
-    #
-    #     # self.sequence_entry.config(state=DISABLED)
-    #
-    #     # If the sequence is a child, the length of its siblings has to be adjusted and the sequence
-    #     # update the of the mother has to be adjusted.
-    #     if self.is_child and not self.is_lead_of_collapsed_cluster() and drag != None:
-    #
-    #         #######################################################################################
-    #         # NOTE:The optimal way to do this would be to rstrip all the sequences, then to ljust #
-    #         # them to the lenght of the "longest" one. However Tkinter is too slow to do this, it #
-    #         # takes too much time to update all the sequences in big clusters at the same time,   #
-    #         # so as long as Tkinter is used the following code has to be applied. This code       #
-    #         # prevents every sequence of a cluster from being updated every time an indel is      #
-    #         # added, and it tries to update only the necessary sequences.                         #
-    #         #######################################################################################
-    #
-    #         # Gets the other elements in the cluster.
-    #         mother = pymod.get_mother(self)
-    #         children = pymod.get_children(mother)
-    #         siblings = pymod.get_siblings(self)
-    #
-    #         if drag == "right":
-    #             # Removes extra gaps from the sequence being modified.
-    #             self.rstrip_entry()
-    #             rstripped_length = self.get_sequence_entry_length()
-    #             maxlength = self.get_cluster_max_length(children)
-    #
-    #             # If after dragging it the rstripped sequence is shorter than the others, adds extra
-    #             # indels to it.
-    #             if rstripped_length < maxlength:
-    #                 self.ljust_entry(maxlength)
-    #             # If the rstripped sequence is longer, adds extra gaps to other sequences to adjust
-    #             # them to the same length.
-    #             else:
-    #                 for s in siblings:
-    #                      s.ljust_entry(rstripped_length)
-    #
-    #         elif drag == "left":
-    #             # Removes extra gaps from the sequence being modified.
-    #             self.rstrip_entry()
-    #             rstripped_length = self.get_sequence_entry_length()
-    #             maxlength = self.get_cluster_max_length(children)
-    #
-    #             # This happens when, after removing an indel, the rstripped sequence is shorter than
-    #             # the other sequences by just one character. For example
-    #             #
-    #             # before dragging:
-    #             # -AAA-
-    #             # -CCCC <- sequence being dragged
-    #             # -DDD-
-    #             #
-    #             # after dragging:
-    #             # -AAA-
-    #             # CCCC  <- now it's shorter than one character from the maxlength of the cluster
-    #             # -DDD-
-    #             if rstripped_length + 1 == maxlength:
-    #                 # If there are only indels as the last characters in other sequences of the
-    #                 # cluster (such as in the example above) remove them.
-    #                 only_indels = True
-    #                 for s in siblings:
-    #                     if s.get_sequence_entry_last_character() != "-":
-    #                         only_indels = False
-    #                         break
-    #                 if only_indels:
-    #                     for s in siblings:
-    #                         if s.get_sequence_entry_last_character() == "-":
-    #                             s.remove_sequence_entry_last_character()
-    #
-    #                 # Adjust the dragged sequence with indels if necessary.
-    #                 maxlength = self.get_cluster_max_length(children)
-    #                 if rstripped_length != maxlength:
-    #                     self.ljust_entry(maxlength)
-    #
-    #             # Adjust the dragged sequence with indels.
-    #             else:
-    #                 self.ljust_entry(maxlength)
-    #
-    #         # Then updates the mother.
-    #         mother.sequence_entry.config(state=NORMAL)
-    #         pymod.update_stars(mother)
-    #         mother.sequence_entry.delete(1.0,END)
-    #         mother.sequence_entry.insert(1.0, mother.my_sequence,("normal"))
-    #         mother.sequence_entry.config(width=maxlength)
-    #         mother.sequence_entry.config(state=DISABLED)
-    #
-    #
-    # # Takes as input a list of children elements and returns as an int the length of the one with
-    # # the longest entry.
-    # def get_cluster_max_length(self, children):
-    #     return max([c.get_sequence_entry_length() for c in children])
-    #
-    #
-    # def update_sequence_from_entry(self):
-    #     self.my_sequence = self.sequence_entry.get("1.0", "%s-1c" % END)
-    #     length = self.get_sequence_entry_length()
-    #     self.sequence_entry.config(width=int(length))
-    #
-    # def get_sequence_entry_length(self):
-    #     return len(self.sequence_entry.get("1.0", "%s-1c" % END))
-    #     # return int(self.sequence_entry['width'])
-    #
-    # def get_sequence_entry_last_character(self):
-    #     return self.sequence_entry.get("%s-2c" % END)
-    #
-    # def remove_sequence_entry_last_character(self, update=True):
-    #     self.sequence_entry.delete("%s-2c" % END)
-    #     if update:
-    #         self.update_sequence_from_entry()
-    #
-    # def rstrip_entry(self,maxlength=None,update=True):
-    #     # c.my_sequence = c.my_sequence.rstrip("-")
-    #     found_residue = False
-    #     while not found_residue:
-    #         if maxlength != None and self.get_sequence_entry_length() <= maxlength:
-    #             break
-    #         if self.get_sequence_entry_last_character() == "-":
-    #             self.remove_sequence_entry_last_character(update)
-    #         else:
-    #             found_residue = True
-    #
-    # def ljust_entry(self,maxlength,update=True):
-    #     seql = self.get_sequence_entry_length()
-    #     self.sequence_entry.insert("%s-1c" % END,"-"*(maxlength-seql))
-    #     if update:
-    #         self.update_sequence_from_entry()
+        new_formatted_index = "@%d,%d" % (event.x, event.y)
+        new_index = self.index(new_formatted_index)
+
+        # If dragging to the right insert an indel '-'.
+        if int(new_index.split(".")[1]) > int(self.mypos.split(".")[1]):
+            # Change the sequence itself with new indels.
+            self.insert(self.mypos, "-",("normal"))
+            self.mypos=new_index
+            self.drag_right = True
+
+        # If dragging to the left remove the gap '-' (if it exists).
+        elif int(new_index.split(".")[1]) < int(self.mypos.split(".")[1]):
+            if self.get(new_index) == "-":
+                self.delete(new_formatted_index)
+                self.mypos=new_index
+                self.drag_left = True
+
+        self.update_sequence_from_entry() # TODO.
+
+        # If the sequence is a child, the length of its siblings has to be adjusted and the sequence
+        # update the of the mother has to be adjusted.
+        if (self.drag_left or self.drag_right) and self.pymod_element.is_child(): # and not self.is_lead_of_collapsed_cluster(self.pymod_element):
+
+            # Gets the other elements in the cluster.
+            mother = self.pymod_element.mother
+            # Then updates the mother.
+            mother.update_stars(adjust_length_value=self.original_sequence_length)
+            # Update the mother's sequence text.
+            mother_widgets_group = self.dict_of_elements_widgets[mother]
+            mother_widgets_group.sequence_text.config(state=NORMAL)
+            mother_widgets_group.sequence_text.delete(1.0,END)
+            mother_widgets_group.sequence_text.insert(1.0, mother.my_sequence,("normal"))
+            # mother_widgets_group.sequence_text.config(width=maxlength)
+            mother_widgets_group.sequence_text.config(state=DISABLED)
+
+
+    def get_cluster_max_length(self, children):
+        """
+        Takes as input a list of children elements and returns as an int the length of the one with
+        the longest entry.
+        """
+        return max([self.dict_of_elements_widgets[c].sequence_text.get_sequence_entry_length() for c in children])
+
+    def update_sequence_from_entry(self):
+        self.pymod_element.my_sequence = self.get("1.0", "%s-1c" % END)
+        self.config(width=self.get_sequence_entry_length())
+
+    def get_sequence_entry_length(self):
+        return len(self.get("1.0", "%s-1c" % END))
+        # return int(self.sequence_entry['width'])
+
+    def get_sequence_entry_last_character(self):
+        return self.get("%s-2c" % END)
+
+    def remove_sequence_entry_last_character(self, update=True):
+        self.delete("%s-2c" % END)
+        if update:
+            self.update_sequence_from_entry()
+
+    def rstrip_entry(self,maxlength=None,update=True):
+        # c.my_sequence = c.my_sequence.rstrip("-")
+        found_residue = False
+        while not found_residue:
+            if maxlength != None and self.get_sequence_entry_length() <= maxlength:
+                break
+            if self.get_sequence_entry_last_character() == "-":
+                self.remove_sequence_entry_last_character(update)
+            else:
+                found_residue = True
+
+    def ljust_entry(self,maxlength,update=True):
+        self.insert("%s-1c" % END,"-"*(maxlength-self.get_sequence_entry_length()))
+        if update:
+            self.update_sequence_from_entry()
 
 
     #################################################################

@@ -277,8 +277,8 @@ class PyMod_cluster_element(PyMod_element):
         return None
 
 
-    def update_stars(self):
-        stars = pmsm.compute_stars(self.get_children())
+    def update_stars(self, adjust_length_value=None):
+        stars = pmsm.compute_stars(self.get_children(), adjust_length_value=adjust_length_value)
         self.my_sequence = stars
 
 
