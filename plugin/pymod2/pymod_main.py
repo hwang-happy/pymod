@@ -1,5 +1,4 @@
 # TODO:
-#     - position the new controls of the plot window.
 #     - evolutionary_analysis_protocol:
 #         - add an "remove gap only columns" option in the CAMPO window.
 #         - fix the bug in gap tossing.
@@ -13,6 +12,9 @@
 #             - new project loading system.
 #             - color by CAMPO in the right way.
 #         - check all the 2.0 functionalities (check the menus)
+#     - speed up coloring of structures and sequences.
+#     - nucleic acids (basic).
+#     - fix the paths (compatibility with other plugins).
 #     - implement the new aid system in the GUI.
 #     - color structures and models, structure appearence and user defined colors.
 #     - reimplement sessions (make modifications to the code).
@@ -2643,7 +2645,7 @@ class PyMod:
             list_seq.pop(random_index)
             list_seq.insert(random_index, random.choice(amino_acids))
 
-        n_gaps = 3
+        n_gaps = 0
         max_gap_length = 10
         for g in range(0, n_gaps):
             seq_len = len(list_seq)

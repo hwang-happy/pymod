@@ -41,7 +41,7 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
     def __init__(self, parent, title = None, **configs):
         # Sets the window parameters.
         Toplevel.__init__(self, parent, **configs)
-        self.geometry("850x600")
+        self.geometry("910x600")
         self.minsize("540","381")
 
         if title:
@@ -103,6 +103,10 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
         # The buttons will be packed in the 'show' method.
         self.export_to_csv_button = Button(self.control_frame, text="CSV", command=self.export_data, **self.controls_config)
         self.export_to_ps_button = Button(self.control_frame, text="PS", command=self.save_postscript, **self.controls_config)
+
+        self.show_plots_label = Label(self.control_frame, text="Show:", **self.controls_config)
+        self.show_all_button = Button(self.control_frame, text="All", command=self.click_show_all_checkbutton, **self.controls_config)
+        self.hide_all_button = Button(self.control_frame, text="None", command=self.click_hide_all_checkbutton, **self.controls_config)
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -186,22 +190,23 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
             self.labels_title.pack(fill="x",**self.control_labels_pack_config)
 
             if self.add_show_hide_all_controls:
-                show_all_plot_control_frame = Global_control_frame(self.inner_labels_frame, button_label="Show All", button_command=self.click_show_all_checkbutton)
-                self.control_frames_list.append(show_all_plot_control_frame)
-                hide_all_plot_control_frame = Global_control_frame(self.inner_labels_frame, button_label="Hide All", button_command=self.click_hide_all_checkbutton)
-                self.control_frames_list.append(hide_all_plot_control_frame)
+                pass
+            #     show_all_plot_control_frame = Global_control_frame(self.inner_labels_frame, button_label="Show All", button_command=self.click_show_all_checkbutton)
+            #     self.control_frames_list.append(show_all_plot_control_frame)
+            #     hide_all_plot_control_frame = Global_control_frame(self.inner_labels_frame, button_label="Hide All", button_command=self.click_hide_all_checkbutton)
+            #     self.control_frames_list.append(hide_all_plot_control_frame)
 
     def check_plotting_area(self):
         if not hasattr(self, "canvas_plot"):
             raise Exception("This 'Custom_plot_window' does not have a plotting area. Before starting to draw on it, use the 'build_plotting_area' method.")
 
 
-    def click_show_all_checkbutton(self, global_control_frame):
+    def click_show_all_checkbutton(self):
         for control_frame in self.get_plot_control_frames():
             self.show_plot_from_controls(control_frame.plot)
             control_frame.plot_button.select()
 
-    def click_hide_all_checkbutton(self, global_control_frame):
+    def click_hide_all_checkbutton(self):
         for control_frame in self.get_plot_control_frames():
             self.hide_plot_from_controls(control_frame.plot)
             control_frame.plot_button.deselect()
@@ -313,6 +318,10 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
         if self.canvas_plot.plots_list != []:
             self.export_to_csv_button.pack(**self.buttons_pack_config)
         self.export_to_ps_button.pack(**self.buttons_pack_config)
+        if self.add_show_hide_all_controls:
+            self.show_plots_label.pack(**self.buttons_pack_config)
+            self.show_all_button.pack(**self.buttons_pack_config)
+            self.hide_all_button.pack(**self.buttons_pack_config)
         self.deiconify()
 
 

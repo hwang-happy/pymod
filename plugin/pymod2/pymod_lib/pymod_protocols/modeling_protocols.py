@@ -1164,9 +1164,12 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         Checks if correct alignments are being provided.
         """
         for modeling_cluster in self.modeling_clusters_list:
-            for template in modeling_cluster.templates_list:
-                for target_char, template_char in zip(modeling_cluster.target.my_sequence, template.my_sequence):
-                    if target_char == "X" and template_char == "-":
+            for char_id, target_char in enumerate(modeling_cluster.target.my_sequence):
+                if target_char == "X":
+                    template_gaps = [template.my_sequence[char_id] == "-" for template in modeling_cluster.templates_list]
+                    # The alignment is not correct if there are any 'X' character of the target not
+                    # aligned to at least one residue of the templates.
+                    if not False in template_gaps:
                         self.modelization_parameters_error = "No aligned template residues for an X residue of '%s' target sequence. Make sure that each X residues in your target sequences is aligned with your templates." % (modeling_cluster.target_name)
                         return False
         return True
