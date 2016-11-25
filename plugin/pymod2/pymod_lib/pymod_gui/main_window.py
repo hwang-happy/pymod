@@ -2215,6 +2215,14 @@ class Sequence_text(Text, PyMod_main_window_mixin):
     # and to add/remove gaps to them.     #
     #######################################
 
+    def leave_entry(self,event):
+        self.unbind("<B1-Motion>")
+
+    def enter_entry(self,event):
+        if not self.pymod_element.is_cluster():
+            self.bind("<B1-Motion>", self.on_motion)
+
+
     def on_sequence_left_click(self,event):
         # Stores the X position of an aa when click (useful to calculate the shifting of a sequence
         # when dragging).
@@ -2228,7 +2236,8 @@ class Sequence_text(Text, PyMod_main_window_mixin):
 
     def on_sequence_left_release(self,event):
 
-        # Modifies the sequence text of other elements of the cluster.
+        # If the element is in a cluster, modifies the sequence text of other elements of the
+        # cluster.
         if self.pymod_element.is_child() and (self.drag_left or self.drag_right):
 
             #######################################################################################
@@ -2240,36 +2249,18 @@ class Sequence_text(Text, PyMod_main_window_mixin):
             # added, and it tries to update only the necessary sequences.                         #
             #######################################################################################
 
-            mother = self.pymod_element.mother
-            children = mother.get_children()
-            siblings = self.pymod_element.get_siblings()
+            elements_to_update = self.pymod_element.get_siblings() + [self.pymod_element.mother]
 
             # Activates the sequence text of the siblings and of the mother.
-            for element in siblings + [mother]:
+            for element in elements_to_update:
                 self.dict_of_elements_widgets[element].sequence_text.config(state=NORMAL)
 
-            # Removes extra gaps from the sequence being modified.
-            self.rstrip_entry()
-            rstripped_length = self.get_sequence_entry_length()
-            maxlength = self.get_cluster_max_length(children)
-
-            if self.drag_right:
-                # If after dragging it the rstripped sequence is shorter than the others, adds extra
-                # indels to it.
-                if rstripped_length < maxlength:
-                    self.ljust_entry(maxlength)
-                # If the rstripped sequence is longer, adds extra gaps to other sequences to adjust
-                # them to the same length.
-                else:
-                    for element in siblings + [mother]:
-                         self.dict_of_elements_widgets[element].sequence_text.ljust_entry(maxlength)
-
-            elif self.drag_left:
-                self.ljust_entry(maxlength)
-                self.dict_of_elements_widgets[mother].sequence_text.ljust_entry(maxlength)
+            self.adjust_to_sequence()
+            for element in elements_to_update:
+                self.dict_of_elements_widgets[element].sequence_text.adjust_to_sequence()
 
             # Inactivates the sequence text of the siblings and of the mother.
-            for element in siblings + [mother]:
+            for element in elements_to_update:
                 self.dict_of_elements_widgets[element].sequence_text.config(state=DISABLED)
 
         # Sets state to 'DISABLED', so that the sequences can't be modified with keyborad input
@@ -2277,12 +2268,14 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         self.config(state=DISABLED)
 
 
-    def leave_entry(self,event):
-        self.unbind("<B1-Motion>")
+    def adjust_to_sequence(self):
+        if self.get_length() > len(self.pymod_element.my_sequence):
+            self.rstrip_entry(len(self.pymod_element.my_sequence))
+        elif self.get_length() < len(self.pymod_element.my_sequence):
+            self.ljust_entry(len(self.pymod_element.my_sequence))
+        else:
+            self.config(width=self.get_length())
 
-    def enter_entry(self,event):
-        if not self.pymod_element.is_cluster():
-            self.bind("<B1-Motion>", self.on_motion)
 
     def on_motion(self,event):
         """
@@ -2313,34 +2306,34 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         # If the sequence is a child, the length of its siblings has to be adjusted and the sequence
         # update the of the mother has to be adjusted.
         if (self.drag_left or self.drag_right) and self.pymod_element.is_child(): # and not self.is_lead_of_collapsed_cluster(self.pymod_element):
-
-            # Gets the other elements in the cluster.
-            mother = self.pymod_element.mother
-            # Then updates the mother.
-            mother.update_stars(adjust_length_value=self.original_sequence_length)
+            # Updates the mother.
+            self.pymod_element.mother.update_stars(adjust_elements=True)
             # Update the mother's sequence text.
-            mother_widgets_group = self.dict_of_elements_widgets[mother]
+            mother_widgets_group = self.dict_of_elements_widgets[self.pymod_element.mother]
             mother_widgets_group.sequence_text.config(state=NORMAL)
-            mother_widgets_group.sequence_text.delete(1.0,END)
-            mother_widgets_group.sequence_text.insert(1.0, mother.my_sequence,("normal"))
+            mother_widgets_group.sequence_text.delete(1.0, END)
+            mother_widgets_group.sequence_text.insert(1.0, self.pymod_element.mother.my_sequence, ("normal"))
             # mother_widgets_group.sequence_text.config(width=maxlength)
             mother_widgets_group.sequence_text.config(state=DISABLED)
 
 
-    def get_cluster_max_length(self, children):
+    def get_cluster_max_length(self, children, rstrip=False):
         """
         Takes as input a list of children elements and returns as an int the length of the one with
         the longest entry.
         """
-        return max([self.dict_of_elements_widgets[c].sequence_text.get_sequence_entry_length() for c in children])
+        return max([self.dict_of_elements_widgets[c].sequence_text.get_length(rstrip=rstrip) for c in children])
 
     def update_sequence_from_entry(self):
         self.pymod_element.my_sequence = self.get("1.0", "%s-1c" % END)
-        self.config(width=self.get_sequence_entry_length())
+        self.config(width=self.get_length())
 
-    def get_sequence_entry_length(self):
-        return len(self.get("1.0", "%s-1c" % END))
-        # return int(self.sequence_entry['width'])
+    def get_length(self, rstrip=False):
+        if not rstrip:
+            return len(self.get("1.0", "%s-1c" % END))
+            # return int(self.sequence_entry['width'])
+        elif rstrip:
+            return len(self.get("1.0", "%s-1c" % END).rstrip("-"))
 
     def get_sequence_entry_last_character(self):
         return self.get("%s-2c" % END)
@@ -2354,15 +2347,17 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         # c.my_sequence = c.my_sequence.rstrip("-")
         found_residue = False
         while not found_residue:
-            if maxlength != None and self.get_sequence_entry_length() <= maxlength:
+            if maxlength != None and self.get_length() <= maxlength:
                 break
             if self.get_sequence_entry_last_character() == "-":
                 self.remove_sequence_entry_last_character(update)
             else:
                 found_residue = True
+        if update:
+            self.update_sequence_from_entry()
 
     def ljust_entry(self,maxlength,update=True):
-        self.insert("%s-1c" % END,"-"*(maxlength-self.get_sequence_entry_length()))
+        self.insert("%s-1c" % END,"-"*(maxlength-self.get_length()))
         if update:
             self.update_sequence_from_entry()
 

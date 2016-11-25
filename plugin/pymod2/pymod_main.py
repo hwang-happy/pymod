@@ -1,5 +1,4 @@
 # TODO:
-#     - add gaps to a sequence with the mouse for cluster leads.
 #     - position the new controls of the plot window.
 #     - evolutionary_analysis_protocol:
 #         - add an "remove gap only columns" option in the CAMPO window.
@@ -708,7 +707,7 @@ class PyMod:
             self.load_uniprot_random()
 
         # Loads random structures from the PDB.
-        n_str = 0
+        n_str = 1
         for i in range(0, n_str):
             elements = self.load_pdb_random()
             for e in elements:
@@ -725,7 +724,7 @@ class PyMod:
         # a.add_child(c)
 
         # Large clusters.
-        self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
+        # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
 
         # Fetch sequences from the PDB.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))

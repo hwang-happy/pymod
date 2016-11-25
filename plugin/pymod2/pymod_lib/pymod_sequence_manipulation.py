@@ -630,20 +630,26 @@ def get_conservation_symbol(column):
     return symbol
 
 
-def compute_stars(elements, adjust_length_value=None, adjust_to_max_length=False):
+def compute_stars(elements, adjust_elements=False):
     """
     Computes the "stars" of an alignment.
     """
+    if adjust_elements:
+        for e in elements:
+            e.my_sequence = e.my_sequence.rstrip("-")
+        max_length = max([len(e.my_sequence) for e in elements])
+        for e in elements:
+            e.my_sequence = e.my_sequence.ljust(max_length, "-")
+
     sequences = [str(e.my_sequence) for e in elements]
-    minimum_length = min([len(s) for s in sequences])
+    if not adjust_elements:
+        minimum_length = min([len(s) for s in sequences])
+    else:
+        minimum_length = max_length
+
     stars = ""
     for i in range(0, minimum_length):
         column = [s[i] for s in sequences]
         stars += get_conservation_symbol(column)
-
-    if adjust_to_max_length:
-        adjust_length_value = max([len(s) for s in sequences])
-    if adjust_length_value:
-        stars = stars.ljust(adjust_length_value, "-")
 
     return stars
