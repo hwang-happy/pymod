@@ -451,7 +451,7 @@ def get_exe_file_name(program_name, force_not_extended=False):
 
 def get_askopenfilename_tuple(askopenfilename_result):
     """
-    Some Tkinter versions reutrn unicode strings when using the 'askopenfilename' dialog to selection
+    Some Tkinter versions return unicode strings when using the 'askopenfilename' dialog to select
     multiple files. Depending on the presence of '{' or '}' characters in the file name, it they
     will return an unicode string like this:
         'C:/Users/username/pymod/projects/Q6P988.fasta {C:/Users/username/pymod/projects/filename with spaces .fasta} C:/Users/username/pymod/projects/filename\ with\ parenthesis\{.fasta'
@@ -464,6 +464,19 @@ def get_askopenfilename_tuple(askopenfilename_result):
         substituted_string = re.sub("\} ([A-Z]:/)", " \g<1>", substituted_string).rstrip("}")
         result_list = re.split("([A-Z]:/)", substituted_string)
         return tuple([disk+path.rstrip(" ").replace("\\","") for disk, path in zip(result_list[1::2], result_list[2::2])])
+
+def get_askopenfilename_string(askopenfilename_result):
+    """
+    Some Tkinter versions return tuples when using the 'askopenfilename' dialog to select single
+    files. This method will convert these tuples in strings containing the file name.
+    """
+    if isinstance(askopenfilename_result, tuple):
+        if askopenfilename_result == ():
+            return ""
+        else:
+            return askopenfilename_result[0]
+    else:
+        return askopenfilename_result
 
 
 def open_document_with_default_viewer(document_path):

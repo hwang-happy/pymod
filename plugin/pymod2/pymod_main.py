@@ -2,7 +2,6 @@
 #     - evolutionary_analysis_protocol:
 #         - add an "remove gap only columns" option in the CAMPO window.
 #         - fix the bug in gap tossing.
-#         - check the names of the sequences when building trees.
 #     - fix the "to new cluster" option.
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
@@ -726,7 +725,7 @@ class PyMod:
         # a.add_child(c)
 
         # Large clusters.
-        # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
+        self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
 
         # Fetch sequences from the PDB.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
@@ -2418,14 +2417,11 @@ class PyMod:
         pplt.draw_tree(tree, self.main_window)
 
 
-    # def show_dendrogram_from_alignments_menu(self,alignment_unique_id):
-    #     """
-    #     Shows dendrograms built by SALIGN.
-    #     """
-    #     # Gets the path of the .dnd file of the alignment.
-    #     alignment_element = self.get_element_by_unique_index(alignment_unique_id)
-    #     tree_file_path = alignment_element.alignment.get_dnd_file_path()
-    #     pmsp.draw_salign_dendrogram(tree_file_path)
+    def show_dendrogram_from_alignments_menu(self, alignment_element):
+        """
+        Shows dendrograms built by SALIGN.
+        """
+        pplt.draw_modeller_dendrogram(alignment_element.get_tree_file_path(), self.main_window)
 
 
     def build_tree_from_alignments_menu(self, alignment_element):
@@ -2445,14 +2441,14 @@ class PyMod:
         """
         Build a zip file of the modeling directory of a certain session.
         """
-        arhive_file_full_path = asksaveasfilename(defaultextension = "", filetypes = [("ZIP","*.zip")], parent=self.main_window)
-        if arhive_file_full_path == "":
+        archive_path = pmos.get_askopenfilename_string(asksaveasfilename(defaultextension = "", filetypes = [("ZIP","*.zip")], parent=self.main_window))
+        if archive_path == "":
             return None
         try:
-            pmos.zip_directory(directory_path=modeling_session.modeling_directory_path, zipfile_path=arhive_file_full_path)
+            pmos.zip_directory(directory_path=modeling_session.modeling_directory_path, zipfile_path=archive_path)
         except:
             title = "File Error"
-            message = "Could not save the modeling session file to path: %s" % (arhive_file_full_path)
+            message = "Could not save the modeling session file to path: %s" % (archive_path)
             self.show_error_message(title, message)
 
     def show_session_profile(self, modeling_session):

@@ -1027,7 +1027,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
                     alignment_submenu.add_cascade(label = "Trees", menu = trees_submenu)
                     if alignment_element.algorithm in pmdt.can_show_guide_tree:
                         trees_submenu.add_command(label = "Show Guide Tree", command = lambda e=alignment_element: self.pymod.show_guide_tree_from_alignments_menu(e))
-                    if alignment_element.algorithm in pmdt.can_show_dendrogram and 0:
+                    if alignment_element.algorithm in pmdt.can_show_dendrogram:
                         trees_submenu.add_command(label = "Show Dendrogram", command = lambda e=alignment_element: self.pymod.show_dendrogram_from_alignments_menu(e))
                     if len(alignment_element.get_children()) >= 2:
                         trees_submenu.add_command(label = "Build Tree from Alignment", command = lambda e=alignment_element: self.pymod.build_tree_from_alignments_menu(e))

@@ -82,15 +82,81 @@ code_standard = { # dict for 20 standard amino acids
 # Drawing dendrograms.                                                                            #
 ###################################################################################################
 
-def draw_salign_dendrogram(dendrogram_file,engine='matplotlib'):
+def draw_salign_dendrogram(dendrogram_file, engine='tkinter'):
     ''' Draw `dendrogram_file` for salign tree file using `engine`
     (Only 'matplotlib' is supported) '''
-    if engine=='matplotlib':
+    if engine == 'matplotlib':
         try:
             from matplotlib import pylab
             draw_salign_dendrogram_matplotlib(dendrogram_file)
         except:
             print "WARNING! matplotlib is absent. No dendrogram is plotted"
+    elif engine == 'tkinter':
+        draw_salign_dendrogram_tkinter(dendrogram_file)
+
+def draw_salign_dendrogram_tkinter(dendrogram_file):
+    ''' Draw `dendrogram_file` for salign tree file using matplotlib'''
+    if not os.path.isfile(dendrogram_file):
+        print "ERROR! Cannot find dendrogram_file"+str(dendrogram_file)
+        return
+
+    from matplotlib import pylab
+    fp=open(dendrogram_file,'rU')
+    content=fp.read()
+    fp.close()
+
+    width=max([len(sline) for sline in content.splitlines()])
+    height=len(content.splitlines())
+
+
+    def draw_single_line(sline,y=0,offset=0):
+        if not sline.strip():
+            return
+
+        if sline.lstrip().startswith('.-'): # leaf
+            x1=sline.find('.-')
+            x2=sline.find('- ')+1
+            if not x2 or x1>x2:
+                x2=x1
+            pylab.plot([offset+x1,offset+x2],[y,y],'k')
+            pylab.text(offset+x2+1,y,sline[x2:].strip())
+        elif sline.lstrip().startswith('+-') and sline[-2:]=='-+':
+            x1=sline.find('+-')
+            x2=len(sline)-1
+            pylab.plot([offset+x1,offset+x2],[y,y],'k')
+            for j,c in enumerate(sline):
+                if c=='+':
+                    x=j
+                    y1=height-i-0.1
+                    y2=height-i+0.1
+                    pylab.plot([offset+x,offset+x],[y1,y2],'k')
+        elif sline.lstrip()[0] in '0123456789':
+            x1=0
+            for j,c in enumerate(sline):
+                if j and sline[j-1]==' ':
+                    x1=j*1
+                elif j+1==len(sline):
+                    pylab.text(offset+x1,y,sline[x1:])
+                elif j+1<len(sline) and sline[j+1]==' ':
+                    pylab.text(offset+x1,y,sline[x1:j])
+        elif sline.lstrip().startswith('|'): # branch
+            x=sline.find('|')
+            y1=height-i-1
+            y2=height-i+1
+            pylab.plot([offset+x,offset+x],[y1,y2],'k')
+            if x+1<len(sline):
+                draw_single_line(sline[x+1:],y,offset=x+1+offset)
+    ## END `draw_single_line` ##
+
+
+    pylab.figure()
+    for i,sline in enumerate(content.splitlines()):
+        draw_single_line(sline,y=height-i)
+
+    pylab.axis([0,width+1,0,height+1])
+    pylab.axis('off')
+    pylab.show()
+
 
 def draw_salign_dendrogram_matplotlib(dendrogram_file):
     ''' Draw `dendrogram_file` for salign tree file using matplotlib'''

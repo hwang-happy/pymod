@@ -1626,7 +1626,35 @@ class SALIGN_seq_alignment(SALIGN_alignment):
         self.update_aligned_sequences_inserting_modres()
 
 
-class SALIGN_seq_regular_alignment(SALIGN_seq_alignment, Regular_sequence_alignment):
+class SALIGN_regular_alignment:
+    def update_additional_information(self):
+        """
+        Sets the dendrogram file path once the alignment has been performed.
+        """
+        if len(self.elements_to_align) > 2 and self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
+          # Builds a permanent copy of the original temporary .dnd file.
+          temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".tree")
+          new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_dendrogram.tree" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
+          shutil.copy(temp_dnd_file_path, new_dnd_file_path)
+
+          # Edit the new .dnd file to insert the actual names of the sequences.
+          dnd_file_handler = open(new_dnd_file_path, "r")
+          dnd_file_lines = dnd_file_handler.readlines()
+          dnd_file_handler.close()
+          new_dnd_file_lines = []
+          for line in dnd_file_lines:
+              for m in re.findall(pmdt.unique_index_header_regex, line):
+                  line = line.replace(m, self.elements_to_align_dict[m].my_header)
+              new_dnd_file_lines.append(line)
+          dnd_file_handler = open(new_dnd_file_path, "w")
+          for line in new_dnd_file_lines:
+              dnd_file_handler.write(line)
+          dnd_file_handler.close()
+
+          self.alignment_element.tree_file_path = new_dnd_file_path
+
+
+class SALIGN_seq_regular_alignment(SALIGN_regular_alignment, SALIGN_seq_alignment, Regular_sequence_alignment):
 
     def get_alignment_window_class(self):
         return pmgi.alignment_components.SALIGN_seq_regular_window
@@ -1726,7 +1754,7 @@ class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
 # SALIGN structural alignment.                                                                    #
 ###################################################################################################
 
-class SALIGN_str_regular_alignment(SALIGN_alignment, Regular_structural_alignment):
+class SALIGN_str_regular_alignment(SALIGN_regular_alignment, SALIGN_alignment, Regular_structural_alignment):
 
     alignment_program = "salign-str"
 

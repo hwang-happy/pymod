@@ -1803,7 +1803,7 @@ def draw_tree(tree, plotting_window_parent=None, label_func=str, do_show=True, s
 
     # Builds the plot window and initializes the plotting area.
     cp = Custom_plot_window(plotting_window_parent, title=plot_title)
-    cp.build_plotting_area(use_plotting_controls=False, x_label_text="Branch length", y_label_text="Taxum", hide_y_thicks=True)
+    cp.build_plotting_area(use_plotting_controls=False, x_label_text="Branch length", y_label_text="Taxum", hide_y_thicks=True, add_show_hide_all_controls=False)
     cp.show(x_limits=xlim, y_limits=ylim)
 
     #############################################################################
@@ -1841,7 +1841,11 @@ def draw_tree(tree, plotting_window_parent=None, label_func=str, do_show=True, s
         if label not in (None, clade.__class__.__name__):
             cp.draw_label(' %s' % label, [x_here, y_here])
         # Add label above the branch (optional)
-        show_confidence = True
+        show_confidence = False
+        def conf2str(conf):
+            if int(conf) == conf:
+                return str(int(conf))
+            return str(conf)
         if show_confidence:
             def format_branch_label(clade):
                 if hasattr(clade, 'confidences'):
@@ -1879,6 +1883,66 @@ def draw_tree(tree, plotting_window_parent=None, label_func=str, do_show=True, s
         cp.draw_line(coords)
     for coords in vertical_linecollections:
         cp.draw_line(coords)
+
+
+def draw_modeller_dendrogram(dendrogram_file, plotting_window_parent):
+    """
+    Draw 'dendrogram_file' for SALIGN tree file using PyMod plot engine.
+    """
+
+    fp = open(dendrogram_file,'rU')
+    content = fp.read()
+    fp.close()
+
+    width = max([len(sline) for sline in content.splitlines()])
+    height = len(content.splitlines())
+
+    # Builds the plot window and initializes the plotting area.
+    cp = Custom_plot_window(plotting_window_parent, title="MODELLER Dendrogram")
+    cp.build_plotting_area(use_plotting_controls=False, x_label_text="Branch length", y_label_text="Taxum", hide_y_thicks=True, hide_x_thicks=True, add_show_hide_all_controls=False)
+    cp.show(x_limits=[0,width+1], y_limits=[0,height+1])
+
+    def draw_single_line(sline,y=0,offset=0):
+        if not sline.strip():
+            return
+
+        if sline.lstrip().startswith('.-'): # leaf
+            x1=sline.find('.-')
+            x2=sline.find('- ')+1
+            if not x2 or x1>x2:
+                x2=x1
+            cp.draw_line([offset+x1,y,offset+x2,y])
+            cp.draw_label(sline[x2:].strip(),[offset+x2+1,y])
+        elif sline.lstrip().startswith('+-') and sline[-2:]=='-+':
+            x1=sline.find('+-')
+            x2=len(sline)-1
+            cp.draw_line([offset+x1,y,offset+x2,y])
+            for j,c in enumerate(sline):
+                if c=='+':
+                    x=j
+                    y1=height-i-0.1
+                    y2=height-i+0.1
+                    cp.draw_line([offset+x,y1,offset+x,y2])
+        elif sline.lstrip()[0] in '0123456789':
+            x1=0
+            for j,c in enumerate(sline):
+                if j and sline[j-1]==' ':
+                    x1=j*1
+                elif j+1==len(sline):
+                    cp.draw_label(sline[x1:],[offset+x1,y])
+                elif j+1<len(sline) and sline[j+1]==' ':
+                    cp.draw_label(sline[x1:j],[offset+x1,y])
+        elif sline.lstrip().startswith('|'): # branch
+            x=sline.find('|')
+            y1=height-i-1
+            y2=height-i+1
+            cp.draw_line([offset+x,y1,offset+x,y2])
+            if x+1<len(sline):
+                draw_single_line(sline[x+1:],y,offset=x+1+offset)
+    ## END `draw_single_line` ##
+
+    for i,sline in enumerate(content.splitlines()):
+        draw_single_line(sline,y=height-i)
 
 
 ###################################################################################################

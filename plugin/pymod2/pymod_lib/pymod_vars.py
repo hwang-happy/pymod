@@ -34,8 +34,8 @@ can_use_scr_find = ("ce","salign-str")
 
 # "__pymod_element_%s__"
 # "temp_pymod_element_%s_"
-unique_index_header_formatted = "temp_pymod_element_%s_"
-unique_index_header_regex = r"temp_pymod_element_\d+_"
+unique_index_header_formatted = "_%s_tpm"
+unique_index_header_regex = r"_\d+_tpm"
 structure_temp_name = "__%s_structure_temp__"
 structure_chain_temp_name = "__%s_structure_temp_chain_%s__"
 copied_chain_name = "cobj_%s"
