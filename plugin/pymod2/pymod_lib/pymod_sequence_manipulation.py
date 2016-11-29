@@ -97,13 +97,6 @@ def find_residue_conservation(template_seq,target_seq,real_id):
     return conservation
 
 
-def all_gaps_column(column):
-    for i in column:
-        if i != "-":
-            return False
-    return True
-
-
 def get_leading_gaps(sequence, index):
     gap_counter = 0
     for i, position in enumerate(sequence[index:]):
@@ -215,20 +208,30 @@ def adjust_aligned_elements_length(elements, remove_right_indels=True):
         # e.set_sequence(str(e.my_sequence).ljust(max_length,"-"), permissive=False)
 
 
-def remove_gap_only_columns(children):
+def all_positions_are_gaps(column):
+    for i in column:
+        if i != "-":
+            return False
+    return True
+
+
+def remove_gap_only_columns(cluster):
     """
     Remove the columns containing only gaps in the child elements of a PyMod cluster element.
     """
-    # all_gaps_columns = []
-    # columns_to_keep = []
-    # print [len(c.my_sequence) for c in children]
-    # for i in range(0, len(children[0].my_sequence)):
-    #     if pmsm.all_gaps_column([c.my_sequence[i] for c in children]):
-    #         all_gaps_columns.append(i)
-    # for child in children:
-    #     seq = "".join([t[1] for t in enumerate(child.my_sequence) if not t[0] in all_gaps_columns])
-    #     child.set_sequence(seq)
-    pass
+    children = cluster.get_children()
+    list_seqs = [list(s.my_sequence) for s in children]
+    columns_to_remove = []
+    for i in range(0, min([len(s) for s in list_seqs])):
+        if all_positions_are_gaps([s[i] for s in list_seqs]):
+            columns_to_remove.append(i)
+
+    for columns_removed, i in enumerate(columns_to_remove):
+        for s in list_seqs:
+            s.pop(i-columns_removed)
+
+    for child, list_seq in zip(children, list_seqs):
+        child.my_sequence = "".join(list_seq)
 
 
 #######################

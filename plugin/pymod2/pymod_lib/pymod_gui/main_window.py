@@ -46,7 +46,7 @@ class PyMod_main_window_mixin:
     # Gridding system.                                                                            #
     ###############################################################################################
 
-    def gridder(self, set_grid_index_only=False, elements_to_update=None, update_elements=False, clear_selection=False, update_clusters=False, update_menus=False):
+    def gridder(self, set_grid_index_only=False, update_elements=False, clear_selection=False, update_clusters=False, update_menus=False, elements_to_update=None):
         """
         Grids the PyMod elements (of both sequences and clusters) widgets in PyMod main window.
         When new elements are added to PyMod using the 'add_pymod_element_widgets' method of the
@@ -1885,6 +1885,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.cluster_edit_menu = Menu(target_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
         self.cluster_edit_menu.add_command(label="Save Alignment To File", command=self.save_alignment_from_the_left_pan)
         self.cluster_edit_menu.add_separator()
+        self.cluster_edit_menu.add_command(label="Delete Gap Only Columns", command=self.delete_gap_only_columns_from_left_pane)
         self.cluster_edit_menu.add_command(label="Transfer Alignment", command=self.transfer_alignment_from_the_left_pane)
         self.cluster_edit_menu.add_separator()
         self.cluster_edit_menu.add_command(label="Delete Cluster", command=self.delete_alignment_from_the_left_pane)
@@ -2031,6 +2032,10 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def delete_alignment_from_the_left_pane(self):
         self.pymod.delete_cluster_dialog(self._get_cluster_from_popup_menu(self.pymod_element))
+
+    def delete_gap_only_columns_from_left_pane(self):
+        pmsm.remove_gap_only_columns(self._get_cluster_from_popup_menu(self.pymod_element))
+        self.pymod.main_window.gridder(update_clusters=True, update_elements=True)
 
     def transfer_alignment_from_the_left_pane(self):
         self.pymod.transfer_alignment(self._get_cluster_from_popup_menu(self.pymod_element))

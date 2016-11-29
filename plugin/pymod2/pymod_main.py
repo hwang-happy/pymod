@@ -1,7 +1,4 @@
 # TODO:
-#     - evolutionary_analysis_protocol:
-#         - add an "remove gap only columns" option in the CAMPO window.
-#         - fix the bug in gap tossing.
 #     - fix the "to new cluster" option.
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
