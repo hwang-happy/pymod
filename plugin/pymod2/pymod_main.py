@@ -1,5 +1,4 @@
 # TODO:
-#     - fix the "to new cluster" option.
 #     - reimplement the rest.
 #         - all the options for alignment algorithms.
 #         - structures submenu in the main menu.
@@ -1465,7 +1464,7 @@ class PyMod:
         original_cluster_index = self.get_pymod_element_index_in_container(selected_sequences[0].mother) + 1
         new_cluster = self.add_new_cluster_to_pymod(cluster_type="generic", child_elements=selected_sequences, algorithm="extracted")
         self.change_pymod_element_list_index(new_cluster, original_cluster_index)
-        self.main_window.gridder(update_clusters=True, update_menus=True)
+        self.main_window.gridder(clear_selection=True, update_clusters=True, update_menus=True)
 
 
     #################################################################
@@ -2616,7 +2615,7 @@ class PyMod:
     def load_pdb_random(self):
         import urllib
         import random
-        pdb_set = "modified_residues"
+        pdb_set = "all_proteins"
         ids = [i.replace(" ", "") for i in open(os.path.join(self.seqs_dir, "modeling/pdb_ids/%s.txt" % pdb_set)).read().split(",")]
         code = ids[random.randint(0, len(ids)-1)]
         temp_pdb_path = urllib.urlretrieve("https://files.rcsb.org/download/%s.pdb" % code)[0]

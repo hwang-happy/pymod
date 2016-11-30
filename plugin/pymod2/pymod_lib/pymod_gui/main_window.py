@@ -1910,14 +1910,14 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Extracts an element from an alignment.
         """
         self.pymod_element.extract_to_upper_level()
-        self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
+        self.pymod.main_window.gridder(clear_selection=True, update_clusters=True, update_menus=True)
 
     def extract_selection_from_cluster(self):
         selected_sequences = self.pymod.get_selected_sequences()
         # Using 'reversed' keeps them in their original order once extracted.
         for e in reversed(selected_sequences):
             e.extract_to_upper_level()
-        self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
+        self.pymod.main_window.gridder(clear_selection=True, update_clusters=True, update_menus=True)
 
     def extract_selection_to_new_cluster_from_left_menu(self):
         # 'gridder' is called in this method.

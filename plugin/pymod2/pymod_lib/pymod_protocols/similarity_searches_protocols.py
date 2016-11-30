@@ -576,7 +576,6 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             return False
 
 
-
     def qblast(self, program, database, sequence,
                auto_format=None, composition_based_statistics=None,
                db_genetic_code=None, endpoints=None, entrez_query='(none)',
