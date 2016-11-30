@@ -1,6 +1,5 @@
 # TODO:
 #     - reimplement the rest.
-#         - all the options for alignment algorithms.
 #         - structures submenu in the main menu.
 #         - integrate the modifications made in the stable branch.
 #             - control the sequences before modeling.
@@ -19,6 +18,7 @@
 #     - optimize namespaces.
 #     - add the licence part to each file of the plugin.
 #     - remove TEST.
+#     - reorganize the code and modules.
 #     - update the installer.
 
 ###########################################################################
@@ -721,7 +721,7 @@ class PyMod:
         # a.add_child(c)
 
         # Large clusters.
-        self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
+        # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
 
         # Fetch sequences from the PDB.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
@@ -741,7 +741,7 @@ class PyMod:
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
         # Monomer disulfides.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
@@ -1788,7 +1788,7 @@ class PyMod:
         if file_format == "fasta":
             for element in elements:
                 header, sequence = self.get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
-                #| Write an output in FASTA format to the output_file_handler given as argument.
+                # Write an output in FASTA format to the output_file_handler given as argument.
                 print >> output_file_handler , ">"+header
                 for i in xrange(0, len(sequence), 60):
                     print >> output_file_handler , sequence[i:i+60]
@@ -1796,17 +1796,17 @@ class PyMod:
 
         elif file_format == "pir":
             for element in elements:
-                header, sequence = header, sequence = self.get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
+                header, sequence = self.get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
                 sequence += '*'
                 structure=''
-                # if hasattr(child.structure,"chain_pdb_file_name_root") and use_structural_information:
-                #     structure=child.structure.chain_pdb_file_name_root
-                #     chain=child.structure.pdb_chain_id
+                if element.has_structure() and use_structural_information:
+                    structure=element.get_structure_file()
+                    chain=element.get_chain_id()
                 if not structure: # sequence
                     print >> output_file_handler, ">P1;"+ header
                     print >> output_file_handler, "sequence:"+header+":::::::0.00:0.00"
                 else: # structure
-                    print >> output_file_handler, ">P1;"+header+chain
+                    print >> output_file_handler, ">P1;"+header
                     print >> output_file_handler, "structure:"+structure+":.:"+chain+":.:"+chain+":::-1.00:-1.00"
                 for ii in xrange(0,len(sequence),75):
                     print >> output_file_handler, sequence[ii:ii+75].replace("X",".")

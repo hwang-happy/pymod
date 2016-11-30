@@ -312,20 +312,17 @@ class MUSCLE_base_window:
 class SALIGN_seq_base_window:
 
     def build_algorithm_options_widgets(self):
-        return None
+        # Use structure information to guide sequence alignment.
+        self.salign_seq_struct_rds = shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structural information (?)')
+        for option in ("Yes","No"):
+            self.salign_seq_struct_rds.add(option)
+        self.salign_seq_struct_rds.setvalue("No")
+        self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
+        self.salign_seq_struct_rds.set_input_widget_width(10)
 
-        # TODO: reimplement this.
-        # # Use structure information to guide sequence alignment.
-        # self.salign_seq_struct_rds = shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structure information (?)')
-        # for option in ("Yes","No"):
-        #     self.salign_seq_struct_rds.add(option)
-        # self.salign_seq_struct_rds.setvalue("No")
-        # self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
-        # self.salign_seq_struct_rds.set_input_widget_width(10)
-
-    def get_salign_seq_str_alignment_var(self):
+    def get_use_str_information_var(self):
         if self.current_protocol.structures_are_selected:
-            return False # pmdt.yesno_dict[self.salign_seq_struct_rds.getvalue()]
+            return pmdt.yesno_dict[self.salign_seq_struct_rds.getvalue()]
         else:
             return False
 

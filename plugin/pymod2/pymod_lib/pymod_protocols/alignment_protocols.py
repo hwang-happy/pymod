@@ -572,7 +572,6 @@ class Regular_alignment(Alignment_protocol):
         # For structural alignment algorithms, perform the first multiple alignment with a sequence
         # alignment algorithm with default parameters.
         elif self.alignment_program in pmdt.structural_alignment_tools:
-            raise Exception("#TODO!")
             self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name)
 
         #-------------------------------------------
@@ -963,7 +962,7 @@ class Regular_structural_alignment(Regular_alignment):
 
 
     def update_additional_information(self):
-        if self.compute_rmsd_option:
+        if self.compute_rmsd_option and self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
             self.alignment_element.rmsd_dict = self.compute_rmsd_dict(self.elements_to_align)
         else:
             self.alignment_element.rmsd_dict = None
@@ -1447,11 +1446,13 @@ class MUSCLE_regular_alignment(MUSCLE_alignment, Regular_sequence_alignment):
 
 
 ###################################################################################################
-# SALIGN sequence alignment.                                                                      #
+# SALIGN MIXINS.                                                                                  #
 ###################################################################################################
 
 class SALIGN_alignment:
-
+    """
+    Mixin for all SALIGN alignments.
+    """
     use_hetatm = False
 
     def alignment_program_exists(self):
@@ -1459,16 +1460,20 @@ class SALIGN_alignment:
 
 
 class SALIGN_seq_alignment(SALIGN_alignment):
-
+    """
+    Mixin class for SALIGN sequence alignments (both regular and profile alignments).
+    """
     alignment_program = "salign-seq"
 
     def additional_initialization(self):
         self.tool = self.pymod.modeller
 
+    def get_options_from_gui(self):
+        self.use_str_information = self.alignment_window.get_use_str_information_var()
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name, use_parameters_from_gui=True, use_structural_information=False):
         if use_parameters_from_gui:
-            use_structural_information = self.alignment_window.get_salign_seq_str_alignment_var()
+            use_structural_information = self.use_str_information
         self.run_salign_malign(sequences_to_align, output_file_name, use_structural_information)
 
 
@@ -1539,9 +1544,9 @@ class SALIGN_seq_alignment(SALIGN_alignment):
         SeqIO.write(record, open(shortcut_to_temp_files + ".aln","w"), "clustal")
 
 
-    def salign_profile_profile_alignment(self, output_file_name="al_result",use_structural_information=False):
+    def salign_profile_profile_alignment(self, output_file_name="al_result", use_structural_information=False):
         profile1_name = self.profiles_to_join_file_list[0]+".ali"
-        profile1_shortcut=os.path.join(self.pymod.alignments_directory,profile1_name)
+        profile1_shortcut = os.path.join(self.pymod.alignments_directory, profile1_name)
 
         if self.tool.run_internally():
             modeller.log.minimal()
@@ -1627,6 +1632,9 @@ class SALIGN_seq_alignment(SALIGN_alignment):
 
 
 class SALIGN_regular_alignment:
+    """
+    Mixin for SALIGN regular alignments (both sequence and structural).
+    """
     def update_additional_information(self):
         """
         Sets the dendrogram file path once the alignment has been performed.
@@ -1635,7 +1643,10 @@ class SALIGN_regular_alignment:
           # Builds a permanent copy of the original temporary .dnd file.
           temp_dnd_file_path = os.path.join(self.pymod.alignments_directory, self.protocol_output_file_name+".tree")
           new_dnd_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_dendrogram.tree" % (self.pymod.alignments_files_names, self.alignment_element.unique_index))
-          shutil.copy(temp_dnd_file_path, new_dnd_file_path)
+          if os.path.isfile(temp_dnd_file_path):
+              shutil.copy(temp_dnd_file_path, new_dnd_file_path)
+          else:
+              return None
 
           # Edit the new .dnd file to insert the actual names of the sequences.
           dnd_file_handler = open(new_dnd_file_path, "r")
@@ -1653,6 +1664,10 @@ class SALIGN_regular_alignment:
 
           self.alignment_element.tree_file_path = new_dnd_file_path
 
+
+###################################################################################################
+# SALIGN sequence alignments.                                                                     #
+###################################################################################################
 
 class SALIGN_seq_regular_alignment(SALIGN_regular_alignment, SALIGN_seq_alignment, Regular_sequence_alignment):
 
@@ -1705,18 +1720,16 @@ class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
         self.profiles_to_join_file_list=[]
         profiles=[alignment_to_keep_elements]+[[e] for e in self.elements_to_add]
 
-        use_str_info = self.alignment_window.get_salign_seq_str_alignment_var()
-
         for (i,children) in enumerate(profiles):
             file_name = "cluster_" + str(i)
-            self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information = use_str_info, unique_indices_headers=True)
+            self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information = self.use_str_information, unique_indices_headers=True)
             self.profiles_to_join_file_list.append(file_name)
 
         #-----------------------------------------------------------------------------------
         # Sequentially apply profile-profile alignment to each element of elements_to_add. -
         #-----------------------------------------------------------------------------------
         profile_alignment_output = "al_result"
-        self.salign_profile_profile_alignment(output_file_name=profile_alignment_output, use_structural_information=use_str_info)
+        self.salign_profile_profile_alignment(output_file_name=profile_alignment_output, use_structural_information=self.use_str_information)
         self.build_elements_to_align_dict(self.elements_to_align)
         self.protocol_output_file_name = profile_alignment_output
 
@@ -1730,21 +1743,19 @@ class SALIGN_seq_profile_alignment(SALIGN_seq_alignment, Profile_alignment):
 
         self.profiles_to_join_file_list=[] # two MSA files
 
-        use_str_info = self.alignment_window.get_salign_seq_str_alignment_var()
-
         for (i,cluster) in enumerate(self.selected_clusters_list):
             file_name = "cluster_" + str(i) # Build FASTA with the MSAs.
             children = cluster.get_children()
             # Builds a series of alignment files for each selected cluster.
             # self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
-            self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=use_str_info, unique_indices_headers=True)
+            self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=self.use_str_information, unique_indices_headers=True)
             self.profiles_to_join_file_list.append(file_name)
 
         profile_alignment_output = "al_result"
         output_file_shortcut=os.path.join(self.pymod.alignments_directory, profile_alignment_output)
         profile1=os.path.join(self.pymod.alignments_directory, self.profiles_to_join_file_list[0]+".aln")
 
-        self.salign_profile_profile_alignment(profile_alignment_output, use_structural_information=use_str_info)
+        self.salign_profile_profile_alignment(profile_alignment_output, use_structural_information=self.use_str_information)
 
         self.build_elements_to_align_dict(self.elements_to_align)
         self.protocol_output_file_name = profile_alignment_output
@@ -1880,6 +1891,10 @@ class SALIGN_str_regular_alignment(SALIGN_regular_alignment, SALIGN_alignment, R
 
     def update_aligned_sequences(self):
         self.update_aligned_sequences_inserting_modres()
+
+    def update_additional_information(self):
+        SALIGN_regular_alignment.update_additional_information(self)
+        Regular_structural_alignment.update_additional_information(self)
 
 
 ###################################################################################################
