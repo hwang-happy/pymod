@@ -258,7 +258,7 @@ def check_correct_sequence(sequence, remove_indels=True):
     """
     non_protein_character_found = False
     if remove_indels:
-        sequence = sequence.replace("-","")
+        sequence = sequence.replace("-", "")
     for c in sequence:
         if not c in pmdt.prot_standard_and_x_one_letter:
             non_protein_character_found = True
@@ -266,6 +266,20 @@ def check_correct_sequence(sequence, remove_indels=True):
         return False
     else:
         return True
+
+def get_invalid_characters_list(sequence, remove_indels=True):
+    """
+    Check if string contains any characters not belonging to the standard protein residues alphabet
+    (plus the 'X' characters for heteroresidues.)
+    """
+    non_protein_character_found = False
+    invalid_characters_list = []
+    if remove_indels:
+        sequence = sequence.replace("-","")
+    for c in sequence:
+        if not c in pmdt.prot_standard_and_x_one_letter:
+            invalid_characters_list.append(c)
+    return invalid_characters_list
 
 
 def get_polymer_type(sequence):

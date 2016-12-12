@@ -1023,6 +1023,16 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             if not self.check_modeling_cluster_parameters(mc):
                 return False
 
+        # Check if there are only correct sequences.
+        for mc in self.modeling_clusters_list:
+            if not pmsm.check_correct_sequence(mc.target.my_sequence):
+                self.modelization_parameters_error = "Target sequence '%s' contains an invalid character in its sequence (%s) and MODELLER can't modelize it." % (mc.target.my_header, pmsm.get_invalid_characters_list(mc.target.my_sequence)[0])
+                return False
+            for t in mc.templates_list:
+                if not pmsm.check_correct_sequence(t.my_sequence):
+                    self.modelization_parameters_error = "Template '%s' contains an invalid character in its sequence (%s) and MODELLER can't use it as a template." % (t.my_header, pmsm.get_invalid_characters_list(t.my_sequence)[0])
+                    return False
+
         # If each "modeling cluster" has correct parameters, when performing multiple chain modeling,
         # there are other conditions that must be satisfied.
         if self.multiple_chain_mode:

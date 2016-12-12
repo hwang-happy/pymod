@@ -187,7 +187,7 @@ class PyMod_main_window_mixin:
     # Expand and collapse clusters.                                 #
     #################################################################
 
-    def expand_cluster_click(self, pymod_element):
+    def expand_cluster(self, pymod_element):
         self._toggle_cluster_click(pymod_element, self._expand_cluster_lead, self._expand_cluster_element)
 
     def _toggle_cluster_click(self, pymod_element, cluster_lead_action, cluster_element_action):
@@ -249,7 +249,7 @@ class PyMod_main_window_mixin:
             pymod_element_widgets_group.show = True
 
 
-    def collapse_cluster_click(self, pymod_element):
+    def collapse_cluster(self, pymod_element):
         self._toggle_cluster_click(pymod_element, self._collapse_cluster_lead, self._collapse_cluster_element)
 
     def _collapse_cluster_element(self, pymod_cluster):
@@ -935,19 +935,19 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
         # When the plugin is started there are no models.
         self.main_selection_menu.add_command(label = "Select All [Ctrl+a]", command=self.pymod.select_all_from_main_menu)
         self.main_selection_menu.add_command(label = "Deselect All [Esc]", command=self.pymod.deselect_all_from_main_menu)
-        # # Structures selection submenu.
-        # self.selection_structures_menu = Menu(self.main_selection_menu,tearoff=0)
-        # self.selection_structures_menu.add_command(label="Show All in PyMOL",command=self.pymod.show_all_structures_from_main_menu)
-        # self.selection_structures_menu.add_command(label="Hide All in PyMOL",command=self.pymod.hide_all_structures_from_main_menu)
-        # self.selection_structures_menu.add_separator()
-        # self.selection_structures_menu.add_command(label="Select All",command=self.pymod.select_all_structures_from_main_menu)
-        # self.selection_structures_menu.add_command(label="Deselect All",command=self.pymod.deselect_all_structures_from_main_menu)
-        # self.main_selection_menu.add_cascade(menu=self.selection_structures_menu, label="Structures")
+        # Structures selection submenu.
+        self.selection_structures_menu = Menu(self.main_selection_menu,tearoff=0)
+        self.selection_structures_menu.add_command(label="Show All in PyMOL",command=self.pymod.show_all_structures_from_main_menu)
+        self.selection_structures_menu.add_command(label="Hide All in PyMOL",command=self.pymod.hide_all_structures_from_main_menu)
+        self.selection_structures_menu.add_separator()
+        self.selection_structures_menu.add_command(label="Select All",command=self.pymod.select_all_structures_from_main_menu)
+        self.selection_structures_menu.add_command(label="Deselect All",command=self.pymod.deselect_all_structures_from_main_menu)
+        self.main_selection_menu.add_cascade(menu=self.selection_structures_menu, label="Structures")
         # # Clusters selection submenu.
-        # self.selection_clusters_menu = Menu(self.main_selection_menu,tearoff=0)
-        # self.selection_clusters_menu.add_command(label="Expand All",command=self.pymod.expand_all_clusters_from_main_menu)
-        # self.selection_clusters_menu.add_command(label="Collapse All",command=self.pymod.collapse_all_clusters_from_main_menu)
-        # self.main_selection_menu.add_cascade(menu=self.selection_clusters_menu, label="Clusters")
+        self.selection_clusters_menu = Menu(self.main_selection_menu,tearoff=0)
+        self.selection_clusters_menu.add_command(label="Expand All",command=self.pymod.expand_all_clusters_from_main_menu)
+        self.selection_clusters_menu.add_command(label="Collapse All",command=self.pymod.collapse_all_clusters_from_main_menu)
+        self.main_selection_menu.add_cascade(menu=self.selection_clusters_menu, label="Clusters")
 
         #------------------
         # "Display" menu. -
@@ -1273,9 +1273,9 @@ class PyMod_element_widgets_group(PyMod_main_window_mixin):
         the cluster.
         """
         if self._cluster_button_state:
-            self.collapse_cluster_click(self.pymod_element)
+            self.collapse_cluster(self.pymod_element)
         elif not self._cluster_button_state:
-            self.expand_cluster_click(self.pymod_element)
+            self.expand_cluster(self.pymod_element)
 
     #################################################################
     # Display widgets.                                              #

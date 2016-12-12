@@ -1,10 +1,9 @@
 # TODO:
 #     - reimplement the rest.
-#         - structures submenu in the main menu.
 #         - integrate the modifications made in the stable branch.
-#             - control the sequences before modeling.
 #             - new project loading system.
-#             - color by CAMPO in the right way.
+#             - color by CAMPO (and other color schemes) in the right way.
+#             - keep the original atom order when saving a structure with PyMOL.
 #         - check all the 2.0 functionalities (check the menus)
 #     - speed up coloring of structures and sequences.
 #     - nucleic acids (basic).
@@ -2502,36 +2501,32 @@ class PyMod:
 
 
     def show_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     element.show_chain_in_pymol()
-        pass
+        for element in self.get_pymod_elements_list():
+            if element.has_structure():
+                self.show_chain_in_pymol(element)
 
     def hide_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     element.hide_chain_in_pymol()
-        pass
+        for element in self.get_pymod_elements_list():
+            if element.has_structure():
+                self.hide_chain_in_pymol(element)
 
     def select_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     if not element.selected:
-        #         element.toggle_element()
-        pass
+        for element in self.get_pymod_elements_list():
+            if element.has_structure() and not element.selected:
+                self.main_window.toggle_element(element)
 
     def deselect_all_structures_from_main_menu(self):
-        # for element in filter(lambda e: e.has_structure(), self.pymod_elements_list):
-        #     if element.selected:
-        #         element.toggle_element()
-        pass
+        for element in self.get_pymod_elements_list():
+            if element.has_structure() and element.selected:
+                self.main_window.toggle_element(element)
 
     def expand_all_clusters_from_main_menu(self):
-        # for element in self.get_cluster_elements():
-        #     element.expand_cluster()
-        pass
+        for element in self.get_cluster_elements():
+            self.main_window.expand_cluster(element)
 
     def collapse_all_clusters_from_main_menu(self):
-        # for element in self.get_cluster_elements():
-        #     element.collapse_cluster()
-        pass
+        for element in self.get_cluster_elements():
+            self.main_window.collapse_cluster(element)
 
 
     ###############################################################################################
