@@ -695,20 +695,20 @@ class PyMod:
         print "###"
         print "# Loading default."
 
-        self.seqs_dir = "/home/giacomo/Dropbox/sequences"
-
-        # Load random sequences from uniprot.
-        n_seqs = 0
-        for i in range(0, n_seqs):
-            self.load_uniprot_random()
-
-        # Loads random structures from the PDB.
-        n_str = 1
-        for i in range(0, n_str):
-            elements = self.load_pdb_random()
-            for e in elements:
-                a = self.build_pymod_element_from_args("test", self.randomize_sequence(e.my_sequence))
-                self.add_element_to_pymod(a)
+        # self.seqs_dir = "/home/giacomo/Dropbox/sequences"
+        #
+        # # Load random sequences from uniprot.
+        # n_seqs = 0
+        # for i in range(0, n_seqs):
+        #     self.load_uniprot_random()
+        #
+        # # Loads random structures from the PDB.
+        # n_str = 1
+        # for i in range(0, n_str):
+        #     elements = self.load_pdb_random()
+        #     for e in elements:
+        #         a = self.build_pymod_element_from_args("test", self.randomize_sequence(e.my_sequence))
+        #         self.add_element_to_pymod(a)
 
         # Simple clusters.
         # a = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
@@ -740,7 +740,8 @@ class PyMod:
         # Dimer: easy case.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+
         # Monomer disulfides.
         # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
         # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
@@ -1428,7 +1429,7 @@ class PyMod:
         Make a copy of a certain element.
         """
         if element_to_duplicate.has_structure():
-            p = pmstr.Parsed_pdb_file(self, element_to_duplicate.get_structure_file(name_only=False),
+            p = pmstr.Parsed_pdb_file(self, element_to_duplicate.get_structure_file(basename_only=False),
                 output_directory=self.structures_directory,
                 new_file_name=pmdt.copied_chain_name % self.new_objects_index) # "copy_"+element_to_duplicate.get_structure_file_root()), "copied_object_%s"
             self.new_objects_index += 1
@@ -1628,7 +1629,7 @@ class PyMod:
         """
         Loads the PDB structure of the chain into PyMol.
         """
-        file_to_load = element.get_structure_file(name_only=False)
+        file_to_load = element.get_structure_file(basename_only=False)
         pymol_object_name = element.get_pymol_selector()
         cmd.load(file_to_load, pymol_object_name)
         cmd.color(element.my_color, pymol_object_name)
@@ -1724,11 +1725,11 @@ class PyMod:
         # Renames the full structure file.
         renamed_full_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.get_structure_file_root()))
         if not os.path.isfile(renamed_full_str_file):
-            os.rename(pymod_element.get_structure_file(name_only=False, full_file=True), renamed_full_str_file)
+            os.rename(pymod_element.get_structure_file(basename_only=False, full_file=True), renamed_full_str_file)
         # Renames the chain file.
         renamed_chain_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.my_header_root))
         if not os.path.isfile(renamed_chain_str_file):
-            os.rename(pymod_element.get_structure_file(name_only=False), renamed_chain_str_file)
+            os.rename(pymod_element.get_structure_file(basename_only=False), renamed_chain_str_file)
         pymod_element.rename_structure_files(full_structure_file=renamed_full_str_file, chain_structure_file=renamed_chain_str_file)
 
 
@@ -2270,6 +2271,11 @@ class PyMod:
     def launch_campo_from_main_menu(self, pymod_cluster):
         campo = pmptc.evolutionary_analysis_protocols.CAMPO_analysis(self, pymod_cluster)
         campo.launch_from_gui()
+
+    def launch_scr_find_from_main_menu(self, pymod_cluster):
+        reload(pmptc.evolutionary_analysis_protocols)
+        scr_find = pmptc.evolutionary_analysis_protocols.SCR_FIND_analysis(self, pymod_cluster)
+        scr_find.launch_from_gui()
 
 
     def launch_weblogo_from_main_menu(self, pymod_cluster):

@@ -594,15 +594,27 @@ class PyMod_sequence_element(PyMod_element):
         self.structure.current_chain_file_path = chain_structure_file
 
     @check_structure
-    def get_structure_file(self, name_only=True, strip_extension=False, original_structure_file=False, full_file=False):
-        assert(not (original_structure_file and full_file))
-        if original_structure_file:
-            result = self.structure.original_structure_file_path
+    def get_structure_file(self, basename_only=True, strip_extension=False, initial_chain_file=False, full_file=False):
+        """
+        Returns the name of the structure file of the element.
+        'basename_only': if 'True' returns only the basename of the structure file.
+        'strip_extension': if 'True' removes the extension to the from the returned file path.
+        'initial_chain_file': if 'True' returns the structure file of the original chain (with
+                                   its original atomic coordinates). If 'False' returns the current
+                                   structure file of the chain (with modified atomic coordinates if
+                                   the structure has been superposed).
+        'full_file': if 'True' returns the file path of the original PDB file of the structure (the
+                     PDB file containing the chain of the element along any other chain belonging to
+                     other elements).
+        """
+        assert(not (initial_chain_file and full_file))
+        if initial_chain_file:
+            result = self.structure.initial_chain_file_path
         elif full_file:
             result = self.structure.current_full_file_path
         else:
             result = self.structure.current_chain_file_path
-        if name_only:
+        if basename_only:
             result = os.path.basename(result)
         if strip_extension:
             result = os.path.splitext(result)[0]
@@ -627,7 +639,7 @@ class PyMod_sequence_element(PyMod_element):
 
     @check_structure
     def get_pymol_selector(self):
-        return os.path.splitext(os.path.basename(self.structure.current_chain_file_path))[0]
+        return os.path.splitext(os.path.basename(self.structure.initial_chain_file_path))[0]
 
 
     #################################################################
@@ -843,6 +855,7 @@ class PyMod_residue(object):
         self.psipred_result = None
         self.campo_score = None
         self.dope_score = None
+        self.scr_score = None
 
 
     def is_polymer_residue(self): # TODO: rename this to something more clear.

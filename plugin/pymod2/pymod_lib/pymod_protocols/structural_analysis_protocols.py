@@ -1082,7 +1082,7 @@ class Ramachandran_plot(PyMod_protocol):
 
         self.PDB_file=[]
         self.title=''
-        filename = self.target_sequence.get_structure_file(name_only=False)
+        filename = self.target_sequence.get_structure_file(basename_only=False)
         header = self.target_sequence.my_header
         if os.path.isfile(filename):
             self.PDB_file.append(filename)

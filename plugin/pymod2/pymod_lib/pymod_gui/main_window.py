@@ -886,7 +886,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
         self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
         self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose_from_main_menu)
-        self.structural_alignment_menu.add_command(label = "CE Alignment", command = lambda program="ce", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
+        # self.structural_alignment_menu.add_command(label = "CE Alignment", command = lambda program="ce", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)", command = lambda program="salign-str", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
         # Structural analysis.
@@ -1036,8 +1036,8 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, shared_components.PyM
                 evolutionary_submenu = Menu(alignment_submenu, tearoff = 0)
                 alignment_submenu.add_cascade(label = "Evolutionary Conservation", menu = evolutionary_submenu)
                 evolutionary_submenu.add_command(label = "CAMPO", command = lambda e=alignment_element: self.pymod.launch_campo_from_main_menu(e))
-                # if alignment_element.algorithm in pmdt.can_use_scr_find:
-                #     evolutionary_submenu.add_command(label = "SCR_FIND", command = lambda e=alignment_element: self.pymod.build_scr_find_window(e))
+                if self.pymod.all_sequences_have_structure(): # alignment_element.algorithm in pmdt.can_use_scr_find:
+                    evolutionary_submenu.add_command(label = "SCR_FIND", command = lambda e=alignment_element: self.pymod.launch_scr_find_from_main_menu(e))
 
                 # Render alignment.
                 render_submenu = Menu(alignment_submenu, tearoff = 0)

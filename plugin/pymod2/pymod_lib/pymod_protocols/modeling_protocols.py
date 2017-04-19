@@ -1713,7 +1713,7 @@ class Modeling_cluster(Modeling_session):
 
     def prepare_template_files(self, template):
         # Copy the templates structure files in the modeling directory.
-        template_str_file = template.get_structure_file(name_only=False)
+        template_str_file = template.get_structure_file(basename_only=False)
         copied_template_str_file = os.path.basename(template_str_file)
         shutil.copy(template_str_file, os.path.join(self.modeling_directory, copied_template_str_file))
         self.template_options_dict[template]["structure_file"] = copied_template_str_file

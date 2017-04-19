@@ -180,7 +180,7 @@ class Parsed_pdb_file:
             io=Bio.PDB.PDBIO()
             io.set_structure(self.parsed_biopython_structure)
             for element in self.list_of_pymod_elements:
-                io.save(element.get_structure_file(name_only=False), Select_chain_and_first_model(element.get_chain_id()))
+                io.save(element.get_structure_file(basename_only=False), Select_chain_and_first_model(element.get_chain_id()))
 
         warnings.simplefilter("always")
 

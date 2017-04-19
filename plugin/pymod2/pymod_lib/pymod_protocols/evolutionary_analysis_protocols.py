@@ -369,8 +369,51 @@ class CAMPO:
 
 class SCR_FIND_analysis(Evolutionary_analysis_protocol):
 
+    def launch_from_gui(self):
+        self.build_scr_find_window()
+
+
     def build_scr_find_window(self):
-        pass
+        """
+        Builds a window with opotions for the SCR_FIND algorithm.
+        """
+
+        print "# Starting to run SCR_FIND."
+
+        for element in self.input_alignment_element.get_children():
+            print ""
+            print "###"
+            print element.my_header
+            print element.my_sequence
+            print element.get_structure_file(basename_only=False)
+
+            # The 'get_polymer_residues' method gets only the residues which have to be used to
+            # compute the SCR regions (that is, only residues of the polypeptide chain, not ligands
+            # and water molecules).
+            for residue in element.get_polymer_residues():
+
+                print element.my_header,
+
+                # Three letter code (like 'ALA' or 'CYS') if the residue.
+                print residue.three_letter_code,
+
+                # Number of the residue according to the numeration in the PDB file (the same which
+                # can be obtained using Biopython residue.get_id()[1]).
+                print residue.db_index,
+
+                # ID of the residue (similar to 'db_index', but starts to count from 0).
+                print residue.index,
+
+                # ID of the residue in the aligned sequence. For example the 'A' in the following
+                # sequence:
+                #     A---
+                # has ID = 0, while in this other sequence:
+                #     -A--
+                # has ID = 1
+                print residue.get_id_in_aligned_sequence(),
+
+                # A empty variable to store the SCR score of the residue.
+                print residue.scr_score
 
 
 ###################################################################################################
