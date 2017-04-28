@@ -208,6 +208,7 @@ class PyMod:
         #-----------------------
         # Prepare PyMod tools. -
         #-----------------------
+
         self.pymod_tools = []
 
         # In order for the plugin to work, the name of the attribute containing a 'Tool' object must
@@ -418,43 +419,7 @@ class PyMod:
         """
         Allows to select the 'PyMod Directory' on PyMod first run.
         """
-        self.pymod_dir_window = pmgi.shared_components.PyMod_base_window(self.main_window, "PyMod Directory")
-        self.pymod_dir_window.geometry('-100+75')
-        self.pymod_dir_window.config()
-        self.pymod_dir_window.protocol("WM_DELETE_WINDOW", lambda: self.confirm_close(parent=self.pymod_dir_window))
-
-        self.pymod_dir_window_label=Label(self.pymod_dir_window.main_frame, text= "Select a folder inside which to build the 'PyMod Directory'", **pmgi.shared_components.label_style_0) # Select a folder (where you would like) to create the 'PyMod Directory'
-        self.pymod_dir_window_label.pack(fill="x", pady=10, padx=10)
-
-        self.pymod_dir_window_entry_frame = Frame(self.pymod_dir_window.main_frame, bg="black")
-        self.pymod_dir_window_entry_frame.pack()
-
-        home_directory = pmos.get_home_dir()
-        self.pymod_dir_window_main_entry=Entry(self.pymod_dir_window_entry_frame, bg='white', width=30)
-        self.pymod_dir_window_main_entry.insert(0, home_directory)
-        self.pymod_dir_window_main_entry.pack(side="left")
-
-        self.pymod_dir_window_browse_button=Button(self.pymod_dir_window_entry_frame, text="BROWSE",
-        command=self.pymod_directory_browse_state, **pmgi.shared_components.button_style_2)
-        self.pymod_dir_window_browse_button.pack(side="left", pady=0, padx=5)
-
-        self.pymod_dir_window_button_frame = Frame(self.pymod_dir_window.main_frame, bg="black")
-        self.pymod_dir_window_button_frame.pack()
-
-        self.pymod_dir_window_submit_button=Button(self.pymod_dir_window_button_frame, text="SUBMIT",
-            command=self.pymod_directory_selection_state, **pmgi.shared_components.button_style_1)
-        self.pymod_dir_window_submit_button.pack(side="left", pady=10, padx=5)
-
-
-    def pymod_directory_browse_state(self):
-        current_path = self.pymod_dir_window_main_entry.get()
-        # Lets users choose a new path.
-        new_path = askdirectory(title = "Select a folder in which to build the 'PyMod Directory'",
-                                initialdir=current_path, mustexist = True, parent = self.pymod_dir_window)
-        # Updates the text in the Entry with the new path name.
-        if new_path:
-            self.pymod_dir_window_main_entry.delete(0, END)
-            self.pymod_dir_window_main_entry.insert(0, new_path)
+        self.pymod_dir_window = pmgi.shared_components.PyMod_dir_selection_window(self, self.main_window)
 
 
     def pymod_directory_selection_state(self):
@@ -463,12 +428,12 @@ class PyMod:
         """
         try:
             # Check if the parent folder of the new PyMod directory exists.
-            new_pymod_directory_parent = self.pymod_dir_window_main_entry.get()
+            new_pymod_directory_parent = self.pymod_dir_window.main_entry.get()
             if not os.path.isdir(new_pymod_directory_parent):
                 title = 'PyMod directory Error'
                 message = "The path where you would like to create your 'PyMod Directory' does not exist on your system. Please select an existing path."
-                self.pymod_dir_window.show_error_message(title, message)
-                return False
+                self.show_error_message(title, message)
+                return None
 
             # Check if a PyMod directory already exists in the parent folder.
             new_pymod_directory_path = os.path.join(new_pymod_directory_parent, self.pymod_directory_name)
@@ -476,23 +441,21 @@ class PyMod:
                 title = 'PyMod directory Warning'
                 message = "A folder named '%s' already exists on your system. Would you like to overwrite it and all its contents to build a new 'PyMod Directory'?" % (new_pymod_directory_path)
                 overwrite = tkMessageBox.askyesno(title, message, parent=self.pymod_dir_window)
-                # If the directory (or a file with the same name) already exists, try to remove it.
                 if overwrite:
                     pmos.pymod_rm(new_pymod_directory_path)
                 else:
-                    return False
+                    return None
 
             # Check if the configuration file directory exist. If it does not exist, build it.
             if not os.path.exists(self.cfg_directory_path):
                 os.mkdir(self.cfg_directory_path)
 
-            # Builds the new PyMod directory and with its projects folder.
+            # Builds the new PyMod directory with its projects folder.
             os.mkdir(new_pymod_directory_path)
             os.mkdir(os.path.join(new_pymod_directory_path, self.projects_directory_name))
 
-            # Check if the Installer Bundle install_all.py script was run. If so, a
+            # Check if the Installer Bundle 'install_all.py' script was run. If so, a
             # 'pymod_temp_directory' with external tools and data files has been built.
-            pymod_first_run = False
             if self.check_installer_script_temp_directory() and self.check_empty_configuration_file():
                 # This will move the content of the 'pymod_temp_directory' to the new PyMod
                 # directory.
@@ -506,6 +469,7 @@ class PyMod:
             else:
                 os.mkdir(os.path.join(new_pymod_directory_path, self.external_tools_directory_name))
                 os.mkdir(os.path.join(new_pymod_directory_path, self.data_directory_name))
+                pymod_first_run = False
 
             # Updates the configuration file.
             cfgfile = open(self.cfg_file_path, 'w')
@@ -549,16 +513,14 @@ class PyMod:
         except Exception,e:
             title = "PyMod Directory Error"
             message = "Unable to write the PyMod configuration directory '%s' because of the following error: %s." % (self.cfg_directory_path, e)
-            self.pymod_dir_window.show_error_message(title, message)
+            self.show_error_message(title, message)
             return False
 
         # Begin a new PyMod job.
         self.pymod_dir_window.destroy()
         self.get_parameters_from_configuration_file()
-        title = "PyMod first run"
-        message = "You are about to begin your first PyMod session. Please insert the name of your first PyMod project."
-        # tkMessageBox.showinfo(title, message, parent=self.main_window)
-        self.show_new_job_window()
+        # tkMessageBox.showinfo("PyMod first run", "You are about to begin your first PyMod session.", parent=self.main_window)
+        self.new_job_state()
 
 
     def show_configuration_file_error(self, error, mode):

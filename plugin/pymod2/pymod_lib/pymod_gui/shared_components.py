@@ -647,3 +647,51 @@ class Import_from_pymol_window(PyMod_tool_window):
 
     def get_objects_to_import(self):
         return [sele for sele in self.sele_var.keys() if self.sele_var[sele].get()]
+
+
+###############################################
+# Window for selecting the "PyMod directory". #
+###############################################
+
+class PyMod_dir_selection_window(PyMod_base_window):
+    """
+    A class for a base window created in PyMod.
+    """
+
+    def __init__(self, pymod, parent, **configs):
+
+        PyMod_base_window.__init__(self, parent, **configs)
+
+        self.pymod = pymod
+        self.geometry('-100+75')
+        self.config()
+        self.protocol("WM_DELETE_WINDOW", lambda: self.confirm_close(parent=self))
+
+        self.label=Label(self.main_frame, text= "Select a folder inside which to build the 'PyMod Directory'", **label_style_0) # Select a folder (where you would like) to create the 'PyMod Directory'
+        self.label.pack(fill="x", pady=10, padx=10)
+
+        self.entry_frame = Frame(self.main_frame, bg="black")
+        self.entry_frame.pack()
+
+        self.main_entry=Entry(self.entry_frame, bg='white', width=30)
+        self.main_entry.insert(0, self.pymod.home_directory)
+        self.main_entry.pack(side="left")
+
+        self.browse_button=Button(self.entry_frame, text="BROWSE", command=self.pymod_directory_browse_state, **button_style_2)
+        self.browse_button.pack(side="left", pady=0, padx=5)
+
+        self.button_frame = Frame(self.main_frame, bg="black")
+        self.button_frame.pack()
+
+        self.submit_button=Button(self.button_frame, text="SUBMIT", command=self.pymod.pymod_directory_selection_state, **button_style_1)
+        self.submit_button.pack(side="left", pady=10, padx=5)
+
+
+    def pymod_directory_browse_state(self):
+        # Lets users choose a new path.
+        new_path = askdirectory(title = "Select a folder in which to build the 'PyMod Directory'",
+                                initialdir=self.main_entry.get(), mustexist=True, parent=self)
+        # Updates the text in the Entry with the new path name.
+        if new_path:
+            self.main_entry.delete(0, END)
+            self.main_entry.insert(0, new_path)
