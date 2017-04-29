@@ -678,7 +678,7 @@ class PyMod:
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
 
-            for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition")):
+            for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:100]:
                 try:
                     self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
                 except:

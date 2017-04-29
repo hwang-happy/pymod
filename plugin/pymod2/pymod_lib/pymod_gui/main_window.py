@@ -155,7 +155,7 @@ class PyMod_main_window_mixin:
         self.dict_of_elements_widgets[pymod_element].grid_widgets(update_element_text=update_element_text)
         # Colors the element sequence in PyMod main window.
         if color_elements:
-            self.color_element(pymod_element, color_pdb=False)
+            self.color_element(pymod_element, color_structure=False)
 
 
     def _update_widgets_recursively(self, pymod_element):
@@ -168,7 +168,6 @@ class PyMod_main_window_mixin:
         pymod_element_widgets_group = self.dict_of_elements_widgets[pymod_element]
         pymod_element_widgets_group.sequence_text.update_text()
         pymod_element_widgets_group.header_entry.update_title()
-        # self.color_element(pymod_element, color_pdb=False)
 
 
     def hide_element_widgets(self, pymod_element, save_status=True, target="all"):
@@ -417,11 +416,12 @@ class PyMod_main_window_mixin:
     # Color the sequences and structures.                           #
     #################################################################
 
-    def color_selection(self, mode, target_selection, color_scheme, regular_color=None):
+    def color_selection(self, mode, target_selection, color_scheme, regular_color=None, color_in_pymol=True):
         """
         Used to color a single sequence (and its structure) when "mode" is set to "single", to color
         mulitple sequences when "mode" is et to "multiple" or to color the list of the currently
         selected elements in the GUI if the mode is set to "selection".
+        If 'color_in_pymol' is set to 'True' the coloring in PyMOL will be speeded up.
         """
         # Builds a list of elements to be colored.
         elements_to_color = []
@@ -435,46 +435,61 @@ class PyMod_main_window_mixin:
             elements_to_color.extend(self.pymod.get_all_sequences())
 
         # Actually proceeds to color the elements.
+        selection_color_dict = {}
         for seq in elements_to_color:
             if color_scheme == "regular":
                 self.color_element_by_regular_color(seq, regular_color)
             elif color_scheme == "polarity":
-                self.color_element_by_polarity(seq)
+                color_dict = self.color_element_by_polarity(seq, color_in_pymol=color_in_pymol)
             elif color_scheme == "secondary-observed":
-                self.color_element_by_obs_sec_str(seq)
+                color_dict = self.color_element_by_obs_sec_str(seq, color_in_pymol=color_in_pymol)
             elif color_scheme == "secondary-predicted":
-                self.color_element_by_pred_sec_str(seq)
+                color_dict = self.color_element_by_pred_sec_str(seq, color_in_pymol=color_in_pymol)
             # Colors elements with 3D structure according to the observed II str, elements with
             # predicted II str according to the prediction, and leaves the other elements unaltered.
             elif color_scheme == "secondary-auto":
                 if seq.has_structure():
-                    self.color_element_by_obs_sec_str(seq)
+                    color_dict = self.color_element_by_obs_sec_str(seq, color_in_pymol=color_in_pymol)
                 elif seq.has_predicted_secondary_structure():
-                    self.color_element_by_pred_sec_str(seq)
+                    color_dict = self.color_element_by_pred_sec_str(seq, color_in_pymol=color_in_pymol)
             elif color_scheme == "campo-scores":
-                self.color_element_by_campo_scores(seq)
+                color_dict = self.color_element_by_campo_scores(seq, color_in_pymol=color_in_pymol)
             elif color_scheme == "dope":
-                self.color_element_by_dope(seq)
+                color_dict = self.color_element_by_dope(seq, color_in_pymol=color_in_pymol)
+
+            if not color_in_pymol and color_scheme != "regular":
+                for color in color_dict.keys():
+                    color_selection = "(" + seq.get_pymol_selector() + " and resi " + "+".join([str(i) for i in color_dict[color]]) + ")"
+                    if selection_color_dict.has_key(color):
+                        selection_color_dict[color].append(color_selection)
+                    else:
+                        selection_color_dict[color] = [color_selection]
+
+        if not color_in_pymol and color_scheme != "regular":
+            for color in selection_color_dict.keys():
+                color_str = " or ".join([str(i) for i in selection_color_dict[color]])
+                cmd.color(color, color_str)
+                cmd.util.cnc(color_str) # Colors by atom.
 
 
     ##########################
     # Assigns color schemes. #
     ##########################
 
-    def color_element_by_regular_color(self, element, color=None):
+    def color_element_by_regular_color(self, element, color=None, color_in_pymol=True):
         """
         Colors sequence by "regular" colors, that is, colors uniformly the sequence with some color.
         """
         element.color_by = "regular"
         if color != None:
             element.my_color = color
-        self.color_element(element, on_grid=False, color_pdb=True)
+        self.color_element(element, on_grid=False, color_structure=True)
 
-    def color_element_by_polarity(self, element):
+    def color_element_by_polarity(self, element, color_in_pymol=True):
         element.color_by = "polarity"
-        self.color_element(element, on_grid=False, color_pdb=True)
+        return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
 
-    def color_element_by_obs_sec_str(self, element, on_grid=False, color_pdb=True):
+    def color_element_by_obs_sec_str(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
         """
         Color elements by their observed secondary structure.
         """
@@ -482,35 +497,35 @@ class PyMod_main_window_mixin:
         # If PyMOL has not been already used to assign sec str to this sequence.
         if not element.has_assigned_secondary_structure():
             self.pymod.assign_secondary_structure(element)
-        self.color_element(element, on_grid=False,color_pdb=True)
+        return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
 
-    def color_element_by_pred_sec_str(self, element, on_grid=False, color_pdb=True):
+    def color_element_by_pred_sec_str(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
         """
         Colors according by secondary structure predicted by PSIPRED.
         """
         element.color_by = "secondary-predicted"
-        self.color_element(element, on_grid=False,color_pdb=True)
+        return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
 
-    def color_element_by_campo_scores(self, element, on_grid=False, color_pdb=True):
+    def color_element_by_campo_scores(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
         """
         Color by CAMPO scores.
         """
         element.color_by = "campo-scores"
-        self.color_element(element, on_grid=False,color_pdb=True)
+        return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
 
-    def color_element_by_dope(self, element, on_grid=False, color_pdb=True):
+    def color_element_by_dope(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
         """
         Color by DOPE scores.
         """
         element.color_by = "dope"
-        self.color_element(element, on_grid=False,color_pdb=True)
+        return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
 
 
     #################################################
     # Actually colors the sequences and structures. #
     #################################################
 
-    def color_element(self, element, on_grid=False, color_pdb=True):
+    def color_element(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
         """
         Colors the sequence entry when it is displayed by the 'gridder()' method or when the user
         changes the color scheme of a sequence. This can color also the PDB file of the element (if
@@ -519,8 +534,8 @@ class PyMod_main_window_mixin:
         """
         if 1: # if self.is_shown: # TODO.
             self.color_sequence_text(element, on_grid)
-        if color_pdb and element.has_structure():
-            self.color_structure(element, on_grid)
+        if color_structure and element.has_structure():
+            return self.color_structure(element, on_grid, color_in_pymol=color_in_pymol)
 
 
     #######################
@@ -560,21 +575,47 @@ class PyMod_main_window_mixin:
     # Coloring structures. #
     ########################
 
-    def color_structure(self, element, on_grid, residues_to_color="all"):
+    def color_structure(self, element, on_grid, residues_to_color="all", color_in_pymol=True):
         """
         Colors the PDB structure of an element loaded into PyMOL.
         """
         chain_sel = element.get_pymol_selector()
         # Colors the structure according to some particular color scheme.
         if element.color_by != "regular":
+
+            residues_to_color_dict = {}
             get_residue_color_method = self.assign_residue_coloring_method(element, "structure")
-            for res in element.get_polymer_residues():
-                # Gets the right color for the current residue.
-                color = get_residue_color_method(residue = res)
-                # Builds a PyMOL selector for the current residue.
-                residue_sel = res.get_pymol_selector()
-                # Finally colors the residue in PyMOL.
-                cmd.color(color, residue_sel)
+
+            t1 = time.time()
+
+            single_residue = False
+            if single_residue:
+                for res in element.get_polymer_residues():
+                    color = get_residue_color_method(residue = res)
+                    # Builds a PyMOL selector for the current residue.
+                    residue_sel = res.get_pymol_selector()
+                    # Finally colors the residue in PyMOL.
+                    cmd.color(color, residue_sel)
+            else:
+                for res in element.get_polymer_residues():
+                    # Gets the right color for the current residue.
+                    color = get_residue_color_method(residue = res)
+                    if residues_to_color_dict.has_key(color):
+                        residues_to_color_dict[color].append(res.db_index)
+                    else:
+                        residues_to_color_dict[color] = [res.db_index]
+                if color_in_pymol:
+                    for color in residues_to_color_dict.keys():
+                        # print "---"
+                        # print color, ",", chain_sel + " and resi " + "+".join([str(i) for i in residues_to_color_dict[color]])
+                        cmd.color(color, chain_sel + " and resi " + "+".join([str(i) for i in residues_to_color_dict[color]]))
+
+            t2 = time.time()
+            print "It took %s to color %s." % (t2-t1, chain_sel)
+
+            if not color_in_pymol:
+                return residues_to_color_dict
+
         # Colors all the residues of a structure with the same color.
         else:
             cmd.color(self.get_regular_structure_color(element.my_color), chain_sel)
@@ -2104,7 +2145,6 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         if 1:
             self.tag_add("normal", "2.0")
             self.insert(END, self.pymod_element.my_sequence,"normal")
-            # self.color_element(on_grid=True,color_pdb=False)
             self.config(state=DISABLED)
         else: # TODO: to remove?
             self.update_text()
@@ -2116,7 +2156,6 @@ class Sequence_text(Text, PyMod_main_window_mixin):
         self.insert(END, self.pymod_element.my_sequence,"normal")
         self["width"] = len(self.pymod_element.my_sequence)
         self["font"] = self.sequence_font
-        # self.color_element(on_grid=True,color_pdb=False)
         self.config(state=DISABLED)
 
 

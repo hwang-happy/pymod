@@ -260,7 +260,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
                 prediction_successful = self.run_psipred(sequence)
                 if prediction_successful:
                     sequence.predicted_secondary_structure = True
-                    self.pymod.main_window.color_element_by_pred_sec_str(sequence, on_grid=False, color_pdb=True)
+                    self.pymod.main_window.color_element_by_pred_sec_str(sequence, on_grid=False, color_structure=True)
 
 
     def check_psipred_parameters(self): # predict_secondary_structure(self, elements=None):

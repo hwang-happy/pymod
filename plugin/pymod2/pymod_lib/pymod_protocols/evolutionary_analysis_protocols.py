@@ -108,10 +108,10 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
 
         # Computes CAMPO scores by using the campo module.
         cbc = CAMPO(input_file_shortcut,
-                          mutational_matrix = self.campo_matrices_dict[self.matrix_cbx.get()],
-                          gap_score = int(self.campo_gap_penalty_enf.getvalue()),
-                          gap_gap_score = int(self.campo_gap_to_gap_score_enf.getvalue()),
-                          toss_gaps = pmdt.yesno_dict[self.campo_exclude_gaps_rds.getvalue()])
+                    mutational_matrix = self.campo_matrices_dict[self.matrix_cbx.get()],
+                    gap_score = int(self.campo_gap_penalty_enf.getvalue()),
+                    gap_gap_score = int(self.campo_gap_to_gap_score_enf.getvalue()),
+                    toss_gaps = pmdt.yesno_dict[self.campo_exclude_gaps_rds.getvalue()])
         cbc.compute_id_matrix()
         cbc.run_CAMPO()
 
