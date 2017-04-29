@@ -695,3 +695,34 @@ class PyMod_dir_selection_window(PyMod_base_window):
         if new_path:
             self.main_entry.delete(0, END)
             self.main_entry.insert(0, new_path)
+
+
+##############################################
+# Window for starting a new "PyMod session". #
+##############################################
+
+class New_project_window(PyMod_base_window):
+    """
+    A class for a base window created in PyMod.
+    """
+
+    def __init__(self, pymod, parent, **configs):
+
+        PyMod_base_window.__init__(self, parent, title="New PyMod Project", **configs)
+
+        self.pymod = pymod
+        self.geometry('-100+75')
+        self.resizable(0,0)
+        self.config()
+        self.protocol("WM_DELETE_WINDOW", lambda: self.pymod.confirm_close(parent=self))
+
+        self.label=Label(self.main_frame, text= "Enter the name of your new PyMod project", **label_style_0) # Create a new directory inside your PyMod projects folder
+        self.label.pack(fill="x", pady=10, padx=10)
+
+        self.main_entry=Entry(self.main_frame, bg='white', width=18)
+        self.main_entry.insert(0, "new_pymod_project")
+        self.main_entry.pack()
+
+        self.main_submit=Button(self.main_frame, text="SUBMIT",
+            command=self.pymod.new_job_state, **button_style_1)
+        self.main_submit.pack(pady=10)

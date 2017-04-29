@@ -104,7 +104,7 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
         # Saves a .fasta file for the alignment.
         aligned_sequences = self.input_alignment_element.get_children()
         self.pymod.save_alignment_fasta_file("temp", aligned_sequences)
-        input_file_shortcut = os.path.join(self.pymod.alignments_directory,"temp.fasta")
+        input_file_shortcut = os.path.join(self.pymod.alignments_dirpath,"temp.fasta")
 
         # Computes CAMPO scores by using the campo module.
         cbc = CAMPO(input_file_shortcut,
@@ -444,7 +444,7 @@ class Web_services_common:
         #Saves alignment in FASTA format
         alignment_file_name='alignment_tmp'
         self.pymod.save_alignment_fasta_file(alignment_file_name, alignment_element.get_children(), first_element=structure_element)
-        alignment_file_path=os.path.join(self.pymod.alignments_directory, alignment_file_name + '.fasta')
+        alignment_file_path=os.path.join(self.pymod.alignments_dirpath, alignment_file_name + '.fasta')
 
         #Copy file content to a string
         al_file = open(alignment_file_path)
@@ -461,7 +461,7 @@ class Web_services_common:
         # Uploads also a structure file.
         if structure_element != None:
             # values.update(other_values)
-            structure_file = open(os.path.join(self.pymod.structures_directory, structure_element.get_structure_file()))
+            structure_file = open(os.path.join(self.pymod.structures_dirpath, structure_element.get_structure_file()))
             structure_file_string = structure_file.read()
             dbref_line = "DBREF %s" % (structure_element.my_header).ljust(80, " ")
             structure_file_string = dbref_line + "\n" + structure_file_string
@@ -901,7 +901,7 @@ class Tree_building(Evolutionary_analysis_protocol):
     def run_tree_building_software(self):
         # Saves a temporary input alignment file.
         alignment_file_name = "alignment_tmp"
-        alignment_file_path = os.path.join(self.pymod.alignments_directory, alignment_file_name + '.fasta')
+        alignment_file_path = os.path.join(self.pymod.alignments_dirpath, alignment_file_name + '.fasta')
         self.pymod.save_alignment_fasta_file(alignment_file_name, self.input_alignment_element.get_children())
 
         # Get the parameters from the GUI.
@@ -926,12 +926,12 @@ class Tree_building(Evolutionary_analysis_protocol):
                 commandline += ' -CLUSTERING=NJ'
             elif clustering_algorithm == "upgma":
                 commandline += ' -CLUSTERING=UPGMA'
-            output_file_path = os.path.join(self.pymod.alignments_directory, alignment_file_name + '.ph')
+            output_file_path = os.path.join(self.pymod.alignments_dirpath, alignment_file_name + '.ph')
 
         elif self.tree_building_software == "muscle":
             commandline =  '"%s"' % (self.pymod.muscle.get_exe_file_path())
             commandline += ' -maketree -in %s' % (alignment_file_path)
-            output_file_path = os.path.join(self.pymod.alignments_directory, alignment_file_name + '.phy')
+            output_file_path = os.path.join(self.pymod.alignments_dirpath, alignment_file_name + '.phy')
             commandline += ' -out %s' % (output_file_path)
             if clustering_algorithm == "nj":
                 commandline += ' -cluster neighborjoining'
@@ -942,7 +942,7 @@ class Tree_building(Evolutionary_analysis_protocol):
         self.pymod.execute_subprocess(commandline)
 
         # Remove temporary files.
-        new_tree_file_path = os.path.join(self.pymod.alignments_directory, "%s_%s_align_tree.phy" % (self.pymod.alignments_files_names, self.input_alignment_element.unique_index))
+        new_tree_file_path = os.path.join(self.pymod.alignments_dirpath, "%s_%s_align_tree.phy" % (self.pymod.alignments_files_names, self.input_alignment_element.unique_index))
         os.rename(output_file_path, new_tree_file_path)
         os.remove(alignment_file_path)
         self.tree_building_window.destroy()

@@ -1,10 +1,4 @@
 # TODO:
-#     - reimplement the rest.
-#         - integrate the modifications made in the stable branch.
-#             - new project loading system.
-#             - color by CAMPO (and other color schemes) in the right way.
-#             - keep the original atom order when saving a structure with PyMOL.
-#         - check all the 2.0 functionalities (check the menus)
 #     - speed up coloring of structures and sequences.
 #     - nucleic acids (basic).
 #     - fix the paths (compatibility with other plugins).
@@ -19,10 +13,15 @@
 #     - remove TEST.
 #     - reorganize the code and modules.
 #     - update the installer.
+#     - reimplement the rest.
+#         - integrate the modifications made in the stable branch.
+#             - color by CAMPO (and other color schemes) in the right way.
+#             - keep the original atom order when saving a structure with PyMOL.
+#         - check all the 2.0 functionalities (check the menus)
 
 ###########################################################################
 # PyMod 2: PyMOL Front-end to MODELLER and various other bioinformatics tools.
-# Copyright (C) 2016 Giacomo Janson, Chengxin Zhang, Alessandro Paiardini
+# Copyright (C) 2017 Giacomo Janson, Chengxin Zhang, Alessandro Paiardini
 # Copyright (C) 2011-2012 Emanuele Bramucci & Alessandro Paiardini,
 #                         Francesco Bossa, Stefano Pascarella
 #
@@ -109,7 +108,6 @@ DEBUG = True
 
 # Function that launches PyMod from the plugin menu of PyMOL.
 def pymod_launcher(app, pymod_plugin_name, pymod_version, pymod_revision):
-    global pymod
     pymod = PyMod(app, pymod_plugin_name, pymod_version, pymod_revision)
 
 
@@ -155,29 +153,28 @@ class PyMod:
         self.pymod_directory_name = "pymod" # "pymod"
         self.pymod_temp_directory_name = "pymod_temp_directory"
         self.projects_directory_name = "projects"
-        self.external_tools_directory_name = "external_tools"
-        self.data_directory_name = "data"
-        self.blast_databases_directory_name = "blast_databases"
-        self.blast_databases_directory_shortcut = os.path.join(self.data_directory_name, self.blast_databases_directory_name)
+        self.external_tools_dirname = "external_tools"
+        self.data_dirname = "data"
+        self.blast_databases_dirname = "blast_databases"
         self.temp_directory_name = "temp_dir"
 
         # Structures.
-        self.structures_directory = "structures"
+        self.structures_dirname = "structures" # structures_dirpath
         # A list of all PDB files loaded in PyMod by the user.
         self.pdb_list = []
 
         # Alignments.
-        self.alignments_directory = "alignments"
+        self.alignments_dirname = "alignments" # alignments_dire ctory
         self.alignments_files_names = "alignment"
         self.alignment_count = 0
         self.new_clusters_counter = 0
 
         # Images directory
-        self.images_directory = "images"
+        self.images_dirname = "images" # images_directory
         self.logo_image_counter = 0
 
         # Models.
-        self.models_directory = "models"
+        self.models_dirname = "models" # models_directory
         self.models_subdirectory = "modeling_session"
         # Attributes that will keep track of how many models the user builds in a PyMod session.
         self.performed_modeling_count = 0
@@ -188,17 +185,17 @@ class PyMod:
         self.modeling_session_list = []
 
         # PSIPRED.
-        self.psipred_directory = "psipred"
+        self.psipred_dirname = "psipred"
 
         # BLAST.
-        self.similarity_searches_directory = "similarity_searches"
+        self.similarity_searches_dirname = "similarity_searches"
         self.temp_database_directory_name = "db_temp"
         self.blast_cluster_counter = 0
 
         # Gets the home directory of the user.
         self.home_directory = pmos.get_home_dir()
         self.current_project_name = None
-        self.current_project_directory_full_path = None
+        self.current_project_dirpath = None
 
         # Creates the preferences file in an hidden directory in the home directory.
         self.cfg_directory_path = os.path.join(self.home_directory,".pymod")
@@ -310,8 +307,9 @@ class PyMod:
         # If it is not found, then treat this session as the first one and asks the user to input
         # the 'PyMod Directory' path before beginning the first PyMod job.
         if not os.path.isfile(self.cfg_file_path):
-            self.show_first_time_usage_message()
-            self.show_pymod_directory_selection_window()
+            raise Exception("TODO.")
+            # self.show_first_time_usage_message()
+            # self.show_pymod_directory_selection_window()
 
         # The configuration file is found.
         else:
@@ -325,23 +323,21 @@ class PyMod:
                 if not self.check_installer_script_temp_directory():
                     self.get_parameters_from_configuration_file()
                     self.check_pymod_directory()
-                    if not DEBUG:
-                        self.show_new_job_window()
-                    else:
-                        self.new_job_state()
+                    self.show_new_job_window()
 
                 # If there is 'pymod_temp_directory'.
                 else:
-                    # The installer script was run before configuring PyMod for the first time (it
-                    # left an empty configuration file).
-                    if self.check_empty_configuration_file():
-                        self.show_first_time_usage_message()
-                        self.show_pymod_directory_selection_window()
-                    # The installer script was run after the first PyMod session.
-                    else:
-                        self.get_parameters_from_configuration_file()
-                        self.check_pymod_directory()
-                        self.show_new_job_window()
+                    raise Exception("TODO.")
+                    # # The installer script was run before configuring PyMod for the first time (it
+                    # # left an empty configuration file).
+                    # if self.check_empty_configuration_file():
+                    #     self.show_first_time_usage_message()
+                    #     self.show_pymod_directory_selection_window()
+                    # # The installer script was run after the first PyMod session.
+                    # else:
+                    #     self.get_parameters_from_configuration_file()
+                    #     self.check_pymod_directory()
+                    #     self.show_new_job_window()
 
             if 0: # TODO! except Exception, e:
                 self.show_configuration_file_error(e, "read")
@@ -355,12 +351,23 @@ class PyMod:
                     self.main_window.destroy()
 
 
+    def build_pymod_main_window(self, app):
+        """
+        Builds the structure of the PyMod main window.
+        """
+        self.main_window = pmgi.main_window.PyMod_main_window(app.root, self)
+
+
     def show_first_time_usage_message(self):
         title = "PyMod first session"
         message = "This is the first time you run PyMod. Please specify a folder inside which to build the 'PyMod Directory'. "
         message += "All PyMod files (such as its external tools executables, sequence databases and its project files) will be stored in this 'PyMod Directory' on your system."
         tkMessageBox.showinfo(title, message, parent=self.main_window)
 
+
+    ###############################################################################################
+    # Configuration file and first time usage.                                                    #
+    ###############################################################################################
 
     def get_parameters_from_configuration_file(self):
         """
@@ -467,8 +474,8 @@ class PyMod:
                 pymod_first_run = True
             # Builds empty external tools and data directories.
             else:
-                os.mkdir(os.path.join(new_pymod_directory_path, self.external_tools_directory_name))
-                os.mkdir(os.path.join(new_pymod_directory_path, self.data_directory_name))
+                os.mkdir(os.path.join(new_pymod_directory_path, self.external_tools_dirname))
+                os.mkdir(os.path.join(new_pymod_directory_path, self.data_dirname))
                 pymod_first_run = False
 
             # Updates the configuration file.
@@ -482,7 +489,7 @@ class PyMod:
                 pymod_config_data.update({tool.name: new_tool_parameters})
             # Define the paths of the 'PyMod Directory' and the 'BLAST Database Directory'.
             pymod_config_data["pymod"]["pymod_dir_path"] = new_pymod_directory_path
-            pymod_config_data["blast_plus"]["database_dir_path"] = os.path.join(new_pymod_directory_path, self.data_directory_name, self.blast_databases_directory_name)
+            pymod_config_data["blast_plus"]["database_dir_path"] = os.path.join(new_pymod_directory_path, self.data_dirname, self.blast_databases_dirname)
 
             # If an empty configuration file was built by the PyMod installer script, update it.
             if self.check_installer_script_temp_directory():
@@ -490,20 +497,20 @@ class PyMod:
                     for parameter_name in pymod_config_data[tool].keys():
                         if pymod_config_data[tool][parameter_name] == "":
                             if tool in ("clustalw", "muscle", "clustalo", "ksdssp"):
-                                exe_file_name = os.path.join(new_pymod_directory_path, self.external_tools_directory_name, tool, "bin", tool)
+                                exe_file_name = os.path.join(new_pymod_directory_path, self.external_tools_dirname, tool, "bin", tool)
                                 if pymod_first_run:
                                     exe_file_name = pmos.get_exe_file_name(exe_file_name)
                                 pymod_config_data[tool][parameter_name] = exe_file_name
                             elif tool == "blast_plus":
                                 if parameter_name == "exe_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.external_tools_directory_name, tool, "bin")
+                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.external_tools_dirname, tool, "bin")
                             elif tool == "psipred":
                                 if parameter_name == "exe_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.external_tools_directory_name, tool, "bin")
+                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.external_tools_dirname, tool, "bin")
                                 elif parameter_name == "data_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.external_tools_directory_name, tool, "data")
+                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.external_tools_dirname, tool, "data")
                                 elif parameter_name == "database_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.data_directory_name, self.blast_databases_directory_name, "swissprot")
+                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path, self.data_dirname, self.blast_databases_dirname, "swissprot")
                 # Finally remove pymod temp directory in the configuration directory.
                 shutil.rmtree(os.path.join(self.cfg_directory_path, self.pymod_temp_directory_name))
 
@@ -534,119 +541,83 @@ class PyMod:
         self.show_error_message(title, message)
 
 
-    def build_pymod_main_window(self, app):
-        """
-        Builds the structure of the PyMod main window.
-        """
-        self.main_window = pmgi.main_window.PyMod_main_window(app.root, self)
-
+    ###############################################################################################
+    # Start a new job.                                                                            #
+    ###############################################################################################
 
     def show_new_job_window(self):
         """
         Builds a window that let users choose the name of the new projects direcotory at the
         beginning of a PyMod session.
         """
-        self.new_dir_window = pmgi.shared_components.PyMod_base_window(self.main_window, "New PyMod Project")
-        self.new_dir_window.geometry('-100+75')
-        self.new_dir_window.resizable(0,0)
-        self.new_dir_window.config()
-        self.new_dir_window.protocol("WM_DELETE_WINDOW", lambda: self.confirm_close(parent=self.new_dir_window))
-
-        self.new_dir_window_label=Label(self.new_dir_window.main_frame, text= "Enter the name of your new PyMod project", **pmgi.shared_components.label_style_0) # Create a new directory inside your PyMod projects folder
-        self.new_dir_window_label.pack(fill="x", pady=10, padx=10)
-
-        self.new_dir_window_main_entry=Entry(self.new_dir_window.main_frame, bg='white', width=18)
-        self.new_dir_window_main_entry.insert(0, "new_pymod_project")
-        self.new_dir_window_main_entry.pack()
-
-        self.new_dir_window_main_submit=Button(self.new_dir_window.main_frame, text="SUBMIT",
-            command=self.new_job_state, **pmgi.shared_components.button_style_1)
-        self.new_dir_window_main_submit.pack(pady=10)
-
+        # self.new_dir_window = pmgi.shared_components.New_project_window(self, self.main_window)
+        self.new_job_state()
 
     def new_job_state(self):
         """
         This is called when the SUBMIT button on the "New Job" window is pressed.
         """
 
-        self.begin_new_session = False
-
         # Checks if the name is valid.
-        def special_match(strg, search=re.compile(r'[^A-z0-9-_]').search):
-            if strg=="":
-                return False
-            else:
-                return not bool(search(strg))
-
-        ###################################################
-        # TODO: remove.
-        if DEBUG:
-            class t:
-                def get(self): return "new_pymod_project"
-            self.new_dir_window_main_entry = t()
-        ###################################################
-
-        if not special_match(self.new_dir_window_main_entry.get()) == True:
-            title = 'Name Error'
-            message = 'Only a-z, 0-9, "-" and "_" are allowed in the project name.'
-            self.show_error_message(title, message, parent_window=self.new_dir_window)
-            return False
+        new_dir_name = "test_pymod_project" # self.new_dir_window.main_entry.get()
+        if bool(re.search('[^A-z0-9-_]', new_dir_name)) or "\\" in new_dir_name:
+            self.new_dir_window.show_error_message('Name Error', 'Only a-z, 0-9, "-" and "_" are allowed in the project name.')
+            return None
 
         # Writes the directory.
-        new_dir_name = self.new_dir_window_main_entry.get()
         try:
-            pymod_projects_dir_path = os.path.join(self.pymod_plugin["pymod_dir_path"].get_value(), self.projects_directory_name)
-            new_project_dir_path = os.path.join(pymod_projects_dir_path, new_dir_name)
             # If the projects directory is not present, built it.
+            pymod_projects_dir_path = os.path.join(self.pymod_plugin["pymod_dir_path"].get_value(), self.projects_directory_name)
             if not os.path.isdir(pymod_projects_dir_path):
-                # Remove any file named in the same way.
-                if os.path.isfile(pymod_projects_dir_path):
-                    os.remove(pymod_projects_dir_path)
                 os.mkdir(pymod_projects_dir_path)
+
             # If a directory with the same name of the new project directory exists, delete it.
+            new_project_dir_path = os.path.join(pymod_projects_dir_path, new_dir_name)
             if os.path.isdir(new_project_dir_path):
-                title = 'Name Error'
-                message = "A directory with the name '%s' already exists in PyMod projects folder.\nDo you want to overwrite it?" % new_dir_name
-                if not DEBUG:
-                    overwrite = tkMessageBox.askyesno(title, message, parent=self.new_dir_window)
-                else:
-                    overwrite = True
+                overwrite = True # tkMessageBox.askyesno('Name Error', "A directory with the name '%s' already exists in PyMod projects folder.\nDo you want to overwrite it?" % new_dir_name, parent=self.new_dir_window)
                 if overwrite:
-                    if os.path.isdir(new_project_dir_path):
-                        # Remove all the files in the previously used directory.
-                        for the_file in os.listdir(new_project_dir_path):
-                            file_path = os.path.join(new_project_dir_path, the_file)
-                            if os.path.isfile(file_path):
-                                os.unlink(file_path)
-                        self.remove_project_subdirectories(new_project_dir_path)
-                        self.initialize_session(new_dir_name)
-                    elif os.path.isfile(new_project_dir_path):
-                        os.remove(new_project_dir_path)
+                    # Remove all the files in the previously used directory.
+                    for the_file in os.listdir(new_project_dir_path):
+                        file_path = os.path.join(new_project_dir_path, the_file)
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                    self.remove_project_subdirectories(new_project_dir_path)
+                    # Start the new project.
+                    self.initialize_session(new_dir_name)
             else:
                 os.mkdir(new_project_dir_path)
                 self.initialize_session(new_dir_name)
+
         except Exception, e:
             message = "Unable to write directory '%s' because of the following error: %s." % (new_dir_name, e)
             self.show_error_message("Initialization error", message)
-            return False
-
-        if self.begin_new_session:
-            self.main_window.deiconify()
-            self.launch_default()
+            return None
 
 
     def initialize_session(self, new_project_directory):
         """
         Initializes a session and shows the main window, which was previously hidden.
         """
-        if not DEBUG:
-            self.new_dir_window.destroy()
-        self.current_pymod_directory = self.pymod_plugin["pymod_dir_path"].get_value()
+        self.current_pymod_dirpath = self.pymod_plugin["pymod_dir_path"].get_value()
         self.current_project_name = new_project_directory
-        self.current_project_directory_full_path = os.path.join(self.pymod_plugin["pymod_dir_path"].get_value(), self.projects_directory_name, new_project_directory)
-        os.chdir(self.current_project_directory_full_path)
+        self.current_project_dirpath = os.path.join(self.current_pymod_dirpath, self.projects_directory_name, self.current_project_name)
+        self.structures_dirpath = os.path.join(self.current_project_dirpath, self.structures_dirname)
+        self.alignments_dirpath = os.path.join(self.current_project_dirpath, self.alignments_dirname)
+        self.images_dirpath = os.path.join(self.current_project_dirpath, self.images_dirname)
+        self.models_dirpath = os.path.join(self.current_project_dirpath, self.models_dirname)
+        self.psipred_dirpath = os.path.join(self.current_project_dirpath, self.psipred_dirname)
+        self.similarity_searches_dirpath = os.path.join(self.current_project_dirpath, self.similarity_searches_dirname)
+        self.temp_directory_dirpath = os.path.join(self.current_project_dirpath, self.temp_directory_name)
+
         self.create_project_subdirectories()
-        self.begin_new_session = True
+
+        # os.chdir(self.current_project_dirpath)
+        try:
+            self.new_dir_window.destroy()
+        except:
+            pass
+        self.main_window.deiconify()
+        self.launch_default()
 
 
     def launch_default(self):
@@ -654,77 +625,81 @@ class PyMod:
         For development only. A the 'open_sequence_file', 'open_structure_file' and
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
-        print "###"
-        print "# Loading default."
 
-        # self.seqs_dir = "/home/giacomo/Dropbox/sequences"
-        #
-        # # Load random sequences from uniprot.
-        # n_seqs = 0
-        # for i in range(0, n_seqs):
-        #     self.load_uniprot_random()
-        #
-        # # Loads random structures from the PDB.
-        # n_str = 1
-        # for i in range(0, n_str):
-        #     elements = self.load_pdb_random()
-        #     for e in elements:
-        #         a = self.build_pymod_element_from_args("test", self.randomize_sequence(e.my_sequence))
-        #         self.add_element_to_pymod(a)
+        self.seqs_dir = "/home/giacomo/Dropbox/sequences"
 
-        # Simple clusters.
-        # a = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
-        # a.get_children()[0].set_as_lead()
-        # c = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
-        # c.get_children()[0].set_as_lead()
-        # e = self.build_pymod_element_from_args("test", "KLAPPALLAIQYAMNCVVVXQWERTASDFLAPHKF")
-        # self.replace_element(a.get_children()[1], e)
-        # a.add_child(c)
+        if os.path.isdir(self.seqs_dir):
 
-        # Large clusters.
-        # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
+            print ""
+            print "# Loading default."
 
-        # Fetch sequences from the PDB.
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
+            # # Load random sequences from uniprot.
+            # n_seqs = 0
+            # for i in range(0, n_seqs):
+            #     self.load_uniprot_random()
+            #
+            # # Loads random structures from the PDB.
+            # n_str = 1
+            # for i in range(0, n_str):
+            #     elements = self.load_pdb_random()
+            #     for e in elements:
+            #         a = self.build_pymod_element_from_args("test", self.randomize_sequence(e.my_sequence))
+            #         self.add_element_to_pymod(a)
 
-        # Rubic.
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/rubic 1/run.fasta"))
+            # Simple clusters.
+            # a = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+            # a.get_children()[0].set_as_lead()
+            # c = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+            # c.get_children()[0].set_as_lead()
+            # e = self.build_pymod_element_from_args("test", "KLAPPALLAIQYAMNCVVVXQWERTASDFLAPHKF")
+            # self.replace_element(a.get_children()[1], e)
+            # a.add_child(c)
 
-        # Dimer: complex case.
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
-        # CXCR4.
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0.pdb"))
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
-        # Dimer: easy case.
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+            # Large clusters.
+            # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
 
-        # Monomer disulfides.
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
-        # Interchain disulfides.
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/1ru9.pdb"))
-        # Ubiquitin.
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
-        # Simple heteromer.
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/heteromer/seqs.fasta"))
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/heteromer/5aqq.pdb"))
-        # PAX domains.
-        # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
-        # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
+            # Fetch sequences from the PDB.
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
+
+            # Rubic.
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/rubic 1/run.fasta"))
+
+            # Dimer: complex case.
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
+            # CXCR4.
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0.pdb"))
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
+            # Dimer: easy case.
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+
+            for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition")):
+                try:
+                    self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
+                except:
+                    pass
+            # Monomer disulfides.
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
+            # Interchain disulfides.
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/1ru9.pdb"))
+            # Ubiquitin.
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+            # Simple heteromer.
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/heteromer/seqs.fasta"))
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/heteromer/5aqq.pdb"))
+            # PAX domains.
+            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
+            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 
-
-    #################################################################
-    # Builds subdirectories in the current project directory.       #
-    #################################################################
 
     def create_subdirectory(self, subdir):
         try:
@@ -732,45 +707,24 @@ class PyMod:
         except:
             pass
 
-    def create_alignments_directory(self):
-        self.create_subdirectory(self.alignments_directory)
-
-    def create_images_directory(self):
-        self.create_subdirectory(self.images_directory)
-
-    def create_models_directory(self):
-        self.create_subdirectory(self.models_directory)
-
-    def create_structures_directory(self):
-        self.create_subdirectory(self.structures_directory)
-
-    def create_psipred_directory(self):
-        self.create_subdirectory(self.psipred_directory)
-
-    def create_similarity_searches_directory(self):
-        self.create_subdirectory(self.similarity_searches_directory)
-
-    def create_temp_directory(self):
-        self.create_subdirectory(self.temp_directory_name)
-
 
     def create_project_subdirectories(self):
-        self.create_alignments_directory()
-        self.create_images_directory()
-        self.create_models_directory()
-        self.create_structures_directory()
-        self.create_psipred_directory()
-        self.create_similarity_searches_directory()
-        self.create_temp_directory()
+        self.create_subdirectory(self.alignments_dirpath)
+        self.create_subdirectory(self.images_dirpath)
+        self.create_subdirectory(self.models_dirpath)
+        self.create_subdirectory(self.structures_dirpath)
+        self.create_subdirectory(self.psipred_dirpath)
+        self.create_subdirectory(self.similarity_searches_dirpath)
+        self.create_subdirectory(self.temp_directory_dirpath)
 
 
-    def remove_project_subdirectories(self, new_dir_name):
+    def remove_project_subdirectories(self, new_dirpath):
         """
         Removes the previously used subdirectories and all their content when users decide to
         overwrite an existing project's directory.
         """
-        for single_dir in (self.structures_directory, self.models_directory, self.alignments_directory, self.psipred_directory, self.similarity_searches_directory, self.images_directory, self.temp_directory_name):
-            dir_to_remove_path = os.path.join(new_dir_name, single_dir)
+        for single_dir in (self.structures_dirname, self.alignments_dirname, self.models_dirname, self.psipred_dirname, self.similarity_searches_dirname, self.images_dirname, self.temp_directory_name):
+            dir_to_remove_path = os.path.join(new_dirpath, single_dir)
             if os.path.isdir(dir_to_remove_path):
                 shutil.rmtree(dir_to_remove_path)
 
@@ -1299,7 +1253,7 @@ class PyMod:
         """
         if not self.is_valid_structure_file(pdb_file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
-        p = pmstr.Parsed_pdb_file(self, pdb_file_full_path, output_directory=self.structures_directory)
+        p = pmstr.Parsed_pdb_file(self, pdb_file_full_path, output_directory=self.structures_dirpath)
         elements_to_return = []
         for element in p.get_pymod_elements():
             e = self.add_element_to_pymod(element, load_in_pymol=True)
@@ -1392,7 +1346,7 @@ class PyMod:
         """
         if element_to_duplicate.has_structure():
             p = pmstr.Parsed_pdb_file(self, element_to_duplicate.get_structure_file(basename_only=False),
-                output_directory=self.structures_directory,
+                output_directory=self.structures_dirpath,
                 new_file_name=pmdt.copied_chain_name % self.new_objects_index) # "copy_"+element_to_duplicate.get_structure_file_root()), "copied_object_%s"
             self.new_objects_index += 1
             for element in p.get_pymod_elements():
@@ -1569,7 +1523,7 @@ class PyMod:
             for selected_num, sele in enumerate(selections_to_import):
                 selected_num+=1
                 filename=sele+".pdb"
-                pdb_file_shortcut = os.path.join(self.structures_directory, filename)
+                pdb_file_shortcut = os.path.join(self.structures_dirpath, filename)
                 cmd.save(pdb_file_shortcut,sele)
                 cmd.delete(sele)
                 self.open_structure_file(os.path.abspath(pdb_file_shortcut))
@@ -1685,11 +1639,11 @@ class PyMod:
         were assigned temporary names.
         """
         # Renames the full structure file.
-        renamed_full_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.get_structure_file_root()))
+        renamed_full_str_file = os.path.join(self.structures_dirpath, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.get_structure_file_root()))
         if not os.path.isfile(renamed_full_str_file):
             os.rename(pymod_element.get_structure_file(basename_only=False, full_file=True), renamed_full_str_file)
         # Renames the chain file.
-        renamed_chain_str_file = os.path.join(self.structures_directory, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.my_header_root))
+        renamed_chain_str_file = os.path.join(self.structures_dirpath, "%s%s.pdb" % (pymod_element.compact_header_prefix, pymod_element.my_header_root))
         if not os.path.isfile(renamed_chain_str_file):
             os.rename(pymod_element.get_structure_file(basename_only=False), renamed_chain_str_file)
         pymod_element.rename_structure_files(full_structure_file=renamed_full_str_file, chain_structure_file=renamed_chain_str_file)
@@ -1735,7 +1689,7 @@ class PyMod:
         # Full path of the file that will contain the alignment.
         output_file_handler = None
         if new_directory == None:
-            alignment_file_path = os.path.join(self.alignments_directory, "%s.%s" % (sequences_file_name, alignment_extension))
+            alignment_file_path = os.path.join(self.alignments_dirpath, "%s.%s" % (sequences_file_name, alignment_extension))
         else:
             alignment_file_path = os.path.join(new_directory, "%s.%s" % (sequences_file_name, alignment_extension))
         output_file_handler = open(alignment_file_path, 'w')
@@ -2006,7 +1960,7 @@ class PyMod:
 
             # Moves the saved file to the path chosen by the user.
             try:
-                old_path = os.path.join(self.alignments_directory, alignment_file_name + "." + extension)
+                old_path = os.path.join(self.alignments_dirpath, alignment_file_name + "." + extension)
                 os.rename(old_path, save_file_full_path)
             except:
                 title = "File Error"
@@ -2034,7 +1988,7 @@ class PyMod:
         #
         #     # Moves the saved file to the path chosen by the user.
         #     try:
-        #         old_path = os.path.join(self.alignments_directory, alignment_file_name + "." + extension)
+        #         old_path = os.path.join(self.alignments_dirpath, alignment_file_name + "." + extension)
         #         os.rename(old_path, save_file_full_path)
         #     except:
         #         title = "File Error"
@@ -2075,29 +2029,33 @@ class PyMod:
         if strategy == "regular":
             # Sequence alignments.
             if program == "clustalw":
-                aligment_protocol_class = pmptc.alignment_protocols.Clustalw_regular_alignment
-            elif program == "clustalo":
-                aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_regular_alignment
-            elif program == "muscle":
-                aligment_protocol_class = pmptc.alignment_protocols.MUSCLE_regular_alignment
-            elif program == "salign-seq":
-                aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
-            # Structural alignments.
-            elif program == "ce":
-                aligment_protocol_class = pmptc.alignment_protocols.CEalign_regular_alignment
+                aligment_protocol_class = pmptc.alignment_protocols.clustalw.Clustalw_regular_alignment
+            # elif program == "clustalo":
+            #     aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_regular_alignment
+            # elif program == "muscle":
+            #     aligment_protocol_class = pmptc.alignment_protocols.MUSCLE_regular_alignment
+            # elif program == "salign-seq":
+            #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
+            # # Structural alignments.
+            # elif program == "ce":
+            #     aligment_protocol_class = pmptc.alignment_protocols.CEalign_regular_alignment
             elif program == "salign-str":
-                aligment_protocol_class = pmptc.alignment_protocols.SALIGN_str_regular_alignment
+                aligment_protocol_class = pmptc.alignment_protocols.salign_str.SALIGN_str_regular_alignment
+            else:
+                raise Exception("TODO.")
         # Profile.
         elif strategy == "profile":
             if program == "clustalw":
-                aligment_protocol_class = pmptc.alignment_protocols.Clustalw_profile_alignment
-            elif program == "clustalo":
-                aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_profile_alignment
-            elif program == "salign-seq":
-                aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_profile_alignment
+                aligment_protocol_class = pmptc.alignment_protocols.clustalw.Clustalw_profile_alignment
+            # elif program == "clustalo":
+            #     aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_profile_alignment
+            # elif program == "salign-seq":
+            #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_profile_alignment
+            else:
+                raise Exception("TODO.")
 
         # Actually launches the alignment protocol.
-        a = aligment_protocol_class(self, output_directory=self.alignments_directory)
+        a = aligment_protocol_class(self, output_directory=self.alignments_dirpath)
         a.launch_alignment_program()
 
 
@@ -2524,42 +2482,44 @@ class PyMod:
 
 
     def launch_pymod_update(self):
-        # Gets the latest release number from network.
-        return None
-        try:
-            update_found = pmup.check_for_updates(self.pymod_version, self.pymod_revision)
-        except Exception, e:
-            self.show_error_message("Connection Error", "Can not obtain the latest PyMod version number beacause of the following error: '%s'" % e)
-            return False
+        raise Exception("TODO.")
 
-        if not update_found:
-            self.show_warning_message("Update Canceled", "Your PyMod version (%s.%s) is already up to date." % (self.pymod_version, self.pymod_revision))
-            return False
-
-        # Ask for update confirmation.
-        title = "Update PyMod?"
-        message = "Would you like to update your current PyMod version (%s.%s) to the latest stable one available online (%s)? You will need to restart PyMOL in order to use the new version." % (self.pymod_version, self.pymod_revision, update_found)
-        answer = tkMessageBox.askyesno(title, message, parent=self.main_window)
-        if not answer:
-            return False
-
-        # Fetches the latest stable version files of PyMod.
-        try:
-            plugin_zipfile_temp_name = pmup.fetch_plugin_zipfile()
-        except Exception, e:
-            self.show_error_message("Connection Error", "Can not fetch the latest PyMod files beacause of the following error: '%s'" % e)
-            return False
-
-        if not plugin_zipfile_temp_name:
-            return False
-
-        # Installs the new PyMod version.
-        pymod_plugin_dir = os.path.dirname(os.path.dirname(__file__))
-        update_results = pmup.update_pymod(plugin_zipfile_temp_name, pymod_plugin_dir)
-        if update_results[0]:
-            self.main_window.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
-        else:
-            self.show_error_message("Update Failed", update_results[1])
+        # # Gets the latest release number from network.
+        # return None
+        # try:
+        #     update_found = pmup.check_for_updates(self.pymod_version, self.pymod_revision)
+        # except Exception, e:
+        #     self.show_error_message("Connection Error", "Can not obtain the latest PyMod version number beacause of the following error: '%s'" % e)
+        #     return False
+        #
+        # if not update_found:
+        #     self.show_warning_message("Update Canceled", "Your PyMod version (%s.%s) is already up to date." % (self.pymod_version, self.pymod_revision))
+        #     return False
+        #
+        # # Ask for update confirmation.
+        # title = "Update PyMod?"
+        # message = "Would you like to update your current PyMod version (%s.%s) to the latest stable one available online (%s)? You will need to restart PyMOL in order to use the new version." % (self.pymod_version, self.pymod_revision, update_found)
+        # answer = tkMessageBox.askyesno(title, message, parent=self.main_window)
+        # if not answer:
+        #     return False
+        #
+        # # Fetches the latest stable version files of PyMod.
+        # try:
+        #     plugin_zipfile_temp_name = pmup.fetch_plugin_zipfile()
+        # except Exception, e:
+        #     self.show_error_message("Connection Error", "Can not fetch the latest PyMod files beacause of the following error: '%s'" % e)
+        #     return False
+        #
+        # if not plugin_zipfile_temp_name:
+        #     return False
+        #
+        # # Installs the new PyMod version.
+        # pymod_plugin_dir = os.path.dirname(os.path.dirname(__file__))
+        # update_results = pmup.update_pymod(plugin_zipfile_temp_name, pymod_plugin_dir)
+        # if update_results[0]:
+        #     self.main_window.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
+        # else:
+        #     self.show_error_message("Update Failed", update_results[1])
 
 
     ###############################################################################################

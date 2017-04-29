@@ -106,7 +106,7 @@ class PyMod_protocol:
         Superpose 'mobile' to 'fixed' in PyMOL.
         """
         if not output_directory:
-            output_directory = self.pymod.structures_directory
+            output_directory = self.pymod.structures_dirpath
         if hasattr(cmd, "super"): # 'super' is sequence-independent.
             cmd.super(mobile_selection, fixed_selection)
         else: # PyMOL 0.99 does not have 'cmd.super'.
@@ -283,7 +283,7 @@ class PSI_BLAST_common:
             self.pymod.execute_subprocess(psiblast_command)
 
             # Goes back to the original directory.
-            os.chdir(self.pymod.current_project_directory_full_path)
+            os.chdir(self.pymod.current_project_dirpath)
             # Removes the query temp file.
             os.remove(os.path.join(db_path, temp_output_dir_name, query_file_name))
             # Moves the temporary files in the originally specified output directory.
@@ -296,7 +296,7 @@ class PSI_BLAST_common:
             # If something goes wrong while executing PSI-BLAST, go back to the project directory
             # and removes the temporary directory in the database folder, it it was built.
             if moved_to_db_dir:
-                os.chdir(self.pymod.current_project_directory_full_path)
+                os.chdir(self.pymod.current_project_dirpath)
             if os.path.isdir(os.path.join(db_path, temp_output_dir_name)):
                 shutil.rmtree(os.path.join(db_path, temp_output_dir_name))
             raise Exception("There was some error while running PSI-BLAST with the input query: %s." % (query))

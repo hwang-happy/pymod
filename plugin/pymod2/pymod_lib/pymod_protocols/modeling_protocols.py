@@ -681,7 +681,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         ###########################################################################################
         # Finishes to set options for MODELLER and returns back to the PyMod projects directory.  #
         ###########################################################################################
-        os.chdir(self.pymod.current_project_directory_full_path)
+        os.chdir(self.pymod.current_project_dirpath)
 
         #-----------------------------------------------------------------------------------
         # Cycles through all models built by MODELLER to import them into PyMod and PyMOL. -
@@ -720,7 +720,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             pymod_model_name = "m%s_%s" % (self.get_model_number()+1, self.modeller_target_name)
             # Parses the PDB file of the model.
             parsed_model_file = pmstr.Parsed_model_pdb_file(self.pymod, model_file_full_path,
-                                                            output_directory=self.pymod.structures_directory,
+                                                            output_directory=self.pymod.structures_dirpath,
                                                             new_file_name=pymod_model_name,
                                                             model_root_name=self.modeller_target_name)
             current_model_chains_elements = []
@@ -768,7 +768,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 # Superpose the full model complex file on the template complex using PyMOL.
                 self.superpose_in_pymol(self.mc_temp_pymol_name, self.tc_temp_pymol_name, save_superposed_structure=False)
                 # Saves the new superposed file in the structures directory.
-                # cmd.save(os.path.join(self.pymod.structures_directory, model['name']), self.mc_temp_pymol_name)
+                # cmd.save(os.path.join(self.pymod.structures_dirpath, model['name']), self.mc_temp_pymol_name)
                 # Superpose single model chains to the correspondig one of the full model complex.
                 for mod_e in current_model_chains_elements:
                     self.superpose_in_pymol(mod_e.get_pymol_selector(),
@@ -893,7 +893,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 self.pymod.show_error_message("Modeling Session Error", "PyMod has encountered an unknown error in the modeling session: %s" % error_message)
 
         # Moves back to the current project directory.
-        os.chdir(self.pymod.current_project_directory_full_path)
+        os.chdir(self.pymod.current_project_dirpath)
 
 
     #################################################################
@@ -1198,7 +1198,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         #--------------------------------------------------------------------------
         if not modeller_output_dir_path:
             # The absolute path of the models directory.
-            models_dir = os.path.join(self.pymod.current_project_directory_full_path, self.pymod.models_directory)
+            models_dir = os.path.join(self.pymod.current_project_dirpath, self.pymod.models_directory)
             # Name of the model subdirectory where Modeller output files are going to be placed.
             model_subdir_name = "%s_%s_%s" % (self.pymod.models_subdirectory, self.pymod.performed_modeling_count + 1, self.modeller_target_name)
             # The absolute path of the model subdirectory.

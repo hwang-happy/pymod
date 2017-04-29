@@ -119,7 +119,7 @@ class Fetch_structure_file(PyMod_protocol):
         #--------------------------------------------------------------------------------------
         elif self.import_mode == "multiple-chains":
             # Builds a 'Parsed_pdb_file' object.
-            p = pmstr.Parsed_pdb_file(self.pymod, os.path.abspath(pdb_file_shortcut), output_directory=self.pymod.structures_directory)
+            p = pmstr.Parsed_pdb_file(self.pymod, os.path.abspath(pdb_file_shortcut), output_directory=self.pymod.structures_dirpath)
             # Builds 'Pymod_elements' objects for each chain present in the PDB file.
             for new_element in p.get_pymod_elements():
                 if new_element.get_chain_id() != pdb_chain_id:
@@ -181,7 +181,7 @@ class Associate_structure(PyMod_protocol):
         # Directory in which to save the temporary files.
         self.temp_directory = self.pymod.temp_directory_name
         # Directory in which to save the final output files.
-        self.output_directory = self.pymod.structures_directory
+        self.output_directory = self.pymod.structures_dirpath
         self.target_element = pymod_element
         self.associate_pdb_file = None
 
