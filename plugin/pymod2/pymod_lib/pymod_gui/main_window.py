@@ -513,6 +513,13 @@ class PyMod_main_window_mixin:
         element.color_by = "campo-scores"
         return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
 
+    def color_element_by_scr_scores(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
+        """
+        Color by CAMPO scores.
+        """
+        element.color_by = "scr-scores"
+        return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
+
     def color_element_by_dope(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
         """
         Color by DOPE scores.
@@ -648,6 +655,11 @@ class PyMod_main_window_mixin:
                 return self.get_campo_sequence_color
             elif color_target == "structure":
                 return self.get_campo_structure_color
+        elif element.color_by == "scr-scores":
+            if color_target == "sequence":
+                return self.get_scr_sequence_color
+            elif color_target == "structure":
+                return self.get_scr_structure_color
         elif element.color_by == "dope":
             if color_target == "sequence":
                 return self.get_dope_sequence_color
@@ -700,6 +712,16 @@ class PyMod_main_window_mixin:
 
     def form_campo_color_name(self, residue):
         return "%s_%s" % (pmdt.pymol_campo_color_name, residue.campo_score["interval"])
+
+    # SCR colors.
+    def get_scr_sequence_color(self, residue):
+        return self.pymod.all_colors_dict_tkinter[self.form_scr_color_name(residue)]
+
+    def get_scr_structure_color(self, residue):
+        return self.form_scr_color_name(residue)
+
+    def form_scr_color_name(self, residue):
+        return "%s_%s" % (pmdt.pymol_scr_color_name, residue.scr_score["interval"])
 
     # DOPE colors.
     def get_dope_sequence_color(self, residue):

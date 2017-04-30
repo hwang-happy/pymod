@@ -1,7 +1,5 @@
 # TODO:
-#     - speed up coloring of structures and sequences.
 #     - nucleic acids (basic).
-#     - fix the paths (compatibility with other plugins).
 #     - implement the new aid system in the GUI.
 #     - color structures and models, structure appearence and user defined colors.
 #     - reimplement sessions (make modifications to the code).
@@ -49,10 +47,10 @@ import Pmw
 # Python standard library.
 import sys
 import urllib
-import urllib2
 import gzip
 import os
 import shutil
+import random
 import subprocess
 import webbrowser
 import re
@@ -288,6 +286,7 @@ class PyMod:
         self.update_pymod_color_dict_with_dict(pmdt.sec_str_color_dict)
         self.update_pymod_color_dict_with_dict(pmdt.psipred_color_dict)
         self.update_pymod_color_dict_with_dict(pmdt.campo_color_dictionary)
+        self.update_pymod_color_dict_with_dict(pmdt.scr_color_dict)
         self.update_pymod_color_dict_with_dict(pmdt.dope_color_dict)
         self.update_pymod_color_dict_with_dict(pmdt.polarity_color_dictionary)
 
@@ -678,7 +677,7 @@ class PyMod:
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
 
-            for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:100]:
+            for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:5]:
                 try:
                     self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
                 except:
@@ -903,7 +902,7 @@ class PyMod:
         return cs
 
 
-    def add_element_to_pymod(self, element, adjust_header=True, load_in_pymol=False, color=None, use_pymod_old_color_scheme=False):
+    def add_element_to_pymod(self, element, adjust_header=True, load_in_pymol=False, color=None, use_pymod_old_color_scheme=True):
         """
         Used to add elements to the pymod_elements_list. Once an element is added to children of the
         'root_element' by this method, it will be displayed in the PyMod main window. This method
@@ -923,9 +922,10 @@ class PyMod:
         # Defines the color.
         if color:
             element.my_color = color
-        elif use_pymod_old_color_scheme and element.has_structure():
+        else:
             # Use the old color scheme of PyMod.
-            color=self.color_struct()
+            if use_pymod_old_color_scheme and element.has_structure():
+                element.my_color = self.color_struct()
 
         # Adds widgets that will be gridded later.
         element.initialize(self)
@@ -2189,22 +2189,22 @@ class PyMod:
 
 
     def launch_campo_from_main_menu(self, pymod_cluster):
-        campo = pmptc.evolutionary_analysis_protocols.CAMPO_analysis(self, pymod_cluster)
+        campo = pmptc.evolutionary_analysis_protocols.campo.CAMPO_analysis(self, pymod_cluster)
         campo.launch_from_gui()
 
     def launch_scr_find_from_main_menu(self, pymod_cluster):
         reload(pmptc.evolutionary_analysis_protocols)
-        scr_find = pmptc.evolutionary_analysis_protocols.SCR_FIND_analysis(self, pymod_cluster)
+        scr_find = pmptc.evolutionary_analysis_protocols.scr_find.SCR_FIND_analysis(self, pymod_cluster)
         scr_find.launch_from_gui()
 
 
     def launch_weblogo_from_main_menu(self, pymod_cluster):
-        weblogo = pmptc.evolutionary_analysis_protocols.WebLogo_analysis(self, pymod_cluster)
+        weblogo = pmptc.evolutionary_analysis_protocols.weblogo.WebLogo_analysis(self, pymod_cluster)
         weblogo.launch_from_gui()
 
 
     def launch_espript_from_main_menu(self, pymod_cluster):
-        espript = pmptc.evolutionary_analysis_protocols.ESPript_analysis(self, pymod_cluster)
+        espript = pmptc.evolutionary_analysis_protocols.espript.ESPript_analysis(self, pymod_cluster)
         espript.launch_from_gui()
 
 
@@ -2350,7 +2350,7 @@ class PyMod:
         Called when the users clicks on the "Build Tree from Alignment" voice in the Alignments
         menu.
         """
-        tree_building = pmptc.evolutionary_analysis_protocols.Tree_building(self, alignment_element)
+        tree_building = pmptc.evolutionary_analysis_protocols.tree_building.Tree_building(self, alignment_element)
         tree_building.launch_from_gui()
 
 
@@ -2527,7 +2527,6 @@ class PyMod:
     ###############################################################################################
 
     def load_uniprot_random(self, reviewed=False):
-        import urllib
         if reviewed:
             rev_string = "yes"
         else:
@@ -2536,8 +2535,6 @@ class PyMod:
         self.open_sequence_file(temp_fasta_path)
 
     def load_pdb_random(self):
-        import urllib
-        import random
         pdb_set = "all_proteins"
         ids = [i.replace(" ", "") for i in open(os.path.join(self.seqs_dir, "modeling/pdb_ids/%s.txt" % pdb_set)).read().split(",")]
         code = ids[random.randint(0, len(ids)-1)]
@@ -2548,8 +2545,6 @@ class PyMod:
         return self.open_structure_file(new_path)
 
     def randomize_sequence(self, sequence):
-        import random
-
         amino_acids = "QWERTYPASDFGHKLCVNM" # + "X"
         list_seq = list(sequence)
 

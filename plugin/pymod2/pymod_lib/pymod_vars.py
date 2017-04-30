@@ -350,9 +350,29 @@ campo_color_dictionary = {
     pymol_campo_color_name + "_10": (0.8743315508021392, 0.0, 0.0) # (0.94563279857397531, 0.029774872912127992, 0.0)
 }
 
+#--------------------------
+# SCR_FIND values colors. -
+#--------------------------
+
+pymol_scr_color_name = "pymod_scr"
+scr_color_dict = {
+    pymol_scr_color_name + "_None": (1,1,1),
+    pymol_scr_color_name + "_1": (0.0, 0.1588235294117647, 1.0),
+    pymol_scr_color_name + "_2": (0.0, 0.50392156862745097, 1.0),
+    pymol_scr_color_name + "_3": (0.0, 0.83333333333333337, 1.0),
+    pymol_scr_color_name + "_4": (0.21189120809614148, 1.0, 0.75585072738772952),
+    pymol_scr_color_name + "_5": (0.49019607843137247, 1.0, 0.47754585705249841),
+    pymol_scr_color_name + "_6": (0.75585072738772918, 1.0, 0.2118912080961417),
+    pymol_scr_color_name + "_7": (1.0, 0.9012345679012348, 0.0),
+    pymol_scr_color_name + "_8": (1.0, 0.58169934640522891, 0.0),
+    pymol_scr_color_name + "_9": (1.0, 0.27668845315904156, 0.0),
+    pymol_scr_color_name + "_10": (0.8743315508021392, 0.0, 0.0)}
+
+
 #----------------------
 # DOPE values colors. -
 #----------------------
+
 pymol_dope_color_name = "pymod_dope"
 dope_color_dict = {
     pymol_dope_color_name + "_None": (1,1,1),
