@@ -6,6 +6,11 @@ from Bio import SeqIO
 
 from pymol import cmd
 
+try:
+    import modeller
+except:
+    pass
+
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
 from _alignment_base import Regular_structural_alignment
