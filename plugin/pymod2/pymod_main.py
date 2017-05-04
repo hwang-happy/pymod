@@ -354,7 +354,7 @@ class PyMod:
         """
         Builds the structure of the PyMod main window.
         """
-        self.main_window = pmgi.main_window.PyMod_main_window(app.root, self)
+        self.main_window = pmgi.main_window_components.main_window.PyMod_main_window(app.root, self)
 
 
     def show_first_time_usage_message(self):

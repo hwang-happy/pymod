@@ -89,7 +89,7 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
         # Saves a .fasta file for the alignment.
         aligned_sequences = self.input_alignment_element.get_children()
         self.pymod.save_alignment_fasta_file("temp", aligned_sequences)
-        input_file_shortcut = os.path.join(self.pymod.alignments_dirpath,"temp.fasta")
+        input_file_shortcut = os.path.join(self.pymod.alignments_dirpath, "temp.fasta")
 
         # Computes CAMPO scores by using the campo module.
         cbc = CAMPO(input_file_shortcut,

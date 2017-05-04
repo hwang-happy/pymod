@@ -1,10 +1,8 @@
-import os
 import math
 
 from Tkinter import *
 from tkFileDialog import *
 
-import pymol
 from pymol import cmd
 
 import pymod_lib.pymod_gui as pmgi
