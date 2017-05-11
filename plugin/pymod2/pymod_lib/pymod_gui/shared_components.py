@@ -231,8 +231,9 @@ class PyMod_tool_window(PyMod_base_window):
         # Builds the lower frame of the modeling window where the "SUBMIT" button is.
         self.lowerframe = PyMod_frame(self.main_frame)
         self.lowerframe.pack(side = BOTTOM, expand = NO, fill = Y, anchor="center", ipadx = 5, ipady = 5)
-        self.submit_button=Button(self.lowerframe, text="SUBMIT", command=submit_command, **button_style_1)
-        self.submit_button.pack(pady=10)
+        if submit_command:
+            self.submit_button=Button(self.lowerframe, text="SUBMIT", command=submit_command, **button_style_1)
+            self.submit_button.pack(pady=10)
 
         # Define the way in which the window widgets are going to be packed.
         self.pack_options = None
