@@ -1,10 +1,13 @@
-# Copyright 2016 by Giacomo Janson. All rights reserved.
+# Copyright 2017 by Giacomo Janson. All rights reserved.
 #
 # This code is part of the PyMod 2 PyMOL plugin and governed by the LGPL
-# license. Please see the pymod_main.py file that should have been included
+# license. Please see the 'pymod_main.py' file that should have been included
 # as part of this package.
 
 """
+Module imported by the PyMOL plugin system. Contains:
+    - code to check for the presence of Python libraries needed for PyMod to work.
+    - code to initialize PyMod as a PyMOL plugin.
 """
 
 import os
@@ -12,12 +15,18 @@ import sys
 import tkMessageBox
 from pymod_lib import pymod_os_specific as pmos
 
-#-------------------
-# Cheks for NumPy. -
-#-------------------
+
+###################################################################################################
+# Initializes Python libraries.                                                                   #
+###################################################################################################
+
+#--------------------
+# Checks for NumPy. -
+#--------------------
+
 global numpy_found
+# Try to directly import NumPy in PyMOL.
 try:
-    # Try to directly import NumPy in PyMOL.
     import numpy
     numpy_found = True
 # If NumPy can not be imported, check for a systemwide NumPy installation.
@@ -34,9 +43,11 @@ except ImportError, e:
     else:
         numpy_found = False
 
-#-----------------------
-# Cheks for Biopython. -
-#-----------------------
+
+#------------------------
+# Checks for Biopython. -
+#------------------------
+
 global biopython_found
 try:
     pmos.check_biopython(raise_exception_on_fail=True)
@@ -62,8 +73,8 @@ if os.path.isdir(pymod_plugin_dirpath):
     sys.path.append(pymod_plugin_dirpath)
 
 # Check if there if there is a 'python_libs' directory in PyMod plugin folder and try to import from
-# it the missing Pyhon libraries. The 'python_libs' folder may have been created by the PyMod
-# Installer Bundle, if some Python libraries were missing.
+# it the missing Pyhon libraries. The 'python_libs' folder may have been created by the
+# 'PyMod Installer Bundle', if some Python libraries were missing.
 python_libs_dirpath = os.path.join(pymod_plugin_dirpath, "python_libs")
 if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpath):
     sys.path.insert(0, python_libs_dirpath)
@@ -99,6 +110,11 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
             except:
                 pass
 
+
+###################################################################################################
+# Initializes PyMod in PyMOL.                                                                     #
+###################################################################################################
+
 #----------------------------------------
 # Sets the version of the PyMod plugin. -
 #----------------------------------------
@@ -106,14 +122,14 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
 global __version__
 __version__ = "0.2.1"
 global __revision__
-__revision__ = "0.0"
+__revision__ = "0.1"
 global pymod_plugin_name
 pymod_plugin_name = "PyMod " + __version__
 
 
-#-----------------------------
-# Initialize PyMod in PyMOL. -
-#-----------------------------
+#----------------------------------------
+# Initialize the PyMod plugin in PyMOL. -
+#----------------------------------------
 
 def __init__(self):
     """

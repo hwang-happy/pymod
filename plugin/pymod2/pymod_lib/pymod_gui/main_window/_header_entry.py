@@ -336,7 +336,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.structure_menu.add_command(label="PDB Chain Information", command=self.show_structure_info)
         else:
             if self.pymod_element.pdb_is_fetchable():
-                self.structure_menu.add_command(label="Fetch PDB File", command = lambda: self.pymod.fetch_pdb_files_from_popup_menu("single", self.pymod_element))
+                self.structure_menu.add_command(label="Fetch PDB File", command = lambda: self.pymod.fetch_pdb_files("single", self.pymod_element))
                 self.structure_menu.add_separator()
             self.structure_menu.add_command(label="Associate 3D Structure", command=lambda: self.pymod.associate_structure_from_popup_menu(self.pymod_element))
         self.header_popup_menu.add_cascade(menu=self.structure_menu, label="Structure")
@@ -480,7 +480,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.selection_structure_menu.add_separator()
             self.selection_structure_menu.add_command(label="Remove 3D Structures")
         elif self.pymod.all_sequences_have_fetchable_pdbs():
-            self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: self.pymod.fetch_pdb_files_from_popup_menu("selection", None))
+            self.selection_structure_menu.add_command(label="Fetch PDB Files", command=lambda: self.pymod.fetch_pdb_files("selection", None))
         self.selection_menu.add_cascade(menu=self.selection_structure_menu, label="Structures")
 
 

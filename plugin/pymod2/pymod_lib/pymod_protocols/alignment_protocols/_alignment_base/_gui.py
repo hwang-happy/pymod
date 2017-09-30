@@ -230,57 +230,6 @@ class Profile_alignment_window(Alignment_window):
 # ALGORITHMS SPECIFIC CLASSES.                                                                    #
 ###################################################################################################
 
-class Clustalw_base_window:
-    """
-    Base class for ClustalW protocols.
-    """
-    def build_algorithm_options_widgets(self):
-
-        widgets_to_align = []
-
-        # Scoring matrix radioselect.
-        self.matrix_rds = shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Scoring Matrix Selection')
-        self.clustal_matrices = ["Blosum", "Pam", "Gonnet", "Id"]
-        self.clustal_matrices_dict = {"Blosum": "blosum", "Pam": "pam", "Gonnet": "gonnet", "Id": "id"}
-        for matrix_name in (self.clustal_matrices):
-            self.matrix_rds.add(matrix_name)
-        self.matrix_rds.setvalue("Blosum")
-        self.matrix_rds.pack(side = 'top', anchor="w", pady = 10)
-        widgets_to_align.append(self.matrix_rds)
-
-        # Gap open entryfield.
-        self.gapopen_enf = shared_components.PyMod_entryfield(
-            self.alignment_options_frame,
-            label_text = "Gap Opening Penalty",
-            value = '10',
-            validate = {'validator' : 'integer',
-                        'min' : 0, 'max' : 1000})
-        self.gapopen_enf.pack(side = 'top', anchor="w", pady = 10)
-        widgets_to_align.append(self.gapopen_enf)
-
-        # Gap extension entryfield.
-        self.gapextension_enf = shared_components.PyMod_entryfield(
-            self.alignment_options_frame,
-            label_text = "Gap Extension Penalty",
-            value = '0.2',
-            validate = {'validator' : 'real',
-                        'min' : 0, 'max' : 1000})
-        self.gapextension_enf.pack(side = 'top', anchor="w", pady = 10)
-        widgets_to_align.append(self.gapextension_enf)
-
-        self.align_set_of_widgets(widgets_to_align, 10)
-
-
-    def get_matrix_value(self):
-        return self.clustal_matrices_dict[self.matrix_rds.getvalue()]
-
-    def get_gapopen_value(self):
-        return self.gapopen_enf.getvalue()
-
-    def get_gapextension_value(self):
-        return self.gapextension_enf.getvalue()
-
-
 class Clustalomega_base_window:
 
     def build_algorithm_options_widgets(self):
@@ -356,9 +305,6 @@ class SALIGN_str_base_window(Structural_alignment_base_window):
 ###################################################################################################
 
 # Regular alignment protocols.
-class Clustalw_regular_window(Clustalw_base_window, Regular_alignment_window):
-    pass
-
 class MUSCLE_regular_window(MUSCLE_base_window, Regular_alignment_window):
     pass
 
@@ -375,9 +321,6 @@ class SALIGN_str_regular_window(SALIGN_str_base_window, Regular_alignment_window
     pass
 
 # Profile alignments.
-class Clustalw_profile_window(Clustalw_base_window, Profile_alignment_window):
-    pass
-
 class Clustalomega_profile_window(Clustalomega_base_window, Profile_alignment_window):
     pass
 

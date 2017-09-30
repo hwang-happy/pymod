@@ -2,7 +2,6 @@ import os
 import sys
 import shutil
 import warnings
-import pymol
 from pymol import cmd
 import math
 import time
@@ -13,9 +12,9 @@ from Bio.PDB.Vector import calc_dihedral # Computes dihedral angles.
 import Bio.PDB.Polypeptide
 from Bio.PDB.Polypeptide import PPBuilder
 
-import pymod_vars as pmdt
-import pymod_sequence_manipulation as pmsm
-import pymod_element as pmel
+from pymod_lib import pymod_vars
+from pymod_lib.pymod_seq import seq_manipulation
+from pymod_lib import pymod_element
 
 
 class Select_chain_and_first_model(Select):
@@ -130,15 +129,15 @@ class Parsed_pdb_file:
                         # Check if the current HETRES is a modified residue. Modified residues will
                         # be added to the primary sequence.
                         if self._check_modified_residue(residue, chain):
-                            parsed_chain["residues"].append(pmel.PyMod_modified_residue(three_letter_code=resname, one_letter_code=pmdt.modified_residue_one_letter, db_index=pdb_position))
+                            parsed_chain["residues"].append(pymod_element.PyMod_modified_residue(three_letter_code=resname, one_letter_code=pymod_vars.modified_residue_one_letter, db_index=pdb_position))
                         else:
-                            parsed_chain["residues"].append(pmel.PyMod_ligand(three_letter_code=resname, one_letter_code=pmdt.ligand_one_letter, db_index=pdb_position))
+                            parsed_chain["residues"].append(pymod_element.PyMod_ligand(three_letter_code=resname, one_letter_code=pymod_vars.ligand_one_letter, db_index=pdb_position))
                     # For water molecules.
                     elif hetfield == "W":
-                        parsed_chain["residues"].append(pmel.PyMod_water_molecule(three_letter_code=resname, one_letter_code=pmdt.water_one_letter, db_index=pdb_position))
+                        parsed_chain["residues"].append(pymod_element.PyMod_water_molecule(three_letter_code=resname, one_letter_code=pymod_vars.water_one_letter, db_index=pdb_position))
                     # For standard amminoacidic residues. Adds them to the primary sequence.
                     else:
-                        parsed_chain["residues"].append(pmel.PyMod_standard_residue(three_letter_code=resname, one_letter_code=pmsm.three2one(resname), db_index=pdb_position))
+                        parsed_chain["residues"].append(pymod_element.PyMod_standard_residue(three_letter_code=resname, one_letter_code=seq_manipulation.three2one(resname), db_index=pdb_position))
                 list_of_parsed_chains.append(parsed_chain)
 
             # Stops after having parsed the first "model" in the biopython "Structure". This is
@@ -252,7 +251,7 @@ class Parsed_pdb_file:
         """
         Checks if a residue has the necessary atoms to make peptide bonds.
         """
-        return pmdt.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pmdt.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
+        return pymod_vars.std_amino_acid_backbone_atoms < set(residue.child_dict.keys()) or pymod_vars.mod_amino_acid_backbone_atoms < set(residue.child_dict.keys())
 
     def _find_links(self, residue, chain, get_residue_atom, get_neighbour_atom, link="N"):
         # Find other residues in the chain having an atom which can make a peptide bond with the
@@ -307,7 +306,7 @@ class Parsed_pdb_file:
     #################################################################
 
     def _get_structure_chain_file_name(self, chain_id):
-        return pmdt.structure_chain_temp_name % (Parsed_pdb_file.counter, chain_id)
+        return pymod_vars.structure_chain_temp_name % (Parsed_pdb_file.counter, chain_id)
 
     def _get_new_pymod_element_header(self, chain_id):
         parsed_chain_name = "%s_chain_%s.pdb" % (self.structure_file_name, chain_id)
@@ -315,13 +314,13 @@ class Parsed_pdb_file:
 
     def _get_full_structure_file_name(self):
         # return self.structure_file_name
-        return pmdt.structure_temp_name % Parsed_pdb_file.counter
+        return pymod_vars.structure_temp_name % Parsed_pdb_file.counter
 
     def _build_pymod_element(self, residues, element_header, color):
-        return self.pymod.build_pymod_element(pmel.PyMod_sequence_element, residues=residues, header=element_header, color=color)
+        return self.pymod.build_pymod_element(pymod_element.PyMod_sequence_element, residues=residues, header=element_header, color=color)
 
     def _get_chain_color(self, chain_number):
-        list_of_model_chains_colors = pmdt.pymol_regular_colors_list
+        list_of_model_chains_colors = pymod_vars.pymol_regular_colors_list
         return list_of_model_chains_colors[chain_number % len(list_of_model_chains_colors)]
 
 
@@ -385,7 +384,7 @@ class Parsed_model_pdb_file(Parsed_pdb_file):
         Parsed_pdb_file.__init__(self, pymod, pdb_file_path, **configs)
 
     def _build_pymod_element(self, residues, element_header, color):
-        return self.pymod.build_pymod_element(pmel.PyMod_model_element, residues=residues, header=element_header, color=color, model_root_name=self.model_root_name)
+        return self.pymod.build_pymod_element(pymod_element.PyMod_model_element, residues=residues, header=element_header, color=color, model_root_name=self.model_root_name)
 
 
 class PyMod_structure:
