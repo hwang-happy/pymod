@@ -4,8 +4,9 @@ Methods to manipulate PyMod elements within the plugin.
 
 import os
 
-import pymod_lib.pymod_element as pmel
+from pymod_lib import pymod_vars
 from pymod_lib.pymod_seq import seq_headers
+from pymod_lib.pymod_element import PyMod_sequence_element, PyMod_cluster_element, PyMod_element_GUI
 
 
 class PyMod_elements_interactions(object):
@@ -18,11 +19,11 @@ class PyMod_elements_interactions(object):
         """
         Dynamically builds the class of the PyMod element.
         """
-        return type("Dynamic_element", (pmel.PyMod_element_GUI, base_class), {})(*args, **configs)
+        return type("Dynamic_element", (PyMod_element_GUI, base_class), {})(*args, **configs)
 
 
     def build_pymod_element_from_args(self, sequence_name, sequence):
-        return self.build_pymod_element(pmel.PyMod_sequence_element, sequence, sequence_name)
+        return self.build_pymod_element(PyMod_sequence_element, sequence, sequence_name)
 
 
     def build_pymod_element_from_seqrecord(self, seqrecord):
@@ -30,7 +31,7 @@ class PyMod_elements_interactions(object):
         Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding
         to the it.
         """
-        new_element = self.build_pymod_element(pmel.PyMod_sequence_element, str(seqrecord.seq), seqrecord.id, description=seqrecord.description)
+        new_element = self.build_pymod_element(PyMod_sequence_element, str(seqrecord.seq), seqrecord.id, description=seqrecord.description)
         return new_element
 
 
@@ -42,7 +43,7 @@ class PyMod_elements_interactions(object):
         # Gives them the query mother_index, to make them its children.
         # TODO: use only Biopython objects.
         hsp_header = hsp["title"] # record_header = self.correct_name(hsp["title"])
-        cs = self.build_pymod_element(pmel.PyMod_sequence_element, str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
+        cs = self.build_pymod_element(PyMod_sequence_element, str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
         return cs
 
 
@@ -128,8 +129,8 @@ class PyMod_elements_interactions(object):
         #--------------------------------
         if cluster_name == None:
             if cluster_type == "alignment":
-                if pmdt.algorithms_full_names_dict.has_key(algorithm):
-                    algorithm_full_name = pmdt.algorithms_full_names_dict[algorithm]
+                if pymod_vars.algorithms_full_names_dict.has_key(algorithm):
+                    algorithm_full_name = pymod_vars.algorithms_full_names_dict[algorithm]
                 else:
                     algorithm_full_name = "Unknown"
                 cluster_name = self.set_alignment_element_name(algorithm_full_name, self.alignment_count)
@@ -152,7 +153,7 @@ class PyMod_elements_interactions(object):
         #----------------------------------------------------------------------
         # Creates a cluster element and add the new cluster element to PyMod. -
         #----------------------------------------------------------------------
-        cluster_element = self.build_pymod_element(pmel.PyMod_cluster_element, sequence="...", header=cluster_name,
+        cluster_element = self.build_pymod_element(PyMod_cluster_element, sequence="...", header=cluster_name,
                                              description=None, color="white",
                                              algorithm=algorithm, cluster_type=cluster_type,
                                              cluster_id=self.alignment_count)

@@ -3,14 +3,6 @@ import sys
 import shutil
 from cStringIO import StringIO
 
-import numpy
-
-try:
-    import modeller
-except:
-    pass
-
-import pymol
 from pymol import cmd, stored
 
 import pymod_lib.pymod_os_specific as pmos
@@ -21,9 +13,11 @@ class PyMod_protocol(object):
     A base class for PyMod protocols.
     """
 
-    def __init__(self, pymod, output_directory=os.path.curdir):
+    def __init__(self, pymod, protocol_name, output_directory=os.path.curdir):
         # 'PyMod' class object, used to access all the information of the plugin.
         self.pymod = pymod
+        self.protocol_name = protocol_name
+
         # Original stdout.
         self.sys_stdout = sys.stdout
         # Temporary stdout used by some protocols.
@@ -58,6 +52,10 @@ class PyMod_protocol(object):
         #
         # self.import_results_in_pymod()
 
+
+    ###############################################################################################
+    # Build selection of PyMod elements for the protocols.                                        #
+    ###############################################################################################
 
     def extend_selection_to_hidden_children(self):
         selected_elements = self.pymod.get_selected_sequences()

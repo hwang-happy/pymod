@@ -55,6 +55,7 @@ from _development import PyMod_development
 from _main_menu_commands import PyMod_main_menu_commands
 from _workspaces import PyMod_workspaces
 from _external import PyMod_external
+from _files_managment import PyMod_files_managment
 from _elements_interactions import PyMod_elements_interactions
 from _elements_loading import PyMod_elements_loading
 from _pymol_interactions import PyMod_pymol_interactions
@@ -76,6 +77,7 @@ class PyMod(PyMod_development,
             PyMod_main_menu_commands,
             PyMod_workspaces,
             PyMod_external,
+            PyMod_files_managment,
             PyMod_elements_interactions,
             PyMod_pymol_interactions,
             PyMod_elements_loading):

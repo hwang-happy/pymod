@@ -817,7 +817,7 @@
 #         """
 #         # Builds a temporary file with the sequence of the query needed by psiblast.
 #         query_file_name = "query"
-#         self.pymod.build_sequences_file([self.blast_query_element], query_file_name, file_format="fasta", remove_indels=True, new_directory=self.output_directory)
+#         self.pymod.build_sequence_file([self.blast_query_element], query_file_name, file_format="fasta", remove_indels=True, new_directory=self.output_directory)
 #
 #         # Sets some parameters in needed to run PSI-BLAST.
 #         ncbi_dir = self.pymod.blast_plus["exe_dir_path"].get_value()

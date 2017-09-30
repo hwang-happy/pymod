@@ -40,7 +40,7 @@ class Alignment_protocol(PyMod_protocol):
     # used (for example, if it is installed on the user's machine). #
     #################################################################
 
-    def launch_alignment_program(self):
+    def launch_from_gui(self):
         if self.alignment_program_exists():
             self.initialize_alignment()
         else:
@@ -49,7 +49,7 @@ class Alignment_protocol(PyMod_protocol):
 
     def alignment_program_exists(self):
         """
-        Returns True if the program full path was specified in the PyMod Options window.
+        Returns 'True' if the program full path was specified in the PyMod Options window.
         """
         return self.tool.exe_exists()
 
@@ -102,25 +102,22 @@ class Alignment_protocol(PyMod_protocol):
             return None
 
         # Programs that need a window to display their options.
-        self.show_alignment_window()
+        self.show_options_window()
 
 
     #################################################################
     # Structure of the windows showed when performing an alignment. #
     #################################################################
 
-    def show_alignment_window(self):
+    def show_options_window(self):
         """
         This method builds the structure of the alignment options window.
         """
         Alignment_window_class = self.get_alignment_window_class()
         self.alignment_window = Alignment_window_class(self.pymod.main_window, self,
-            title = " %s Options " % (pmdt.algorithms_full_names_dict[self.alignment_program]),
-            upper_frame_title = "Here you can modify options for %s" % (pmdt.algorithms_full_names_dict[self.alignment_program]),
-            submit_command = self.alignment_state)
-
-    def get_alignment_window_class(self):
-        return pmgi.alignment_components.Alignment_window
+            title=" %s Options " % (pmdt.algorithms_full_names_dict[self.alignment_program]),
+            upper_frame_title="Here you can modify options for %s" % (pmdt.algorithms_full_names_dict[self.alignment_program]),
+            submit_command=self.alignment_state)
 
 
     #################################################################
@@ -160,6 +157,7 @@ class Alignment_protocol(PyMod_protocol):
         if 0: # TODO.
             self.remove_alignment_temp_files()
         self.finish_alignment()
+
 
     def get_options_from_gui(self):
         pass
@@ -574,7 +572,7 @@ class Regular_alignment(Alignment_protocol):
         # First builds the al_result.txt file with the target alignment, this is needed by
         # "alignments_joiner()" method used below.
         merged_alignment_output = "al_result" # align_output.txt
-        self.pymod.build_sequences_file(alignment_to_keep_elements, merged_alignment_output,
+        self.pymod.build_sequence_file(alignment_to_keep_elements, merged_alignment_output,
                                   file_format="pymod", remove_indels=False, unique_indices_headers=True)
 
         # Performs the alignments joining progressively.
@@ -718,7 +716,7 @@ class Regular_alignment(Alignment_protocol):
             # Build the .fasta files with the alignments.
             file_name = "cluster_%s" % i
             children = cluster.get_children()
-            self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels=False, unique_indices_headers=True)
+            self.pymod.build_sequence_file(children, file_name, file_format="clustal", remove_indels=False, unique_indices_headers=True)
             alignments_to_join_file_list.append(file_name)
             elements_to_update.extend(children)
 
@@ -1058,6 +1056,7 @@ class Profile_alignment(Alignment_protocol):
         #---------------------------------------------------------
         # Expand an already existing cluster with new sequences. -
         #---------------------------------------------------------
+        
         if self.alignment_mode == "sequence-to-profile":
             # Gets the target cluster element.
             self.alignment_element = self.involved_clusters_list[self.target_cluster_index]
@@ -1073,6 +1072,7 @@ class Profile_alignment(Alignment_protocol):
         #--------------------------------------
         # Join two or more existing clusters. -
         #--------------------------------------
+
         elif self.alignment_mode == "profile-to-profile":
             # Find the right mother index in order to build the new cluster where one of the
             # original ones was placed.

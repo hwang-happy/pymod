@@ -45,7 +45,7 @@ class Clustalw_regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
         """
         if self.pymod.clustalw.exe_exists():
             # First build an input FASTA file containing the sequences to be aligned.
-            self.pymod.build_sequences_file(sequences_to_align, output_file_name, unique_indices_headers=True)
+            self.pymod.build_sequence_file(sequences_to_align, output_file_name, unique_indices_headers=True)
             # Sets the full paths of input and output files.
             input_file_path = os.path.join(self.pymod.alignments_dirpath, output_file_name + ".fasta")
             output_file_path = os.path.join(self.pymod.alignments_dirpath, output_file_name + ".aln")

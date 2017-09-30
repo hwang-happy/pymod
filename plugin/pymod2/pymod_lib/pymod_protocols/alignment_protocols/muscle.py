@@ -31,7 +31,7 @@
 #         #               - highest accuracy
 #         #               - fastest speed
 #         #               - large datasets
-#         self.pymod.build_sequences_file(sequences_to_align, output_file_name, unique_indices_headers=True)
+#         self.pymod.build_sequence_file(sequences_to_align, output_file_name, unique_indices_headers=True)
 #         # Input FASTA for MUSCLE.
 #         infasta=os.path.join(self.pymod.alignments_dirpath, output_file_name + ".fasta")
 #         # Output FASTA from MUSCLE, in tree order.

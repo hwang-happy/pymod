@@ -53,7 +53,7 @@ class SALIGN_seq_alignment(SALIGN_alignment):
 
         # The .pir file will be written in a different way if the user decides to use
         # structural information in the alignment.
-        self.pymod.build_sequences_file(self.elements_to_align, output_file_name, file_format="pir",
+        self.pymod.build_sequence_file(self.elements_to_align, output_file_name, file_format="pir",
             unique_indices_headers=True, use_structural_information=use_structural_information)
 
         if self.tool.run_internally():
@@ -288,7 +288,7 @@ class SALIGN_regular_alignment:
 #
 #         for (i,children) in enumerate(profiles):
 #             file_name = "cluster_" + str(i)
-#             self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information = self.use_str_information, unique_indices_headers=True)
+#             self.pymod.build_sequence_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information = self.use_str_information, unique_indices_headers=True)
 #             self.profiles_to_join_file_list.append(file_name)
 #
 #         #-----------------------------------------------------------------------------------
@@ -313,8 +313,8 @@ class SALIGN_regular_alignment:
 #             file_name = "cluster_" + str(i) # Build FASTA with the MSAs.
 #             children = cluster.get_children()
 #             # Builds a series of alignment files for each selected cluster.
-#             # self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
-#             self.pymod.build_sequences_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=self.use_str_information, unique_indices_headers=True)
+#             # self.pymod.build_sequence_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
+#             self.pymod.build_sequence_file(children, file_name, file_format="pir", remove_indels = False, use_structural_information=self.use_str_information, unique_indices_headers=True)
 #             self.profiles_to_join_file_list.append(file_name)
 #
 #         profile_alignment_output = "al_result"

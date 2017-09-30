@@ -68,13 +68,13 @@ class Clustal_profile_alignment(Profile_alignment):
         # create target cluster file
         profile_file_name = "cluster_0"
         profile_file_shortcut=os.path.join(self.pymod.alignments_dirpath, profile_file_name+".fasta")
-        self.pymod.build_sequences_file(target_profile_elements, profile_file_name,
+        self.pymod.build_sequence_file(target_profile_elements, profile_file_name,
             file_format="fasta", remove_indels=False, unique_indices_headers=True)
 
         # create sequence file for sequences to be appended to target cluster
         sequences_to_add_file_name = "cluster_1"
         sequences_to_add_file_shortcut=os.path.join(self.pymod.alignments_dirpath, sequences_to_add_file_name+".fasta")
-        self.pymod.build_sequences_file(self.elements_to_add, sequences_to_add_file_name,
+        self.pymod.build_sequence_file(self.elements_to_add, sequences_to_add_file_name,
             file_format="fasta", remove_indels=True, unique_indices_headers=True)
 
         # Output file name.
@@ -104,7 +104,7 @@ class Clustal_profile_alignment(Profile_alignment):
             children = cluster.get_children()
 
             # Builds a series of alignment files for each selected cluster.
-            self.pymod.build_sequences_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
+            self.pymod.build_sequence_file(children, file_name, file_format="clustal", remove_indels = False, unique_indices_headers=True)
             self.profiles_to_join_file_list.append(file_name)
 
         profile_alignment_output = "al_result"

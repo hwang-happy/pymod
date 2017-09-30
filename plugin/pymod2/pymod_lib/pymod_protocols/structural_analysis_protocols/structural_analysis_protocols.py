@@ -333,7 +333,7 @@
 #         basename = "psipred_temp"
 #         if print_output:
 #             print "basename: ", basename
-#         self.pymod.build_sequences_file([element], basename, file_format="fasta", remove_indels=True, new_directory=self.pymod.psipred_directory)
+#         self.pymod.build_sequence_file([element], basename, file_format="fasta", remove_indels=True, new_directory=self.pymod.psipred_directory)
 #
 #         #---------------------
 #         # Execute PSI-BLAST. -

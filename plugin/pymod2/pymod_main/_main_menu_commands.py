@@ -127,7 +127,7 @@ class PyMod_main_menu_commands(object):
         if not filepath == "":
             dirpath = os.path.dirname(filepath)
             filename = os.path.splitext(os.path.basename(filepath))[0]
-            self.build_sequences_file([element], filename, file_format="fasta", remove_indels=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
+            self.build_sequence_file([element], filename, file_format="fasta", remove_indels=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
 
 
     def save_selection_dialog(self, mode="selection"):
@@ -151,7 +151,7 @@ class PyMod_main_menu_commands(object):
         if not filepath == "":
             dirpath = os.path.dirname(filepath)
             filename = os.path.splitext(os.path.basename(filepath))[0]
-            self.build_sequences_file(selection, filename, file_format="fasta", remove_indels=remove_indels_choice, same_length=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
+            self.build_sequence_file(selection, filename, file_format="fasta", remove_indels=remove_indels_choice, same_length=remove_indels_choice, use_structural_information=False, new_directory=dirpath)
 
 
     def alignment_save_dialog(self, alignment_element):
@@ -171,9 +171,9 @@ class PyMod_main_menu_commands(object):
             if extension == "fasta":
                 self.save_alignment_fasta_file(alignment_file_name, aligned_elements)
             elif extension == "aln":
-                self.build_sequences_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
+                self.build_sequence_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
             elif extension == "sto":
-                self.build_sequences_file(aligned_elements, alignment_file_name, file_format="stockholm", remove_indels=False)
+                self.build_sequence_file(aligned_elements, alignment_file_name, file_format="stockholm", remove_indels=False)
             else:
                 title = "Format Error"
                 message = "Unknown alignment file format: %s" % (extension)
@@ -201,7 +201,7 @@ class PyMod_main_menu_commands(object):
         #     if extension == "fasta":
         #         self.save_alignment_fasta_file(alignment_file_name, aligned_elements)
         #     elif extension == "aln":
-        #         self.build_sequences_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
+        #         self.build_sequence_file(aligned_elements, alignment_file_name, file_format="clustal", remove_indels=False)
         #     else:
         #         title = "Format Error"
         #         message = "Unknown alignment file format: %s" % (extension)
@@ -266,7 +266,7 @@ class PyMod_main_menu_commands(object):
             #     aligment_protocol_class = pmptc.alignment_protocols.salign_str.SALIGN_str_regular_alignment
             else:
                 raise Exception("TODO.")
-                
+
         # Profile.
         elif strategy == "profile":
             # if program == "clustalw":
@@ -280,8 +280,8 @@ class PyMod_main_menu_commands(object):
             raise Exception("TODO.")
 
         # Actually launches the alignment protocol.
-        a = aligment_protocol_class(self, output_directory=self.alignments_dirpath)
-        a.launch_alignment_program()
+        a = aligment_protocol_class(self, protocol_name=program, output_directory=self.alignments_dirpath)
+        a.launch_from_gui()
 
 
     ###############################################################################################

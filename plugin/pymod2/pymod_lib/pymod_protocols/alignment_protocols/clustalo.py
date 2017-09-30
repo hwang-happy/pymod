@@ -30,7 +30,7 @@
 #
 #     def run_clustalo(self, sequences_to_align, output_file_name=None, extraoption=""):
 #
-#         self.pymod.build_sequences_file(sequences_to_align, output_file_name, unique_indices_headers=True)
+#         self.pymod.build_sequence_file(sequences_to_align, output_file_name, unique_indices_headers=True)
 #
 #         input_file_path = os.path.join(self.pymod.alignments_dirpath, output_file_name + ".fasta")
 #         output_file_path = os.path.join(self.pymod.alignments_dirpath, output_file_name + ".aln")
