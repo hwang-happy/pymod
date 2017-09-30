@@ -3,7 +3,8 @@ import shutil
 import re
 
 import pymod_lib.pymod_vars as pmdt
-from _alignment_base import Regular_sequence_alignment, Profile_alignment
+from _base_alignment._base_regular_alignment import Regular_sequence_alignment
+from _base_alignment._base_profile_alignment import Profile_alignment
 
 
 class Clustal_regular_alignment(Regular_sequence_alignment):
@@ -35,7 +36,7 @@ class Clustal_regular_alignment(Regular_sequence_alignment):
             # # ClustalO produces a .dnd file without changing the ":" characters in the name of the
             # # PDB chains and this gives problems in displaying the names when using Phylo. So the
             # # ":" characters have to be changed in "_".
-            # if self.alignment_program == "clustalo":
+            # if self.protocol_name == "clustalo":
             #     old_dnd_file = open(new_dnd_file_path,"rU")
             #     new_dnd_file_content = ''
             #     for dnd_item in old_dnd_file.readlines():

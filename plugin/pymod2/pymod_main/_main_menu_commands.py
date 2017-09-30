@@ -12,7 +12,11 @@ import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
 
-from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment
+from pymod_lib.pymod_protocols.similarity_searches_protocols.psiblast import PSI_BLAST_search
+
+from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment, Clustalw_profile_alignment
+
+from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMPO_analysis
 
 
 class PyMod_main_menu_commands(object):
@@ -227,9 +231,10 @@ class PyMod_main_menu_commands(object):
         Called when BLAST or PSI-BLAST is launched from the main menu.
         """
         if blast_version == "blast":
-            blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self, output_directory=self.similarity_searches_directory)
+            pass
+            # blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self, output_directory=self.similarity_searches_directory)
         elif blast_version == "psi-blast":
-            blast_search = pmptc.similarity_searches_protocols.PSI_BLAST_search(self, output_directory=self.similarity_searches_directory)
+            blast_search = PSI_BLAST_search(self, "psi-blast", output_directory=self.similarity_searches_dirpath)
         blast_search.launch_from_gui()
 
 
@@ -264,20 +269,15 @@ class PyMod_main_menu_commands(object):
             #     aligment_protocol_class = pmptc.alignment_protocols.CEalign_regular_alignment
             # elif program == "salign-str":
             #     aligment_protocol_class = pmptc.alignment_protocols.salign_str.SALIGN_str_regular_alignment
-            else:
-                raise Exception("TODO.")
 
         # Profile.
         elif strategy == "profile":
-            # if program == "clustalw":
-            #     aligment_protocol_class = pmptc.alignment_protocols.clustalw.Clustalw_profile_alignment
+            if program == "clustalw":
+                aligment_protocol_class = Clustalw_profile_alignment
             # elif program == "clustalo":
             #     aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_profile_alignment
             # elif program == "salign-seq":
             #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_profile_alignment
-            # else:
-            #     raise Exception("TODO.")
-            raise Exception("TODO.")
 
         # Actually launches the alignment protocol.
         a = aligment_protocol_class(self, protocol_name=program, output_directory=self.alignments_dirpath)
@@ -414,7 +414,7 @@ class PyMod_main_menu_commands(object):
 
 
     def launch_campo_from_main_menu(self, pymod_cluster):
-        campo = pmptc.evolutionary_analysis_protocols.campo.CAMPO_analysis(self, pymod_cluster)
+        campo = CAMPO_analysis(self, "campo", pymod_cluster)
         campo.launch_from_gui()
 
     def launch_scr_find_from_main_menu(self, pymod_cluster):

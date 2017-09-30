@@ -3,8 +3,8 @@ import os
 from Tkinter import *
 from tkFileDialog import *
 
-import pymod_lib.pymod_vars as pmdt
-import pymod_lib.pymod_gui as pmgi
+from pymod_lib import pymod_vars
+from pymod_lib import pymod_gui
 
 # Needed by the 'CAMPO' class.
 from Bio import SeqIO
@@ -29,11 +29,11 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
         """
         Builds a window with opotions for the CAMPO algorithm.
         """
-        current_pack_options = pmgi.shared_components.pack_options_1
-        current_label_options = pmgi.shared_components.label_style_1
+        current_pack_options = pymod_gui.shared_components.pack_options_1
+        current_label_options = pymod_gui.shared_components.label_style_1
 
         # Builds the window.
-        self.campo_window = pmgi.shared_components.PyMod_tool_window(self.pymod.main_window,
+        self.campo_window = pymod_gui.shared_components.PyMod_tool_window(self.pymod.main_window,
             title = "CAMPO algorithm options",
             upper_frame_title = "Here you can modify options for CAMPO",
             submit_command = self.campo_state)
@@ -43,13 +43,13 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
         self.campo_matrices_dict = {"Blosum62": "blosum62", "Blosum90": "blosum90","Blosum80":"blosum80",
                                     "Blosum50": "blosum50", "Blosum45":"blosum45",
                                     "PAM30": "pam30", "PAM120": "pam120", "PAM250": "pam250"}
-        self.matrix_cbx = pmgi.shared_components.PyMod_combobox(self.campo_window.midframe, label_text = 'Scoring Matrix Selection',label_style = current_label_options, scrolledlist_items=self.campo_matrices)
+        self.matrix_cbx = pymod_gui.shared_components.PyMod_combobox(self.campo_window.midframe, label_text = 'Scoring Matrix Selection',label_style = current_label_options, scrolledlist_items=self.campo_matrices)
         self.matrix_cbx.pack(**current_pack_options)
         self.matrix_cbx.selectitem(2)
         self.campo_window.add_widget_to_align(self.matrix_cbx)
 
         # Gap open entryfield.
-        self.campo_gap_penalty_enf = pmgi.shared_components.PyMod_entryfield(
+        self.campo_gap_penalty_enf = pymod_gui.shared_components.PyMod_entryfield(
             self.campo_window.midframe,
             label_text = "Gap Score",
             label_style = current_label_options,
@@ -60,7 +60,7 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
         self.campo_window.add_widget_to_align(self.campo_gap_penalty_enf)
 
         # Gap extension entryfield.
-        self.campo_gap_to_gap_score_enf = pmgi.shared_components.PyMod_entryfield(
+        self.campo_gap_to_gap_score_enf = pymod_gui.shared_components.PyMod_entryfield(
             self.campo_window.midframe,
             label_text = "Gap to Gap Score",
             label_style = current_label_options,
@@ -71,7 +71,7 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
         self.campo_window.add_widget_to_align(self.campo_gap_to_gap_score_enf)
 
         # Toss gaps.
-        self.campo_exclude_gaps_rds = pmgi.shared_components.PyMod_radioselect(self.campo_window.midframe, label_text = 'Toss gaps')
+        self.campo_exclude_gaps_rds = pymod_gui.shared_components.PyMod_radioselect(self.campo_window.midframe, label_text = 'Toss gaps')
         for text in ('Yes', 'No'):
             self.campo_exclude_gaps_rds.add(text)
         self.campo_exclude_gaps_rds.setvalue('Yes')
@@ -87,7 +87,7 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
         CAMPO scores using the 'CAMPO' class.
         """
         # Saves a .fasta file for the alignment.
-        aligned_sequences = self.input_alignment_element.get_children()
+        aligned_sequences = self.input_cluster_element.get_children()
         self.pymod.save_alignment_fasta_file("temp", aligned_sequences)
         input_file_shortcut = os.path.join(self.pymod.alignments_dirpath, "temp.fasta")
 
@@ -96,7 +96,7 @@ class CAMPO_analysis(Evolutionary_analysis_protocol):
                     mutational_matrix = self.campo_matrices_dict[self.matrix_cbx.get()],
                     gap_score = int(self.campo_gap_penalty_enf.getvalue()),
                     gap_gap_score = int(self.campo_gap_to_gap_score_enf.getvalue()),
-                    toss_gaps = pmdt.yesno_dict[self.campo_exclude_gaps_rds.getvalue()])
+                    toss_gaps = pymod_vars.yesno_dict[self.campo_exclude_gaps_rds.getvalue()])
         cbc.compute_id_matrix()
         cbc.run_CAMPO()
 
@@ -130,6 +130,7 @@ class CAMPO:
         """
         Takes as an argument the file path of the .fasta format alignment file.
         """
+
         self.fasta_file_full_path = fasta_file_full_path
         self.records = list(SeqIO.parse(self.fasta_file_full_path, "fasta"))
         self.num_seq= len(self.records)
@@ -148,7 +149,7 @@ class CAMPO:
             same_length = False
 
         if not same_length:
-            raise Exception("Le sequenze non sono allineate e non e' possibile calcolare i CAMPO scores.")
+            raise Exception("The aligned sequences do not have the same length.")
 
         # Prepares the substitution matrix.
         self.mutational_matrix = None

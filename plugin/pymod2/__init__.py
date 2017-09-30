@@ -13,7 +13,7 @@ Module imported by the PyMOL plugin system. Contains:
 import os
 import sys
 import tkMessageBox
-from pymod_lib import pymod_os_specific as pmos
+from pymod_lib import pymod_os_specific
 
 
 ###################################################################################################
@@ -31,7 +31,7 @@ try:
     numpy_found = True
 # If NumPy can not be imported, check for a systemwide NumPy installation.
 except ImportError, e:
-    system_numpy_path = pmos.find_systemwide_lib("numpy")
+    system_numpy_path = pymod_os_specific.find_systemwide_lib("numpy")
     if system_numpy_path:
         # If a systemwide NumPy was found, try to import it.
         try:
@@ -50,14 +50,14 @@ except ImportError, e:
 
 global biopython_found
 try:
-    pmos.check_biopython(raise_exception_on_fail=True)
+    pymod_os_specific.check_biopython(raise_exception_on_fail=True)
     biopython_found = True
 except ImportError, e:
-    system_biopython_path = pmos.find_systemwide_lib("Bio")
+    system_biopython_path = pymod_os_specific.find_systemwide_lib("Bio")
     if system_biopython_path:
         try:
             sys.path.append(system_biopython_path)
-            pmos.check_biopython(raise_exception_on_fail=True)
+            pymod_os_specific.check_biopython(raise_exception_on_fail=True)
             biopython_found = True
         except:
             biopython_found = False
@@ -95,7 +95,7 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
     # Try to import the Biopython version provided by the PyMod Installer Bundle.
     if not biopython_found:
         try:
-            pmos.check_biopython(raise_exception_on_fail=True)
+            pymod_os_specific.check_biopython(raise_exception_on_fail=True)
             biopython_found = True
         except:
             # Some old PyMOL builds have old Biopython versions lacking some new modules (such as
@@ -105,7 +105,7 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
                 if m.startswith("Bio"):
                     del sys.modules[m]
             try:
-                pmos.check_biopython(raise_exception_on_fail=True)
+                pymod_os_specific.check_biopython(raise_exception_on_fail=True)
                 biopython_found = True
             except:
                 pass

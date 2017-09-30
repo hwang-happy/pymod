@@ -1,4 +1,4 @@
-import Bio.SeqIO
+from Bio import SeqIO
 
 from pymod_lib import pymod_structure
 from pymod_lib import pymod_vars
@@ -23,7 +23,7 @@ class PyMod_elements_loading(object):
         file_handler = None
         try:
             file_handler = open(file_path,"r")
-            r = list(Bio.SeqIO.parse(file_handler, file_format))
+            r = list(SeqIO.parse(file_handler, file_format))
             if len(r) > 0:
                 valid_file = True
         except:

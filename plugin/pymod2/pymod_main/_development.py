@@ -49,7 +49,7 @@ class PyMod_development(object):
             # a.add_child(c)
 
             # Large clusters.
-            # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam.fasta"), "fasta")
+            # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir, "modeling/clusters/pfam.fasta"), "fasta")
 
             # Fetch sequences from the PDB.
             # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
@@ -72,7 +72,11 @@ class PyMod_development(object):
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
 
             for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:5]:
-                self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
+                try:
+                    self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
+                except:
+                    print "# Unable to load %s." % s
+
             # Monomer disulfides.
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
@@ -87,6 +91,8 @@ class PyMod_development(object):
             # PAX domains.
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
+
+
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 

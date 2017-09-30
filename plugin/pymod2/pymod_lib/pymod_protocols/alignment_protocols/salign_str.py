@@ -13,7 +13,7 @@
 #
 # import pymod_lib.pymod_vars as pmdt
 # import pymod_lib.pymod_gui as pmgi
-# from _alignment_base import Regular_structural_alignment
+# from _base_alignment import Regular_structural_alignment
 # from _salign_common import SALIGN_regular_alignment, SALIGN_alignment
 #
 #

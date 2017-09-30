@@ -10,15 +10,12 @@ from Bio.Align.Applications import ClustalwCommandline
 from _clustal_common import Clustal_regular_alignment, Clustal_profile_alignment
 
 # GUI.
-from _alignment_base._gui import Regular_alignment_window
+from _base_alignment._gui import Regular_alignment_window
+from _base_alignment._gui import Profile_alignment_window
 from pymod_lib.pymod_gui.shared_components import PyMod_radioselect, PyMod_entryfield
 
 
 class Clustalw_alignment:
-
-    # This attribute will be used from now on in many other methods that PyMod needs to perform
-    # an alignment.
-    alignment_program = "clustalw"
 
     def additional_initialization(self):
         self.tool = self.pymod.clustalw
@@ -33,10 +30,10 @@ class Clustalw_regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
         # TODO: use_parameters_from_gui.
         self.run_clustalw(sequences_to_align,
-                      output_file_name=output_file_name,
-                      matrix=self.alignment_window.get_matrix_value(),
-                      gapopen=int(self.alignment_window.get_gapopen_value()),
-                      gapext=float(self.alignment_window.get_gapextension_value()) )
+                          output_file_name=output_file_name,
+                          matrix=self.alignment_window.get_matrix_value(),
+                          gapopen=int(self.alignment_window.get_gapopen_value()),
+                          gapext=float(self.alignment_window.get_gapextension_value()) )
 
 
     def run_clustalw(self, sequences_to_align, output_file_name, matrix="blosum", gapopen=10, gapext=0.2):
@@ -145,5 +142,5 @@ class Clustalw_base_window:
 class Clustalw_regular_window(Clustalw_base_window, Regular_alignment_window):
     pass
 
-# class Clustalw_profile_window(Clustalw_base_window, Profile_alignment_window):
-#     pass
+class Clustalw_profile_window(Clustalw_base_window, Profile_alignment_window):
+    pass

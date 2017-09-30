@@ -492,26 +492,6 @@ def open_document_with_default_viewer(document_path):
 
 
 #####################################################################
-# BLAST databases.                                                  #
-#####################################################################
-
-def get_blast_database_prefix(dbpath):
-    database_files = filter(lambda f: f != ".DS_Store", os.listdir(dbpath))
-    return os.path.commonprefix(database_files)[:-1]
-
-
-def verify_valid_blast_dbdir(dbpath):
-    """
-    Checks if the folder specified in 'dbpath' contains a valid set of sequence database files.
-    """
-    dbprefix = get_blast_database_prefix(dbpath)
-    if dbprefix == "":
-        return False
-    else:
-        return True
-
-
-#####################################################################
 # Commandline.                                                      #
 #####################################################################
 

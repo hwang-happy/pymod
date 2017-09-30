@@ -85,7 +85,7 @@ def get_id_and_sequence_to_print(pymod_element, remove_indels=True, unique_indic
     return header, sequence
 
 
-def convert_sequence_file_format(self, input_filepath, input_format, output_format, output_filename=None):
+def convert_sequence_file_format(input_filepath, input_format, output_format, output_filename=None):
     """
     Converts an sequence file specified in the 'input_format' argument in an alignment file
     in the format specified in the 'output_format'.

@@ -192,16 +192,16 @@ class PyMod(PyMod_development,
         # self.muscle = pm_tool.Executable_tool("muscle", "MUSCLE")
         # self.muscle.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
         # self.pymod_tools.append(self.muscle)
-        #
-        # # BLAST+ suite. Used to run PSI-BLAST and store BLAST sequence databases retrieved from
-        # # ftp://ftp.ncbi.nlm.nih.gov/blast/db/ .
-        # self.blast_plus = pm_tool.Executable_tool("blast_plus", "BLAST+ suite")
-        # self.blast_plus.initialize_parameters([pm_tool.Tool_exec_directory("exe_dir_path", "Executable Directory"),
-        #                                        # A default directory where the database folders available for the
-        #                                        # PSI-BLAST database selection are going to be located.
-        #                                        pm_tool.Tool_directory("database_dir_path", "Database Directory")])
-        # self.pymod_tools.append(self.blast_plus)
-        #
+
+        # BLAST+ suite. Used to run PSI-BLAST and store BLAST sequence databases retrieved from
+        # ftp://ftp.ncbi.nlm.nih.gov/blast/db/ .
+        self.blast_plus = pm_tool.Executable_tool("blast_plus", "BLAST+ suite")
+        self.blast_plus.initialize_parameters([pm_tool.Tool_exec_directory("exe_dir_path", "Executable Directory"),
+                                               # A default directory where the database folders available for the
+                                               # PSI-BLAST database selection are going to be located.
+                                               pm_tool.Tool_directory("database_dir_path", "Database Directory")])
+        self.pymod_tools.append(self.blast_plus)
+        
         # # PSIPRED.
         # self.psipred = pm_tool.Executable_tool("psipred", "PSIPRED", "local")
         # self.psipred.initialize_parameters([pm_tool.Tool_directory("exe_dir_path", "Executable Directory"),
@@ -641,7 +641,7 @@ class PyMod(PyMod_development,
             parent_window = self.main_window
         else:
             parent_window = parent
-        answer = tkMessageBox.askyesno(message="Are you really sure you want to exit PyMod?", title="Exit PyMod?", parent=parent_window)
+        answer = True # tkMessageBox.askyesno(message="Are you really sure you want to exit PyMod?", title="Exit PyMod?", parent=parent_window) # TODO!
         if answer:
             self.main_window.destroy()
 
