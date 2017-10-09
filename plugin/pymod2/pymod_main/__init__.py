@@ -656,15 +656,3 @@ class PyMod(PyMod_development,
 
     def work_in_progress(self):
         raise Exception("Work in progress...")
-
-
-
-###################################################################################################
-# EXCEPTIONS.                                                                                     #
-###################################################################################################
-
-class PyModInvalidFile(Exception):
-    """
-    Used when a sequence or structure file containing some error is opened.
-    """
-    pass

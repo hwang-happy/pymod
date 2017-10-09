@@ -6,11 +6,13 @@ import os
 import re
 import webbrowser
 
+from tkFileDialog import *
 import Pmw
 
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
+from pymod_lib.pymod_exceptions import PyModInvalidFile
 
 from pymod_lib.pymod_protocols.similarity_searches_protocols.psiblast import PSI_BLAST_search
 

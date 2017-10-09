@@ -10,7 +10,7 @@ from pymod_lib import pymod_gui
 from Bio import SeqIO
 from Bio.SubsMat import MatrixInfo
 import numpy
-from pymod_lib import pymod_seq
+from pymod_lib.pymod_seq import seq_manipulation
 
 from _evolutionary_analysis_base import Evolutionary_analysis_protocol
 
@@ -204,7 +204,7 @@ class CAMPO:
 
         for i in range (0, self.num_seq-1):
             for j in range (i+1, self.num_seq):
-                identity = pmsm.compute_sequence_identity(self.sequence_list[i], self.sequence_list[j])
+                identity = seq_manipulation.compute_sequence_identity(self.sequence_list[i], self.sequence_list[j])
                 self.id_matrix[i].append(identity)
 
 
