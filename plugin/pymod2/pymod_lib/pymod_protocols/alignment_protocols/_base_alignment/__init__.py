@@ -6,7 +6,6 @@ import shutil
 import re
 
 from Tkinter import *
-import tkMessageBox
 import Pmw
 
 import math
@@ -23,7 +22,7 @@ from Bio import SeqIO
 from pymod_lib import pymod_vars
 import pymod_lib.pymod_os_specific as pmos
 # import pymod_lib.pymod_gui as pmgi
-import pymod_lib.pymod_sequence_manipulation as pmsm
+from pymod_lib.pymod_seq import seq_manipulation
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol #, MODELLER_common
 
 
@@ -330,7 +329,7 @@ class Alignment_protocol(PyMod_protocol):
                     for structure in initial_alignment_records:
                         for struct in self.selected_sequences_in_target_alignment:
                             if structure.id == struct.get_unique_index_header():
-                                identity = pmsm.compute_sequence_identity(element.seq, structure.seq)
+                                identity = seq_manipulation.compute_sequence_identity(element.seq, structure.seq)
                                 pair_list[index].append(identity)
                     index += 1
         return pair_list

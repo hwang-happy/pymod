@@ -35,7 +35,6 @@ from pymol import cmd
 
 # PyMod modules.
 import pymod_lib.pymod_os_specific as pmos # Different OS compatibility-related code.
-import pymod_lib.pymod_sequence_manipulation as pmsm # General biological sequence manipulation.
 
 # Part of the graphical user interface of PyMod.
 from pymod_lib.pymod_gui.shared_components import PyMod_dir_selection_window
@@ -201,7 +200,7 @@ class PyMod(PyMod_development,
                                                # PSI-BLAST database selection are going to be located.
                                                pm_tool.Tool_directory("database_dir_path", "Database Directory")])
         self.pymod_tools.append(self.blast_plus)
-        
+
         # # PSIPRED.
         # self.psipred = pm_tool.Executable_tool("psipred", "PSIPRED", "local")
         # self.psipred.initialize_parameters([pm_tool.Tool_directory("exe_dir_path", "Executable Directory"),

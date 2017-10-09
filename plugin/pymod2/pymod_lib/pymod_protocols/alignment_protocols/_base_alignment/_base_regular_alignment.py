@@ -6,6 +6,8 @@ import os
 
 from Bio import SeqIO
 
+import tkMessageBox
+
 from pymod_lib import pymod_vars
 from pymod_lib.pymod_seq import seq_io
 

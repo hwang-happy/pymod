@@ -11,7 +11,7 @@ import sys
 import pymol
 from pymol import cmd
 
-import pymod_lib.pymod_sequence_manipulation as pmsm
+from pymod_lib.pymod_seq import seq_manipulation
 import pymod_lib.pymod_vars as pmdt
 from pymod_lib.pymod_gui import shared_components
 
@@ -561,7 +561,7 @@ class PyMod_main_window_mixin:
             get_residue_color_method = self.assign_residue_coloring_method(element, "sequence")
             for (i,aa) in enumerate(element.get_polymer_residues()):
                 tag_name = aa.three_letter_code+str(i)
-                aid = pmsm.get_residue_id_in_aligned_sequence(element.my_sequence, i)
+                aid = seq_manipulation.get_residue_id_in_aligned_sequence(element.my_sequence, i)
                 element_widgets_group.sequence_text.tag_add(tag_name, "1.%d" % (aid)) # "1.0"
                 color = get_residue_color_method(residue=aa)
                 element_widgets_group.sequence_text.tag_config(tag_name, foreground=color)

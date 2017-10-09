@@ -1,7 +1,9 @@
 import os
 
 import pymod_vars as pmdt
-import pymod_sequence_manipulation as pmsm
+from pymod_seq import seq_manipulation
+from pymod_seq import seq_conservation
+
 
 ###################################################################################################
 # PYMOD ELEMENTS.                                                                                 #
@@ -278,14 +280,14 @@ class PyMod_cluster_element(PyMod_element):
 
 
     def update_stars(self, adjust_elements=False):
-        self.my_sequence = pmsm.compute_stars(self.get_children(), adjust_elements=adjust_elements)
+        self.my_sequence = seq_conservation.compute_stars(self.get_children(), adjust_elements=adjust_elements)
 
 
     def remove_gap_only_columns(self):
-        pmsm.remove_gap_only_columns(self.get_children())
+        seq_manipulation.remove_gap_only_columns(self.get_children())
 
     def adjust_aligned_children_length(self):
-        pmsm.adjust_aligned_elements_length(self.get_children())
+        seq_manipulation.adjust_aligned_elements_length(self.get_children())
 
 
 class PyMod_root_element(PyMod_cluster_element):
@@ -441,7 +443,7 @@ class PyMod_sequence_element(PyMod_element):
 
 
     def trackback_sequence(self, sequence_to_align):
-        ali = pmsm.global_pairwise_alignment(self.my_sequence.replace("-",""), sequence_to_align)
+        ali = seq_manipulation.global_pairwise_alignment(self.my_sequence.replace("-",""), sequence_to_align)
         self.set_sequence(ali["seq1"])
         return ali["seq1"], ali["seq2"]
 
@@ -508,7 +510,7 @@ class PyMod_sequence_element(PyMod_element):
         Returns a residue having the index provided in the 'index' argument in the sequence.
         """
         if aligned_sequence_index:
-            index = pmsm.get_residue_id_in_gapless_sequence(self.my_sequence, index)
+            index = seq_manipulation.get_residue_id_in_gapless_sequence(self.my_sequence, index)
         if only_polymer:
             return self.get_polymer_residues()[index]
         else:

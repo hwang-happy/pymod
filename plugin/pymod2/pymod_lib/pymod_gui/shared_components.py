@@ -8,7 +8,7 @@ import os
 import sys
 
 # Provides functionalities to some widgets.
-import pymod_lib.pymod_sequence_manipulation as pmsm
+from pymod_lib import pymod_seq
 import pymod_lib.pymod_vars as pmdt
 
 ###################################################################################################

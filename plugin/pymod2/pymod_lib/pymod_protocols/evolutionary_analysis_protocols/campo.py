@@ -10,7 +10,7 @@ from pymod_lib import pymod_gui
 from Bio import SeqIO
 from Bio.SubsMat import MatrixInfo
 import numpy
-import pymod_lib.pymod_sequence_manipulation as pmsm
+from pymod_lib import pymod_seq
 
 from _evolutionary_analysis_base import Evolutionary_analysis_protocol
 

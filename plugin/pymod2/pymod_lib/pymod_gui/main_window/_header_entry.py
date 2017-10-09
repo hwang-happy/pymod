@@ -3,7 +3,7 @@ from tkFileDialog import *
 
 from pymol import cmd
 
-import pymod_lib.pymod_sequence_manipulation as pmsm
+from pymod_lib.pymod_seq import seq_manipulation
 import pymod_lib.pymod_vars as pmdt
 from _main_window_common import PyMod_main_window_mixin
 
@@ -654,7 +654,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.pymod.delete_cluster_dialog(self._get_cluster_from_popup_menu(self.pymod_element))
 
     def delete_gap_only_columns_from_left_pane(self):
-        pmsm.remove_gap_only_columns(self._get_cluster_from_popup_menu(self.pymod_element))
+        seq_manipulation.remove_gap_only_columns(self._get_cluster_from_popup_menu(self.pymod_element))
         self.pymod.main_window.gridder(update_clusters=True, update_elements=True)
 
     def transfer_alignment_from_the_left_pane(self):
