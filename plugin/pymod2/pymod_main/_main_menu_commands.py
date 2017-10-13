@@ -5,6 +5,7 @@ Commands executed when interacting with PyMod main window.
 import os
 import re
 import webbrowser
+import pickle
 
 from tkFileDialog import *
 import Pmw

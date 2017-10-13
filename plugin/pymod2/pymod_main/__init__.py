@@ -246,9 +246,8 @@ class PyMod(PyMod_development,
         # If it is not found, then treat this session as the first one and asks the user to input
         # the 'PyMod Directory' path before beginning the first PyMod job.
         if not os.path.isfile(self.cfg_file_path):
-            raise Exception("TODO.")
-            # self.show_first_time_usage_message()
-            # self.show_pymod_directory_selection_window()
+            self.show_first_time_usage_message()
+            self.show_pymod_directory_selection_window()
 
         # The configuration file is found.
         else:
@@ -358,7 +357,7 @@ class PyMod(PyMod_development,
         """
         Allows to select the 'PyMod Directory' on PyMod first run.
         """
-        self.pymod_dir_window = pymod_lib.pymod_gui.shared_components.PyMod_dir_selection_window(self, self.main_window)
+        self.pymod_dir_window = PyMod_dir_selection_window(self, self.main_window)
 
 
     def pymod_directory_selection_state(self):
