@@ -22,7 +22,7 @@ class PyMod_protocol(object):
         self.sys_stdout = sys.stdout
         # Temporary stdout used by some protocols.
         self.my_stdout = None
-        # Directory were the output files of the protocol will be built.
+        # Directory where the output files of the protocol will be built.
         self.output_directory = output_directory
         # Perform an additional initialization, which is protocol specific.
         self.additional_initialization()

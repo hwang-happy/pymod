@@ -73,6 +73,13 @@ class PyMod_main_window_main_menu(object):
         # self.profile_alignment_menu.add_command(label = "Clustal Omega", command = lambda program="clustalo", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         # self.profile_alignment_menu.add_command(label = "SALIGN (Sequence Alignment)", command = lambda program="salign-seq", strategy="profile": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
+
+        # Domain parsing tools.
+#         self.domain_menu = Menu(self.tools_menu, tearoff = 0)
+#         self.tools_menu.add_cascade(label = "Domain Parsing", menu = self.domain_menu)
+#         self.domain_menu.add_command(label = "HMMER", command = self.pymod.show_pymod_options_window) #self.pymod.superpose_from_main_menu)
+
+
         # # Structural alignment tools.
         # self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         # self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
