@@ -92,7 +92,6 @@ class PyMod_main_menu_commands(object):
 
         if special_match(sequence) and len(sequence):
             if len(sequence_name) and name_match(sequence_name):
-                sequence = pmsm.clean_sequence_from_input(sequence)
                 self.add_element_to_pymod(self.build_pymod_element_from_args(sequence_name, sequence))
                 self.raw_seq_window.destroy()
                 self.main_window.gridder()

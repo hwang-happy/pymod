@@ -8,8 +8,8 @@ import os
 import sys
 
 # Provides functionalities to some widgets.
-from pymod_lib import pymod_seq
 import pymod_lib.pymod_vars as pmdt
+from pymod_lib.pymod_seq.seq_manipulation import clean_white_spaces_from_input
 
 
 ###################################################################################################
@@ -64,7 +64,8 @@ modeling_window_title_style = {"font": "comic 12", "height": 1,
                         "fg":'red', "borderwidth" : 0,
                         "padx" : 20, "pady" : 7}
 
-template_title_options = {"font": tkFont.Font(family="comic",size=10,slant="italic"), "background": widgets_background_color, "fg":'red', "anchor":"w"}
+template_title_options = {"font": "comic 10", # tkFont.Font(family="comic",size=10,slant="italic"),
+                          "background": widgets_background_color, "fg":'red', "anchor":"w"}
 
 modeling_options_sections_style = {"font": "comic 11", "background": widgets_background_color,
         "fg":'white', # orange, wheat1, orange red
@@ -610,7 +611,7 @@ class Raw_sequence_window(PyMod_tool_window):
         self.the_menu.tk.call("tk_popup", self.the_menu, e.x_root, e.y_root)
 
     def get_sequence(self):
-        return pmsm.clean_white_spaces_from_input(self.textarea.get(1.0, "end")).upper()
+        return clean_white_spaces_from_input(self.textarea.get(1.0, "end")).upper()
 
     def get_sequence_name(self):
         return self.seq_name.get()
