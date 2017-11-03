@@ -1,3 +1,5 @@
+from tkFileDialog import askdirectory
+
 from pymod_lib.pymod_gui import shared_components
 from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast._gui import BLAST_base_options_window
 

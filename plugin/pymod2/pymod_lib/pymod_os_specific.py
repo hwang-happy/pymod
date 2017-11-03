@@ -457,13 +457,14 @@ def get_askopenfilename_tuple(askopenfilename_result):
         'C:/Users/username/pymod/projects/Q6P988.fasta {C:/Users/username/pymod/projects/filename with spaces .fasta} C:/Users/username/pymod/projects/filename\ with\ parenthesis\{.fasta'
     This method will convert these kind of strings in tuples with containing the file names.
     """
-    if isinstance(askopenfilename_result, tuple):
+    if isinstance(askopenfilename_result, tuple) or isinstance(askopenfilename_result, list):
         return askopenfilename_result
     elif isinstance(askopenfilename_result, str) or isinstance(askopenfilename_result, unicode):
         substituted_string = re.sub(" \{([A-Z]:/)", " \g<1>", askopenfilename_result).lstrip("{")
         substituted_string = re.sub("\} ([A-Z]:/)", " \g<1>", substituted_string).rstrip("}")
         result_list = re.split("([A-Z]:/)", substituted_string)
         return tuple([disk+path.rstrip(" ").replace("\\","") for disk, path in zip(result_list[1::2], result_list[2::2])])
+        
 
 def get_askopenfilename_string(askopenfilename_result):
     """

@@ -1,5 +1,5 @@
 from Tkinter import *
-from tkFileDialog import *
+from tkFileDialog import askopenfilename, askdirectory
 import tkMessageBox
 import tkFont
 import Pmw

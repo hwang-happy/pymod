@@ -7,7 +7,7 @@ import re
 import webbrowser
 import pickle
 
-from tkFileDialog import *
+from tkFileDialog import askopenfilename, asksaveasfilename
 import Pmw
 
 import pymod_lib.pymod_os_specific as pmos
@@ -33,7 +33,11 @@ class PyMod_main_menu_commands(object):
         This method is called when using the 'File -> Open from File...' command in PyMod main menu.
         """
         # Creates a tkinter widget that lets the user select multiple files.
-        file_paths = askopenfilename(filetypes=pmdt.all_file_types_atl, multiple=True, parent=self.main_window)
+        try:
+            file_paths = askopenfilename(filetypes=pmdt.all_file_types_atl, multiple=True, parent=self.main_window)
+        except: # Fix for PyMOL 2.0.
+            file_paths = askopenfilename(multiple=True, parent=self.main_window)
+
         # Loads each files in PyMod.
         for single_file_path in pmos.get_askopenfilename_tuple(file_paths):
             extension = os.path.splitext(single_file_path)[1].replace(".","").lower()
