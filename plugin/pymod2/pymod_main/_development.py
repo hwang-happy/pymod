@@ -5,6 +5,9 @@ Module for development.
 import os
 import urllib
 import random
+import sys
+
+
 
 
 class PyMod_development(object):
@@ -19,12 +22,9 @@ class PyMod_development(object):
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
 
-        self.seqs_dir = "/home/giacomo/Dropbox/sequences"
-
-        if os.path.isdir(self.seqs_dir):
-
-            print ""
-            print "# Loading default."
+        # if os.path.isdir(self.seqs_dir):
+            # self.open_sequence_file(os.path.join(self.seqs_dir, "P0DPA7.fasta"))
+            # print "# Loading default."
 
             # # Load random sequences from uniprot.
             # n_seqs = 0
@@ -71,11 +71,11 @@ class PyMod_development(object):
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
 
-            for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:5]:
-                try:
-                    self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
-                except:
-                    print "# Unable to load %s." % s
+            # for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:5]:
+            #     try:
+            #         self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
+            #     except:
+            #         print "# Unable to load %s." % s
 
             # Monomer disulfides.
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
@@ -91,8 +91,6 @@ class PyMod_development(object):
             # PAX domains.
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
-
-
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 

@@ -103,17 +103,18 @@ class Parsed_pdb_file:
                                 "file_path":None}
 
                 # Assigns a blank "X" chain id for PDB structures that do not specify chains id.
-                parsed_chain["original_id"] = chain.id
-                parsed_chain["pymod_id"] = self._correct_chain_id(chain.id)
-                chain.id = self._correct_chain_id(chain.id)
+                # does not work #TODO
+                # parsed_chain["original_id"] = chain.id
+                # parsed_chain["pymod_id"] = self._correct_chain_id(chain.id)
+                # chain.id = self._correct_chain_id(chain.id)
 
                 ################################################################
                 # OLD
-                # if chain.id != " ":
-                #     parsed_chain["pymod_id"] = chain.id
-                # elif chain.id == " ":
-                #     chain.id = self.blank_chain_character
-                #     parsed_chain["pymod_id"] = self.blank_chain_character
+                if chain.id != " ":
+                    parsed_chain["pymod_id"] = chain.id
+                elif chain.id == " ":
+                    chain.id = self.blank_chain_character
+                    parsed_chain["pymod_id"] = self.blank_chain_character
                 ################################################################
 
                 # Starts to build the sequences by parsing through every residue of the chain.

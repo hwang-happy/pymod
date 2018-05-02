@@ -60,6 +60,14 @@ class PyMod_element(object):
         self.compact_header_root = header
         self.compact_header_prefix = ""
 
+        #MG code
+        try:
+            ix = self.my_header.index('|')
+            self.seq_id = self.my_header[ix+1:ix+7]
+        except ValueError:
+            self.seq_id = self.my_header
+
+
         # Sets the 'my_sequence' attribute. The primary sequence of an element. If the sequence is
         # changed or aligned by the user, it will be modified to include indels.
         # self.set_sequence(record_seq, adjust_sequence)
@@ -373,7 +381,24 @@ class PyMod_sequence_element(PyMod_element):
         self.predicted_secondary_structure = None
         self.campo_scores = None
         self.dope_scores = None
+        self.feature_list = []
+        self.domains_lst = None  #MG code #1203 #TODO to be removed
 
+
+    def add_domain_feature(self, domain_feature, whole_element=False):
+        self.feature_list.append(domain_feature)
+        if not whole_element:
+            for r in self.residues:
+                try:
+                    if int(domain_feature.start-1) <= r.index < int(domain_feature.end):
+                        r.domain = domain_feature
+                except TypeError:
+                    print 'Invalid integer input for start and end position of domain'
+
+    def clear_features(self):
+        self.feature_list = []
+        for r in self.residues:
+            r.domain = None
 
     def set_residues_from_sequence(self):
         self.residues = []
@@ -678,6 +703,10 @@ class PyMod_sequence_element(PyMod_element):
     def has_dope_scores(self):
         return bool(self.dope_scores)
 
+    #MG code
+    def has_feature_list(self):
+        return bool(self.feature_list)
+
     def pdb_is_fetchable(self):
         try:
             if self.my_header.split("|")[2]=="pdb" or self.my_header.split("|")[4]=="pdb":
@@ -858,6 +887,7 @@ class PyMod_residue(object):
         self.campo_score = None
         self.dope_score = None
         self.scr_score = None
+        self.domain = None
 
 
     def is_polymer_residue(self): # TODO: rename this to something more clear.
@@ -929,6 +959,24 @@ class PyMod_modified_residue(PyMod_heteroresidue):
 
 class PyMod_water_molecule(PyMod_heteroresidue):
     hetres_type = "water"
+
+class Element_feature():
+    def __init__(self, ID, name, start=1, end=1, description=''):
+        self.start = start
+        self.end = end
+        self.id = ID
+        self.name = name
+        self.description = description
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
+class Domain_Feature(Element_feature):
+    def __init__(self, ID, name, start, end, evalue, color=None, description=''):
+        Element_feature.__init__(self, ID, name, start, end, description)
+        self.domain_color = color
+        self.evalue = evalue
 
 
 # class PDB_residue:

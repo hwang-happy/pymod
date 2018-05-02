@@ -9,7 +9,6 @@ from pymod_lib import pymod_vars
 
 from pymod_lib.pymod_exceptions import PyModInvalidFile
 
-
 class PyMod_elements_loading(object):
 
     ###############################################################################################

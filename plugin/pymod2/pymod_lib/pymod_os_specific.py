@@ -77,9 +77,9 @@ def check_user_permissions(file_to_check):
 
 
 def is_writable(dirname):
-    '''
+    """
     Taken from the 'plugin.installation' module of PyMOL (since version 1.5.0.5).
-    '''
+    """
     path = os.path.join(dirname, '__check_writable')
     try:
         f = open(path, 'wb')
@@ -111,7 +111,7 @@ def get_target_path_owner(path):
 #####################################################################
 
 def pymod_which(executable, paths=None):
-    ''' Find 'executable' in the directories listed in 'path'. '''
+    """ Find 'executable' in the directories listed in 'path'. """
 
     if sys.platform == "win32":
         ext=".exe"
@@ -544,7 +544,7 @@ def is_unix():
 
 
 def check_dll(executable=''):
-    '''Check DLL directly loaded by executable'''
+    """Check DLL directly loaded by executable"""
     if not os.path.isfile(executable):
         return []
     exe_txt=open(executable,'rU').read()
@@ -553,7 +553,7 @@ def check_dll(executable=''):
 
 
 def check_msvc(executable=''):
-    '''Detect Microsoft Visual C++ Runtime of executable'''
+    """Detect Microsoft Visual C++ Runtime of executable"""
     dll_list=check_dll(executable)
     msvc_pat=re.compile('MSVC[MPR]\d*\.DLL')
     msvc_set=set([d[5:][:-5] for d in dll_list if msvc_pat.match(d.upper())])

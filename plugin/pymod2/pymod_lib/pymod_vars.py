@@ -372,7 +372,6 @@ scr_color_dict = {
 #----------------------
 # DOPE values colors. -
 #----------------------
-
 pymol_dope_color_name = "pymod_dope"
 dope_color_dict = {
     pymol_dope_color_name + "_None": (1,1,1),
@@ -386,6 +385,28 @@ dope_color_dict = {
     pymol_dope_color_name + "_8": (1.0, 0.58169934640522891, 0.0),
     pymol_dope_color_name + "_9": (1.0, 0.27668845315904156, 0.0),
     pymol_dope_color_name + "_10": (0.8743315508021392, 0.0, 0.0)}
+
+#----------------------
+# Domains colors.
+#----------------------
+domain_colors_dict = { '01_limegreen': (0.5, 1.0, 0.5) ,
+                        '02_yellow': (1.0, 1.0, 0.0) ,
+                        '03_red': (1.0, 0.0, 0.0) ,
+                        '04_marineblue': (0.0, 0.5, 1.0) ,
+                        '05_magenta': (1.0, 0.2, 0.8) ,
+                        '06_yelloworange': (1.0, 0.87, 0.37) ,
+                        '07_lightblue': (0.0, 0.8333333333333334, 1.0) ,
+                        '08_lightgreen': (0.7558507273877292, 1.0, 0.2118912080961417) ,
+                        '09_lightyellow': (1.0, 1.0, 0.9019607843137255) ,
+                        '10_orange': (1.0, 0.5816993464052289, 0.0) ,
+                        '11_violetpurple': (0.55, 0.25, 0.6) ,
+                        '12_slate': (0.5, 0.5, 1.0) ,
+                        '13_smudge': (0.55, 0.7, 0.4) ,
+                        '14_teal': (0.0, 0.75, 0.75) ,
+                        }
+domain_color_orderedkeys = domain_colors_dict.keys()
+domain_color_orderedkeys.sort()
+domain_colors_ordered = [(k, domain_colors_dict[k]) for k in domain_color_orderedkeys]
 
 #-------------------------------
 # Hydrophobicity scale colors. -

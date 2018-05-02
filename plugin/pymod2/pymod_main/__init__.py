@@ -186,7 +186,7 @@ class PyMod(PyMod_development,
         # self.clustalo = pm_tool.Executable_tool("clustalo", "Clustal Omega")
         # self.clustalo.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
         # self.pymod_tools.append(self.clustalo)
-        #
+
         # # MUSCLE.
         # self.muscle = pm_tool.Executable_tool("muscle", "MUSCLE")
         # self.muscle.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
@@ -200,6 +200,12 @@ class PyMod(PyMod_development,
                                                # PSI-BLAST database selection are going to be located.
                                                pm_tool.Tool_directory("database_dir_path", "Database Directory")])
         self.pymod_tools.append(self.blast_plus)
+
+        # # HMMER.
+        # self.hmmer_tool = pm_tool.Executable_tool("hmmer", "Hmmer suite")
+        # self.hmmer_tool.initialize_parameters([pm_tool.Tool_exec_directory("exe_dir_path", "Executable Directory"),
+        #                                        pm_tool.Tool_directory("database_dir_path", "Database Directory")])
+        # self.pymod_tools.append(self.hmmer_tool)
 
         # # PSIPRED.
         # self.psipred = pm_tool.Executable_tool("psipred", "PSIPRED", "local")
@@ -602,6 +608,7 @@ class PyMod(PyMod_development,
         self.update_pymod_color_dict_with_dict(pmdt.scr_color_dict)
         self.update_pymod_color_dict_with_dict(pmdt.dope_color_dict)
         self.update_pymod_color_dict_with_dict(pmdt.polarity_color_dictionary)
+        self.update_pymod_color_dict_with_dict(pmdt.domain_colors_dict) #MG code
 
 
     def update_pymod_color_dict_with_dict(self, color_dict, update_in_pymol=True):

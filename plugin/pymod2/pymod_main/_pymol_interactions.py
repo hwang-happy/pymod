@@ -3,6 +3,7 @@ Interactions with PyMOL.
 """
 
 # PyMOL modules.
+import os
 import pymol
 from pymol import cmd, stored, selector
 

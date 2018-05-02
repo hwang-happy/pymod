@@ -83,8 +83,8 @@ code_standard = { # dict for 20 standard amino acids
 ###################################################################################################
 
 def draw_salign_dendrogram(dendrogram_file, engine='tkinter'):
-    ''' Draw `dendrogram_file` for salign tree file using `engine`
-    (Only 'matplotlib' is supported) '''
+    """ Draw `dendrogram_file` for salign tree file using `engine`
+    (Only 'matplotlib' is supported) """
     if engine == 'matplotlib':
         try:
             from matplotlib import pylab
@@ -95,7 +95,7 @@ def draw_salign_dendrogram(dendrogram_file, engine='tkinter'):
         draw_salign_dendrogram_tkinter(dendrogram_file)
 
 def draw_salign_dendrogram_tkinter(dendrogram_file):
-    ''' Draw `dendrogram_file` for salign tree file using matplotlib'''
+    """ Draw `dendrogram_file` for salign tree file using matplotlib"""
     if not os.path.isfile(dendrogram_file):
         print "ERROR! Cannot find dendrogram_file"+str(dendrogram_file)
         return
@@ -159,7 +159,7 @@ def draw_salign_dendrogram_tkinter(dendrogram_file):
 
 
 def draw_salign_dendrogram_matplotlib(dendrogram_file):
-    ''' Draw `dendrogram_file` for salign tree file using matplotlib'''
+    """ Draw `dendrogram_file` for salign tree file using matplotlib"""
     if not os.path.isfile(dendrogram_file):
         print "ERROR! Cannot find dendrogram_file"+str(dendrogram_file)
         return

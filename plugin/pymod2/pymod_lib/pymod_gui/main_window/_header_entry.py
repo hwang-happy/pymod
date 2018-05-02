@@ -282,7 +282,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.color_menu.add_separator()
             self.conservation_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
             self.conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: self.color_selection("single", self.pymod_element, "campo-scores"))
-            self.color_menu.add_cascade(menu=self.conservation_colors_menu, label="By Convservation")
+            self.color_menu.add_cascade(menu=self.conservation_colors_menu, label="By Conservation")
 
         # Energy colors.
         if self.can_be_colored_by_energy(self.pymod_element):
@@ -290,6 +290,14 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.energy_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
             self.energy_colors_menu.add_command(label="DOPE scores",command=lambda: self.color_selection("single", self.pymod_element, "dope"))
             self.color_menu.add_cascade(menu=self.energy_colors_menu, label="By Energy")
+
+        #MG code Domain colors.
+        if self.can_be_colored_by_domain(self.pymod_element):
+            self.color_menu.add_separator()
+            self.domain_colors_menu = Menu(self.color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
+            self.domain_colors_menu.add_command(label="Domains",command=lambda: self.color_selection("single", self.pymod_element, "domains"))
+            self.color_menu.add_cascade(menu=self.domain_colors_menu, label="By Domains")
+
 
         self.header_popup_menu.add_cascade(menu=self.color_menu, label="Color")
 
@@ -460,7 +468,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             multiple_color_menu.add_separator()
             multiple_conservation_colors_menu = Menu(multiple_color_menu,tearoff=0, bg='white', activebackground='black', activeforeground='white')
             multiple_conservation_colors_menu.add_command(label="CAMPO scores",command=lambda: self.color_selection(color_selection_mode, color_selection_target, "campo-scores"))
-            multiple_color_menu.add_cascade(menu=multiple_conservation_colors_menu, label="By Convservation")
+            multiple_color_menu.add_cascade(menu=multiple_conservation_colors_menu, label="By Conservation")
 
         # Energy colors.
         if not False in [self.can_be_colored_by_energy(e) for e in sequences_list]:

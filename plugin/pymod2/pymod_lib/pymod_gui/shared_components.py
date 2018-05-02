@@ -286,7 +286,6 @@ class PyMod_tool_window(PyMod_base_window):
             for w in self.advanced_widgets:
                 w.pack(**self.pack_options)
             self.showing_advanced_widgets = True
-            self.advance_options_button
             self.advance_options_button.configure(text="Hide Advanced Options")
 
 
@@ -331,7 +330,7 @@ class PyMod_radioselect(Pmw.RadioSelect, PyMod_gui_mixin):
     Class for custom Pmw.RadioSelect widgets.
     """
     def __init__(self, parent = None, label_style=None, **configs):
-        Pmw.RadioSelect.__init__(self, parent,buttontype = 'radiobutton',
+        Pmw.RadioSelect.__init__(self, parent, buttontype = 'radiobutton',
                                  orient = 'vertical', labelpos = 'wn',
                                  pady=0, padx=0,
                                  labelmargin=5,

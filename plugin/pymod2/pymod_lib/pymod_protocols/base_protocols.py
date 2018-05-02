@@ -13,7 +13,7 @@ class PyMod_protocol(object):
     A base class for PyMod protocols.
     """
 
-    def __init__(self, pymod, protocol_name, output_directory=os.path.curdir):
+    def __init__(self, pymod, protocol_name="new_protocol", output_directory=os.path.curdir):
         # 'PyMod' class object, used to access all the information of the plugin.
         self.pymod = pymod
         self.protocol_name = protocol_name
@@ -32,11 +32,18 @@ class PyMod_protocol(object):
         pass
 
 
-    def get_pymod_elements(self, pymod_elements):
-        if pymod_elements == None:
+    # def get_pymod_elements(self, pymod_elements):
+    #     if pymod_elements == None:
+    #         pymod_elements = self.pymod.get_selected_sequences()
+    #     return pymod_elements
+
+        ################## MG CODE ###################
+        # non si potrebbe fare cosi'?
+    def get_pymod_elements(self, pymod_elements=None):
+        if not pymod_elements:
             pymod_elements = self.pymod.get_selected_sequences()
         return pymod_elements
-
+        ################# End of MG code ############
 
     def launch_from_gui(self):
 

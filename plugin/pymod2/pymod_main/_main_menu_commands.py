@@ -21,6 +21,8 @@ from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regu
 
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMPO_analysis
 
+#MG code
+from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import Domain_search_protocol_launcher
 
 class PyMod_main_menu_commands(object):
 
@@ -240,6 +242,7 @@ class PyMod_main_menu_commands(object):
             pass
             # blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self, output_directory=self.similarity_searches_directory)
         elif blast_version == "psi-blast":
+            #pass
             blast_search = PSI_BLAST_search(self, "psi-blast", output_directory=self.similarity_searches_dirpath)
         blast_search.launch_from_gui()
 
@@ -253,10 +256,7 @@ class PyMod_main_menu_commands(object):
         Launched from the 'Sequence', 'Structure Alignment' or 'Profile Alignment' from the submenus
         of the main window.
         """
-        self.launch_alignment_program(program, strategy)
 
-
-    def launch_alignment_program(self, program, strategy):
         # TODO: use a 'selected_elements' arguments.
         # Regular.
         if strategy == "regular":
@@ -751,3 +751,10 @@ class PyMod_main_menu_commands(object):
         #     self.main_window.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
         # else:
         #     self.show_error_message("Update Failed", update_results[1])
+
+
+
+    def show_hmmer_window(self):
+        #hmmer_protocol = Search_parsing_protocol(self) #0503
+        hmmer_protocol = Domain_search_protocol_launcher(self)
+        hmmer_protocol.launch_from_gui()

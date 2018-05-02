@@ -456,20 +456,25 @@ class PyMod_main_window_mixin:
                 color_dict = self.color_element_by_campo_scores(seq, color_in_pymol=color_in_pymol)
             elif color_scheme == "dope":
                 color_dict = self.color_element_by_dope(seq, color_in_pymol=color_in_pymol)
+            #MG code
+            elif color_scheme == "domains":
+                color_dict = self.color_element_by_domains(seq, color_in_pymol=color_in_pymol)
+                #print color_dict #MG
 
-            if not color_in_pymol and color_scheme != "regular":
-                for color in color_dict.keys():
-                    color_selection = "(" + seq.get_pymol_selector() + " and resi " + self._join_residues_list(color_dict[color]) + ")"
-                    if selection_color_dict.has_key(color):
-                        selection_color_dict[color].append(color_selection)
-                    else:
-                        selection_color_dict[color] = [color_selection]
-
-        if not color_in_pymol and color_scheme != "regular":
-            for color in selection_color_dict.keys():
-                color_str = " or ".join([str(i) for i in selection_color_dict[color]])
-                cmd.color(color, color_str)
-                cmd.util.cnc(color_str) # Colors by atom.
+        #MG
+        #     if not color_in_pymol and color_scheme != "regular":
+        #         for color in color_dict.keys():
+        #             color_selection = "(" + seq.get_pymol_selector() + " and resi " + self._join_residues_list(color_dict[color]) + ")"
+        #             if selection_color_dict.has_key(color):
+        #                 selection_color_dict[color].append(color_selection)
+        #             else:
+        #                 selection_color_dict[color] = [color_selection]
+        #
+        # if not color_in_pymol and color_scheme != "regular":
+        #     for color in selection_color_dict.keys():
+        #         color_str = " or ".join([str(i) for i in selection_color_dict[color]])
+        #         cmd.color(color, color_str)
+        #         cmd.util.cnc(color_str) # Colors by atom.
 
 
     ##########################
@@ -527,22 +532,49 @@ class PyMod_main_window_mixin:
         element.color_by = "dope"
         return self.color_element(element, on_grid=False, color_structure=True, color_in_pymol=color_in_pymol)
 
+    #MG code
+    def color_element_by_domains(self, element, on_grid=False, color_in_pymol=True):
+        element.color_by = "domains"
+        return self.color_element(element, on_grid=False, color_in_pymol=color_in_pymol)
 
     #################################################
     # Actually colors the sequences and structures. #
     #################################################
 
+    #def color_element(self, element, on_grid=False, color_structure=True, color_in_pymol=True):   #MG code MG comment
+        # """
+        # Colors the sequence entry when it is displayed by the 'gridder()' method or when the user
+        # changes the color scheme of a sequence. This can color also the PDB file of the element (if
+        # the element has one). In PyMod the PDB file is not colored when 'gridder()' is called, it is
+        # colored only when the user decides to change the sequence color scheme.
+        # """
+        # if 1: # if self.is_shown: # TODO.
+        #     self.color_sequence_text(element, on_grid)
+        #
+        # if not color_in_pymol:
+        #     return residues_to_color_dict
+        #
+        # if color_structure and element.has_structure():
+        #     return self.color_structure(element, on_grid, color_in_pymol=color_in_pymol)
+
+    #### rewritten by #MG
     def color_element(self, element, on_grid=False, color_structure=True, color_in_pymol=True):
+        #'color_structure' argument still there for compatibility
         """
         Colors the sequence entry when it is displayed by the 'gridder()' method or when the user
         changes the color scheme of a sequence. This can color also the PDB file of the element (if
         the element has one). In PyMod the PDB file is not colored when 'gridder()' is called, it is
         colored only when the user decides to change the sequence color scheme.
         """
-        if 1: # if self.is_shown: # TODO.
-            self.color_sequence_text(element, on_grid)
-        if color_structure and element.has_structure():
-            return self.color_structure(element, on_grid, color_in_pymol=color_in_pymol)
+        #if 1: # if self.is_shown: # TODO.
+        self.color_sequence_text(element, on_grid)
+
+        if color_in_pymol:
+            if element.has_structure():
+                return self.color_structure(element, on_grid, color_in_pymol=color_in_pymol)
+            else:
+                #print 'Query element has no structure' #TODO
+                return
 
 
     #######################
@@ -553,6 +585,7 @@ class PyMod_main_window_mixin:
         """
         Colors the sequence entry in PyMod main window.
         """
+
         element_widgets_group = self.dict_of_elements_widgets[element]
         # Colors the sequence according to some particular color scheme.
         if element.color_by != "regular":
@@ -699,6 +732,14 @@ class PyMod_main_window_mixin:
                 return self.get_dope_sequence_color
             elif color_target == "structure":
                 return self.get_dope_structure_color
+        #MG
+        elif element.color_by == 'domains':
+            if color_target == "sequence":
+                return self.get_domain_sequence_color
+            elif color_target == "structure":
+                return self.get_domain_structure_color
+
+
 
     # Regular colors.
     def get_regular_sequence_color(self, color):
@@ -767,6 +808,19 @@ class PyMod_main_window_mixin:
     def form_dope_color_name(self, residue):
         return "%s_%s" % (pmdt.pymol_dope_color_name, residue.dope_score["interval"])
 
+    # domain colors. #MG
+    def get_domain_sequence_color(self, residue):
+        #print self.pymod.all_colors_dict_tkinter[self.form_domain_color_name(residue)]
+        return self.pymod.all_colors_dict_tkinter[self.form_domain_color_name(residue)]
+
+    def get_domain_structure_color(self, residue):
+        return self.form_domain_color_name(residue)
+
+    def form_domain_color_name(self, residue):
+        if residue.domain:
+            return residue.domain.domain_color[0]
+        else:
+            return 'grey70'
 
     ###########################
     # Check coloring schemes. #
@@ -784,6 +838,10 @@ class PyMod_main_window_mixin:
 
     def can_be_colored_by_energy(self, element):
         return element.has_dope_scores()
+
+        #MG code
+    def can_be_colored_by_domain(self, element):
+        return element.has_feature_list()
 
 
     #################################################################
