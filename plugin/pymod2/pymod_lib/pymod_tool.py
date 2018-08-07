@@ -17,7 +17,7 @@ class Tool:
     A base class to represent a Tool, an external program used by PyMod.
     """
 
-    def __init__(self, tool_name, tool_full_name, show_message_method=None):
+    def __init__(self, tool_name, tool_full_name):
         # Id of the tool. Example: 'clustalo'.
         self.name = tool_name
         # Full name of the tool. Example: 'Clustal Omega'.
@@ -27,7 +27,9 @@ class Tool:
         # A list of 'Tool_parameter' class objects.
         self.parameters = []
         # Method used to display messages raised when using the tool.
-        self.show_message_method = show_message_method
+
+    def show_message_method(self, title, message):
+        self.pymod.show_error_message(title, message)
 
 
     def initialize_parameters(self, parameter_list):

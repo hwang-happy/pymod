@@ -1,5 +1,4 @@
 from pymod_lib.pymod_gui.shared_components import *
-from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast._gui import BLAST_base_options_window
 
 #from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import PFAM_parsing_protocol, Hmmer_parsing_protocol
 import pymod_lib.pymod_vars as pmdt

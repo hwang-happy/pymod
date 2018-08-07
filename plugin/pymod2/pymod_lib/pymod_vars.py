@@ -12,6 +12,7 @@ algorithms_full_names_dict = {
     # Similarity searches.
     "blast": "NCBI BLAST",
     "psi-blast": "PSI-BLAST",
+    "phmmer":"PHMMER",
     # Alignments.
     "clustalw": "ClustalW",
     "clustalo": "Clustal Omega",

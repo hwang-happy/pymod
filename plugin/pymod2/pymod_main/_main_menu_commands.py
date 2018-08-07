@@ -15,7 +15,9 @@ import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
 from pymod_lib.pymod_exceptions import PyModInvalidFile
 
+from pymod_lib.pymod_protocols.similarity_searches_protocols.ncbi_blast import NCBI_BLAST_search
 from pymod_lib.pymod_protocols.similarity_searches_protocols.psiblast import PSI_BLAST_search
+from pymod_lib.pymod_protocols.similarity_searches_protocols.phmmer import PHMMER_search
 
 from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment, Clustalw_profile_alignment
 
@@ -23,6 +25,7 @@ from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMP
 
 #MG code
 from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import Domain_search_protocol_launcher
+
 
 class PyMod_main_menu_commands(object):
 
@@ -239,15 +242,20 @@ class PyMod_main_menu_commands(object):
         Called when BLAST or PSI-BLAST is launched from the main menu.
         """
         if blast_version == "blast":
-            pass
-            # blast_search = pmptc.similarity_searches_protocols.NCBI_BLAST_search(self, output_directory=self.similarity_searches_directory)
+            # pass
+            blast_search = NCBI_BLAST_search(self, output_directory=self.similarity_searches_dirpath)
         elif blast_version == "psi-blast":
             #pass
             blast_search = PSI_BLAST_search(self, "psi-blast", output_directory=self.similarity_searches_dirpath)
+
         blast_search.launch_from_gui()
 
 
-    ###############################################################################################
+    def launch_hmmer_algorithm(self, phmmer_version):
+        hmmer_search = PHMMER_search(self, "phmmer", output_directory=self.similarity_searches_dirpath)
+        hmmer_search.launch_from_gui()
+
+        ###############################################################################################
     # ALIGNMENT BUILDING.                                                                         #
     ###############################################################################################
 

@@ -71,8 +71,10 @@ class PyMod_external(object):
     #################################################################
 
     def execute_subprocess(self, commandline, new_stdout = subprocess.PIPE, new_stderr = subprocess.PIPE, new_shell = (sys.platform!="win32"), print_stdinfo = True, executing_modeller=False):
+
         if print_stdinfo:
             print "Executing the following command:", commandline
+
         if not executing_modeller:
             try:
                 subp = subprocess.Popen(commandline, stdout= new_stdout, stderr= new_stderr, shell= new_shell)
@@ -83,6 +85,7 @@ class PyMod_external(object):
                 if print_stdinfo:
                     print "Stdout:", out_std
             except Exception, e:
+                print commandline
                 if print_stdinfo:
                     print "Exception:", e
                     print "Stderr:", err_std
@@ -91,3 +94,7 @@ class PyMod_external(object):
         # 'subprocess' module. For this reason, the 'os' module will be used instead.
         else:
             os.system(commandline)
+
+
+    def new_execute_subprocess(self, args):
+        subprocess.check_call(args)

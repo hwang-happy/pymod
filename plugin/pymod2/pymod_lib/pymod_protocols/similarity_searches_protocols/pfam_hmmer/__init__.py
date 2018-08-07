@@ -1,9 +1,9 @@
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
-from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import pfam_gui
-
-from time import sleep
+from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import hmmer_gui
 from sys import platform as sysplatform
 from Bio import SearchIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 import xml.dom.minidom
 
 import urllib2
@@ -14,21 +14,22 @@ import os
 @author Maria Giulia
 TERZA STESURA DELLA CLASSE DI PROTOCOLLO PFAM-HMMER
 APRILE 2018
+IV STESURA MAGGIO 2018 - NUOVO METODO DI PARSING
 '''
 
 class Domain_search_protocol_launcher(PyMod_protocol):
 
-    # def additional_initialization(self):
-    #     #TODO path provvisorio
-    #     relative_testset_pathlist = ['Pymodproject', 'tesipymod', 'TESTSET', '_Domini']
-    #     if sysplatform == 'win32':
-    #         root = 'C:\\Users\\Maria Giulia\\Dropbox'
-    #     elif sysplatform == 'darwin':
-    #         root = '/Users/MariaGiulia/Desktop/'
-    #     else:
-    #         root = '/home/mariagiulia/Dropbox/'
-    #     TESTSET = os.path.join(root, *relative_testset_pathlist)
-    #     self.output_directory = TESTSET
+    def additional_initialization(self):
+        #TODO path provvisorio
+        relative_testset_pathlist = ['Pymodproject', 'tesipymod', 'TESTSET', '_Domini']
+        if sysplatform == 'win32':
+            root = 'C:\\Users\\Maria Giulia\\Dropbox'
+        elif sysplatform == 'darwin':
+            root = '/Users/MariaGiulia/Desktop/'
+        else:
+            root = '/home/mariagiulia/Dropbox/'
+        TESTSET = os.path.join(root, *relative_testset_pathlist)
+        self.output_directory = TESTSET
 
 
     # Verify if there is an output file for a particular sequence,
@@ -72,30 +73,34 @@ class Domain_search_protocol_launcher(PyMod_protocol):
 
         print self.query_element.seq_id#, self.continuous_seq
 
-        self.hmmer_options_window = pfam_gui.Hmmer_options_window(parent=self.pymod.main_window, submit_command=self.domain_search_state)
+        self.hmmer_options_window = hmmer_gui.Hmmer_options_window(parent=self.pymod.main_window, submit_command=self.domain_search_state)
 
 
     #def run_domain_search(self):
     def domain_search_state(self):
         # collecting options
-        if not self.hmmer_options_window.hmmer_engine_rds.getvalue():
-            title = "Error"
-            message = "Please select a search engine to perform a domain search."
-            self.pymod.show_error_message(title, message)
-            return
-        elif not self.hmmer_options_window.hmmer_database_rds.getvalue():
-            title = "Error"
-            message = "Please select a database to perform a domain search."
-            self.pymod.show_error_message(title, message)
-            return
-        else:
-            self.hmmer_options_window.search_params = {'evalue_cutoff':self.hmmer_options_window.e_value_threshold_enf.get(),
-                              'engine_search':self.hmmer_options_window.hmmer_engine_rds.getvalue(),
-                              'database':self.hmmer_options_window.hmmer_database_rds.getvalue().lower()}
+        try:
+            if not self.hmmer_options_window.hmmer_engine_rds.getvalue():
+                title = "Error"
+                message = "Please select a search engine to perform a domain search."
+                self.pymod.show_error_message(title, message)
+                return
+            elif not self.hmmer_options_window.hmmer_database_rds.getvalue():
+                title = "Error"
+                message = "Please select a database to perform a domain search."
+                self.pymod.show_error_message(title, message)
+                return
+            else:
+                self.hmmer_options_window.search_params = {'evalue_cutoff':self.hmmer_options_window.e_value_threshold_enf.get(),
+                                  'engine_search':self.hmmer_options_window.hmmer_engine_rds.getvalue(),
+                                  'database':self.hmmer_options_window.hmmer_database_rds.getvalue().lower()}
+        except:
+            self.hmmer_options_window.search_params = {
+                'evalue_cutoff': self.hmmer_options_window.e_value_threshold_enf.get(),
+                'engine_search': self.hmmer_options_window.hmmer_engine_rds.getvalue(),}
         print self.hmmer_options_window.search_params
         self.hmmer_options_window.destroy()
 
-        my_db = self.hmmer_options_window.search_params['database']
         engine = self.hmmer_options_window.search_params['engine_search']
         cutoff = float(self.hmmer_options_window.search_params['evalue_cutoff'])
 
@@ -104,8 +109,10 @@ class Domain_search_protocol_launcher(PyMod_protocol):
         #chooses the right protocol for searching and parsing
         if self.hmmer_options_window.search_params['engine_search'] == 'Remote':
             self.search_protocol = HMMERweb_parsing_protocol(self)
+            my_db = self.hmmer_options_window.search_params['database']
         else:
             self.search_protocol = Hmmer_parsing_protocol(self)
+            my_db = ''
             #TODO implementareeeeeeeee
             # res = os.path.join(self.pymod.testset_dir, 'TESTSET', self.query_element.seq_id, 'hmmer.txt') #questo carica il file locale del testset
             # parsed_res = hp.get_parsed_output_lst(hp.parse(res), filter=True)
@@ -119,7 +126,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             res = self.search_protocol.search_domains(self.query_element, database=my_db)#, evalue_cutoff=cutoff)
 
         #res = self.search_protocol.search_domains(self.continuous_seq, database=db)#, evalue_cutoff=cutoff) #0603
-        parsed_res = self.search_protocol.get_parsed_output_lst(self.search_protocol.parse(res), filter=cutoff)#(control_path)) #0603
+        parsed_res = self.search_protocol.get_parsed_output_lst(self.search_protocol.parse(res), filter_item=cutoff)#(control_path)) #0603
         #print parsed_res
 
         if not parsed_res:
@@ -129,7 +136,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             return None
 
         #1203
-        self.results_window = pfam_gui.Hmmer_results_window(parent=self.pymod.main_window, pfam_data=parsed_res, sequence_element=self.query_element)
+        self.results_window = hmmer_gui.Hmmer_results_window(parent=self.pymod.main_window, pfam_data=parsed_res, sequence_element=self.query_element)
         #self.query_element.domains_lst = parsed_res
         #self.results_window = pfam_gui.Hmmer_results_window(parent=self.pymod.main_window, sequence_element=self.query_element)
 
@@ -171,13 +178,13 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
             return item
 
 
-    def get_parsed_output_lst(self, parser_generator, filter=False):
+    def get_parsed_output_lst(self, parser_generator, filter_item=False):
         """Converting the generator to list, useful if more than one iteration is needed"""
         array = []
         for i in parser_generator:
             #print i
-            if filter:
-                item = self.filter_single_item(i.copy(), evalue_cutoff=filter)
+            if filter_item:
+                item = self.filter_single_item(i.copy(), evalue_cutoff=filter_item)
                 if item:
                     array.append(item)
             else:
@@ -193,6 +200,10 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
         self.query_element_seq_id = query.seq_id
         self.query_element_seq    = query.my_sequence.replace('-', '')
+
+        self.query_record = SeqRecord(Seq(self.query_element_seq),
+                           id=self.query_element_seq_id,)
+#                           name='', description="toxic membrane protein, small")
 
         # install a custom handler to prevent following of redirects automatically.
         class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
@@ -224,7 +235,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
             return None
 
         # modify the range, format and presence of alignments in your results here
-        res_params = {'output':'xml'}
+        res_params = {'output':'text'}
 
         # add the parameters to your request for the results
         enc_res_params = urllib.urlencode(res_params)
@@ -312,6 +323,76 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
             yield parsed_output_item
 
+    # TODO non funziona ancora
+    def parse_to_b(self, file):
+        def _readable_attrs(node):
+            """Returns attrs of the node in classic-dictionary format"""
+            conversion_standard = [('name', u'id'),
+                               ('aliL', u'length'),
+                               ('ievalue', u'evalue'),
+                               ('ienv', u'start'),
+                               ('jenv', u'end'),
+                               ('iali', u'ali_start'),
+                               ('jali', u'ali_end'),
+                               ('alihmmfrom', u'hmm_start'),
+                               ('alihmmto', u'hmm_end'),
+                               ('alimodel', u'hmm_hit'),
+                               ('aliaseq', u'query_hit')
+                               ]
+            attrs = {}
+            if node.attributes:
+                for k in node.attributes.keys():
+                    attrs.update({k: node.attributes[k].value})
+                for t in conversion_standard:
+                    if t[0] in attrs:
+                        attrs[t[1]] = attrs.pop(t[0])
+                return attrs
+
+        xmldoc = xml.dom.minidom.parse(file)
+        parsed_output_item = {}
+
+        # TODO la lunghezza per ora e' nel dizionario pero' non si sa mai
+        # parsed_output_item.update({'length':self.query_len})
+
+        matchlist = xmldoc.getElementsByTagName('hits')
+        for match in matchlist:
+            # print '__________________'
+            parsed_output_item.update(_readable_attrs(match))
+            unique_id = parsed_output_item[u'id'] + '*' + str(matchlist.index(match)).zfill(4)
+            parsed_output_item.update({'unique_id': unique_id})
+            loclist = match.getElementsByTagName('domains')
+            # locationattrs = {}
+            # for loc in loclist:
+            #     locationattrs.update(_readable_attrs(loc))
+            # parsed_output_item.update(locationattrs)
+            locationattrs = []  #
+            locitem = {}  #
+            for loc in loclist:
+                locitem.update(_readable_attrs(loc))  #
+
+                loc_id = parsed_output_item[u'id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
+                locitem.update({'hsp_number_id': loc_id})
+
+                locationattrs.append(locitem.copy())  #
+            parsed_output_item.update({'location': locationattrs})  #
+
+            print parsed_output_item
+
+            # yield parsed_output_item
+
+            # record = SeqRecord(Seq("MKQHKAMIVALIVICITAVVAALVTRKDLCEVHIRTGQTEVAVF",
+            #                        IUPAC.protein),
+            #                    id="YP_025292.1", name="HokC",
+            #                    description="toxic membrane protein, small")
+
+            new_hit = SeqRecord(Seq(parsed_output_item['location'][0][u'hmm_hit']))
+            query_frag = SeqRecord(Seq(parsed_output_item['location'][0][u'query_hit']))
+            new_frag_hit = SearchIO.HSPFragment(self, hit=new_hit, query=query_frag)
+            print new_frag_hit
+
+
+
+
 ###############################################################################
 
 ################################################################################
@@ -322,6 +403,11 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
 
         self.query_element_seq_id = query.seq_id
         self.query_element_seq    = query.my_sequence.replace('-', '')
+
+        print self.output_directory
+
+        cline = [r'D:\Maria Giulia\Download\hmmer3.0_windows\phmmer.exe', r'D:\Maria Giulia\Download\hmmer3.0_windows\\'+self.query_element_seq_id+'.fasta', r'D:\Maria Giulia\Download\hmmer3.0_windows\uniprot.fasta']
+        self.pymod.pymod.execute_subprocess(cline)
 
         print 'Cannot perform a search of', self.query_element_seq_id
         print '# to implement local HMMER and local database'

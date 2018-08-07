@@ -22,6 +22,24 @@ class PyMod_development(object):
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
 
+        ################ MG code ##################
+
+        def get_mg_testfolder():
+            relative_testset_pathlist = ['Pymodproject', 'tesipymod']
+            if sys.platform == 'win32':
+                root = 'C:\\Users\\Maria Giulia\\Dropbox'
+            elif sys.platform == 'darwin':
+                root = '/Users/MariaGiulia/Desktop/'
+            else:
+                root = '/home/mariagiulia/Dropbox/'
+            TESTSET = os.path.join(root, *relative_testset_pathlist)
+            return TESTSET
+
+        #################### end of MG code #######################
+
+
+        # self.seqs_dir = r"C:\Users\Maria Giulia\Desktop"
+
         # if os.path.isdir(self.seqs_dir):
             # self.open_sequence_file(os.path.join(self.seqs_dir, "P0DPA7.fasta"))
             # print "# Loading default."
@@ -91,6 +109,38 @@ class PyMod_development(object):
             # PAX domains.
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
+
+        try:
+            self.testset_dir = get_mg_testfolder() #MG CODE # cambiato il path del testset
+
+            if os.path.isdir(self.testset_dir):
+                print ""
+                print "# Loading testset", self.testset_dir
+                sys.path.append(self.testset_dir)
+                import mg_test #MG CODE
+
+            def get_multiple_random_seqfasta():
+                seqlist = []
+                while (len(seqlist) < 4):
+                    s = mg_test.test_fasta()
+                    if s not in seqlist:
+                        seqlist.append(s)
+                return seqlist
+
+            self.seq_fasta = mg_test.test_fasta() # una sequenza
+            #self.seq_fasta_lst = get_multiple_random_seqfasta() # una lista di 4 seq fasta
+            self.seq_fasta_lst = mg_test.get_all_test_fasta() # tutto il testset
+
+            if os.path.exists(self.seq_fasta_lst[0]):
+                #self.open_sequence_file(self.seq_fasta) # apre una sequenza
+                for i in self.seq_fasta_lst:        # ciclo che apre 4 sequenze
+                    self.open_sequence_file(i)
+        except:
+            pass
+
+        #################### end of MG code #######################
+
+
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
 

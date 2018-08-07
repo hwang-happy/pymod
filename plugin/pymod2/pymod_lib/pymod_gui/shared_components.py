@@ -105,7 +105,7 @@ target_box_style = {"background":'black', "bd":1, "relief":GROOVE, "padx":10, "p
 # CLASSES FOR WIDGETS USED THROUGHOUT THE PLUGIN MULTIPLE TIMES.                                  #
 ###################################################################################################
 
-class PyMod_gui_mixin:
+class PyMod_gui_mixin(Widget):
 
     ###############################################################################################
     # FUNCTIONS USED THROUGHOUT THE MODULE.                                                       #
@@ -124,19 +124,9 @@ class PyMod_gui_mixin:
         """
         map(lambda w: w.set_input_widget_width(input_widgets_width), widgets_to_align)
 
-
-    def get_parent_window(self, target_widget):
-        """
-        Returns the parent window Tkinter object of a target widget. Useful when specifiying the parents
-        windows in Tkinter dialogs.
-        """
-        parent_window_name = target_widget.winfo_parent()
-        parent_window = target_widget.nametowidget(parent_window_name) # also: _nametowidget
-        return parent_window
-
-
-    def check_non_empty_input(gui_input):
-        return gui_input != ""
+    #unused
+    # def check_non_empty_input(gui_input):
+    #     return gui_input != ""
 
 
 class PyMod_window_mixin(PyMod_gui_mixin):
@@ -314,7 +304,7 @@ class PyMod_tool_window(PyMod_base_window):
                 return False
         return True
 
-
+# TODO unused
 class PyMod_protocol_window_mixin:
 
     def __init__(self, protocol):
@@ -408,10 +398,10 @@ class PyMod_path_entryfield(PyMod_entryfield):
         if self.path_type == "file":
             new_path = askopenfilename(title = self.askpath_title,
                 initialdir=os.path.dirname(current_path),
-                initialfile=os.path.basename(current_path), parent = self.get_parent_window(self), filetypes = self.file_types)
+                initialfile=os.path.basename(current_path), parent=self.winfo_toplevel(), filetypes=self.file_types)
 
         elif self.path_type == "directory":
-            new_path = askdirectory(title = self.askpath_title, initialdir=os.path.dirname(current_path), mustexist = True, parent = self.get_parent_window(self))
+            new_path = askdirectory(title = self.askpath_title, initialdir=os.path.dirname(current_path), mustexist=True, parent=self.winfo_toplevel())
 
         # Updates the text in the Entry with the new path name.
         if new_path:

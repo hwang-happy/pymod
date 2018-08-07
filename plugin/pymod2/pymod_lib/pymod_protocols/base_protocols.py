@@ -1,11 +1,9 @@
 import os
 import sys
-import shutil
 from cStringIO import StringIO
 
 from pymol import cmd, stored
 
-import pymod_lib.pymod_os_specific as pmos
 
 
 class PyMod_protocol(object):

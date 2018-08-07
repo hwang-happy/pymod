@@ -43,7 +43,10 @@ class PyMod_elements_interactions(object):
         # Gives them the query mother_index, to make them its children.
         # TODO: use only Biopython objects.
         hsp_header = hsp["title"] # record_header = self.correct_name(hsp["title"])
-        cs = self.build_pymod_element(PyMod_sequence_element, str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
+        try:
+            cs = self.build_pymod_element(PyMod_sequence_element, str(hsp["hsp"].sbjct), hsp_header, description=hsp["title"])
+        except AttributeError:
+            cs = self.build_pymod_element(PyMod_sequence_element, str(hsp['hsp'].hit.seq), hsp_header)
         return cs
 
 
@@ -123,6 +126,7 @@ class PyMod_elements_interactions(object):
             self.blast_cluster_counter += 1
         elif cluster_type == "generic":
             self.new_clusters_counter += 1
+
 
         #--------------------------------
         # Sets the name of the cluster. -

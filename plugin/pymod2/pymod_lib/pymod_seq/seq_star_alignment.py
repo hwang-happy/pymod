@@ -1,6 +1,9 @@
-###################################################################################################
-# Classes needed to join alignments and to perform a center star alignment.                       #
-###################################################################################################
+"""
+Classes needed to join alignments and to perform a center star alignment.
+"""
+
+from seq_manipulation import get_starting_gaps, count_indels_to_next_residue, get_residue_id_in_aligned_sequence
+
 
 class Star_alignment:
     """
@@ -44,10 +47,19 @@ class Star_alignment:
         self.hsp_list = hsp_list
         # This will contain a list of 'Pairwise_alignment' objects.
         self.blast_local_alignments_list = []
+
         for hsp in self.hsp_list:
-            local_alignment = Pairwise_alignment(str(hsp.query),str(hsp.sbjct),query_start= hsp.query_start, full_query=self.query_str)
+            try:
+                local_alignment = Pairwise_alignment(str(hsp.query),str(hsp.sbjct),query_start= hsp.query_start, full_query=self.query_str)
+            except AttributeError:
+                #TODO debug
+                #print str(hsp.query)
+                #print str(hsp.query.seq)
+                local_alignment = Pairwise_alignment(str(hsp.query.seq),str(hsp.hit.seq),query_start= hsp.query_start, full_query=self.query_str)
             self.blast_local_alignments_list.append(local_alignment)
 
+        #TODO DEBUG
+        #print " "*6, "MET BUILD LOCAL ALI LIST:", self.blast_local_alignments_list
 
     def generate_blast_pseudo_alignment(self):
         """
@@ -152,6 +164,9 @@ class Pairwise_alignment:
         else:
             self.full_query = self.aligned_query
 
+        #TODO DEBUG
+        #print self.__dict__
+
     def complete_sequences(self):
         """
         Pad with indels the two aligned sequences to adjust their lenght to the lenght of the
@@ -159,6 +174,8 @@ class Pairwise_alignment:
         """
         # Pad on the left.
         aligned_start_id = get_residue_id_in_aligned_sequence(self.full_query, self.query_start-1)
+        if not aligned_start_id:
+             aligned_start_id = 1
         # Pads with residues from the full query.
         self.aligned_query[0:0] = self.full_query[0:aligned_start_id]
         # Pads with indels.
@@ -172,3 +189,4 @@ class Pairwise_alignment:
             extended_sequence = gapless_full_query[len(gapless_aligned_query):]
             self.aligned_query.extend(extended_sequence)
             self.aligned_sequence.extend(["-"]*len(extended_sequence))
+        print 'Completed sequences'

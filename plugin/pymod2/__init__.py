@@ -137,7 +137,11 @@ def __init__(self):
     """
     self.menuBar.addmenuitem('Plugin', 'command', pymod_plugin_name, label = pymod_plugin_name,
                              command = lambda s=self : startup_pymod(s))
-    startup_pymod(self)
+    #MG per avviare subito
+    try:
+        startup_pymod(self)
+    except:
+        print sys.exc_info()
 
 def startup_pymod(app):
     """

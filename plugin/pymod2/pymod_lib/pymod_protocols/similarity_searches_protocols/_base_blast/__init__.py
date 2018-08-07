@@ -12,6 +12,7 @@ from pymod_lib import pymod_seq
 import pymod_lib.pymod_gui as pmgi
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
 
+from pymod_lib.pymod_seq.seq_star_alignment import Star_alignment
 
 ###############################################################################################
 # BLAST ALGORITHMS.                                                                           #
@@ -104,8 +105,10 @@ class Generic_BLAST_search(PyMod_protocol):
         """
         # Do not proceed if users have not provided a correct set of input parameters through
         # the GUI.
-        if not self.check_blast_input_parameters():
-            return False
+
+        #TODO solo per provare phmmer
+        # if not self.check_blast_input_parameters():
+        #     return False
 
         # Performs a similarity search with the appropriate program.
         self.xml_blast_output_file_name = "blast_out.xml"
@@ -128,7 +131,7 @@ class Generic_BLAST_search(PyMod_protocol):
         """
         # An attribute where is going to be stored a Biopython "Blast" class object.
         result_handle = open(os.path.join(self.output_directory,self.xml_blast_output_file_name),"r")
-        self.blast_record = self.get_blast_record(result_handle)
+        self. blast_record = self.get_blast_record(result_handle)
         result_handle.close()
 
         # Filters the BLAST record according to the advanced options.
@@ -181,10 +184,7 @@ class Generic_BLAST_search(PyMod_protocol):
 
 
     def finish_blast_search(self):
-        self.remove_blast_temp_files()
-
-
-    def remove_blast_temp_files(self):
+#        self.remove_blast_temp_files()
         output_filename = self.get_blast_output_basename() + ".xml"
         try:
             os.rename(os.path.join(self.output_directory, self.xml_blast_output_file_name),
@@ -193,6 +193,18 @@ class Generic_BLAST_search(PyMod_protocol):
             map(lambda f: os.remove(os.path.join(self.output_directory,f)), files_to_remove)
         except:
             pass
+
+
+    #TODO ridondante
+    # def remove_blast_temp_files(self):
+    #     output_filename = self.get_blast_output_basename() + ".xml"
+    #     try:
+    #         os.rename(os.path.join(self.output_directory, self.xml_blast_output_file_name),
+    #                   os.path.join(self.output_directory, output_filename))
+    #         files_to_remove = filter(lambda f: not os.path.splitext(f)[-1] == ".xml", os.listdir(self.output_directory))
+    #         map(lambda f: os.remove(os.path.join(self.output_directory,f)), files_to_remove)
+    #     except:
+    #         pass
 
 
     #################################################################
@@ -417,6 +429,7 @@ class Generic_BLAST_search(PyMod_protocol):
         """
         # The list of elements whose sequences will be updated according to the star alignment.
         elements_to_update = [self.blast_query_element]
+        ba = Star_alignment(self.blast_query_element.my_sequence)
 
         #------------------------------------------------------------
         # Builds a new cluster with the query and all the new hits. -
@@ -455,7 +468,7 @@ class Generic_BLAST_search(PyMod_protocol):
                     self.pymod.change_pymod_element_list_index(new_blast_cluster, self.pymod.get_pymod_element_index_in_container(query_container)+1)
 
             # Builds a star alignment.
-            ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
+#            ba = Star_alignment(self.blast_query_element.my_sequence)
             ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
             ba.generate_blast_pseudo_alignment()
 
@@ -464,11 +477,12 @@ class Generic_BLAST_search(PyMod_protocol):
         #----------------------------------------------------------------------------
         elif self.new_sequences_import_mode == "expand":
             # Builds a star alignment.
-            ba = pmsm.Star_alignment(self.blast_query_element.my_sequence)
+#            ba = Star_alignment(self.blast_query_element.my_sequence)
             # Preapare the 'Star_alignment' object with sequence already present in the cluster.
             siblings = self.blast_query_element.get_siblings()
             list_of_aligned_sequences = self.get_list_of_aligned_sequences(siblings)
             ba.extend_with_aligned_sequences(list_of_aligned_sequences)
+
             # Adds new hit sequences to the cluster and generate the alignment.
             ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_blast])
             ba.generate_blast_pseudo_alignment()
@@ -496,3 +510,101 @@ class Generic_BLAST_search(PyMod_protocol):
         ba.update_pymod_elements(elements_to_update)
 
         self.pymod.main_window.gridder(clear_selection=True, update_clusters=True, update_menus=True, update_elements=True)
+
+
+
+###############################################################################################
+# BLAST ALGORITHMS.                                                                           #
+###############################################################################################
+
+from Tkinter import *
+from tkFileDialog import *
+
+import os
+import sys
+
+import pymod_lib.pymod_os_specific as pmos
+
+from pymod_lib.pymod_gui import shared_components
+
+
+class BLAST_base_options_window(shared_components.PyMod_tool_window):
+    """
+    Base class for windows used in the various alignment protocols.
+    """
+
+    def __init__(self, parent = None, protocol = None, **configs):
+
+        shared_components.PyMod_tool_window.__init__(self, parent=parent, **configs)
+        self.current_protocol = protocol
+
+        self.current_pack_options = shared_components.pack_options_1
+        self.current_label_options = shared_components.label_style_1
+
+        self.geometry("550x600")
+
+        # -----------------
+        # Simple options. -
+        # -----------------
+        self.build_algorithm_standard_options_widgets()
+
+        # E-value selection.
+        self.e_value_threshold_enf = shared_components.PyMod_entryfield(self.midframe,
+            label_text = "E-value Threshold",
+            label_style = self.current_label_options,
+            value = 10.0,
+            validate = {'validator' : 'real', 'min' : 0.0, 'max' : 1000.0} )
+        self.e_value_threshold_enf.pack(**self.current_pack_options)
+        self.add_widget_to_align(self.e_value_threshold_enf)
+        self.add_widget_to_validate(self.e_value_threshold_enf)
+
+        # Max hit number selection.
+        self.max_hits_enf = shared_components.PyMod_entryfield(self.midframe,
+            label_text = "Max Number of Hits",
+            label_style = self.current_label_options,
+            value = 100,
+            validate = {'validator' : 'integer', 'min' : 1, 'max' : 5000} )
+        self.max_hits_enf.pack(**self.current_pack_options)
+        self.add_widget_to_align(self.max_hits_enf)
+        self.add_widget_to_validate(self.max_hits_enf)
+
+        # -------------------
+        # Advanced options. -
+        # -------------------
+        self.show_advanced_button()
+
+        # Minimum id% on with query.
+        self.min_id_enf = shared_components.PyMod_entryfield(self.midframe,
+            label_text = "Min ID% Threshold",
+            label_style = self.current_label_options,
+            value = 0,
+            validate = {'validator' : 'integer', 'min' : 0, 'max' : 100} )
+        self.add_widget_to_align(self.min_id_enf)
+        self.add_advanced_widget(self.min_id_enf)
+        self.add_widget_to_validate(self.min_id_enf)
+
+        # Minimum coverage on the query.
+        self.min_coverage_enf = shared_components.PyMod_entryfield(self.midframe,
+            label_text = "Min Coverage% Threshold",
+            label_style = self.current_label_options,
+            value = 0,
+            validate = {'validator' : 'integer', 'min' : 0, 'max' : 100} )
+        self.add_widget_to_align(self.min_coverage_enf)
+        self.add_advanced_widget(self.min_coverage_enf)
+        self.add_widget_to_validate(self.min_coverage_enf)
+
+        # Organisms.
+        # To be done.
+
+        try:
+            self.build_algorithm_advanced_options_widgets()
+        except:
+            pass
+
+        self.align_widgets(input_widget_width=10)
+
+    def build_algorithm_standard_options_widgets(self):
+        raise Exception("build_algorithm_standard_options_widgets method not implemented. Please override.")
+
+    def build_algorithm_advanced_options_widgets(self):
+        raise Exception("build_algorithm_advanced_options_widgets method not implemented. Please override.")
