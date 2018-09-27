@@ -338,6 +338,7 @@ class Generic_BLAST_search(PyMod_protocol):
 
                 # E-value info.
                 evalue=Label(self.blast_ouput_frame, text= "%.2e" % (hsp.expect), **row_options)
+                #evalue=Label(self.blast_ouput_frame, text= "FUCK", **row_options)
                 evalue.grid(row=self.blast_output_row, column=1, sticky = "nw", padx=10)
 
                 # HSP identity info.

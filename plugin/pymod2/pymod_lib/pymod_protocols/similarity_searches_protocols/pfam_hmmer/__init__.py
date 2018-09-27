@@ -1,6 +1,8 @@
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
 from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import hmmer_gui
+from pymod_lib.pymod_os_specific import get_exe_file_name
 from sys import platform as sysplatform
+from subprocess import CalledProcessError
 from Bio import SearchIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -19,35 +21,35 @@ IV STESURA MAGGIO 2018 - NUOVO METODO DI PARSING
 
 class Domain_search_protocol_launcher(PyMod_protocol):
 
-    def additional_initialization(self):
-        #TODO path provvisorio
-        relative_testset_pathlist = ['Pymodproject', 'tesipymod', 'TESTSET', '_Domini']
-        if sysplatform == 'win32':
-            root = 'C:\\Users\\Maria Giulia\\Dropbox'
-        elif sysplatform == 'darwin':
-            root = '/Users/MariaGiulia/Desktop/'
-        else:
-            root = '/home/mariagiulia/Dropbox/'
-        TESTSET = os.path.join(root, *relative_testset_pathlist)
-        self.output_directory = TESTSET
+    # def additional_initialization(self):
+    #     #TODO path provvisorio
+    #     relative_testset_pathlist = ['Pymodproject', 'tesipymod', 'TESTSET', '_Domini']
+    #     if sysplatform == 'win32':
+    #         root = 'C:\\Users\\Maria Giulia\\Dropbox'
+    #     elif sysplatform == 'darwin':
+    #         root = '/Users/MariaGiulia/Desktop/'
+    #     else:
+    #         root = '/home/mariagiulia/Dropbox/'
+    #     TESTSET = os.path.join(root, *relative_testset_pathlist)
+    #     self.output_directory = TESTSET
 
 
-    # Verify if there is an output file for a particular sequence,
-    # downloaded from the website or made by a local software
-    def output_file_exists(self, sequence_id, local=False, db='pfam', extension='xml'):
-        """ 'sequence_id' is the element.id attribute.
-            Flag 'local' set to True checks for the output file of HMMER local command-line program.
-            If False (default) it will check for the output file of HMMER online engine.
-            'db' can be set as 'pfam' or 'gene3d' and indicates the database.
-            'extension' is the extension of the file.
-        """
-        if local:
-            output_file_name = sequence_id + '_loc_' + db + '_hmmeroutput.' + extension
-        else:
-            output_file_name = sequence_id + '_web_' + db + '_hmmeroutput.' + extension
-        control_path = os.path.join(self.output_directory, output_file_name)
-        print control_path, os.path.exists(control_path)
-        return os.path.exists(control_path), control_path
+      # # Verify if there is an output file for a particular sequence,
+    # # downloaded from the website or made by a local software
+    # def output_file_exists(self, sequence_id, local=False, db='pfam', extension='xml'):
+    #     """ 'sequence_id' is the element.id attribute.
+    #         Flag 'local' set to True checks for the output file of HMMER local command-line program.
+    #         If False (default) it will check for the output file of HMMER online engine.
+    #         'db' can be set as 'pfam' or 'gene3d' and indicates the database.
+    #         'extension' is the extension of the file.
+    #     """
+    #     if local:
+    #         output_file_name = sequence_id + '_loc_' + db + '_hmmeroutput.' + extension
+    #     else:
+    #         output_file_name = sequence_id + '_web_' + db + '_hmmeroutput.' + extension
+    #     control_path = os.path.join(self.output_directory, output_file_name)
+    #     print control_path, os.path.exists(control_path)
+    #     return os.path.exists(control_path), control_path
 
 
     ################### launch from GUI ####################
@@ -73,7 +75,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
 
         print self.query_element.seq_id#, self.continuous_seq
 
-        self.hmmer_options_window = hmmer_gui.Hmmer_options_window(parent=self.pymod.main_window, submit_command=self.domain_search_state)
+        self.hmmer_options_window = hmmer_gui.Hmmer_options_window(parent=self.pymod.main_window, submit_command=self.domain_search_state, pymod=self.pymod)
 
 
     #def run_domain_search(self):
@@ -93,7 +95,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             else:
                 self.hmmer_options_window.search_params = {'evalue_cutoff':self.hmmer_options_window.e_value_threshold_enf.get(),
                                   'engine_search':self.hmmer_options_window.hmmer_engine_rds.getvalue(),
-                                  'database':self.hmmer_options_window.hmmer_database_rds.getvalue().lower()}
+                                  'database': os.path.join(self.pymod.hmmer_tool["database_dir_path"].get_value(), self.hmmer_options_window.hmmer_database_rds.getvalue())}
         except:
             self.hmmer_options_window.search_params = {
                 'evalue_cutoff': self.hmmer_options_window.e_value_threshold_enf.get(),
@@ -104,30 +106,42 @@ class Domain_search_protocol_launcher(PyMod_protocol):
         engine = self.hmmer_options_window.search_params['engine_search']
         cutoff = float(self.hmmer_options_window.search_params['evalue_cutoff'])
 
-        local_choice = 1 if engine=='Local' else 0
-
-        #chooses the right protocol for searching and parsing
+            #chooses the right protocol for searching and parsing
         if self.hmmer_options_window.search_params['engine_search'] == 'Remote':
             self.search_protocol = HMMERweb_parsing_protocol(self)
-            my_db = self.hmmer_options_window.search_params['database']
+            my_db = self.hmmer_options_window.search_params['database'].lower()
+            res = self.search_protocol.search_domains(self.query_element, database=my_db)  # , evalue_cutoff=cutoff)
         else:
             self.search_protocol = Hmmer_parsing_protocol(self)
-            my_db = ''
+            if self.hmmer_options_window.custom_db_filepath:
+                my_db = str(self.hmmer_options_window.custom_db_filepath)
+            else:
+                my_db = str(self.hmmer_options_window.search_params['database'])
+
+            print my_db
+
+
+            if my_db.endswith("hmm.h3m") and os.path.exists(my_db):
+                res = self.search_protocol.search_domains(self.query_element, database=my_db, evaluecutoff=cutoff)
+            else:
+                title = "Error"
+                message = "Please select a correct database to perform a domain search."
+                self.pymod.show_error_message(title, message)
+                return
+
+
             #TODO implementareeeeeeeee
             # res = os.path.join(self.pymod.testset_dir, 'TESTSET', self.query_element.seq_id, 'hmmer.txt') #questo carica il file locale del testset
             # parsed_res = hp.get_parsed_output_lst(hp.parse(res), filter=True)
 
 
-        #check if an output file with these choices already exists
-        if self.output_file_exists(self.query_element.seq_id, local=local_choice, db=my_db)[0]:
-            print 'Found'
-            res = self.output_file_exists(self.query_element.seq_id, local=local_choice, db=my_db)[1]
-        else:
-            res = self.search_protocol.search_domains(self.query_element, database=my_db)#, evalue_cutoff=cutoff)
 
         #res = self.search_protocol.search_domains(self.continuous_seq, database=db)#, evalue_cutoff=cutoff) #0603
-        parsed_res = self.search_protocol.get_parsed_output_lst(self.search_protocol.parse(res), filter_item=cutoff)#(control_path)) #0603
-        #print parsed_res
+        try:
+            parsed_res = self.search_protocol.get_parsed_output_lst(self.search_protocol.parse(res))#(control_path)) #0603
+        except AttributeError, TypeError:
+            return None
+        # print parsed_res
 
         if not parsed_res:
             title = "Search completed"
@@ -143,7 +157,6 @@ class Domain_search_protocol_launcher(PyMod_protocol):
 
 ################################################################################
 class Search_parsing_protocol(Domain_search_protocol_launcher):
-
 
     ################## performing-search methods, save search output as a file ##################
     def search_domains(self, query_element):
@@ -183,12 +196,13 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
         array = []
         for i in parser_generator:
             #print i
-            if filter_item:
-                item = self.filter_single_item(i.copy(), evalue_cutoff=filter_item)
-                if item:
-                    array.append(item)
-            else:
-                array.append(i.copy())
+            # if filter_item:
+            #     item = self.filter_single_item(i.copy(), evalue_cutoff=filter_item)
+            #     if item:
+            #         array.append(item)
+            # else:
+            #     array.append(i.copy())
+            array.append(i.copy())
         return array
 
 
@@ -196,7 +210,7 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
 
 class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
-    def search_domains(self, query, database='pfam'):  #evalue_cutoff=1.0): #0303
+    def search_domains(self, query, database='pfam', evalue_cutoff=1.0): #0303
 
         self.query_element_seq_id = query.seq_id
         self.query_element_seq    = query.my_sequence.replace('-', '')
@@ -235,7 +249,8 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
             return None
 
         # modify the range, format and presence of alignments in your results here
-        res_params = {'output':'text'}
+        #res_params = {'output':'text'} #non attivare, non funziona il parser poi
+        res_params = {'output':'xml'}
 
         # add the parameters to your request for the results
         enc_res_params = urllib.urlencode(res_params)
@@ -272,15 +287,15 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
         def _readable_attrs(node):
             """Returns attrs of the node in classic-dictionary format"""
-            conversion_standard = [('name', u'id'),
-                                   ('aliL', u'length'),
-                                   ('ievalue', u'evalue'),
-                                   ('ienv', u'start'),
-                                   ('jenv', u'end'),
-                                   ('iali', u'ali_start'),
-                                   ('jali', u'ali_end'),
-                                   ('alihmmfrom', u'hmm_start'),
-                                   ('alihmmto', u'hmm_end'),
+            conversion_standard = [('name', 'id'),
+                                   ('aliL', 'length'),
+                                   ('ievalue', 'evalue'),
+                                   ('ienv', 'start'),
+                                   ('jenv', 'end'),
+                                   ('iali', 'ali_start'),
+                                   ('jali', 'ali_end'),
+                                   ('alihmmfrom', 'hmm_start'),
+                                   ('alihmmto', 'hmm_end'),
                                    ]
             attrs = {}
             if node.attributes:
@@ -298,97 +313,98 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         #parsed_output_item.update({'length':self.query_len})
 
         matchlist = xmldoc.getElementsByTagName('hits')
-        for match in matchlist:
+        for match in matchlist: #HITS
             #print '__________________'
             parsed_output_item.update(_readable_attrs(match))
-            unique_id = parsed_output_item[u'id'] + '*' + str(matchlist.index(match)).zfill(4)
+            unique_id = parsed_output_item['id'] + '*' + str(matchlist.index(match)).zfill(4)
             parsed_output_item.update({'unique_id':unique_id})
-            loclist = match.getElementsByTagName('domains')
+            loclist = match.getElementsByTagName('domains') #HSPS
             # locationattrs = {}
             # for loc in loclist:
             #     locationattrs.update(_readable_attrs(loc))
             # parsed_output_item.update(locationattrs)
-            locationattrs = [] #
-            locitem = {} #
+            locationattrs = []
+            locitem = {}
             for loc in loclist:
                 locitem.update(_readable_attrs(loc)) #
 
-                loc_id = parsed_output_item[u'id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
+                loc_id = parsed_output_item['id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
                 locitem.update({'hsp_number_id':loc_id})
 
                 locationattrs.append(locitem.copy()) #
             parsed_output_item.update({'location':locationattrs}) #
 
-            #print parsed_output_item
+            #print '*****************\n', parsed_output_item
 
             yield parsed_output_item
 
-    # TODO non funziona ancora
-    def parse_to_b(self, file):
-        def _readable_attrs(node):
-            """Returns attrs of the node in classic-dictionary format"""
-            conversion_standard = [('name', u'id'),
-                               ('aliL', u'length'),
-                               ('ievalue', u'evalue'),
-                               ('ienv', u'start'),
-                               ('jenv', u'end'),
-                               ('iali', u'ali_start'),
-                               ('jali', u'ali_end'),
-                               ('alihmmfrom', u'hmm_start'),
-                               ('alihmmto', u'hmm_end'),
-                               ('alimodel', u'hmm_hit'),
-                               ('aliaseq', u'query_hit')
-                               ]
-            attrs = {}
-            if node.attributes:
-                for k in node.attributes.keys():
-                    attrs.update({k: node.attributes[k].value})
-                for t in conversion_standard:
-                    if t[0] in attrs:
-                        attrs[t[1]] = attrs.pop(t[0])
-                return attrs
-
-        xmldoc = xml.dom.minidom.parse(file)
-        parsed_output_item = {}
-
-        # TODO la lunghezza per ora e' nel dizionario pero' non si sa mai
-        # parsed_output_item.update({'length':self.query_len})
-
-        matchlist = xmldoc.getElementsByTagName('hits')
-        for match in matchlist:
-            # print '__________________'
-            parsed_output_item.update(_readable_attrs(match))
-            unique_id = parsed_output_item[u'id'] + '*' + str(matchlist.index(match)).zfill(4)
-            parsed_output_item.update({'unique_id': unique_id})
-            loclist = match.getElementsByTagName('domains')
-            # locationattrs = {}
-            # for loc in loclist:
-            #     locationattrs.update(_readable_attrs(loc))
-            # parsed_output_item.update(locationattrs)
-            locationattrs = []  #
-            locitem = {}  #
-            for loc in loclist:
-                locitem.update(_readable_attrs(loc))  #
-
-                loc_id = parsed_output_item[u'id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
-                locitem.update({'hsp_number_id': loc_id})
-
-                locationattrs.append(locitem.copy())  #
-            parsed_output_item.update({'location': locationattrs})  #
-
-            print parsed_output_item
-
-            # yield parsed_output_item
-
-            # record = SeqRecord(Seq("MKQHKAMIVALIVICITAVVAALVTRKDLCEVHIRTGQTEVAVF",
-            #                        IUPAC.protein),
-            #                    id="YP_025292.1", name="HokC",
-            #                    description="toxic membrane protein, small")
-
-            new_hit = SeqRecord(Seq(parsed_output_item['location'][0][u'hmm_hit']))
-            query_frag = SeqRecord(Seq(parsed_output_item['location'][0][u'query_hit']))
-            new_frag_hit = SearchIO.HSPFragment(self, hit=new_hit, query=query_frag)
-            print new_frag_hit
+    # # non funziona ancora
+    #
+    # def parse_to_b(self, file):
+    #     def _readable_attrs(node):
+    #         """Returns attrs of the node in classic-dictionary format"""
+    #         conversion_standard = [('name', 'id'),
+    #                            ('aliL', 'length'),
+    #                            ('ievalue', 'evalue'),
+    #                            ('ienv', 'start'),
+    #                            ('jenv', 'end'),
+    #                            ('iali', 'ali_start'),
+    #                            ('jali', 'ali_end'),
+    #                            ('alihmmfrom', 'hmm_start'),
+    #                            ('alihmmto', 'hmm_end'),
+    #                            ('alimodel', 'hmm_hit'),
+    #                            ('aliaseq', 'query_hit')
+    #                            ]
+    #         attrs = {}
+    #         if node.attributes:
+    #             for k in node.attributes.keys():
+    #                 attrs.update({k: node.attributes[k].value})
+    #             for t in conversion_standard:
+    #                 if t[0] in attrs:
+    #                     attrs[t[1]] = attrs.pop(t[0])
+    #             return attrs
+    #
+    #     xmldoc = xml.dom.minidom.parse(file)
+    #     parsed_output_item = {}
+    #
+    #     # TODO la lunghezza per ora e' nel dizionario pero' non si sa mai
+    #     # parsed_output_item.update({'length':self.query_len})
+    #
+    #     matchlist = xmldoc.getElementsByTagName('hits')
+    #     for match in matchlist:
+    #         # print '__________________'
+    #         parsed_output_item.update(_readable_attrs(match))
+    #         unique_id = parsed_output_item['id'] + '*' + str(matchlist.index(match)).zfill(4)
+    #         parsed_output_item.update({'unique_id': unique_id})
+    #         loclist = match.getElementsByTagName('domains')
+    #         # locationattrs = {}
+    #         # for loc in loclist:
+    #         #     locationattrs.update(_readable_attrs(loc))
+    #         # parsed_output_item.update(locationattrs)
+    #         locationattrs = []  #
+    #         locitem = {}  #
+    #         for loc in loclist:
+    #             locitem.update(_readable_attrs(loc))  #
+    #
+    #             loc_id = parsed_output_item['id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
+    #             locitem.update({'hsp_number_id': loc_id})
+    #
+    #             locationattrs.append(locitem.copy())  #
+    #         parsed_output_item.update({'location': locationattrs})  #
+    #
+    #         print parsed_output_item
+    #
+    #         # yield parsed_output_item
+    #
+    #         # record = SeqRecord(Seq("MKQHKAMIVALIVICITAVVAALVTRKDLCEVHIRTGQTEVAVF",
+    #         #                        IUPAC.protein),
+    #         #                    id="YP_025292.1", name="HokC",
+    #         #                    description="toxic membrane protein, small")
+    #
+    #         new_hit = SeqRecord(Seq(parsed_output_item['location'][0]['hmm_hit']))
+    #         query_frag = SeqRecord(Seq(parsed_output_item['location'][0]['query_hit']))
+    #         new_frag_hit = SearchIO.HSPFragment(self, hit=new_hit, query=query_frag)
+    #         print new_frag_hit
 
 
 
@@ -399,26 +415,44 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
 class Hmmer_parsing_protocol(Search_parsing_protocol):
 
-    def search_domains(self, query, database=None):
+    def search_domains(self, query, database, evaluecutoff=1.0):
 
         self.query_element_seq_id = query.seq_id
         self.query_element_seq    = query.my_sequence.replace('-', '')
 
-        print self.output_directory
+        # Builds a temporary file with the sequence of the query needed.
+        query_file_name = "query_hmmscan"
+        self.pymod.pymod.build_sequence_file([query], query_file_name, file_format="fasta", remove_indels=True, new_directory=self.output_directory)
 
-        cline = [r'D:\Maria Giulia\Download\hmmer3.0_windows\phmmer.exe', r'D:\Maria Giulia\Download\hmmer3.0_windows\\'+self.query_element_seq_id+'.fasta', r'D:\Maria Giulia\Download\hmmer3.0_windows\uniprot.fasta']
-        self.pymod.pymod.execute_subprocess(cline)
+        exe_filepath = os.path.join(self.pymod.pymod.hmmer_tool["exe_dir_path"].get_value(), get_exe_file_name("hmmscan"))
+        out_filepath = os.path.join(self.output_directory, "hmmscan_out.txt").replace('//', '/').replace('\\\\', '\\')
 
-        print 'Cannot perform a search of', self.query_element_seq_id
-        print '# to implement local HMMER and local database'
+        query_filepath = os.path.join(self.output_directory, "query_hmmscan.fasta").replace('//', '/').replace('\\\\', '\\')
 
-        return
-        #TODO to implement'
+        db_dirpath = database
+
+        cline = [exe_filepath, "-o", out_filepath, "-E", str(evaluecutoff), db_dirpath.replace('.h3m',''), query_filepath]
+        print os.getcwd()
+        print cline
+        try:
+            self.pymod.pymod.new_execute_subprocess(cline)
+        except CalledProcessError:
+            self.pymod.pymod.show_error_message(
+                "HMMER Error",
+                "Something went wrong while performing the search with the command-line tool. \n(Returned non-zero exit status 1)")
+        except:
+            self.pymod.pymod.show_error_message(
+                "HMMER Error",
+                "Something went wrong while performing the search with the command-line tool.")
+
+        # Remove temp files.
+        os.remove(query_filepath)
+
+        return out_filepath
 
     def parse(self, file):
-        return
-        #TODO
 
+        #parsed_output = {}
         parsed_output_item = {}
 
         inputfile = open(file, 'r')
@@ -427,34 +461,45 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
             # QUERY = qr.__dict__
             # for k in QUERY:
             #     print k, '\n', ' '*4, QUERY[k]
-            parsed_output_item.update({'length':qr.seq_len, 'query_descr':qr.description})
 
-            hhits = qr.hsps
-            for h in hhits:
-                #print "-----------------"
-                # hspsd = h.__dict__
-                # for kk in hspsd:
-                #      print kk, '\n', ' '*4, hspsd[kk]
-                # print "-----------------"
+            for hit in qr.hits:
+                parsed_output_item.update({'id':hit.id, 'evalue':hit.evalue, 'length':qr.seq_len, 'query_descr':qr.description, 'desc':hit.description})
+                unique_id = parsed_output_item['id'] + '*' + str(qr.hits.index(hit)).zfill(4)
+                parsed_output_item.update({'unique_id': unique_id})
+                hhits = hit.hsps
 
-                corresponding_hit = qr[h.hit_id]
+                locattrs = []
+                locitem = {}
 
-                parsed_output_item.update({u'id':h.hit_id,
-                                           u'bitscore':h.bitscore,
-                                           u'evalue':h.evalue,
-                                           u'evalue_cond':h.evalue_cond,
-                                           u'start':int(h.env_start)+1,
-                                           u'end':h.env_end,
-                                           u'ali_start':int(h.query_start)+1,
-                                           u'ali_end':h.query_end,
-                                           u'hmm_start':int(h.hit_start)+1,
-                                           u'hmm_end':h.hit_end,
-                                           'desc':corresponding_hit.description,
-                                           'unique_id':h.hit_id + '*' + str(hhits.index(h)).zfill(4)
-                                           })
+                for h in hhits:
+                    #print "-----------------"
+                    # hspsd = h.__dict__
+                    # for kk in hspsd:
+                    #      print kk, '\n', ' '*4, hspsd[kk]
+                    # print "-----------------"
 
-                #parsed_output.append(parsed_output_item.copy()) #FUNZIONA ODDIO NON CI CREDO
+                    # corresponding_hit = qr[h.hit_id]
+                    locitem.update({'id':h.hit_id,
+                                               'bitscore':h.bitscore,
+                                               'evalue':h.evalue,
+                                               'evalue_cond':h.evalue_cond,
+                                               'start':int(h.env_start)+1,
+                                               'end':h.env_end,
+                                               'ali_start':int(h.query_start)+1,
+                                               'ali_end':h.query_end,
+                                               'hmm_start':int(h.hit_start)+1,
+                                               'hmm_end':h.hit_end,})
 
+                    loc_id = parsed_output_item['id'] + '_hsp_' + str(hit.hsps.index(h)).zfill(3)
+                    locitem.update({'hsp_number_id': loc_id})
+                    locattrs.append(locitem.copy())
+
+                parsed_output_item.update({'location':locattrs})
+
+                    #parsed_output.append(parsed_output_item.copy()) #FUNZIONA ODDIO NON CI CREDO
+#                print '******************\n'
+#                print parsed_output_item
                 yield parsed_output_item
         inputfile.close()
+
         #return parsed_output

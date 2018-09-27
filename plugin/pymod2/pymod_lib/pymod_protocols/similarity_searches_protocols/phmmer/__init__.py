@@ -51,68 +51,6 @@ class PHMMER_search(Generic_BLAST_search):
             upper_frame_title = "Here you can modify search options for PHMMER",
             submit_command = self.hmmer_window_state)
 
-    # TODO: levare cose che non servono.
-    '''
-    def run_blast_program(self):
-        return self.run_psiblast()
-
-
-    def get_blast_record(self, result_handle):
-        """
-        Convert it to a list because when a using .parse(), Biopython returns a generator.
-        """
-        records = list(NCBIXML.parse(result_handle))
-        return records[0]
-
-
-    #################################################################
-    # PHMMER specific.                                           #
-    #################################################################
-
-    def build_blast_db_list(self):
-        """
-        Generates a list of dictionaries each containing information about the sequence databases
-        present in the default BLAST database directory.
-        """
-        blast_db_dir = self.pymod.hmmer_tool["database_dir_path"].get_value()
-        list_of_databases_directories = []
-        # Information about the database that can be specified by users through the 'Browse'
-        # button. This will contain something like:
-        # {'prefix': 'swissprot', 'full-path': '/home/user/pymod/databases/swissprot'}
-        list_of_databases_directories.append({"full-path":None, "prefix": "browse"})
-
-        # If there are multiple directories containing database files with the same prefixes, this
-        # will rename their prefixes so that the database radioselect will not have multiple buttons
-        # with the same name.
-        def get_new_prefix(prefix, list_of_databases_directories, n=1, prefix_root=None):
-            if prefix_root == None:
-                prefix_root = prefix
-            if prefix in [dbd["prefix"] for dbd in list_of_databases_directories]:
-                new_prefix = prefix_root + "-" + str(n)
-                return get_new_prefix(new_prefix, list_of_databases_directories, n+1, prefix_root)
-            else:
-                return prefix
-        if os.path.isdir(blast_db_dir):
-            for path in os.listdir(blast_db_dir):
-                full_path = os.path.join(blast_db_dir,path)
-                print full_path
-                if os.path.isdir(full_path):
-                    if self.verify_valid_phmmer_dbdir(full_path):
-                        prefix = self.get_phmmer_database_prefix(full_path)
-                        #prefix = get_new_prefix(prefix, list_of_databases_directories)
-                        dbd = {"full-path": full_path, "prefix": prefix}
-                        list_of_databases_directories.append(dbd)
-        print list_of_databases_directories
-        return list_of_databases_directories
-
-
-    def get_psiblast_database_from_gui(self):
-        button_name = self.blast_options_window.psiblast_database_rds.getvalue()
-        for dbd in self.databases_directories_list:
-            if dbd["prefix"] == button_name:
-                return os.path.join(dbd["full-path"], dbd["prefix"])
-
-    '''
 
 
     def hmmer_window_state(self):
@@ -133,10 +71,19 @@ class PHMMER_search(Generic_BLAST_search):
         if phmmer_status and self.check_hmmer_results():
             self.blast_options_window.destroy()
             self.show_phmmer_output_window()
-        else:
-            # Removes temp files at the end of the whole process, both if hits were found or not.
+        elif phmmer_status and not self.check_hmmer_results():
+            self.blast_options_window.show_info_message(
+                "PHMMER",
+                "No hits found. Try to change input parameters.")
             self.blast_options_window.destroy()
-            # self.finish_blast_search() #TODO rifare adatto a phmmer
+            return
+        else:
+            pass
+
+        # else:
+        #     # Removes temp files at the end of the whole process, both if hits were found or not.
+        #     self.blast_options_window.destroy()
+        #     # self.finish_blast_search() #TODO rifare adatto a phmmer
 
 
     def check_hmmer_input_parameters(self):
@@ -151,7 +98,7 @@ class PHMMER_search(Generic_BLAST_search):
         Launches a standalone version of PHMMER installed locally.
         """
 
-        # Builds a temporary file with the sequence of the query needed by psiblast.
+        # Builds a temporary file with the sequence of the query needed.
         query_file_name = "query"
         self.phmmer_query_element = self.blast_query_element
         self.pymod.build_sequence_file([self.blast_query_element], query_file_name, file_format="fasta",
@@ -163,46 +110,44 @@ class PHMMER_search(Generic_BLAST_search):
         print out_filepath
         query_filepath = os.path.join(self.output_directory, "query.fasta")
         db_dirpath = self.pymod.hmmer_tool["database_dir_path"].get_value()
-        if self.custom_db_filepath == None:
+        try:
             db_filepath = os.path.join(db_dirpath, self.blast_options_window.hmmer_database_rds.getvalue())
-        else:
-            db_filepath = self.custom_db_filepath
+        except:
+            self.blast_options_window.show_error_message(
+                "PHMMER Error",
+                "Please select a correct database.")
+            return False
 
-
-        # TODO: get additional parameters.
-        """
-        iterations = self.blast_options_window.psiblast_iterations_enf.getvalue()
         evalue_cutoff = self.blast_options_window.e_value_threshold_enf.getvalue()
-        max_hits = self.blast_options_window.max_hits_enf.getvalue()
-
-        if self.blast_options_window.showing_advanced_widgets:
-            evalue_inclusion_cutoff = self.blast_options_window.psiblast_eval_threshold_enf.getvalue()
-            self.min_id = self.blast_options_window.min_id_enf.getvalue()
-            self.min_coverage = self.blast_options_window.min_coverage_enf.getvalue()
-        else:
-            evalue_inclusion_cutoff = self.min_inclusion_eval_default
-        """
+        #domain_evalue_cutoff = self.blast_options_window.hsp_e_value_threshold_enf.getvalue()
 
         try:
-            self.execute_phmmer(query_filepath, out_filepath , db_filepath, exe_filepath)
+            self.execute_phmmer(query_filepath, out_filepath , db_filepath, exe_filepath, evalue_cutoff)
             self.result_filepath = out_filepath
             # If everything went ok, return 'True', so that the results window can be opened.
             return True
 
-        except IndexError:  # errore a caso, voglio sapere cosa va male
+        except IndexError:  #TODO errore a caso, voglio sapere cosa va male
             self.blast_options_window.show_error_message(
                 "PHMMER Error",
                 "There was an error while running PHMMER for %s." % (self.blast_query_element.my_header))
             return False
 
 
-    def execute_phmmer(self, query_filepath, out_filepath , db_filepath, exe_filepath):
+    def execute_phmmer(self, query_filepath, out_filepath , db_filepath, exe_filepath, evaluecutoff):
         """
         Execute the locally installed PHMMER. Used when running PHMMER through the 'PHMMER'.
         """
 
-        phmmer_command_ls = [exe_filepath, "-o", out_filepath, query_filepath, db_filepath]
-        self.pymod.new_execute_subprocess(phmmer_command_ls)
+        #phmmer_command_ls = [exe_filepath, "-o", out_filepath, "-E", evaluecutoff, query_filepath, db_filepath]
+        phmmer_command_ls = [exe_filepath, "-o", out_filepath, "--domE", evaluecutoff, query_filepath, db_filepath]
+        print phmmer_command_ls
+        try:
+            self.pymod.new_execute_subprocess(phmmer_command_ls)
+        except:
+            self.blast_options_window.show_error_message(
+                "PHMMER Error",
+                "Something went wrong while performing the search with the command-line tool.")
 
         # Remove temp files.
         os.remove(query_filepath)
@@ -222,7 +167,12 @@ class PHMMER_search(Generic_BLAST_search):
 
         if len(phmmer_query_result):
             #TODO filtro
-            self.phmmer_results = phmmer_query_result
+            max_hits = self.blast_options_window.max_hits_enf.getvalue()
+            try:
+                self.phmmer_results = phmmer_query_result[:int(max_hits)]
+            except IndexError:
+                self.phmmer_results = phmmer_query_result
+
             return True
         else:
             self.pymod.main_window.show_warning_message("PHMMER", "No hits were found for %s." % self.blast_query_element.compact_header)
@@ -368,6 +318,7 @@ class PHMMER_search(Generic_BLAST_search):
         # Displays in the results window the hits found in the .xml file (with results from phmmer)
         # that was parsed by Biopython.
         self.phmmer_output_row = 1
+        #self.hitnumber = 0
         # This is going to contain the list of values of each checkbutton.
         self.phmmer_states = []
         # List containing the checkbutton widgets.
@@ -376,6 +327,13 @@ class PHMMER_search(Generic_BLAST_search):
         row_options = {'background': 'black', 'fg': 'white', 'height': 1, 'highlightbackground': 'black'}
 
         for hit in self.phmmer_results.hits:
+            # hit_name = Label(self.phmmer_output_frame, text=str(self.hitnumber), background='black', fg='red', height=1, highlightbackground='black')
+            # hit_name.grid(row=self.phmmer_output_row, column=0, sticky="n", padx=10)
+            #
+            # evalue = Label(self.phmmer_output_frame, text=str(hit.evalue), **row_options)
+            # evalue.grid(row=self.phmmer_output_row, column=1, sticky="nw", padx=10)
+            # self.hitnumber += 1
+            # self.phmmer_output_row += 1
             for hsp in  hit.hsps:
                 # Hit info.
                 phmmer_var = IntVar()
@@ -387,7 +345,8 @@ class PHMMER_search(Generic_BLAST_search):
                 self.phmmer_sbjct_checkbuttons_list.append(chk)
 
                 # E-value info.
-                evalue = Label(self.phmmer_output_frame, text="%.2e" % (hsp.evalue), **row_options)
+                # evalue = Label(self.phmmer_output_frame, text="%.2e" % (hsp.evalue), **row_options)
+                evalue = Label(self.phmmer_output_frame, text=str(hsp.evalue), **row_options)
                 evalue.grid(row=self.phmmer_output_row, column=1, sticky="nw", padx=10)
 
                 # HSP identity info.
@@ -597,6 +556,37 @@ class Phmmer_window(BLAST_base_options_window):
         self.hmmer_database_rds.pack(**self.current_pack_options)
         self.add_widget_to_align(self.hmmer_database_rds)
 
+        # # E-value selection.
+        # self.e_value_threshold_enf = shared_components.PyMod_entryfield(self.midframe,
+        #     label_text = "Hit E-value Threshold",
+        #     label_style = self.current_label_options,
+        #     value = 10.0,
+        #     validate = {'validator' : 'real', 'min' : 0.0, 'max' : 1000.0})
+        # self.e_value_threshold_enf.pack(**self.current_pack_options)
+        # self.add_widget_to_align(self.e_value_threshold_enf)
+        # self.add_widget_to_validate(self.e_value_threshold_enf)
+
+        # HSP E-value selection.
+        # self.hsp_e_value_threshold_enf = shared_components.PyMod_entryfield(self.midframe,
+        #     label_text = "HSP (per-domain)\n E-value Threshold",
+        #     label_style = self.current_label_options,
+        #     value = 10.0,
+        #     validate = {'validator' : 'real', 'min' : 0.0, 'max' : 1000.0})
+        # self.hsp_e_value_threshold_enf.pack(**self.current_pack_options)
+        # self.add_widget_to_align(self.hsp_e_value_threshold_enf)
+        # self.add_widget_to_validate(self.hsp_e_value_threshold_enf)
+
+        # # Max hit number selection.
+        # self.max_hits_enf = shared_components.PyMod_entryfield(self.midframe,
+        #     label_text = "Max Number of Hits",
+        #     label_style = self.current_label_options,
+        #     value = 100,
+        #     validate = {'validator' : 'integer', 'min' : 1, 'max' : 5000} )
+        # self.max_hits_enf.pack(**self.current_pack_options)
+        # self.add_widget_to_align(self.max_hits_enf)
+        # self.add_widget_to_validate(self.max_hits_enf)
+
+
 
         # TODO: add other options.
         """
@@ -626,6 +616,7 @@ class Phmmer_window(BLAST_base_options_window):
                 # Updates the label with the new prefix name.
                 self.choose_path_label.configure(text=prefix)
                 self.current_protocol.custom_db_filepath = new_path
+                self.hmmer_database_rds.add(prefix)
             else:
                 self.choose_path_label.configure(text="None")
                 title = "Selection Error"

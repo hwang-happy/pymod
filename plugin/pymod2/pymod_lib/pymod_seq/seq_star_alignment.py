@@ -52,7 +52,7 @@ class Star_alignment:
             try:
                 local_alignment = Pairwise_alignment(str(hsp.query),str(hsp.sbjct),query_start= hsp.query_start, full_query=self.query_str)
             except AttributeError:
-                #TODO debug
+                #debug
                 #print str(hsp.query)
                 #print str(hsp.query.seq)
                 local_alignment = Pairwise_alignment(str(hsp.query.seq),str(hsp.hit.seq),query_start= hsp.query_start, full_query=self.query_str)
@@ -164,7 +164,7 @@ class Pairwise_alignment:
         else:
             self.full_query = self.aligned_query
 
-        #TODO DEBUG
+        #DEBUG
         #print self.__dict__
 
     def complete_sequences(self):
@@ -189,4 +189,4 @@ class Pairwise_alignment:
             extended_sequence = gapless_full_query[len(gapless_aligned_query):]
             self.aligned_query.extend(extended_sequence)
             self.aligned_sequence.extend(["-"]*len(extended_sequence))
-        print 'Completed sequences'
+        # print 'Completed sequences'

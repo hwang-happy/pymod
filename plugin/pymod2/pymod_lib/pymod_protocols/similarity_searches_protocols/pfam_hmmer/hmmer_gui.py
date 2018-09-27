@@ -4,14 +4,76 @@ from pymod_lib.pymod_gui.shared_components import *
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_element as pmdel
 
+#
+# class Hmmer_options_window(BLAST_base_options_window):
+#
+#     """
+#     Window for PHMMER searches.
+#     """
+#     def build_algorithm_standard_options_widgets(self):
+#
+#         # Makes the user chose the folder where the BLAST database files are stored locally.
+#         # A list containing information about the databases present in PyMod BLAST database
+#         # folder.
+#         self.hmmer_database_rds = shared_components.PyMod_radioselect(self.midframe, label_text = 'Database Selection')
+#         # Add the buttons to choose the database.
+#         self.hmmer_database_rds.add("browse")
+#         for db in self.current_protocol.databases_directories_list:
+#             self.hmmer_database_rds.add(db)
+#         # Adds a 'Browse' button in order to let users specify a custom database on their
+#         # system.
+#         self.interior = self.hmmer_database_rds.component('frame')
+#         self.choose_path_label = Label(self.interior, text="None", **shared_components.label_style_2)
+#         self.choose_path_label.grid(column=3,row=0, padx=(0,0))
+#
+#         self.current_protocol.custom_db_filepath = None
+#         self.hmmer_database_rds.button(0).configure(command=self.choose_hmmer_db_filepath)
+#         # Packs the PHMMER database selection widget.
+#         self.hmmer_database_rds.pack(**self.current_pack_options)
+#         self.add_widget_to_align(self.hmmer_database_rds)
+#
+#
+#
+#     def choose_hmmer_db_filepath(self):
+#         """
+#         Called when users want to manually choose a FASTA sequence database file on their system.
+#         """
+#         current_path = self.current_protocol.pymod.hmmer_tool["database_dir_path"].get_value()
+#
+#         # Lets users choose a new path.
+#         new_path = askopenfilename(title="Search for a HMMER database file", initialdir=current_path, parent=self)
+#
+#         if new_path:
+#             if new_path.endswith(".fasta"):
+#                 prefix = os.path.basename(new_path)
+#                 # Updates the label with the new prefix name.
+#                 self.choose_path_label.configure(text=prefix)
+#                 self.current_protocol.custom_db_filepath = new_path
+#             else:
+#                 self.choose_path_label.configure(text="None")
+#                 title = "Selection Error"
+#                 message = "The directory you specified does not seem to contain a valid sequence files."
+#                 self.show_error_message(title, message)
+#
+#         # Selects the 'browse' button once users click on it.
+#         self.hmmer_database_rds.setvalue("browse")
+#
+#
+#     def build_algorithm_advanced_options_widgets(self):
+#         self.advance_options_button.destroy()
+
+
+
+
 
 class Hmmer_options_window(PyMod_tool_window):
 
     def __init__(self, parent = None,
-                    upper_frame_title="Here you can modify the options for HMMER",
+                    upper_frame_title="Here you can modify the options for HMMER", pymod=None,
                      **configs):
 
         PyMod_tool_window.__init__(self, parent, upper_frame_title=upper_frame_title, **configs)
+        self.pymod = pymod
         # se non metto le () alla funzione del commands, non viene chiamata
 
         # E-value selection.
@@ -35,6 +97,13 @@ class Hmmer_options_window(PyMod_tool_window):
     def show_database_opt(self, t):
 
         if self.hmmer_engine_rds.getvalue() == 'Remote':
+            try:
+                self.widgets_to_align.remove(self.hmmer_database_rds)
+                self.hmmer_database_rds.destroy()
+                self.nodb_notelabel.destroy()
+                self.widgets_to_align.remove(self.nodb_notelabel)
+            except:
+                pass
             # Add the buttons to choose the database.
             self.hmmer_database_rds = PyMod_radioselect(self.midframe, label_text = 'Database Selection', command=self.database_opt_cmd)
             for db in ("PFAM", "Gene3D"):
@@ -52,8 +121,81 @@ class Hmmer_options_window(PyMod_tool_window):
                 self.notelabel.destroy()
                 self.hmmer_database_rds.destroy()
                 self.widgets_to_align.remove(self.hmmer_database_rds)
+                self.nodb_notelabel.destroy()
+                self.widgets_to_align.remove(self.nodb_notelabel)
             except AttributeError:
                 pass
+
+            self.custom_db_filepath = None
+            # Makes the user chose the folder where the BLAST database files are stored locally.
+            # A list containing information about the databases present in PyMod BLAST database
+            # folder.
+            self.hmmer_database_rds = PyMod_radioselect(self.midframe, label_text='Database Selection')
+            # Add the buttons to choose the database.
+            self.hmmer_database_rds.add("browse")
+            db_dirpath = self.pymod.hmmer_tool["database_dir_path"].get_value()
+            if db_dirpath:
+                content = os.listdir(db_dirpath)
+            else:
+                title = "Database Error"
+                message = "The default database directory is missing. Please set one in the Tools > Options menu."
+                self.show_error_message(title, message)
+                return
+
+            #db_list = [d for d in content if d.endswith("hmm.gz")]
+            hmmscan_db_list = [d for d in content if d.endswith("hmm.h3m")]
+            # if not hmmscan_db_list:
+            #     nodb_info_note = 'Note: It seems there is no database ready for hmmscan in selected folder' #TODO E QUINDI???
+            #     self.nodb_notelabel = Label(self.midframe, text=nodb_info_note, wraplength=310)
+            #     self.nodb_notelabel.config(small_label_style)
+            #     self.nodb_notelabel.pack(pack_options_1)
+            #     self.align_widgets()
+
+            for db in hmmscan_db_list:
+                self.hmmer_database_rds.add(db)
+            # Adds a 'Browse' button in order to let users specify a custom database on their
+            # system.
+            self.interior = self.hmmer_database_rds.component('frame')
+            self.choose_path_label = Label(self.interior, text="None", **label_style_2)
+            self.choose_path_label.grid(column=3, row=0, padx=(0, 0))
+
+            # self.current_protocol.custom_db_filepath = None
+            self.hmmer_database_rds.button(0).configure(command=self.choose_hmmer_db_filepath)
+            # # Packs the PHMMER database selection widget.
+            self.add_widget_to_align(self.hmmer_database_rds)
+            self.hmmer_database_rds.pack(pack_options_1)
+            self.align_widgets()
+
+
+        # except AttributeError:
+        #     pass
+    def choose_hmmer_db_filepath(self):
+        """
+        Called when users want to manually choose a FASTA sequence database file on their system.
+        """
+        # Lets users choose a new path.
+        new_path = askopenfilename(title="Search for a HMMSCAN database file", parent=self)
+
+        if new_path:
+            if new_path.endswith(".h3m"):
+                prefix = os.path.basename(new_path)
+                # Updates the label with the new prefix name.
+                self.choose_path_label.configure(text=prefix)
+                self.custom_db_filepath = new_path
+                #self.hmmer_database_rds.add(prefix)
+            elif new_path.endswith(".hmm") or new_path.endswith(".hmm.gz"):
+                title = "Just one step"
+                message = "The directory you specified does not seem to contain a HMMSCAN-ready database but a compressed one. \nPerform HMMPRESS on it, then select the .h3m file."
+                self.show_info_message(title, message) #TODO FALLO TUUUU
+            else:
+                # self.custom_db_filepath = None
+                self.choose_path_label.configure(text="None")
+                title = "Selection Error"
+                message = "The directory you specified does not seem to contain a valid HMMSCAN database."
+                self.show_error_message(title, message)
+
+        # Selects the 'browse' button once users click on it.
+        self.hmmer_database_rds.setvalue("browse")
 
 
     def database_opt_cmd(self, t):
@@ -237,7 +379,7 @@ class Hmmer_graphic(Canvas):
         self.itemconfig(id, **configs)
 
         config_dict = self.itemconfig(id)
-        print id, config_dict
+        # print id, config_dict
         return config_dict
 
 
@@ -284,6 +426,7 @@ class Hmmer_graphic(Canvas):
                     outcolor = '#999999'
 
                 for hsp in domain['location']: #1403
+                    #print '********************************hsp:', hsp
                     start = int(hsp['start'])
                     end = int(hsp['end'])
                     self.create_domain(seq=seq, id=hsp['hsp_number_id'], start_pos=start, end_pos=end, fill=fillcolor, outline=outcolor, state='hidden')
@@ -502,7 +645,7 @@ class Hmmer_results_window(Toplevel):
 
 
         self.submit_button.config(state='disabled')
-        print self.query_element.feature_list
+        # print self.query_element.feature_list
 
 
 
