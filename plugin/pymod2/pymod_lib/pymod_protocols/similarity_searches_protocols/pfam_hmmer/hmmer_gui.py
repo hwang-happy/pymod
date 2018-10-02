@@ -586,10 +586,10 @@ class Hmmer_results_window(Toplevel):
         # checkcolorstr_label = Label(self.opt_frame, text='Color structure', **self.row_options)
         # checkcolorstr_label.grid(row=1, column=1)
 
-        self.submit_button=Button(self.lowerframe, text="Import Domains", command=self.hmmer_results_state, state='disabled', **button_style_1)
-        self.close_button=Button(self.lowerframe, text="Close", command=self.destroy, **button_style_1)
+        self.submit_button=Button(self.lowerframe, text="SUBMIT", command=self.hmmer_results_state, state='disabled', **button_style_1)
+        #self.close_button=Button(self.lowerframe, text="Close", command=self.destroy, **button_style_1)
         self.submit_button.grid(row=0, column=1, padx=20, pady=10)
-        self.close_button.grid(row=0, column=2, pady=10)
+        #self.close_button.grid(row=0, column=2, pady=10)
 
 
     def hmmer_results_state(self):
@@ -609,6 +609,7 @@ class Hmmer_results_window(Toplevel):
                     # coupling the HSP in self.pfam_data with the status of the checkbutton
 
             self.import_results_in_pymod(self.colorseq_var.get(), self.colorstruct_var.get())
+            self.destroy()
         else:
             print 'No domains selected'
             #TODO implementare il messaggio

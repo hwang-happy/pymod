@@ -12,7 +12,7 @@ from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast import 
 from pymod_lib import pymod_os_specific #import verify_valid_blast_dbdir, get_blast_database_prefix
 from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast import Generic_BLAST_search
 from pymod_lib.pymod_os_specific import get_exe_file_name
-from pymod_lib.pymod_seq.seq_star_alignment import Star_alignment
+from pymod_lib.pymod_seq.seq_manipulation import compute_sequence_identity
 
 ################################################################################################
 # PHMMER.                                                                                      #
@@ -63,6 +63,8 @@ class PHMMER_search(Generic_BLAST_search):
         # TODO solo per provare phmmer.
         if not self.check_hmmer_input_parameters():
             return False
+
+        self.evalue_cutoff = self.blast_options_window.e_value_threshold_enf.getvalue()
 
         # Performs a similarity search with the appropriate program.
         phmmer_status = self.run_hmmer()
@@ -118,11 +120,8 @@ class PHMMER_search(Generic_BLAST_search):
                 "Please select a correct database.")
             return False
 
-        evalue_cutoff = self.blast_options_window.e_value_threshold_enf.getvalue()
-        #domain_evalue_cutoff = self.blast_options_window.hsp_e_value_threshold_enf.getvalue()
-
         try:
-            self.execute_phmmer(query_filepath, out_filepath , db_filepath, exe_filepath, evalue_cutoff)
+            self.execute_phmmer(query_filepath, out_filepath , db_filepath, exe_filepath)
             self.result_filepath = out_filepath
             # If everything went ok, return 'True', so that the results window can be opened.
             return True
@@ -134,13 +133,13 @@ class PHMMER_search(Generic_BLAST_search):
             return False
 
 
-    def execute_phmmer(self, query_filepath, out_filepath , db_filepath, exe_filepath, evaluecutoff):
+    def execute_phmmer(self, query_filepath, out_filepath , db_filepath, exe_filepath):
         """
         Execute the locally installed PHMMER. Used when running PHMMER through the 'PHMMER'.
         """
 
         #phmmer_command_ls = [exe_filepath, "-o", out_filepath, "-E", evaluecutoff, query_filepath, db_filepath]
-        phmmer_command_ls = [exe_filepath, "-o", out_filepath, "--domE", evaluecutoff, query_filepath, db_filepath]
+        phmmer_command_ls = [exe_filepath, "-o", out_filepath, query_filepath, db_filepath]
         print phmmer_command_ls
         try:
             self.pymod.new_execute_subprocess(phmmer_command_ls)
@@ -326,51 +325,55 @@ class PHMMER_search(Generic_BLAST_search):
 
         row_options = {'background': 'black', 'fg': 'white', 'height': 1, 'highlightbackground': 'black'}
 
-        for hit in self.phmmer_results.hits:
-            # hit_name = Label(self.phmmer_output_frame, text=str(self.hitnumber), background='black', fg='red', height=1, highlightbackground='black')
-            # hit_name.grid(row=self.phmmer_output_row, column=0, sticky="n", padx=10)
-            #
-            # evalue = Label(self.phmmer_output_frame, text=str(hit.evalue), **row_options)
-            # evalue.grid(row=self.phmmer_output_row, column=1, sticky="nw", padx=10)
-            # self.hitnumber += 1
-            # self.phmmer_output_row += 1
-            for hsp in  hit.hsps:
-                # Hit info.
-                phmmer_var = IntVar()
-                subject_name = hit.id[:100] + "..."  # title[:150]
-                chk = Checkbutton(self.phmmer_output_frame, text=subject_name,
-                                  variable=phmmer_var, background='black', foreground="white", selectcolor="red",
-                                  height=1, padx=10, highlightbackground='black')
-                chk.grid(row=self.phmmer_output_row, column=0, sticky="nw", padx=10)
-                self.phmmer_sbjct_checkbuttons_list.append(chk)
+        # print self.phmmer_results
+        hsp_list = [hsp for hit in self.phmmer_results.hits for hsp in hit]# if hsp.evalue < self.evalue_cutoff]
+        hsp_sorted_list = sorted(hsp_list, key=lambda x: x.evalue)
 
-                # E-value info.
-                # evalue = Label(self.phmmer_output_frame, text="%.2e" % (hsp.evalue), **row_options)
-                evalue = Label(self.phmmer_output_frame, text=str(hsp.evalue), **row_options)
-                evalue.grid(row=self.phmmer_output_row, column=1, sticky="nw", padx=10)
+        for hsp in hsp_sorted_list:
 
-                # HSP identity info.
-                # hspd = self.get_hsp_info(hsp)
-                # id_text = str("%s/%s" % (hsp.identities, int(hspd["matches"]))) + str(
-                #     " (%.1f" % (hspd["id"] * 100) + "%)")
-                # identities = Label(self.phmmer_output_frame, text=id_text, **row_options)
-                # identities.grid(row=self.phmmer_output_row, column=2, sticky="n", padx=10)
+            # Hit info.
+            phmmer_var = IntVar()
+            subject_name = hsp.hit_id[:min((150, len(hsp.hit_id)))]
+            chk = Checkbutton(self.phmmer_output_frame, text=subject_name,
+                              variable=phmmer_var, background='black', foreground="white", selectcolor="red",
+                              height=1, padx=10, highlightbackground='black')
+            chk.grid(row=self.phmmer_output_row, column=0, sticky="nw", padx=10)
+            self.phmmer_sbjct_checkbuttons_list.append(chk)
 
-                # Query span info.
-                span_info_text = hsp.query_span
-                # span_info_text = "%s-%s (%.1f" % (
-                # hsp.query_start, hspd["query_end"], hspd["query_span"] * 100) + "%)"
-                span_info = Label(self.phmmer_output_frame, text=span_info_text, **row_options)
-                span_info.grid(row=self.phmmer_output_row, column=3, sticky="n", padx=10)
+            # E-value info.
+            # evalue = Label(self.phmmer_output_frame, text="%.2e" % (hsp.evalue), **row_options)
+            evalue = Label(self.phmmer_output_frame, text=str(hsp.evalue), **row_options)
+            evalue.grid(row=self.phmmer_output_row, column=1, sticky="nw", padx=10)
 
-                # Subject span info.
-                hspan_info_text = hsp.hit_span
-                # hspan_info_text = "%s-%s" % (hsp.sbjct_start, hspd["sbjct_end"])
-                hspan_info = Label(self.phmmer_output_frame, text=hspan_info_text, **row_options)
-                hspan_info.grid(row=self.phmmer_output_row, column=4, sticky="n", padx=10)
+            # HSP identity info.
+            queryseq = str(hsp.query.seq)
+            hspseq = str(hsp.hit.seq)
+            identity_percent = compute_sequence_identity(queryseq.upper(), hspseq.upper())
+            identities = Label(self.phmmer_output_frame, text=identity_percent, **row_options)
+            identities.grid(row=self.phmmer_output_row, column=2, sticky="n", padx=10)
 
-                self.phmmer_output_row += 1
-                self.phmmer_states.append(phmmer_var)
+            # Query span info.
+            span_info_text = hsp.query_span
+            # span_info_text = "%s-%s (%.1f" % (
+            # hsp.query_start, hspd["query_end"], hspd["query_span"] * 100) + "%)"
+            span_info = Label(self.phmmer_output_frame, text=span_info_text, **row_options)
+            span_info.grid(row=self.phmmer_output_row, column=3, sticky="n", padx=10)
+
+            # Subject span info.
+            hspan_info_text = hsp.hit_span
+            # hspan_info_text = "%s-%s" % (hsp.sbjct_start, hspd["sbjct_end"])
+            hspan_info = Label(self.phmmer_output_frame, text=hspan_info_text, **row_options)
+            hspan_info.grid(row=self.phmmer_output_row, column=4, sticky="n", padx=10)
+
+            self.phmmer_output_row += 1
+            self.phmmer_states.append(phmmer_var)
+
+            if float(hsp.evalue) > float(self.evalue_cutoff):
+                chk.config(state='disabled', foreground='grey')
+                evalue.config(foreground='grey')
+                span_info.config(fg='grey')
+                hspan_info.config(fg='grey')
+
 
     #################################################################
     # Import phmmer results in PyMod.                               #
@@ -433,96 +436,6 @@ class PHMMER_search(Generic_BLAST_search):
         """
         return [e.my_sequence for e in aligned_elements]
 
-    # def import_results_in_pymod(self):
-    #     """
-    #     Builds a cluster with the query sequence as a mother and retrieved hits as children.
-    #     """
-    #     # The list of elements whose sequences will be updated according to the star alignment.
-    #     elements_to_update = [self.phmmer_query_element]
-    #
-    #     # ------------------------------------------------------------
-    #     # Builds a new cluster with the query and all the new hits. -
-    #     # ------------------------------------------------------------
-    #     if self.new_sequences_import_mode == "build-new":
-    #         # Gets the original index of the query element in its container.
-    #         query_container = self.phmmer_query_element.mother
-    #         query_original_index = self.pymod.get_pymod_element_index_in_container(self.phmmer_query_element)
-    #
-    #         # Creates PyMod elements for all the imported hits and add them to the cluster.
-    #         for h in self.hsp_imported_from_phmmer:
-    #             # Gives them the query mother_index, to make them its children.
-    #             cs = self.pymod.build_pymod_element_from_hsp(h)
-    #             self.pymod.add_element_to_pymod(cs)
-    #             elements_to_update.append(cs)
-    #
-    #         # Builds the "phmmer search" cluster element.
-    #         new_phmmer_cluster = self.pymod.add_new_cluster_to_pymod(
-    #             cluster_type="generic",
-    #             query=self.phmmer_query_element,
-    #             child_elements=elements_to_update,
-    #             algorithm="PHMMER",
-    #             update_stars=False)
-    #
-    #         # Move the new cluster to the same position of the original query element in PyMod main
-    #         # window.
-    #         keep_in_mother_cluster = False
-    #         if keep_in_mother_cluster:
-    #             if not query_container.is_root():
-    #                 query_container.add_child(new_phmmer_cluster)
-    #             self.pymod.change_pymod_element_list_index(new_phmmer_cluster, query_original_index)
-    #         else:
-    #             if query_container.is_root():
-    #                 self.pymod.change_pymod_element_list_index(new_phmmer_cluster, query_original_index)
-    #             else:
-    #                 self.pymod.change_pymod_element_list_index(new_phmmer_cluster,
-    #                                                            self.pymod.get_pymod_element_index_in_container(
-    #                                                                query_container) + 1)
-    #
-    #         # Builds a star alignment.
-    #         ba = Star_alignment(self.phmmer_query_element.my_sequence)
-    #         ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_phmmer])
-    #         ba.generate_blast_pseudo_alignment()
-    #
-    #     # ----------------------------------------------------------------------------
-    #     # Expand the original cluster of the query by appending to it the new hits. -
-    #     # ----------------------------------------------------------------------------
-    #     elif self.new_sequences_import_mode == "expand":
-    #         # Builds a star alignment.
-    #         ba = Star_alignment(self.phmmer_query_element.my_sequence)
-    #         # Preapare the 'Star_alignment' object with sequence already present in the cluster.
-    #         siblings = self.phmmer_query_element.get_siblings()
-    #         list_of_aligned_sequences = self.get_list_of_aligned_sequences(siblings)
-    #         ba.extend_with_aligned_sequences(list_of_aligned_sequences)
-    #         # Adds new hit sequences to the cluster and generate the alignment.
-    #         ba.build_blast_local_alignment_list([h["hsp"] for h in self.hsp_imported_from_phmmer])
-    #         ba.generate_blast_pseudo_alignment()
-    #         # The list of elements whose sequences will be updated according to the star alignment.
-    #         elements_to_update = []
-    #         # Begins with the query element.
-    #         elements_to_update.append(self.phmmer_query_element)
-    #         elements_to_update.extend(self.phmmer_query_element.get_siblings(sequences_only=True))
-    #
-    #         new_phmmer_cluster = self.phmmer_query_element.mother
-    #         # Creates PyMod elements for all the imported hits and add them to the cluster.
-    #         for h in self.hsp_imported_from_phmmer:
-    #             # Gives them the query mother_index, to make them its children.
-    #             cs = self.pymod.build_pymod_element_from_hsp(h)
-    #             self.pymod.add_element_to_pymod(cs)
-    #             elements_to_update.append(cs)
-    #             new_phmmer_cluster.add_child(cs)
-    #
-    #         # Sets the query elements as the lead of its cluster.
-    #         self.phmmer_query_element.set_as_query()
-    #
-    #
-    #         # Updates the sequences according to the phmmer pseudo alignment.
-    #         ba.update_pymod_elements(elements_to_update)
-    #
-    #     self.pymod.main_window.gridder(clear_selection=True, update_clusters=True, update_menus=True,
-    #                                    update_elements=True)
-    #
-    #     # self.finish_blast_search() #TODO rifare per phmmer
-    #     # raise Exception('stop')
 
 
 ###################################################################################################
@@ -566,15 +479,15 @@ class Phmmer_window(BLAST_base_options_window):
         # self.add_widget_to_align(self.e_value_threshold_enf)
         # self.add_widget_to_validate(self.e_value_threshold_enf)
 
-        # HSP E-value selection.
-        # self.hsp_e_value_threshold_enf = shared_components.PyMod_entryfield(self.midframe,
-        #     label_text = "HSP (per-domain)\n E-value Threshold",
+        # # HSP E-value selection. OVERRIDE.
+        # self.e_value_threshold_enf = shared_components.PyMod_entryfield(self.midframe,
+        #     label_text = "HSP E-value Threshold",
         #     label_style = self.current_label_options,
         #     value = 10.0,
         #     validate = {'validator' : 'real', 'min' : 0.0, 'max' : 1000.0})
-        # self.hsp_e_value_threshold_enf.pack(**self.current_pack_options)
-        # self.add_widget_to_align(self.hsp_e_value_threshold_enf)
-        # self.add_widget_to_validate(self.hsp_e_value_threshold_enf)
+        # self.e_value_threshold_enf.pack(**self.current_pack_options)
+        # self.add_widget_to_align(self.e_value_threshold_enf)
+        # self.add_widget_to_validate(self.e_value_threshold_enf)
 
         # # Max hit number selection.
         # self.max_hits_enf = shared_components.PyMod_entryfield(self.midframe,

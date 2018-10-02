@@ -173,22 +173,20 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
         #   yield i......
         pass
 
-
-    def filter_single_item(self, item, evalue_cutoff=0.0001):
-        #TODO other conditions can be implemented as the e-value cutoff condition
-        #TODO remove, horrible hack
-
-        if not evalue_cutoff:
-            return item
-
-        # evalue cutoff filter
-        item_evalue = float(item['evalue'])
-        cond_1 = (item_evalue < evalue_cutoff)
-
-        # other conditions here....
-
-        if cond_1:  # and cond_2, cond_3 ...
-            return item
+    #
+    # def filter_single_item(self, item, evalue_cutoff=0.0001):
+    #
+    #     if not evalue_cutoff:
+    #         return item
+    #
+    #     # evalue cutoff filter
+    #     item_evalue = float(item['evalue'])
+    #     cond_1 = (item_evalue < evalue_cutoff)
+    #
+    #     # other conditions here....
+    #
+    #     if cond_1:  # and cond_2, cond_3 ...
+    #         return item
 
 
     def get_parsed_output_lst(self, parser_generator, filter_item=False):
@@ -210,7 +208,9 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
 
 class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
-    def search_domains(self, query, database='pfam', evalue_cutoff=1.0): #0303
+    def search_domains(self, query, database='pfam', evalue_cutoff=1.0):
+
+        self.evaluecutoff = evalue_cutoff
 
         self.query_element_seq_id = query.seq_id
         self.query_element_seq    = query.my_sequence.replace('-', '')
@@ -226,7 +226,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         opener = urllib2.build_opener(SmartRedirectHandler())
         urllib2.install_opener(opener)
 
-        parameters = {#'E':evalue_cutoff,# significance evalue hit #0503
+        parameters = {#'E':evalue_cutoff,# significance evalue hit
                         #'E':0.001, #0903
                         'hmmdb':database,   # 'pfam'  #0303
                         'seq':self.query_element_seq, }
@@ -331,7 +331,9 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
                 loc_id = parsed_output_item['id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
                 locitem.update({'hsp_number_id':loc_id})
 
-                locationattrs.append(locitem.copy()) #
+                if locitem['evalue'] < self.evaluecutoff:
+                    locationattrs.append(locitem.copy()) #
+
             parsed_output_item.update({'location':locationattrs}) #
 
             #print '*****************\n', parsed_output_item
@@ -417,6 +419,8 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
 
     def search_domains(self, query, database, evaluecutoff=1.0):
 
+        self.evaluecutoff = evaluecutoff
+
         self.query_element_seq_id = query.seq_id
         self.query_element_seq    = query.my_sequence.replace('-', '')
 
@@ -492,7 +496,9 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
 
                     loc_id = parsed_output_item['id'] + '_hsp_' + str(hit.hsps.index(h)).zfill(3)
                     locitem.update({'hsp_number_id': loc_id})
-                    locattrs.append(locitem.copy())
+                    if locitem['evalue'] < self.evaluecutoff:
+                        locattrs.append(locitem.copy())
+
 
                 parsed_output_item.update({'location':locattrs})
 

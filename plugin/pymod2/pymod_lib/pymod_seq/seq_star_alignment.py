@@ -52,14 +52,9 @@ class Star_alignment:
             try:
                 local_alignment = Pairwise_alignment(str(hsp.query),str(hsp.sbjct),query_start= hsp.query_start, full_query=self.query_str)
             except AttributeError:
-                #debug
-                #print str(hsp.query)
-                #print str(hsp.query.seq)
-                local_alignment = Pairwise_alignment(str(hsp.query.seq),str(hsp.hit.seq),query_start= hsp.query_start, full_query=self.query_str)
+                local_alignment = Pairwise_alignment(str(hsp.query.seq),str(hsp.hit.seq).upper(),query_start= hsp.query_start, full_query=self.query_str)
             self.blast_local_alignments_list.append(local_alignment)
 
-        #TODO DEBUG
-        #print " "*6, "MET BUILD LOCAL ALI LIST:", self.blast_local_alignments_list
 
     def generate_blast_pseudo_alignment(self):
         """

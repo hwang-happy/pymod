@@ -56,14 +56,14 @@ class PyMod_main_window_main_menu(object):
         # Domain parsing tools.
         self.domain_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Domain Search", menu = self.domain_menu)
-        self.domain_menu.add_command(label = "HMMER", command = self.pymod.show_hmmer_window) #self.pymod.superpose_from_main_menu)
+        self.domain_menu.add_command(label = "HMMSCAN", command = self.pymod.show_hmmer_window) #self.pymod.superpose_from_main_menu)
 
         # Database search for homologous sequences.
         self.database_search_menu = Menu(self.tools_menu, tearoff=0)
         self.tools_menu.add_cascade(label = "Database Search", menu=self.database_search_menu)
         self.database_search_menu.add_command(label = "BLAST", command = lambda program="blast": self.pymod.launch_blast_algorithm(program))
         self.database_search_menu.add_command(label="PSI-BLAST", command=lambda program="psi-blast": self.pymod.launch_blast_algorithm(program))
-        self.database_search_menu.add_command(label="phmmer", command=lambda program="phmmer": self.pymod.launch_hmmer_algorithm(program))
+        self.database_search_menu.add_command(label="PHMMER", command=lambda program="phmmer": self.pymod.launch_hmmer_algorithm(program))
 
         # Sequence alignment tools.
         self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
