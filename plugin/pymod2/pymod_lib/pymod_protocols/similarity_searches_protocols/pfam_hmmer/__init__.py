@@ -1,6 +1,7 @@
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
 from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import hmmer_gui
 from pymod_lib.pymod_os_specific import get_exe_file_name
+
 from sys import platform as sysplatform
 from subprocess import CalledProcessError
 from Bio import SearchIO
@@ -100,7 +101,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             self.hmmer_options_window.search_params = {
                 'evalue_cutoff': self.hmmer_options_window.e_value_threshold_enf.get(),
                 'engine_search': self.hmmer_options_window.hmmer_engine_rds.getvalue(),}
-        print self.hmmer_options_window.search_params
+        # print self.hmmer_options_window.search_params
         self.hmmer_options_window.destroy()
 
         engine = self.hmmer_options_window.search_params['engine_search']
@@ -109,7 +110,8 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             #chooses the right protocol for searching and parsing
         if self.hmmer_options_window.search_params['engine_search'] == 'Remote':
             self.search_protocol = HMMERweb_parsing_protocol(self)
-            my_db = self.hmmer_options_window.search_params['database'].lower()
+            #my_db = self.hmmer_options_window.search_params['database'].lower()
+            my_db = self.hmmer_options_window.hmmer_database_rds.getvalue()
             res = self.search_protocol.search_domains(self.query_element, database=my_db)  # , evalue_cutoff=cutoff)
         else:
             self.search_protocol = Hmmer_parsing_protocol(self)
@@ -118,7 +120,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             else:
                 my_db = str(self.hmmer_options_window.search_params['database'])
 
-            print my_db
+            # print my_db
 
 
             if my_db.endswith("hmm.h3m") and os.path.exists(my_db):
@@ -128,12 +130,6 @@ class Domain_search_protocol_launcher(PyMod_protocol):
                 message = "Please select a correct database to perform a domain search."
                 self.pymod.show_error_message(title, message)
                 return
-
-
-            #TODO implementareeeeeeeee
-            # res = os.path.join(self.pymod.testset_dir, 'TESTSET', self.query_element.seq_id, 'hmmer.txt') #questo carica il file locale del testset
-            # parsed_res = hp.get_parsed_output_lst(hp.parse(res), filter=True)
-
 
 
         #res = self.search_protocol.search_domains(self.continuous_seq, database=db)#, evalue_cutoff=cutoff) #0603
@@ -173,34 +169,13 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
         #   yield i......
         pass
 
-    #
-    # def filter_single_item(self, item, evalue_cutoff=0.0001):
-    #
-    #     if not evalue_cutoff:
-    #         return item
-    #
-    #     # evalue cutoff filter
-    #     item_evalue = float(item['evalue'])
-    #     cond_1 = (item_evalue < evalue_cutoff)
-    #
-    #     # other conditions here....
-    #
-    #     if cond_1:  # and cond_2, cond_3 ...
-    #         return item
 
-
-    def get_parsed_output_lst(self, parser_generator, filter_item=False):
+    def get_parsed_output_lst(self, parser_generator):
         """Converting the generator to list, useful if more than one iteration is needed"""
         array = []
         for i in parser_generator:
-            #print i
-            # if filter_item:
-            #     item = self.filter_single_item(i.copy(), evalue_cutoff=filter_item)
-            #     if item:
-            #         array.append(item)
-            # else:
-            #     array.append(i.copy())
             array.append(i.copy())
+        # sorted_array = sorted(array, key=lambda x: x[])
         return array
 
 
@@ -228,11 +203,13 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
         parameters = {#'E':evalue_cutoff,# significance evalue hit
                         #'E':0.001, #0903
-                        'hmmdb':database,   # 'pfam'  #0303
+                        'hmmdb':database.lower(),   # 'pfam'  #0303
                         'seq':self.query_element_seq, }
 
         enc_params = urllib.urlencode(parameters)
         hmm_url = 'https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan'
+
+        print enc_params
 
         #gcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)  # Only for gangstars
         #post the search request to the server
@@ -287,15 +264,15 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
         def _readable_attrs(node):
             """Returns attrs of the node in classic-dictionary format"""
-            conversion_standard = [('name', 'id'),
-                                   ('aliL', 'length'),
-                                   ('ievalue', 'evalue'),
-                                   ('ienv', 'start'),
-                                   ('jenv', 'end'),
-                                   ('iali', 'ali_start'),
-                                   ('jali', 'ali_end'),
-                                   ('alihmmfrom', 'hmm_start'),
-                                   ('alihmmto', 'hmm_end'),
+            conversion_standard = [(u'name', 'id'),
+                                   (u'aliL', 'length'),
+                                   (u'ievalue', 'evalue'),
+                                   (u'ienv', 'start'),
+                                   (u'jenv', 'end'),
+                                   (u'iali', 'ali_start'),
+                                   (u'jali', 'ali_end'),
+                                   (u'alihmmfrom', 'hmm_start'),
+                                   (u'alihmmto', 'hmm_end'),
                                    ]
             attrs = {}
             if node.attributes:
@@ -327,91 +304,18 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
             locitem = {}
             for loc in loclist:
                 locitem.update(_readable_attrs(loc)) #
-
                 loc_id = parsed_output_item['id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
                 locitem.update({'hsp_number_id':loc_id})
 
-                if locitem['evalue'] < self.evaluecutoff:
+                if float(locitem['evalue']) < float(self.evaluecutoff):
                     locationattrs.append(locitem.copy()) #
 
             parsed_output_item.update({'location':locationattrs}) #
 
-            #print '*****************\n', parsed_output_item
+            # print '*****************\n', parsed_output_item
 
             yield parsed_output_item
 
-    # # non funziona ancora
-    #
-    # def parse_to_b(self, file):
-    #     def _readable_attrs(node):
-    #         """Returns attrs of the node in classic-dictionary format"""
-    #         conversion_standard = [('name', 'id'),
-    #                            ('aliL', 'length'),
-    #                            ('ievalue', 'evalue'),
-    #                            ('ienv', 'start'),
-    #                            ('jenv', 'end'),
-    #                            ('iali', 'ali_start'),
-    #                            ('jali', 'ali_end'),
-    #                            ('alihmmfrom', 'hmm_start'),
-    #                            ('alihmmto', 'hmm_end'),
-    #                            ('alimodel', 'hmm_hit'),
-    #                            ('aliaseq', 'query_hit')
-    #                            ]
-    #         attrs = {}
-    #         if node.attributes:
-    #             for k in node.attributes.keys():
-    #                 attrs.update({k: node.attributes[k].value})
-    #             for t in conversion_standard:
-    #                 if t[0] in attrs:
-    #                     attrs[t[1]] = attrs.pop(t[0])
-    #             return attrs
-    #
-    #     xmldoc = xml.dom.minidom.parse(file)
-    #     parsed_output_item = {}
-    #
-    #     # TODO la lunghezza per ora e' nel dizionario pero' non si sa mai
-    #     # parsed_output_item.update({'length':self.query_len})
-    #
-    #     matchlist = xmldoc.getElementsByTagName('hits')
-    #     for match in matchlist:
-    #         # print '__________________'
-    #         parsed_output_item.update(_readable_attrs(match))
-    #         unique_id = parsed_output_item['id'] + '*' + str(matchlist.index(match)).zfill(4)
-    #         parsed_output_item.update({'unique_id': unique_id})
-    #         loclist = match.getElementsByTagName('domains')
-    #         # locationattrs = {}
-    #         # for loc in loclist:
-    #         #     locationattrs.update(_readable_attrs(loc))
-    #         # parsed_output_item.update(locationattrs)
-    #         locationattrs = []  #
-    #         locitem = {}  #
-    #         for loc in loclist:
-    #             locitem.update(_readable_attrs(loc))  #
-    #
-    #             loc_id = parsed_output_item['id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
-    #             locitem.update({'hsp_number_id': loc_id})
-    #
-    #             locationattrs.append(locitem.copy())  #
-    #         parsed_output_item.update({'location': locationattrs})  #
-    #
-    #         print parsed_output_item
-    #
-    #         # yield parsed_output_item
-    #
-    #         # record = SeqRecord(Seq("MKQHKAMIVALIVICITAVVAALVTRKDLCEVHIRTGQTEVAVF",
-    #         #                        IUPAC.protein),
-    #         #                    id="YP_025292.1", name="HokC",
-    #         #                    description="toxic membrane protein, small")
-    #
-    #         new_hit = SeqRecord(Seq(parsed_output_item['location'][0]['hmm_hit']))
-    #         query_frag = SeqRecord(Seq(parsed_output_item['location'][0]['query_hit']))
-    #         new_frag_hit = SearchIO.HSPFragment(self, hit=new_hit, query=query_frag)
-    #         print new_frag_hit
-
-
-
-
-###############################################################################
 
 ################################################################################
 

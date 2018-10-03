@@ -1,3 +1,4 @@
+
 from pymod_lib.pymod_gui.shared_components import *
 
 #from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import PFAM_parsing_protocol, Hmmer_parsing_protocol
@@ -96,14 +97,23 @@ class Hmmer_options_window(PyMod_tool_window):
 
     def show_database_opt(self, t):
 
-        if self.hmmer_engine_rds.getvalue() == 'Remote':
+        def destroy_all_useless_widgets():
             try:
-                self.widgets_to_align.remove(self.hmmer_database_rds)
-                self.hmmer_database_rds.destroy()
-                self.nodb_notelabel.destroy()
-                self.widgets_to_align.remove(self.nodb_notelabel)
+                # print self.widgets_to_align
+                # all_widgets_visible = [w.winfo_id() for w in self.midframe.winfo_children()]
+                ev_widg_id = self.e_value_threshold_enf.winfo_id()
+                engine_widg_id = self.hmmer_engine_rds.winfo_id()
+                for widg in self.widgets_to_align:
+                    if widg.winfo_id() != ev_widg_id and widg.winfo_id() != engine_widg_id:
+                        self.widgets_to_align.remove(widg)
+                for widg in self.midframe.winfo_children():
+                    if widg.winfo_id() != ev_widg_id and widg.winfo_id() != engine_widg_id:
+                        widg.destroy()
             except:
                 pass
+
+        if self.hmmer_engine_rds.getvalue() == 'Remote':
+            destroy_all_useless_widgets()
             # Add the buttons to choose the database.
             self.hmmer_database_rds = PyMod_radioselect(self.midframe, label_text = 'Database Selection', command=self.database_opt_cmd)
             for db in ("PFAM", "Gene3D"):
@@ -117,14 +127,7 @@ class Hmmer_options_window(PyMod_tool_window):
             self.notelabel.pack(pack_options_1)
             self.align_widgets()
         else:
-            try:
-                self.notelabel.destroy()
-                self.hmmer_database_rds.destroy()
-                self.widgets_to_align.remove(self.hmmer_database_rds)
-                self.nodb_notelabel.destroy()
-                self.widgets_to_align.remove(self.nodb_notelabel)
-            except AttributeError:
-                pass
+            destroy_all_useless_widgets()
 
             self.custom_db_filepath = None
             # Makes the user chose the folder where the BLAST database files are stored locally.
@@ -537,6 +540,8 @@ class Hmmer_results_window(Toplevel):
         self.query_span_label.grid(row=0, column=3, sticky='W')
         self.hmm_span_label=Label(self.hmmer_output_frame, text= "HMM span", **header_options)
         self.hmm_span_label.grid(row=0, column=4, sticky='W')
+        # self.hmm_identity=Label(self.hmmer_output_frame, text= "Identity", **header_options)
+        # self.hmm_identity.grid(row=0, column=5, sticky='W')
 
         # This is going to contain the list of values of each checkbutton.
         self.color_square_lst = []  # all in a row
@@ -689,6 +694,7 @@ class Hmmer_results_window(Toplevel):
 
         self.domain_check_states.append([]) #1204
 
+
         for hsp_index in range(len(hit['location'])):
             hsp = hit['location'][hsp_index]
                 #Name and color of the domain
@@ -723,3 +729,10 @@ class Hmmer_results_window(Toplevel):
             hspan_info_text = str(hsp['hmm_start']) + ' - ' + str(hsp['hmm_end'])
             hspan_info=Label(master_frame, text = hspan_info_text, **self.row_options)
             hspan_info.grid(row=row_index+hsp_index+1, column=4, sticky = 'W', padx=10)
+                # Identity info.
+            # print hsp
+            # #query_subseq = str(hsp.query.seq).upper()[hsp.query_start:hsp.query_end]
+            # #print query_subseq
+            # identity_info_label=Label(master_frame, text = 'nothing', **self.row_options)
+            # identity_info_label.grid(row=row_index+hsp_index+1, column=5, sticky = 'W', padx=10)
+

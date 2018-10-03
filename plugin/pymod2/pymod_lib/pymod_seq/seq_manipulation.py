@@ -1,3 +1,5 @@
+import Bio
+import re
 from pymod_lib import pymod_vars
 
 
