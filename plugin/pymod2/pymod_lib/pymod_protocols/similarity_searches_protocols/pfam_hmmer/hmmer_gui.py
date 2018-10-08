@@ -591,6 +591,12 @@ class Hmmer_results_window(Toplevel):
         # checkcolorstr_label = Label(self.opt_frame, text='Color structure', **self.row_options)
         # checkcolorstr_label.grid(row=1, column=1)
 
+        # self.split_var = IntVar()
+        # check_split_seq = Checkbutton(self.opt_frame, bg='black', fg='white', selectcolor='red', text='Split sequence',
+        #                               highlightthickness=0, variable=self.split_var)
+        # check_split_seq.grid(row=2, column=0)
+        # check_split_seq.select()
+
         self.submit_button=Button(self.lowerframe, text="SUBMIT", command=self.hmmer_results_state, state='disabled', **button_style_1)
         #self.close_button=Button(self.lowerframe, text="Close", command=self.destroy, **button_style_1)
         self.submit_button.grid(row=0, column=1, padx=20, pady=10)
@@ -638,13 +644,16 @@ class Hmmer_results_window(Toplevel):
                                                 end=endindex,
                                                 evalue=d['evalue'],
                                                 color=d_item['dom_color'], #tupla
-                                                description=d_item['desc'])
-                    #print new_domain
+                                                description=d_item['desc'],
+                                                element=self.query_element)
+                    print new_domain.sequence
                     self.query_element.add_domain_feature(new_domain)
+
                     # r_list = self.query_element.residues
                     # for r in r_list:
                     #     if r.domain:
                     #         print r.full_name, r.index
+
 
         if color_sequence:
             self.master.color_selection("single", self.query_element, "domains", color_in_pymol=color_structure)

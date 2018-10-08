@@ -382,7 +382,7 @@ class PyMod_sequence_element(PyMod_element):
         self.campo_scores = None
         self.dope_scores = None
         self.feature_list = []
-        self.domains_lst = None  #MG code #1203 #TODO to be removed
+        self.children_list = []
 
 
     def add_domain_feature(self, domain_feature, whole_element=False):
@@ -394,6 +394,10 @@ class PyMod_sequence_element(PyMod_element):
                         r.domain = domain_feature
                 except TypeError:
                     print 'Invalid integer input for start and end position of domain'
+        else:
+            for r in self.residues:
+                r.domain = domain_feature
+
 
     def clear_features(self):
         self.feature_list = []
@@ -961,11 +965,12 @@ class PyMod_water_molecule(PyMod_heteroresidue):
     hetres_type = "water"
 
 class Element_feature():
-    def __init__(self, ID, name, start=1, end=1, description=''):
+    def __init__(self, ID, name, start=1, end=1, description='', type_of_feature='None'):
         self.start = start
         self.end = end
         self.id = ID
         self.name = name
+        self.type_of_feature = type_of_feature
         self.description = description
 
     def __repr__(self):
@@ -973,10 +978,22 @@ class Element_feature():
 
 
 class Domain_Feature(Element_feature):
-    def __init__(self, ID, name, start, end, evalue, color=None, description=''):
-        Element_feature.__init__(self, ID, name, start, end, description)
+    def __init__(self, ID, name, start, end, evalue, color=None, description='', element=None):
+        Element_feature.__init__(self, ID, name, start, end, description, type_of_feature='domain')
         self.domain_color = color
         self.evalue = evalue
+        self.element = element
+        if self.element:
+            self.sequence = self.element.my_sequence[int(start)-1:int(end)]
+        else:
+            self.sequence = None
+
+    def set_element(self, element):
+        self.element = element
+        if self.element:
+            self.sequence = self.element.my_sequence[int(self.start)-1:int(self.end)]
+        else:
+            self.sequence = None
 
 
 # class PDB_residue:

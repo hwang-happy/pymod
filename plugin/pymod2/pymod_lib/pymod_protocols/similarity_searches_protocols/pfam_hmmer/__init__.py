@@ -112,7 +112,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             self.search_protocol = HMMERweb_parsing_protocol(self)
             #my_db = self.hmmer_options_window.search_params['database'].lower()
             my_db = self.hmmer_options_window.hmmer_database_rds.getvalue()
-            res = self.search_protocol.search_domains(self.query_element, database=my_db)  # , evalue_cutoff=cutoff)
+            res = self.search_protocol.search_domains(self.query_element, evaluecutoff=cutoff, database=my_db)  # , evalue_cutoff=cutoff)
         else:
             self.search_protocol = Hmmer_parsing_protocol(self)
             if self.hmmer_options_window.custom_db_filepath:
@@ -183,9 +183,10 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
 
 class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
-    def search_domains(self, query, database='pfam', evalue_cutoff=1.0):
+    def search_domains(self, query, evaluecutoff, database='pfam'):
 
-        self.evaluecutoff = evalue_cutoff
+        self.evaluecutoff = evaluecutoff
+        self.database = database
 
         self.query_element_seq_id = query.seq_id
         self.query_element_seq    = query.my_sequence.replace('-', '')
@@ -307,21 +308,30 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
                 loc_id = parsed_output_item['id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
                 locitem.update({'hsp_number_id':loc_id})
 
-                if float(locitem['evalue']) < float(self.evaluecutoff):
-                    locationattrs.append(locitem.copy()) #
+                # print loc_id, locitem['evalue'], self.evaluecutoff
 
-            parsed_output_item.update({'location':locationattrs}) #
+                if self.database.lower() != 'gene3d':
+                    if float(locitem['evalue']) < float(self.evaluecutoff):
+                        locationattrs.append(locitem.copy()) #
+                else:
+                    locationattrs.append(locitem.copy())
 
-            # print '*****************\n', parsed_output_item
+            # print locationattrs, '\n'
+            if locationattrs:
+                parsed_output_item.update({'location':locationattrs}) #
+                yield parsed_output_item
+            else:
+                parsed_output_item = {}
+                continue
+                # print '*****************\n', parsed_output_item
 
-            yield parsed_output_item
 
 
 ################################################################################
 
 class Hmmer_parsing_protocol(Search_parsing_protocol):
 
-    def search_domains(self, query, database, evaluecutoff=1.0):
+    def search_domains(self, query, database, evaluecutoff):
 
         self.evaluecutoff = evaluecutoff
 

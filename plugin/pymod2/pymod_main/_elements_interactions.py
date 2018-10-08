@@ -3,7 +3,7 @@ Methods to manipulate PyMod elements within the plugin.
 """
 
 import os
-
+from pymol import cmd
 from pymod_lib import pymod_vars
 from pymod_lib.pymod_seq import seq_headers
 from pymod_lib.pymod_element import PyMod_sequence_element, PyMod_cluster_element, PyMod_element_GUI
@@ -24,6 +24,14 @@ class PyMod_elements_interactions(object):
 
     def build_pymod_element_from_args(self, sequence_name, sequence):
         return self.build_pymod_element(PyMod_sequence_element, sequence, sequence_name)
+
+
+    # def build_pymod_element_from_subsequence(self, mother_seq_str, startindex, endindex, new_seq_name):
+    #     # try:
+    #         newseq = mother_seq_str[startindex:endindex]
+    #     # except:
+    #     #     print ''
+    #         return self.build_pymod_element_from_args(new_seq_name, newseq)
 
 
     def build_pymod_element_from_seqrecord(self, seqrecord):

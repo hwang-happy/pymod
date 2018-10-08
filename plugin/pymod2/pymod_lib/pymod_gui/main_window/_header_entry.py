@@ -248,6 +248,10 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.sequence_menu.add_separator()
         self.sequence_menu.add_command(label="Duplicate Sequence",command=self.duplicate_sequence_from_the_left_pane)
         self.sequence_menu.add_command(label="Delete Sequence", command=self.delete_sequence_from_the_left_pane)
+        if self.can_be_colored_by_domain(self.pymod_element):
+            self.sequence_menu.add_separator()
+            self.sequence_menu.add_command(label="Split Sequence into Domains",command=self.split_sequence_into_domains)
+
         self.header_popup_menu.add_cascade(menu=self.sequence_menu, label="Sequence")
 
     def build_color_menu(self):
@@ -621,6 +625,22 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         """
         self.pymod.duplicate_sequence(self.pymod_element)
         self.pymod.main_window.gridder()
+
+    def split_sequence_into_domains(self, n_term_offset=20, c_term_offset=20):
+
+        domains_list = [f for f in self.pymod_element.feature_list if f.type_of_feature == 'domain']
+        elem = self.pymod_element
+        for domain in domains_list:
+            new_startindex = max(0, domain.start-n_term_offset)
+            new_endindex = min(len(elem.my_sequence), domain.end+c_term_offset)
+            print new_startindex, new_endindex
+            new_seq = elem.my_sequence[new_startindex:new_endindex]
+
+            my_el = self.pymod.build_pymod_element_from_args(domain.name, new_seq)
+            self.pymod.add_element_to_pymod(my_el)
+
+        self.pymod.main_window.gridder()
+
 
     def duplicate_selection(self):
         for e in self.pymod.get_selected_sequences():

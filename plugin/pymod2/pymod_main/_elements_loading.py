@@ -1,11 +1,17 @@
 import os
+import tkMessageBox
 
 from tkFileDialog import *
 
 from Bio import SeqIO
 
+from pymod_lib.pymod_gui import shared_components
 from pymod_lib import pymod_structure
 from pymod_lib import pymod_vars
+from pymod_lib import pymod_element as pmel
+from pymod_lib import pymod_protocols as pmptc
+from pymod_lib.pymod_seq import seq_manipulation as pmsm
+
 
 from pymod_lib.pymod_exceptions import PyModInvalidFile
 
@@ -176,7 +182,7 @@ class PyMod_elements_loading(object):
         """
         Edit a sequence.
         """
-        self.edit_sequence_window = pmgi.shared_components.Edit_sequence_window(self.main_window,
+        self.edit_sequence_window = shared_components.Edit_sequence_window(self.main_window,
                                                     pymod_element = pymod_element,
                                                     title = "Edit Sequence",
                                                     upper_frame_title = "Edit your Sequence",
@@ -212,6 +218,7 @@ class PyMod_elements_loading(object):
         else:
             duplicated_element = self.build_pymod_element(pmel.PyMod_sequence_element, element_to_duplicate.my_sequence, element_to_duplicate.my_header_root)
             self.add_element_to_pymod(duplicated_element)
+            # return duplicated_element
 
 
     #################################################################

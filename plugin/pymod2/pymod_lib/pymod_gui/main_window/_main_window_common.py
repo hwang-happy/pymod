@@ -841,7 +841,10 @@ class PyMod_main_window_mixin:
 
         #MG code
     def can_be_colored_by_domain(self, element):
-        return element.has_feature_list()
+        for r in element.residues:
+            if r.domain:
+                return True
+#        return element.has_feature_list() obsolete. Features can also be other things, not only domains
 
 
     #################################################################
