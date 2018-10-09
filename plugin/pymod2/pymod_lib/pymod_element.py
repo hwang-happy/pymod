@@ -976,6 +976,16 @@ class Element_feature():
     def __repr__(self):
         return str(self.__dict__)
 
+    def __deepcopy__(self, memodict={}):
+        newfeature = self.__class__(self.id, self.name, self.start, self.end, self.description, self.type_of_feature)
+        newfeature.__dict__.update(self.__dict__.copy())
+        return newfeature
+        # cls = self.__class__
+        # result = cls.__new__(cls)
+        # memodict[id(self)] = result
+        # for k, v in self.__dict__.items():
+        #     setattr(result, k, copy.deepcopy(v, memo))
+        # return result
 
 class Domain_Feature(Element_feature):
     def __init__(self, ID, name, start, end, evalue, color=None, description='', element=None):

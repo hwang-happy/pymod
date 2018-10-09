@@ -26,14 +26,6 @@ class PyMod_elements_interactions(object):
         return self.build_pymod_element(PyMod_sequence_element, sequence, sequence_name)
 
 
-    # def build_pymod_element_from_subsequence(self, mother_seq_str, startindex, endindex, new_seq_name):
-    #     # try:
-    #         newseq = mother_seq_str[startindex:endindex]
-    #     # except:
-    #     #     print ''
-    #         return self.build_pymod_element_from_args(new_seq_name, newseq)
-
-
     def build_pymod_element_from_seqrecord(self, seqrecord):
         """
         Gets Biopython a 'SeqRecord' class object and returns a 'PyMod_element' object corresponding

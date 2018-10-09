@@ -35,22 +35,22 @@ class Domain_search_protocol_launcher(PyMod_protocol):
     #     self.output_directory = TESTSET
 
 
-      # # Verify if there is an output file for a particular sequence,
-    # # downloaded from the website or made by a local software
-    # def output_file_exists(self, sequence_id, local=False, db='pfam', extension='xml'):
-    #     """ 'sequence_id' is the element.id attribute.
-    #         Flag 'local' set to True checks for the output file of HMMER local command-line program.
-    #         If False (default) it will check for the output file of HMMER online engine.
-    #         'db' can be set as 'pfam' or 'gene3d' and indicates the database.
-    #         'extension' is the extension of the file.
-    #     """
-    #     if local:
-    #         output_file_name = sequence_id + '_loc_' + db + '_hmmeroutput.' + extension
-    #     else:
-    #         output_file_name = sequence_id + '_web_' + db + '_hmmeroutput.' + extension
-    #     control_path = os.path.join(self.output_directory, output_file_name)
-    #     print control_path, os.path.exists(control_path)
-    #     return os.path.exists(control_path), control_path
+      # Verify if there is an output file for a particular sequence,
+    # downloaded from the website or made by a local software
+    def output_file_exists(self, sequence_id, local=False, db='pfam', extension='xml'):
+        """ 'sequence_id' is the element.id attribute.
+            Flag 'local' set to True checks for the output file of HMMER local command-line program.
+            If False (default) it will check for the output file of HMMER online engine.
+            'db' can be set as 'pfam' or 'gene3d' and indicates the database.
+            'extension' is the extension of the file.
+        """
+        if local:
+            output_file_name = sequence_id + '_loc_' + db + '_hmmeroutput.' + extension
+        else:
+            output_file_name = sequence_id + '_web_' + db + '_hmmeroutput.' + extension
+        control_path = os.path.join(self.output_directory, output_file_name)
+        #print control_path, os.path.exists(control_path)
+        return os.path.exists(control_path), control_path
 
 
     ################### launch from GUI ####################
@@ -112,6 +112,10 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             self.search_protocol = HMMERweb_parsing_protocol(self)
             #my_db = self.hmmer_options_window.search_params['database'].lower()
             my_db = self.hmmer_options_window.hmmer_database_rds.getvalue()
+
+            # if self.output_file_exists(self.query_element.seq_id)[0]:       #TODO delenda est
+            #     res = self.output_file_exists(self.query_element.seq_id)[1] #TODO developing in windows
+            # else:                                                           #TODO developing
             res = self.search_protocol.search_domains(self.query_element, evaluecutoff=cutoff, database=my_db)  # , evalue_cutoff=cutoff)
         else:
             self.search_protocol = Hmmer_parsing_protocol(self)
@@ -131,11 +135,12 @@ class Domain_search_protocol_launcher(PyMod_protocol):
                 self.pymod.show_error_message(title, message)
                 return
 
-
+        print 'res:', res
         #res = self.search_protocol.search_domains(self.continuous_seq, database=db)#, evalue_cutoff=cutoff) #0603
         try:
             parsed_res = self.search_protocol.get_parsed_output_lst(self.search_protocol.parse(res))#(control_path)) #0603
         except AttributeError, TypeError:
+        #except IndexError: #TODO errore a caso
             return None
         # print parsed_res
 
@@ -309,11 +314,13 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
                 locitem.update({'hsp_number_id':loc_id})
 
                 # print loc_id, locitem['evalue'], self.evaluecutoff
-
-                if self.database.lower() != 'gene3d':
-                    if float(locitem['evalue']) < float(self.evaluecutoff):
-                        locationattrs.append(locitem.copy()) #
-                else:
+                try: #TODO delenda est, per sviluppo
+                    if self.database.lower() != 'gene3d':
+                        if float(locitem['evalue']) < float(self.evaluecutoff):
+                            locationattrs.append(locitem.copy()) #
+                    else:
+                        locationattrs.append(locitem.copy())
+                except AttributeError:
                     locationattrs.append(locitem.copy())
 
             # print locationattrs, '\n'

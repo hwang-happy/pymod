@@ -1,4 +1,5 @@
 import os
+import copy
 import tkMessageBox
 
 from tkFileDialog import *
@@ -11,7 +12,6 @@ from pymod_lib import pymod_vars
 from pymod_lib import pymod_element as pmel
 from pymod_lib import pymod_protocols as pmptc
 from pymod_lib.pymod_seq import seq_manipulation as pmsm
-
 
 from pymod_lib.pymod_exceptions import PyModInvalidFile
 
@@ -216,9 +216,110 @@ class PyMod_elements_loading(object):
             for element in p.get_pymod_elements():
                 self.add_element_to_pymod(element, load_in_pymol=True, color=element_to_duplicate.my_color) # Add this to use the old color shceme of PyMod: color=self.color_struct()
         else:
-            duplicated_element = self.build_pymod_element(pmel.PyMod_sequence_element, element_to_duplicate.my_sequence, element_to_duplicate.my_header_root)
+            #duplicated_element = self.build_pymod_element(pmel.PyMod_sequence_element, element_to_duplicate.my_sequence, element_to_duplicate.my_header_root)
+            duplicated_element = self.build_pymod_element_from_args(element_to_duplicate.my_header_root, element_to_duplicate.my_sequence)
             self.add_element_to_pymod(duplicated_element)
-            # return duplicated_element
+            return duplicated_element
+
+
+    # def duplicate_sequence(self, element_to_duplicate): #TODO to implement
+    #     "Use the copy.deepcopy() method to create a depp copy of the element, with all the features"
+    #     print element_to_duplicate.__dict__
+    #     duplicated_element = copy.deepcopy(element_to_duplicate)
+    #     self.add_element_to_pymod(duplicated_element)
+    #     return duplicated_element
+
+    def show_split_seq_offset_window(self, pymod_element):
+        """Window for the header entry command 'Split Sequence Into Domains'.
+            User select the N-term offset anc the C-term offset (in residues)
+            to be left before the beginning and after the end of the domain itself.
+        """
+
+        self.split_seq_offset_window = shared_components.Split_seq_offset_window(self.main_window,
+                                                    pymod_element=pymod_element,
+                                                    title = "Offset",
+                                                    upper_frame_title = "Choose how many residues attach\nto each domain",
+                                                    submit_command = self.split_seq_offset_window_state)
+
+    def split_seq_offset_window_state(self):
+        print self.split_seq_offset_window.TEntry1.get(), self.split_seq_offset_window.TEntry2.get()
+        nterm = int(self.split_seq_offset_window.TEntry1.get()[:])
+        cterm = int(self.split_seq_offset_window.TEntry2.get()[:])
+        align = self.split_seq_offset_window.alignseq_var.get()
+        query = self.split_seq_offset_window.pymod_element
+        self.split_sequence_into_domains(query, nterm, cterm, align)
+        self.split_seq_offset_window.destroy()
+
+
+    def align_single_subsequences_with_default_clustal(self):
+        self.launch_alignment_from_the_main_menu('clustalw', "regular")
+
+
+    def split_sequence_into_domains(self, sequence_element, n_term_offset=20, c_term_offset=20, align=False):
+
+        domains_list = [f for f in sequence_element.feature_list if f.type_of_feature == 'domain']
+
+        for domain in domains_list:
+            new_startindex = max(0, domain.start-(n_term_offset+1))
+            new_endindex = min(len(sequence_element.my_sequence), domain.end+c_term_offset)
+            #print new_startindex, new_endindex
+            new_seq = sequence_element.my_sequence[new_startindex:new_endindex]
+
+            # duplicated_element = self.pymod.duplicate_sequence(elem)
+            # #duplicated_element.feature_list = elem.feature_list[:]
+            # #duplicated_element.annotations = elem.annotations.copy()
+            #
+            # #duplicated_element.add_domain_feature(domain)
+            # for r_ix in range(len(duplicated_element.residues)):
+            #     if r_ix in range(0, new_startindex) or r_ix in range(new_endindex, len(elem.my_sequence)):
+            #         duplicated_element.residues[r_ix] = PyMod_heteroresidue(three_letter_code='GAP', one_letter_code='-', index=r_ix, seq_index=None)
+            #     # elif r_ix in range(domain.start, domain.end):
+            #     #     residue = duplicated_element.residues[r_ix]
+            #     #     residue.index = r_ix
+            #     #     residue.seq_index = r_ix - new_startindex
+            #     #     residue.domain = domain
+            #     # elif r_ix in range(new_startindex, domain.start) or r_ix in range(domain.end, new_endindex):
+            #     #     residue = duplicated_element.residues[r_ix]
+            #     #     residue.index = r_ix
+            #     #     residue.seq_index = r_ix - new_startindex
+            #
+            #
+            # # duplicated_element.my_sequence = gaps1+new_seq+gaps2
+            # # duplicated_element.set_residues_from_sequence()
+            # duplicated_element.update_residues_information()
+            # # duplicated_element.set_sequence_from_residues()
+            #
+            # print ''.join([r.one_letter_code for r in duplicated_element.residues])
+            # print 'index: ', duplicated_element.residues[0].index
+            # print 'seq index: ', duplicated_element.residues[0].seq_index
+            #
+            # #print duplicated_element.feature_list
+            # self.pymod.add_element_to_pymod(duplicated_element)
+            #
+
+            my_el = self.build_pymod_element_from_args(domain.name, new_seq)
+
+            domcopy = copy.deepcopy(domain)
+            domcopy.start -= new_startindex
+            domcopy.end -= new_startindex
+
+            my_el.add_domain_feature(domcopy)
+
+            # for d in my_el.__dict__.keys():
+            #     if d != 'residues':
+            #         print d, my_el.__dict__[d]
+
+            self.add_element_to_pymod(my_el)
+            self.main_window.color_selection("single", my_el, "domains")
+            self.main_window.gridder()
+
+            # if align:
+            #     self.main_window.select_element(my_el)
+            #     self.align_single_subsequences_with_default_clustal()
+            #     self.main_window.deselect_element(my_el)
+            #
+            # self.main_window.gridder()
+
 
 
     #################################################################

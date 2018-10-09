@@ -1,3 +1,4 @@
+import copy
 from Tkinter import *
 from tkFileDialog import *
 
@@ -6,6 +7,7 @@ from pymol import cmd
 from pymod_lib.pymod_seq import seq_manipulation
 import pymod_lib.pymod_vars as pmdt
 from _main_window_common import PyMod_main_window_mixin
+
 
 import time # TEST.
 
@@ -250,7 +252,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.sequence_menu.add_command(label="Delete Sequence", command=self.delete_sequence_from_the_left_pane)
         if self.can_be_colored_by_domain(self.pymod_element):
             self.sequence_menu.add_separator()
-            self.sequence_menu.add_command(label="Split Sequence into Domains",command=self.split_sequence_into_domains)
+            self.sequence_menu.add_command(label="Split Sequence into Domains",command=self.split_seq_command)
 
         self.header_popup_menu.add_cascade(menu=self.sequence_menu, label="Sequence")
 
@@ -615,6 +617,9 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         raise Exception("TODO.")
 
 
+    def split_seq_command(self):
+        self.pymod.show_split_seq_offset_window(self.pymod_element)
+
     #------------------------------------------------
     # Build new sequences and delete old sequences. -
     #------------------------------------------------
@@ -626,20 +631,65 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.pymod.duplicate_sequence(self.pymod_element)
         self.pymod.main_window.gridder()
 
-    def split_sequence_into_domains(self, n_term_offset=20, c_term_offset=20):
 
-        domains_list = [f for f in self.pymod_element.feature_list if f.type_of_feature == 'domain']
-        elem = self.pymod_element
-        for domain in domains_list:
-            new_startindex = max(0, domain.start-n_term_offset)
-            new_endindex = min(len(elem.my_sequence), domain.end+c_term_offset)
-            print new_startindex, new_endindex
-            new_seq = elem.my_sequence[new_startindex:new_endindex]
-
-            my_el = self.pymod.build_pymod_element_from_args(domain.name, new_seq)
-            self.pymod.add_element_to_pymod(my_el)
-
-        self.pymod.main_window.gridder()
+    # def split_sequence_into_domains(self, n_term_offset=20, c_term_offset=20):
+    #
+    #     domains_list = [f for f in self.pymod_element.feature_list if f.type_of_feature == 'domain']
+    #     elem = self.pymod_element
+    #     for domain in domains_list:
+    #         new_startindex = max(0, domain.start-(n_term_offset+1))
+    #         new_endindex = min(len(elem.my_sequence), domain.end+c_term_offset)
+    #         print new_startindex, new_endindex
+    #         new_seq = elem.my_sequence[new_startindex:new_endindex]
+    #
+    #         # duplicated_element = self.pymod.duplicate_sequence(elem)
+    #         # #duplicated_element.feature_list = elem.feature_list[:]
+    #         # #duplicated_element.annotations = elem.annotations.copy()
+    #         #
+    #         # #duplicated_element.add_domain_feature(domain)
+    #         # for r_ix in range(len(duplicated_element.residues)):
+    #         #     if r_ix in range(0, new_startindex) or r_ix in range(new_endindex, len(elem.my_sequence)):
+    #         #         duplicated_element.residues[r_ix] = PyMod_heteroresidue(three_letter_code='GAP', one_letter_code='-', index=r_ix, seq_index=None)
+    #         #     # elif r_ix in range(domain.start, domain.end):
+    #         #     #     residue = duplicated_element.residues[r_ix]
+    #         #     #     residue.index = r_ix
+    #         #     #     residue.seq_index = r_ix - new_startindex
+    #         #     #     residue.domain = domain
+    #         #     # elif r_ix in range(new_startindex, domain.start) or r_ix in range(domain.end, new_endindex):
+    #         #     #     residue = duplicated_element.residues[r_ix]
+    #         #     #     residue.index = r_ix
+    #         #     #     residue.seq_index = r_ix - new_startindex
+    #         #
+    #         #
+    #         # # duplicated_element.my_sequence = gaps1+new_seq+gaps2
+    #         # # duplicated_element.set_residues_from_sequence()
+    #         # duplicated_element.update_residues_information()
+    #         # # duplicated_element.set_sequence_from_residues()
+    #         #
+    #         # print ''.join([r.one_letter_code for r in duplicated_element.residues])
+    #         # print 'index: ', duplicated_element.residues[0].index
+    #         # print 'seq index: ', duplicated_element.residues[0].seq_index
+    #         #
+    #         # #print duplicated_element.feature_list
+    #         # self.pymod.add_element_to_pymod(duplicated_element)
+    #         #
+    #
+    #         my_el = self.pymod.build_pymod_element_from_args(domain.name, new_seq)
+    #
+    #         domcopy = copy.deepcopy(domain)
+    #         domcopy.start -= new_startindex
+    #         domcopy.end -= new_startindex
+    #
+    #         my_el.add_domain_feature(domcopy)
+    #
+    #         # for d in my_el.__dict__.keys():
+    #         #     if d != 'residues':
+    #         #         print d, my_el.__dict__[d]
+    #
+    #         self.pymod.add_element_to_pymod(my_el)
+    #         self.color_selection("single", my_el, "domains")
+    #
+    #     self.pymod.main_window.gridder()
 
 
     def duplicate_selection(self):
