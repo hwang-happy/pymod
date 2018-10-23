@@ -52,18 +52,17 @@ class PyMod_main_window_main_menu(object):
 
         self.tools_menu = Menu(self.menubar, tearoff=0)
 
-
-        # Domain parsing tools.
-        self.domain_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Domain Search", menu = self.domain_menu)
-        self.domain_menu.add_command(label = "HMMSCAN", command = self.pymod.show_hmmer_window) #self.pymod.superpose_from_main_menu)
-
         # Database search for homologous sequences.
         self.database_search_menu = Menu(self.tools_menu, tearoff=0)
         self.tools_menu.add_cascade(label = "Database Search", menu=self.database_search_menu)
         self.database_search_menu.add_command(label = "BLAST", command = lambda program="blast": self.pymod.launch_blast_algorithm(program))
         self.database_search_menu.add_command(label="PSI-BLAST", command=lambda program="psi-blast": self.pymod.launch_blast_algorithm(program))
         self.database_search_menu.add_command(label="PHMMER", command=lambda program="phmmer": self.pymod.launch_hmmer_algorithm(program))
+
+        # Domain parsing tools.
+        self.domain_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Domain Search", menu = self.domain_menu)
+        self.domain_menu.add_command(label = "HMMSCAN", command = self.pymod.show_hmmer_window) #self.pymod.superpose_from_main_menu)
 
         # Sequence alignment tools.
         self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
@@ -95,10 +94,10 @@ class PyMod_main_window_main_menu(object):
         # self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
         # self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
 
-        # # Modeling.
-        # self.modeling_menu = Menu(self.tools_menu, tearoff = 0)
-        # self.tools_menu.add_cascade(label = "Modeling", menu = self.modeling_menu)
-        # self.modeling_menu.add_command(label = "MODELLER (Homology Modeling)", command = self.pymod.launch_modeller_hm_from_main_menu)
+        # Modeling.
+        self.modeling_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Modeling", menu = self.modeling_menu)
+        self.modeling_menu.add_command(label = "MODELLER (Homology Modeling)", command = self.pymod.launch_modeller_hm_from_main_menu)
         # self.modeling_menu.add_command(label = "MODELLER (Loop Refinement)", command = self.pymod.launch_modeller_lr_from_main_menu)
 
         # Options.

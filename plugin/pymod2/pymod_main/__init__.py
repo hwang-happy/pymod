@@ -222,17 +222,17 @@ class PyMod(PyMod_development,
         # self.ksdssp = pm_tool.Executable_tool("ksdssp", "KSDSSP")
         # self.ksdssp.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
         # self.pymod_tools.append(self.ksdssp)
-        #
-        # # MODELLER.
-        # self.modeller = pm_tool.Modeller_tool("modeller", "MODELLER")
-        # # Attempts to import MODELLER. If MODELLER can't be imported, its usage will be external to
-        # # the Python interpreter of PyMOL.
-        # self.import_modeller()
-        # # Then initializes the tool.
-        # self.modeller.initialize_parameters([pm_tool.Use_importable_modeller("use_importable_modeller", "Internal MODELLER"),
-        #                                      pm_tool.Modeller_exec_file("exe_file_path", "Executable File")])
-        # self.pymod_tools.append(self.modeller)
-        #
+
+        # MODELLER.
+        self.modeller = pm_tool.Modeller_tool("modeller", "MODELLER")
+        # Attempts to import MODELLER. If it can't be imported, its usage will be external to
+        # the Python interpreter of PyMOL.
+        self.import_modeller()
+        # Then initializes the tool.
+        self.modeller.initialize_parameters([pm_tool.Use_importable_modeller("use_importable_modeller", "Internal MODELLER"),
+                                             pm_tool.Modeller_exec_file("exe_file_path", "Executable File")])
+        self.pymod_tools.append(self.modeller)
+
         # # Finish to initialize PyMod tools.
         # for tool in self.pymod_tools:
         #     tool.show_message_method = self.show_error_message

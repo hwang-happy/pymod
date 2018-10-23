@@ -16,134 +16,145 @@ class PyMod_development(object):
     # TO BE REMOVED.                                                                              #
     ###############################################################################################
 
+    _developer_name = "giacomo"
+
     def _launch_default(self):
         """
         For development only. A the 'open_sequence_file', 'open_structure_file' and
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
 
-        ################ MG code ##################
+        if self._developer_name == "mg":
+            ################ MG code ##################
 
-        def get_mg_testfolder():
-            relative_testset_pathlist = ['Pymodproject', 'tesipymod']
-            if sys.platform == 'win32':
-                root = 'C:\\Users\\Maria Giulia\\Dropbox'
-            elif sys.platform == 'darwin':
-                root = '/Users/MariaGiulia/Desktop/'
-            else:
-                root = '/home/mariagiulia/Dropbox/'
-            TESTSET = os.path.join(root, *relative_testset_pathlist)
-            return TESTSET
+            def get_mg_testfolder():
+                relative_testset_pathlist = ['Pymodproject', 'tesipymod']
+                if sys.platform == 'win32':
+                    root = 'C:\\Users\\Maria Giulia\\Dropbox'
+                elif sys.platform == 'darwin':
+                    root = '/Users/MariaGiulia/Desktop/'
+                else:
+                    root = '/home/mariagiulia/Dropbox/'
+                TESTSET = os.path.join(root, *relative_testset_pathlist)
+                return TESTSET
 
-        #################### end of MG code #######################
+            #################### end of MG code #######################
+
+            try:
+                self.testset_dir = get_mg_testfolder() #MG CODE # cambiato il path del testset
+
+                if os.path.isdir(self.testset_dir):
+                    print ""
+                    print "# Loading testset", self.testset_dir
+                    sys.path.append(self.testset_dir)
+                    import mg_test #MG CODE
+
+                def get_multiple_random_seqfasta():
+                    seqlist = []
+                    while (len(seqlist) < 4):
+                        s = mg_test.test_fasta()
+                        if s not in seqlist:
+                            seqlist.append(s)
+                    return seqlist
+
+                self.seq_fasta = mg_test.test_fasta() # una sequenza
+                #self.seq_fasta_lst = get_multiple_random_seqfasta() # una lista di 4 seq fasta
+                self.seq_fasta_lst = mg_test.get_all_test_fasta() # tutto il testset
+
+                if os.path.exists(self.seq_fasta_lst[0]):
+                    #self.open_sequence_file(self.seq_fasta) # apre una sequenza
+                    for i in self.seq_fasta_lst:        # ciclo che apre 4 sequenze
+                        self.open_sequence_file(i)
+            except:
+                pass
+
+            #################### end of MG code #######################
+
+        elif self._developer_name == "giacomo":
+            # self.seqs_dir = r"C:\Users\Maria Giulia\Desktop"
+
+            # if os.path.isdir(self.seqs_dir):
+                # self.open_sequence_file(os.path.join(self.seqs_dir, "P0DPA7.fasta"))
+                # print "# Loading default."
+
+                # # Load random sequences from uniprot.
+                # n_seqs = 0
+                # for i in range(0, n_seqs):
+                #     self.load_uniprot_random()
+                #
+                # # Loads random structures from the PDB.
+                # n_str = 1
+                # for i in range(0, n_str):
+                #     elements = self.load_pdb_random()
+                #     for e in elements:
+                #         a = self.build_pymod_element_from_args("test", self.randomize_sequence(e.my_sequence))
+                #         self.add_element_to_pymod(a)
+
+                # Simple clusters.
+                # a = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+                # a.get_children()[0].set_as_lead()
+                # c = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
+                # c.get_children()[0].set_as_lead()
+                # e = self.build_pymod_element_from_args("test", "KLAPPALLAIQYAMNCVVVXQWERTASDFLAPHKF")
+                # self.replace_element(a.get_children()[1], e)
+                # a.add_child(c)
+
+                # Large clusters.
+                # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir, "modeling/clusters/pfam.fasta"), "fasta")
+
+                # Fetch sequences from the PDB.
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
+
+                # Rubic.
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/rubic 1/run.fasta"))
+
+                # Dimer: complex case.
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
+                # CXCR4.
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0.pdb"))
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
+                # Dimer: easy case.
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
+
+                # for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:5]:
+                #     try:
+                #         self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
+                #     except:
+                #         print "# Unable to load %s." % s
+
+                # Monomer disulfides.
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
+                # Interchain disulfides.
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/1ru9.pdb"))
+                # Ubiquitin.
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
+                # Simple heteromer.
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/heteromer/seqs.fasta"))
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/heteromer/5aqq.pdb"))
+                # PAX domains.
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
+
+                # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/heteromer/seqs.fasta"))
+                # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/heteromer/5aqq.pdb"))
 
 
-        # self.seqs_dir = r"C:\Users\Maria Giulia\Desktop"
-
-        # if os.path.isdir(self.seqs_dir):
-            # self.open_sequence_file(os.path.join(self.seqs_dir, "P0DPA7.fasta"))
-            # print "# Loading default."
-
-            # # Load random sequences from uniprot.
-            # n_seqs = 0
-            # for i in range(0, n_seqs):
-            #     self.load_uniprot_random()
-            #
-            # # Loads random structures from the PDB.
-            # n_str = 1
-            # for i in range(0, n_str):
-            #     elements = self.load_pdb_random()
-            #     for e in elements:
-            #         a = self.build_pymod_element_from_args("test", self.randomize_sequence(e.my_sequence))
-            #         self.add_element_to_pymod(a)
-
-            # Simple clusters.
-            # a = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
-            # a.get_children()[0].set_as_lead()
-            # c = self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir,"modeling/clusters/pfam_min.fasta"), "fasta")
-            # c.get_children()[0].set_as_lead()
-            # e = self.build_pymod_element_from_args("test", "KLAPPALLAIQYAMNCVVVXQWERTASDFLAPHKF")
-            # self.replace_element(a.get_children()[1], e)
-            # a.add_child(c)
-
-            # Large clusters.
-            # self.build_cluster_from_alignment_file(os.path.join(self.seqs_dir, "modeling/clusters/pfam.fasta"), "fasta")
-
-            # Fetch sequences from the PDB.
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"sequences_formats/fasta/gi_pdb_old.fasta"))
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/fetch_structures/gi_2.fasta"))
-
-            # Rubic.
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/rubic 1/run.fasta"))
-
-            # Dimer: complex case.
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/th.fasta"))
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/5dyt.pdb"))
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/complex_dimer/1ya4.pdb"))
-            # CXCR4.
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0.pdb"))
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/cxcr4/3oe0_mut.fasta"))
-            # Dimer: easy case.
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/t2.fasta"))
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/casp_dimer/1oas.pdb"))
-
-            # for s in os.listdir(os.path.join(self.seqs_dir, "structures", "superposition"))[:5]:
-            #     try:
-            #         self.open_structure_file(os.path.join(self.seqs_dir, "structures", "superposition", s))
-            #     except:
-            #         print "# Unable to load %s." % s
-
-            # Monomer disulfides.
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/B4E1Y6_fake.fasta"))
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/monomer/1R54.pdb"))
-            # Interchain disulfides.
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/disulfides/1ru9.pdb"))
-            # Ubiquitin.
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1UBI_mut.fasta"))
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/ubiquitin/1ubi.pdb"))
-            # Simple heteromer.
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/heteromer/seqs.fasta"))
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/heteromer/5aqq.pdb"))
-            # PAX domains.
-            # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
-            # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
-
-        try:
-            self.testset_dir = get_mg_testfolder() #MG CODE # cambiato il path del testset
-
-            if os.path.isdir(self.testset_dir):
-                print ""
-                print "# Loading testset", self.testset_dir
-                sys.path.append(self.testset_dir)
-                import mg_test #MG CODE
-
-            def get_multiple_random_seqfasta():
-                seqlist = []
-                while (len(seqlist) < 4):
-                    s = mg_test.test_fasta()
-                    if s not in seqlist:
-                        seqlist.append(s)
-                return seqlist
-
-            self.seq_fasta = mg_test.test_fasta() # una sequenza
-            #self.seq_fasta_lst = get_multiple_random_seqfasta() # una lista di 4 seq fasta
-            self.seq_fasta_lst = mg_test.get_all_test_fasta() # tutto il testset
-
-            if os.path.exists(self.seq_fasta_lst[0]):
-                #self.open_sequence_file(self.seq_fasta) # apre una sequenza
-                for i in self.seq_fasta_lst:        # ciclo che apre 4 sequenze
-                    self.open_sequence_file(i)
-        except:
-            pass
-
-        #################### end of MG code #######################
-
-
+                # Simple homology modeling.
+                mod = self.open_sequence_file("/home/giacomo/Desktop/modeller_test_pymod/target.fasta")[0]
+                tar = self.open_structure_file("/home/giacomo/Desktop/modeller_test_pymod/target_0.pdb")[0]
+                tem = self.open_structure_file("/home/giacomo/Desktop/modeller_test_pymod/template_0.pdb")[0]
+                tem.set_sequence("----KKILIVDDEKPISDIIKFNMTKEGY-EVVTAFNGREALEQFEAEQPDIIILDLMLPEIDGLEVAKTIRKT---SSVPILMLSAKDSEFDKVIGLELGADDYVTKPFSNRELQARVKALLR--R-")
+                new_cluster = self.add_new_cluster_to_pymod(cluster_type="alignment", child_elements=[mod, tem], algorithm="imported")
 
         self.main_window.gridder(update_clusters=True, update_menus=True, update_elements=True)
-
 
 
     def load_uniprot_random(self, reviewed=False):

@@ -7,6 +7,7 @@ import re
 import webbrowser
 import pickle
 
+from Tkinter import *
 from tkFileDialog import askopenfilename, asksaveasfilename
 import Pmw
 
@@ -22,6 +23,8 @@ from pymod_lib.pymod_protocols.similarity_searches_protocols.phmmer import PHMME
 from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment, Clustalw_profile_alignment
 
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMPO_analysis
+
+from pymod_lib.pymod_protocols.structural_analysis_protocols import DOPE_assessment, show_dope_plot
 
 #MG code
 from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import Domain_search_protocol_launcher
@@ -311,7 +314,7 @@ class PyMod_main_menu_commands(object):
         """
         Called when users decide calculate DOPE of a structure loaded in PyMod.
         """
-        dope_assessment = pmptc.structural_analysis_protocols.DOPE_assessment(self)
+        dope_assessment = (self)
         dope_assessment.launch_from_gui()
 
 
@@ -340,9 +343,8 @@ class PyMod_main_menu_commands(object):
     ###############################################################################################
 
     def launch_modeller_hm_from_main_menu(self):
-        reload(pmptc)
-        reload(pmptc.modeling_protocols)
-        modeller_session = pmptc.modeling_protocols.MODELLER_homology_modeling(self)
+        from pymod_lib.pymod_protocols.modeling_protocols import MODELLER_homology_modeling
+        modeller_session = MODELLER_homology_modeling(self)
         modeller_session.launch_from_gui()
 
 
@@ -510,7 +512,7 @@ class PyMod_main_menu_commands(object):
         self.show_table(sequences_names, sequences_names, rmsd_matrix_to_display, title)
 
 
-    def show_table(self, column_headers=None, row_headers=None, data_array=[], title = "New Table", columns_title = None, rows_title = None, number_of_tabs=2, width=800, height=450, rowheader_width=20):
+    def show_table(self, column_headers=None, row_headers=None, data_array=[], title="New Table", columns_title = None, rows_title = None, number_of_tabs=2, width=800, height=450, rowheader_width=20):
         """
         Displayes in a new window a table with data from the bidimensional 'data_array' numpy array.
         """
@@ -615,7 +617,7 @@ class PyMod_main_menu_commands(object):
         """
         Shows a DOPE profile of a modeling session.
         """
-        pmptc.structural_analysis_protocols.show_dope_plot(modeling_session.dope_profile_data, self.main_window)
+        show_dope_plot(modeling_session.dope_profile_data, self.main_window)
 
 
     def show_assessment_table(self, modeling_session):
@@ -623,7 +625,7 @@ class PyMod_main_menu_commands(object):
 
 
     def show_full_model_profile(self, full_model):
-        pmptc.structural_analysis_protocols.show_dope_plot(full_model.dope_profile_data, self.main_window)
+        show_dope_plot(full_model.dope_profile_data, self.main_window)
 
 
     def show_full_model_assessment_values(self, full_model):
@@ -759,7 +761,6 @@ class PyMod_main_menu_commands(object):
         #     self.main_window.show_info_message("Update Successful", "Please restart PyMOL in order to use the updated PyMod version.")
         # else:
         #     self.show_error_message("Update Failed", update_results[1])
-
 
 
     def show_hmmer_window(self):

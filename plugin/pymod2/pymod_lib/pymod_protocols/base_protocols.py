@@ -5,7 +5,6 @@ from cStringIO import StringIO
 from pymol import cmd, stored
 
 
-
 class PyMod_protocol(object):
     """
     A base class for PyMod protocols.
@@ -210,3 +209,57 @@ class PyMod_protocol(object):
 
     def _get_string_stdout(self):
         return self.my_stdout.getvalue()
+
+
+###################################################################################################
+# MODELLER protocol.                                                                              #
+###################################################################################################
+
+class MODELLER_common:
+    """
+    A base class for running MODELLER based scripts. To be used as a parent class along
+    'PyMod_protocol' class.
+    """
+
+    def __init__(self):
+        self.run_modeller_internally = self.pymod.modeller.run_internally()
+
+    def _initialiaze_env(self, use_hetatm=True, use_water=True):
+        env = modeller.environ()
+        env.io.atom_files_directory = []
+        env.io.atom_files_directory.append(".")
+        env.io.hetatm = use_hetatm
+        env.io.water = use_water
+        env.libs.topology.read(file='$(LIB)/top_heav.lib')
+        env.libs.parameters.read(file='$(LIB)/par.lib')
+        return env
+
+
+###################################################################################################
+# Other classes.                                                                                  #
+###################################################################################################
+
+# # class MODELLER_run:
+# #
+# #     def __init__(self, mode="both"):
+# #         self.mode = mode
+# #
+# #     def build_script_file(self, script_absolute_path):
+# #         self.script_absolute_path = script_absolute_path
+# #         self.modeller_script = open(self.script_absolute_path, "w")
+# #         self.modeller_script_content = ""
+# #
+# #     def add_command(self, line, tabs=0):
+# #         line = "    "*tabs + line + "\n"
+# #         self.modeller_script_content += line
+# #
+# #     def end_script(self):
+# #         print >> self.modeller_script, self.modeller_script_content
+# #         self.modeller_script.close()
+# #
+# #     def run_script(self):
+# #         if self.mode == "interal" or self.mode == "both":
+# #             print self.modeller_script_content
+# #             exec self.modeller_script_content
+# #         elif self.mode == "external":
+# #             execfile(self.script_absolute_path)
