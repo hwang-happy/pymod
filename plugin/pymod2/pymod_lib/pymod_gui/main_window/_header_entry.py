@@ -237,6 +237,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         Submenu with options for manipulating a sequence loaded in PyMod.
         """
         self.sequence_menu = Menu(self.header_popup_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.sequence_menu.add_command(label="Print Info", command=self.print_dict)
         self.sequence_menu.add_command(label="Save Sequence to File", command=self.save_sequence_from_left_pane)
         self.sequence_menu.add_command(label="Copy Sequence to Clipboard", command=self.copy_sequence_to_clipboard)
         self.sequence_menu.add_separator()
@@ -517,6 +518,7 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def build_cluster_edit_menu(self, target_menu):
         self.cluster_edit_menu = Menu(target_menu, tearoff=0, bg='white', activebackground='black', activeforeground='white')
+        self.cluster_edit_menu.add_command(label="Print Info", command=self.print_dict)
         self.cluster_edit_menu.add_command(label="Save Alignment To File", command=self.save_alignment_from_the_left_pan)
         self.cluster_edit_menu.add_separator()
         self.cluster_edit_menu.add_command(label="Delete Gap Only Columns", command=self.delete_gap_only_columns_from_left_pane)
@@ -631,67 +633,6 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         self.pymod.duplicate_sequence(self.pymod_element)
         self.pymod.main_window.gridder()
 
-
-    # def split_sequence_into_domains(self, n_term_offset=20, c_term_offset=20):
-    #
-    #     domains_list = [f for f in self.pymod_element.feature_list if f.type_of_feature == 'domain']
-    #     elem = self.pymod_element
-    #     for domain in domains_list:
-    #         new_startindex = max(0, domain.start-(n_term_offset+1))
-    #         new_endindex = min(len(elem.my_sequence), domain.end+c_term_offset)
-    #         print new_startindex, new_endindex
-    #         new_seq = elem.my_sequence[new_startindex:new_endindex]
-    #
-    #         # duplicated_element = self.pymod.duplicate_sequence(elem)
-    #         # #duplicated_element.feature_list = elem.feature_list[:]
-    #         # #duplicated_element.annotations = elem.annotations.copy()
-    #         #
-    #         # #duplicated_element.add_domain_feature(domain)
-    #         # for r_ix in range(len(duplicated_element.residues)):
-    #         #     if r_ix in range(0, new_startindex) or r_ix in range(new_endindex, len(elem.my_sequence)):
-    #         #         duplicated_element.residues[r_ix] = PyMod_heteroresidue(three_letter_code='GAP', one_letter_code='-', index=r_ix, seq_index=None)
-    #         #     # elif r_ix in range(domain.start, domain.end):
-    #         #     #     residue = duplicated_element.residues[r_ix]
-    #         #     #     residue.index = r_ix
-    #         #     #     residue.seq_index = r_ix - new_startindex
-    #         #     #     residue.domain = domain
-    #         #     # elif r_ix in range(new_startindex, domain.start) or r_ix in range(domain.end, new_endindex):
-    #         #     #     residue = duplicated_element.residues[r_ix]
-    #         #     #     residue.index = r_ix
-    #         #     #     residue.seq_index = r_ix - new_startindex
-    #         #
-    #         #
-    #         # # duplicated_element.my_sequence = gaps1+new_seq+gaps2
-    #         # # duplicated_element.set_residues_from_sequence()
-    #         # duplicated_element.update_residues_information()
-    #         # # duplicated_element.set_sequence_from_residues()
-    #         #
-    #         # print ''.join([r.one_letter_code for r in duplicated_element.residues])
-    #         # print 'index: ', duplicated_element.residues[0].index
-    #         # print 'seq index: ', duplicated_element.residues[0].seq_index
-    #         #
-    #         # #print duplicated_element.feature_list
-    #         # self.pymod.add_element_to_pymod(duplicated_element)
-    #         #
-    #
-    #         my_el = self.pymod.build_pymod_element_from_args(domain.name, new_seq)
-    #
-    #         domcopy = copy.deepcopy(domain)
-    #         domcopy.start -= new_startindex
-    #         domcopy.end -= new_startindex
-    #
-    #         my_el.add_domain_feature(domcopy)
-    #
-    #         # for d in my_el.__dict__.keys():
-    #         #     if d != 'residues':
-    #         #         print d, my_el.__dict__[d]
-    #
-    #         self.pymod.add_element_to_pymod(my_el)
-    #         self.color_selection("single", my_el, "domains")
-    #
-    #     self.pymod.main_window.gridder()
-
-
     def duplicate_selection(self):
         for e in self.pymod.get_selected_sequences():
             self.pymod.duplicate_sequence(e)
@@ -737,6 +678,34 @@ class Header_entry(Entry, PyMod_main_window_mixin):
 
     def transfer_alignment_from_the_left_pane(self):
         self.pymod.transfer_alignment(self._get_cluster_from_popup_menu(self.pymod_element))
+
+    def print_dict(self):
+        if self.pymod_element.is_cluster()==True:
+            dic = self._get_cluster_from_popup_menu(self.pymod_element).__dict__
+            children = dic['list_of_children']
+            for c in children:
+                print c.my_header
+        else:
+            dic = self.pymod_element.__dict__
+        lenkeys = [len(key) for key in dic.keys()]
+        maxlen = max(lenkeys)
+        centerkeys = [key.center(maxlen) for key in dic.keys()]
+        print '#'*(2+maxlen+3+50+2)
+        try:
+            print [r.one_letter_code+" "+str(r.index)+" "+str(r.get_id_in_aligned_sequence())  for r in self.pymod_element.residues]
+            #print [r.one_letter_code+" "+str(r.index)+" "+str(r.db_index)+" "+str(r.seq_index) for r in self.pymod_element.residues]
+        except:
+            pass
+        for k in centerkeys:
+            or_key = k.strip()
+            # print "#", k, "#", str(dic[or_key])[:min(50, len(str(dic[or_key])))].center(50), "#"
+            print "#", k, "#", str(dic[or_key]).center(50), "#"
+            # lo so, ho ottimizzato troppo
+            print '_'*(2+maxlen+3+50+2)
+        #print dic['mother']
+        #print dic['feature_list']
+
+        print '#' * (2 + maxlen + 3 + 50 + 2)
 
 
     #--------------------------------------------

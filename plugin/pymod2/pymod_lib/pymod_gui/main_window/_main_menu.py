@@ -192,6 +192,16 @@ class PyMod_main_window_main_menu(object):
         self.help_menu.add_separator()
         self.help_menu.add_command(label = "Check for PyMod Updates", command = self.pymod.launch_pymod_update)
 
+        # ########## MG CODE ############ #TODO DEVELOPMENT
+        # def recompileall():
+        #     import compileall
+        #     pathlib = "/Users/mariagiulia/Dropbox/Pymodproject/newclasses-mg/plugin/pymod2/pymod_lib"
+        #     compileall.compile_dir(pathlib, force=1)
+        # self.recompile_menu = Menu(self.menubar, tearoff = 0)
+        # self.menubar.add_cascade(label = "Restart", menu = self.recompile_menu)
+        # self.recompile_menu.add_command(label = "Recompile", command = recompileall)
+        # ########## END OF MG CODE ############
+
         self.config(menu = self.menubar)
 
 
@@ -252,6 +262,9 @@ class PyMod_main_window_main_menu(object):
                 # Adds the alignment submenu to the PyMod main menu.
                 label_text = alignment_element.my_header
                 self.alignments_menu.add_cascade(label = label_text, menu = alignment_submenu)
+
+            # Fuse #TODO
+            self.alignments_menu.add_command(label = "Fuse alignments...", command = self.pymod.launch_alignment_fusion_from_mainmenu)
 
         else:
             self.alignments_menu.add_command(label = "There aren't any alignments")

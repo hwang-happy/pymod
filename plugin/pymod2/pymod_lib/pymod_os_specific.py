@@ -22,6 +22,7 @@ import subprocess
 import shutil
 import zipfile
 import struct
+import urllib2
 import pymol
 from pymol import cmd
 import platform

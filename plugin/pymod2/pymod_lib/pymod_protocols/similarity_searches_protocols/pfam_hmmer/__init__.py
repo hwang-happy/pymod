@@ -2,7 +2,6 @@ from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
 from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import hmmer_gui
 from pymod_lib.pymod_os_specific import get_exe_file_name
 
-from sys import platform as sysplatform
 from subprocess import CalledProcessError
 from Bio import SearchIO
 from Bio.Seq import Seq
@@ -22,18 +21,8 @@ IV STESURA MAGGIO 2018 - NUOVO METODO DI PARSING
 
 class Domain_search_protocol_launcher(PyMod_protocol):
 
-    # def additional_initialization(self):
-    #     #TODO path provvisorio
-    #     relative_testset_pathlist = ['Pymodproject', 'tesipymod', 'TESTSET', '_Domini']
-    #     if sysplatform == 'win32':
-    #         root = 'C:\\Users\\Maria Giulia\\Dropbox'
-    #     elif sysplatform == 'darwin':
-    #         root = '/Users/MariaGiulia/Desktop/'
-    #     else:
-    #         root = '/home/mariagiulia/Dropbox/'
-    #     TESTSET = os.path.join(root, *relative_testset_pathlist)
-    #     self.output_directory = TESTSET
-
+    def additional_initialization(self):
+        self.output_directory = self.pymod.domainanalysis_dirpath
 
       # Verify if there is an output file for a particular sequence,
     # downloaded from the website or made by a local software
@@ -65,21 +54,11 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             return None
 
         self.query_element = self.get_pymod_elements()[0]
-
-        # self.continuous_seq = self.query_element.my_sequence.replace('-', '')
-
-        # try:
-        #     ix = self.query_element.my_header.index('|')
-        #     self.query_element.seq_id = self.query_element.my_header[ix+1:ix+7]
-        # except ValueError:
-        #     self.query_element.seq_id = self.query_element.my_header
-
-        print self.query_element.seq_id#, self.continuous_seq
+        # print self.query_element.seq_id#, self.continuous_seq
 
         self.hmmer_options_window = hmmer_gui.Hmmer_options_window(parent=self.pymod.main_window, submit_command=self.domain_search_state, pymod=self.pymod)
 
 
-    #def run_domain_search(self):
     def domain_search_state(self):
         # collecting options
         try:
@@ -109,7 +88,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
 
             #chooses the right protocol for searching and parsing
         if self.hmmer_options_window.search_params['engine_search'] == 'Remote':
-            self.search_protocol = HMMERweb_parsing_protocol(self)
+            self.search_protocol = HMMERweb_parsing_protocol(self.pymod)
             #my_db = self.hmmer_options_window.search_params['database'].lower()
             my_db = self.hmmer_options_window.hmmer_database_rds.getvalue()
 
@@ -118,7 +97,7 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             # else:                                                           #TODO developing
             res = self.search_protocol.search_domains(self.query_element, evaluecutoff=cutoff, database=my_db)  # , evalue_cutoff=cutoff)
         else:
-            self.search_protocol = Hmmer_parsing_protocol(self)
+            self.search_protocol = Hmmer_parsing_protocol(self.pymod)
             if self.hmmer_options_window.custom_db_filepath:
                 my_db = str(self.hmmer_options_window.custom_db_filepath)
             else:
@@ -139,8 +118,8 @@ class Domain_search_protocol_launcher(PyMod_protocol):
         #res = self.search_protocol.search_domains(self.continuous_seq, database=db)#, evalue_cutoff=cutoff) #0603
         try:
             parsed_res = self.search_protocol.get_parsed_output_lst(self.search_protocol.parse(res))#(control_path)) #0603
-        except AttributeError, TypeError:
-        #except IndexError: #TODO errore a caso
+        # except AttributeError, TypeError:
+        except IndexError: #TODO errore a caso
             return None
         # print parsed_res
 
@@ -150,7 +129,6 @@ class Domain_search_protocol_launcher(PyMod_protocol):
             self.pymod.show_info_message(title, message)
             return None
 
-        #1203
         self.results_window = hmmer_gui.Hmmer_results_window(parent=self.pymod.main_window, pfam_data=parsed_res, sequence_element=self.query_element)
         #self.query_element.domains_lst = parsed_res
         #self.results_window = pfam_gui.Hmmer_results_window(parent=self.pymod.main_window, sequence_element=self.query_element)
@@ -159,9 +137,22 @@ class Domain_search_protocol_launcher(PyMod_protocol):
 ################################################################################
 class Search_parsing_protocol(Domain_search_protocol_launcher):
 
-    ################## performing-search methods, save search output as a file ##################
-    def search_domains(self, query_element):
-        pass
+    ################## performing-search methods, save search output as a file, but first... save the query as file! ##################
+    def search_domains(self, query_element, **args):
+
+        self.query_element_seq_id = query_element.my_header if 'pdb' in query_element.original_header else query_element.seq_id
+        self.query_element_seq    = query_element.my_sequence.replace('-', '')
+
+        # Builds a file with the sequence of the query needed.
+        query_filename = "mother_"+self.query_element_seq_id
+        self.pymod.build_sequence_file([query_element], query_filename, file_format="fasta", remove_indels=True, new_directory=self.output_directory)
+
+        self.query_filename = query_filename+'.fasta'
+        self.query_filepath = os.path.join(self.output_directory, self.query_filename).replace('//', '/').replace('\\\\', '\\')
+
+    #     override here.........
+
+
 
     ################# parser methods, return a generator or a list #################
     def parse(self, file):
@@ -189,12 +180,13 @@ class Search_parsing_protocol(Domain_search_protocol_launcher):
 class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
     def search_domains(self, query, evaluecutoff, database='pfam'):
+        Search_parsing_protocol.search_domains(self, query)
 
         self.evaluecutoff = evaluecutoff
         self.database = database
 
-        self.query_element_seq_id = query.seq_id
-        self.query_element_seq    = query.my_sequence.replace('-', '')
+        # self.query_element_seq_id = query.seq_id
+        # self.query_element_seq    = query.my_sequence.replace('-', '')
 
         self.query_record = SeqRecord(Seq(self.query_element_seq),
                            id=self.query_element_seq_id,)
@@ -228,7 +220,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         except urllib2.URLError:
             title = "Connection Error"
             message = "URL Error. Please check Internet connection."
-            print self.pymod.pymod.show_error_message(title, message)
+            print self.pymod.show_error_message(title, message)
             return None
 
         # modify the range, format and presence of alignments in your results here
@@ -247,7 +239,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         except:
             title = "Connection Error"
             message = "URL Error. Please check Internet connection."
-            self.pymod.pymod.show_error_message(title, message)
+            self.pymod.show_error_message(title, message)
             return None
 
         # while not data.read():
@@ -257,11 +249,15 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         # print out the results
         response_content = data.read()
         results_file_name = self.query_element_seq_id + '_web_' + database + '_hmmeroutput.' + res_params['output']
-    #    results_file_name = 'hmmer_web.'+res_params['output']
         results_file = os.path.join(self.output_directory, results_file_name)
 
+        import re
+        regex = r"(?i)>\s*<act_site[^>]*>\s*<[^>]*>\s*</act_site>\s*</domains>"
+        xml_cleaned = re.sub(regex, ' />', response_content)
+        print xml_cleaned[35690:]
+
         r = open(results_file, 'w')
-        r.write(response_content)
+        r.write(xml_cleaned)
         r.close()
         return results_file
 
@@ -289,11 +285,17 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
                         attrs[t[1]] = attrs.pop(t[0])
                 return attrs
 
-        xmldoc = xml.dom.minidom.parse(file)
+        try:
+            xmldoc = xml.dom.minidom.parse(file)
+        except xml.parsers.expat.ExpatError:
+            # TODO questo errore capita quando ci sono tag non chiusi nel file xml,
+            # per esempio quando capita un tag 'active site' che scombina tutto l'albero dei domini.
+            # per il momento c'e' una regexp che scrive il file togliendoli, ma potrebbero capitare altri casi simili.
+            title = "Error in parsing function"
+            message = "Cannot perform the parsing process. The downloaded file may be corrupted, please try again."
+            self.pymod.show_error_message(title, message)
+            return
         parsed_output_item = {}
-
-        #TODO la lunghezza per ora e' nel dizionario pero' non si sa mai
-        #parsed_output_item.update({'length':self.query_len})
 
         matchlist = xmldoc.getElementsByTagName('hits')
         for match in matchlist: #HITS
@@ -338,40 +340,31 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
 class Hmmer_parsing_protocol(Search_parsing_protocol):
 
-    def search_domains(self, query, database, evaluecutoff):
+    def search_domains(self, query_element, database, evaluecutoff):
 
+        Search_parsing_protocol.search_domains(self, query_element)
         self.evaluecutoff = evaluecutoff
 
-        self.query_element_seq_id = query.seq_id
-        self.query_element_seq    = query.my_sequence.replace('-', '')
+        # self.query_element_seq_id = query.seq_id
+        # self.query_element_seq    = query.my_sequence.replace('-', '')
 
-        # Builds a temporary file with the sequence of the query needed.
-        query_file_name = "query_hmmscan"
-        self.pymod.pymod.build_sequence_file([query], query_file_name, file_format="fasta", remove_indels=True, new_directory=self.output_directory)
-
-        exe_filepath = os.path.join(self.pymod.pymod.hmmer_tool["exe_dir_path"].get_value(), get_exe_file_name("hmmscan"))
-        out_filepath = os.path.join(self.output_directory, "hmmscan_out.txt").replace('//', '/').replace('\\\\', '\\')
-
-        query_filepath = os.path.join(self.output_directory, "query_hmmscan.fasta").replace('//', '/').replace('\\\\', '\\')
-
+        exe_filepath = os.path.join(self.pymod.hmmer_tool["exe_dir_path"].get_value(), get_exe_file_name("hmmscan"))
+        out_filepath = os.path.join(self.output_directory, "hmmscan_out_"+self.query_element_seq_id+".txt").replace('//', '/').replace('\\\\', '\\')
         db_dirpath = database
 
-        cline = [exe_filepath, "-o", out_filepath, "-E", str(evaluecutoff), db_dirpath.replace('.h3m',''), query_filepath]
+        cline = [exe_filepath, "-o", out_filepath, "-E", str(evaluecutoff), db_dirpath.replace('.h3m',''), self.query_filepath]
         print os.getcwd()
         print cline
         try:
-            self.pymod.pymod.new_execute_subprocess(cline)
+            self.pymod.new_execute_subprocess(cline)
         except CalledProcessError:
-            self.pymod.pymod.show_error_message(
+            self.pymod.show_error_message(
                 "HMMER Error",
                 "Something went wrong while performing the search with the command-line tool. \n(Returned non-zero exit status 1)")
         except:
-            self.pymod.pymod.show_error_message(
+            self.pymod.show_error_message(
                 "HMMER Error",
                 "Something went wrong while performing the search with the command-line tool.")
-
-        # Remove temp files.
-        os.remove(query_filepath)
 
         return out_filepath
 

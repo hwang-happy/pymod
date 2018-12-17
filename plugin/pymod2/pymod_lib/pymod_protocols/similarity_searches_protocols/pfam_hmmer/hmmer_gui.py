@@ -1,70 +1,8 @@
-
 from pymod_lib.pymod_gui.shared_components import *
 
 #from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import PFAM_parsing_protocol, Hmmer_parsing_protocol
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_element as pmdel
-
-#
-# class Hmmer_options_window(BLAST_base_options_window):
-#
-#     """
-#     Window for PHMMER searches.
-#     """
-#     def build_algorithm_standard_options_widgets(self):
-#
-#         # Makes the user chose the folder where the BLAST database files are stored locally.
-#         # A list containing information about the databases present in PyMod BLAST database
-#         # folder.
-#         self.hmmer_database_rds = shared_components.PyMod_radioselect(self.midframe, label_text = 'Database Selection')
-#         # Add the buttons to choose the database.
-#         self.hmmer_database_rds.add("browse")
-#         for db in self.current_protocol.databases_directories_list:
-#             self.hmmer_database_rds.add(db)
-#         # Adds a 'Browse' button in order to let users specify a custom database on their
-#         # system.
-#         self.interior = self.hmmer_database_rds.component('frame')
-#         self.choose_path_label = Label(self.interior, text="None", **shared_components.label_style_2)
-#         self.choose_path_label.grid(column=3,row=0, padx=(0,0))
-#
-#         self.current_protocol.custom_db_filepath = None
-#         self.hmmer_database_rds.button(0).configure(command=self.choose_hmmer_db_filepath)
-#         # Packs the PHMMER database selection widget.
-#         self.hmmer_database_rds.pack(**self.current_pack_options)
-#         self.add_widget_to_align(self.hmmer_database_rds)
-#
-#
-#
-#     def choose_hmmer_db_filepath(self):
-#         """
-#         Called when users want to manually choose a FASTA sequence database file on their system.
-#         """
-#         current_path = self.current_protocol.pymod.hmmer_tool["database_dir_path"].get_value()
-#
-#         # Lets users choose a new path.
-#         new_path = askopenfilename(title="Search for a HMMER database file", initialdir=current_path, parent=self)
-#
-#         if new_path:
-#             if new_path.endswith(".fasta"):
-#                 prefix = os.path.basename(new_path)
-#                 # Updates the label with the new prefix name.
-#                 self.choose_path_label.configure(text=prefix)
-#                 self.current_protocol.custom_db_filepath = new_path
-#             else:
-#                 self.choose_path_label.configure(text="None")
-#                 title = "Selection Error"
-#                 message = "The directory you specified does not seem to contain a valid sequence files."
-#                 self.show_error_message(title, message)
-#
-#         # Selects the 'browse' button once users click on it.
-#         self.hmmer_database_rds.setvalue("browse")
-#
-#
-#     def build_algorithm_advanced_options_widgets(self):
-#         self.advance_options_button.destroy()
-
-
-
 
 
 class Hmmer_options_window(PyMod_tool_window):
@@ -137,7 +75,7 @@ class Hmmer_options_window(PyMod_tool_window):
             # Add the buttons to choose the database.
             self.hmmer_database_rds.add("browse")
             db_dirpath = self.pymod.hmmer_tool["database_dir_path"].get_value()
-            if db_dirpath:
+            if db_dirpath and os.path.exists(db_dirpath):
                 content = os.listdir(db_dirpath)
             else:
                 title = "Database Error"
@@ -646,7 +584,7 @@ class Hmmer_results_window(Toplevel):
                                                 color=d_item['dom_color'], #tupla
                                                 description=d_item['desc'],
                                                 element=self.query_element)
-                    print new_domain.sequence
+                    #print new_domain.sequence
                     self.query_element.add_domain_feature(new_domain)
 
                     # r_list = self.query_element.residues

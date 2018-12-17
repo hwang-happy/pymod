@@ -25,7 +25,7 @@ from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMP
 
 #MG code
 from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import Domain_search_protocol_launcher
-
+from pymod_lib.pymod_protocols.alignment_protocols.fuse_alignments.fuse_alignments_with_centerstar import Fuse_protocol_launcher
 
 class PyMod_main_menu_commands(object):
 
@@ -445,6 +445,13 @@ class PyMod_main_menu_commands(object):
     def launch_espript_from_main_menu(self, pymod_cluster):
         espript = pmptc.evolutionary_analysis_protocols.espript.ESPript_analysis(self, pymod_cluster)
         espript.launch_from_gui()
+
+    def launch_alignment_fusion_from_mainmenu(self):
+        #pass
+        #clusters = self.get_cluster_elements()
+        #print [c.my_header for c in clusters]
+        fuse = Fuse_protocol_launcher(self)
+        fuse.launch_from_gui()
 
 
     #################################################################

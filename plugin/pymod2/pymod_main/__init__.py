@@ -127,7 +127,7 @@ class PyMod(PyMod_development,
         self.pdb_list = []
 
         # Alignments.
-        self.alignments_dirname = "alignments"  # alignments_dire ctory
+        self.alignments_dirname = "alignments"  # alignments_directory
         self.alignments_files_names = "alignment"
         self.alignment_count = 0
         self.new_clusters_counter = 0
@@ -563,6 +563,7 @@ class PyMod(PyMod_development,
         self.psipred_dirpath = os.path.join(self.current_project_dirpath, self.psipred_dirname)
         self.similarity_searches_dirpath = os.path.join(self.current_project_dirpath, self.similarity_searches_dirname)
         self.temp_directory_dirpath = os.path.join(self.current_project_dirpath, self.temp_directory_name)
+        self.domainanalysis_dirpath = os.path.join(self.current_project_dirpath, 'DomainAnalysis')
 
         self.create_project_subdirectories()
 
@@ -586,7 +587,7 @@ class PyMod(PyMod_development,
         for single_dirpath in (
                 self.alignments_dirpath, self.images_dirpath, self.images_dirpath, self.models_dirpath,
                 self.structures_dirpath,
-                self.psipred_dirpath, self.similarity_searches_dirpath, self.temp_directory_dirpath):
+                self.psipred_dirpath, self.similarity_searches_dirpath, self.temp_directory_dirpath, self.domainanalysis_dirpath):
             try:
                 os.mkdir(single_dirpath)
             except:

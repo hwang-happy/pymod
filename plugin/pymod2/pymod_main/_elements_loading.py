@@ -9,8 +9,7 @@ from Bio import SeqIO
 from pymod_lib.pymod_gui import shared_components
 from pymod_lib import pymod_structure
 from pymod_lib import pymod_vars
-from pymod_lib import pymod_element as pmel
-from pymod_lib import pymod_protocols as pmptc
+from pymod_lib.pymod_protocols import structural_databases_protocols
 from pymod_lib.pymod_seq import seq_manipulation as pmsm
 
 from pymod_lib.pymod_exceptions import PyModInvalidFile
@@ -242,83 +241,80 @@ class PyMod_elements_loading(object):
                                                     submit_command = self.split_seq_offset_window_state)
 
     def split_seq_offset_window_state(self):
-        print self.split_seq_offset_window.TEntry1.get(), self.split_seq_offset_window.TEntry2.get()
-        nterm = int(self.split_seq_offset_window.TEntry1.get()[:])
-        cterm = int(self.split_seq_offset_window.TEntry2.get()[:])
-        align = self.split_seq_offset_window.alignseq_var.get()
+        # print self.split_seq_offset_window.TEntry1.get(), self.split_seq_offset_window.TEntry2.get()
+        offset_nterm_cterm = int(self.split_seq_offset_window.TEntry1.get()[:])
+        # nterm = int(self.split_seq_offset_window.TEntry1.get()[:])
+        # cterm = int(self.split_seq_offset_window.TEntry2.get()[:])
+        #align = self.split_seq_offset_window.alignseq_var.get()
         query = self.split_seq_offset_window.pymod_element
-        self.split_sequence_into_domains(query, nterm, cterm, align)
+        self.split_sequence_into_domains(query, offset_nterm_cterm)
         self.split_seq_offset_window.destroy()
 
 
-    def align_single_subsequences_with_default_clustal(self):
-        self.launch_alignment_from_the_main_menu('clustalw', "regular")
+    # def align_single_subsequences_with_default_clustal(self):
+    #     self.launch_alignment_from_the_main_menu('clustalw', "regular")
 
 
-    def split_sequence_into_domains(self, sequence_element, n_term_offset=20, c_term_offset=20, align=False):
+    def split_sequence_into_domains(self, sequence_element, n_c_term_offset=40):
 
         domains_list = [f for f in sequence_element.feature_list if f.type_of_feature == 'domain']
 
+        splitted_element_list = []
+        lines_to_write = ['mother\t'+sequence_element.my_sequence+'\n', 'offset\t'+str(n_c_term_offset)+'\n']
+
         for domain in domains_list:
-            new_startindex = max(0, domain.start-(n_term_offset+1))
-            new_endindex = min(len(sequence_element.my_sequence), domain.end+c_term_offset)
+
+            # preparing the lines for the tmp file
+            line_str = 'dom___'+domain.name+'\t'+str(domain.start-1)+'\t'+str(domain.end)+'\n'
+            lines_to_write.append(line_str)
+
+            # splitting into pymod
+            new_startindex = max(0, domain.start-(n_c_term_offset+1))
+            new_endindex = min(len(sequence_element.my_sequence), domain.end+n_c_term_offset)
             #print new_startindex, new_endindex
             new_seq = sequence_element.my_sequence[new_startindex:new_endindex]
 
-            # duplicated_element = self.pymod.duplicate_sequence(elem)
-            # #duplicated_element.feature_list = elem.feature_list[:]
-            # #duplicated_element.annotations = elem.annotations.copy()
-            #
-            # #duplicated_element.add_domain_feature(domain)
-            # for r_ix in range(len(duplicated_element.residues)):
-            #     if r_ix in range(0, new_startindex) or r_ix in range(new_endindex, len(elem.my_sequence)):
-            #         duplicated_element.residues[r_ix] = PyMod_heteroresidue(three_letter_code='GAP', one_letter_code='-', index=r_ix, seq_index=None)
-            #     # elif r_ix in range(domain.start, domain.end):
-            #     #     residue = duplicated_element.residues[r_ix]
-            #     #     residue.index = r_ix
-            #     #     residue.seq_index = r_ix - new_startindex
-            #     #     residue.domain = domain
-            #     # elif r_ix in range(new_startindex, domain.start) or r_ix in range(domain.end, new_endindex):
-            #     #     residue = duplicated_element.residues[r_ix]
-            #     #     residue.index = r_ix
-            #     #     residue.seq_index = r_ix - new_startindex
-            #
-            #
-            # # duplicated_element.my_sequence = gaps1+new_seq+gaps2
-            # # duplicated_element.set_residues_from_sequence()
-            # duplicated_element.update_residues_information()
-            # # duplicated_element.set_sequence_from_residues()
-            #
-            # print ''.join([r.one_letter_code for r in duplicated_element.residues])
-            # print 'index: ', duplicated_element.residues[0].index
-            # print 'seq index: ', duplicated_element.residues[0].seq_index
-            #
-            # #print duplicated_element.feature_list
-            # self.pymod.add_element_to_pymod(duplicated_element)
-            #
-
             my_el = self.build_pymod_element_from_args(domain.name, new_seq)
+            my_el.parent_seq = sequence_element
+            my_el.parent_seq_residues = [r for r in sequence_element.residues if new_startindex <= r.index < new_endindex]
+
+            #print [r.one_letter_code+' '+str(r.index) for r in my_el.parent_seq_residues]
+            lenparent = len(my_el.parent_seq_residues)
+            len_new = len(my_el.residues)
+            #print lenparent, len_new
+            if lenparent == len_new:
+                for r_ix in range(len_new):
+                    res = my_el.residues[r_ix]
+                    res.parent_seq_index = my_el.parent_seq_residues[r_ix].index
+                    #print res.one_letter_code, res.index, res.parent_seq_index
 
             domcopy = copy.deepcopy(domain)
+            domcopy.parent_seq_start = domain.start
+            domcopy.parent_seq_end = domain.end
             domcopy.start -= new_startindex
             domcopy.end -= new_startindex
+            domcopy.offset = n_c_term_offset
 
             my_el.add_domain_feature(domcopy)
 
-            # for d in my_el.__dict__.keys():
-            #     if d != 'residues':
-            #         print d, my_el.__dict__[d]
-
             self.add_element_to_pymod(my_el)
+            splitted_element_list.append(my_el)
             self.main_window.color_selection("single", my_el, "domains")
+            #print my_el.parent.feature_list
             self.main_window.gridder()
 
-            # if align:
-            #     self.main_window.select_element(my_el)
-            #     self.align_single_subsequences_with_default_clustal()
-            #     self.main_window.deselect_element(my_el)
-            #
-            # self.main_window.gridder()
+
+        # writing 'domainanalysis' file
+        tmp_filename = 'domainanalysis.pmd'
+        f = open(tmp_filename, 'w')
+        f.writelines(lines_to_write)
+        f.close()
+
+
+
+        sequence_element.domain_children_array = splitted_element_list
+        # sequence_element.domain_children_array.append(splitted_element_list)
+        #print "CHILDREN ARRAY:", sequence_element.domain_children_array
 
 
 
@@ -356,7 +352,7 @@ class PyMod_elements_loading(object):
     def transfer_alignment(self, alignment_element):
         """
         Changes the sequences of the elements contained in a PyMod cluster according to the
-        information presente in an externally supplied file (chosen by users through a file diaolog)
+        information present in an externally supplied file (chosen by users through a file dialog)
         containing the same sequences aligned in a different way. Right now it supports transfer
         only for sequences having the exactly same sequences in PyMod and in the external alignment.
         """
@@ -440,7 +436,7 @@ class PyMod_elements_loading(object):
     #################################################################
 
     def fetch_pdb_files(self, mode, target_selection):
-        fp = pmptc.structural_databases_protocols.Fetch_structure_file(self)
+        fp = structural_databases_protocols.Fetch_structure_file(self)
         fp.initialize_from_gui(mode, target_selection)
         fp.launch_from_gui()
 
@@ -449,7 +445,7 @@ class PyMod_elements_loading(object):
         """
         Launched when users press the 'Associate 3D Structure' from the leeft popup menu.
         """
-        a = pmptc.structural_databases_protocols.Associate_structure(self, target_element)
+        a = structural_databases_protocols.Associate_structure(self, target_element)
         a.launch_from_gui()
 
 

@@ -8,8 +8,6 @@ import random
 import sys
 
 
-
-
 class PyMod_development(object):
 
     ###############################################################################################
@@ -29,9 +27,11 @@ class PyMod_development(object):
             if sys.platform == 'win32':
                 root = 'C:\\Users\\Maria Giulia\\Dropbox'
             elif sys.platform == 'darwin':
-                root = '/Users/MariaGiulia/Desktop/'
+                #root = '/Users/MariaGiulia/Desktop/'
+                root = '/Users/mariagiulia/Dropbox/'
             else:
-                root = '/home/mariagiulia/Dropbox/'
+                # root = '/home/mariagiulia/Dropbox/' # LAB
+                root = '/media/psf/Dropbox'
             TESTSET = os.path.join(root, *relative_testset_pathlist)
             return TESTSET
 
@@ -110,33 +110,53 @@ class PyMod_development(object):
             # self.open_structure_file(os.path.join(self.seqs_dir,"modeling/pax/3cmy_pax.pdb"))
             # self.open_sequence_file(os.path.join(self.seqs_dir,"modeling/pax/pax6.fasta"))
 
-        try:
-            self.testset_dir = get_mg_testfolder() #MG CODE # cambiato il path del testset
+        # try:
+        # self.testset_dir = get_mg_testfolder() #MG CODE # cambiato il path del testset
+        #
+        # if os.path.isdir(self.testset_dir):
+        #     print ""
+        #     print "# Loading testset", self.testset_dir
+        #     sys.path.append(self.testset_dir)
+        #     print sys.path
+        #     import mg_test #MG CODE
+        #
+        #
+        # def get_multiple_random_seqfasta():
+        #     seqlist = []
+        #     while (len(seqlist) < 4):
+        #         s = mg_test.test_fasta()
+        #         if s not in seqlist:
+        #             seqlist.append(s)
+        #     return seqlist
 
-            if os.path.isdir(self.testset_dir):
-                print ""
-                print "# Loading testset", self.testset_dir
-                sys.path.append(self.testset_dir)
-                import mg_test #MG CODE
+        # self.seq_fasta = mg_test.test_fasta('P30487') # una sequenza
+        # el = self.open_sequence_file(self.seq_fasta)
 
-            def get_multiple_random_seqfasta():
-                seqlist = []
-                while (len(seqlist) < 4):
-                    s = mg_test.test_fasta()
-                    if s not in seqlist:
-                        seqlist.append(s)
-                return seqlist
+        # seqfilepath = '/Users/mariagiulia/Dropbox/Pymodproject/tesipymod/allineamenti/LRP5/075197.fasta'
+        # self.open_sequence_file(seqfilepath)
 
-            self.seq_fasta = mg_test.test_fasta() # una sequenza
+        self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'P30487', 'uniprot_seq.fasta') # una sequenza
+        el = self.open_sequence_file(self.seq_fasta)
+
+        print "# Loading P30487"
+
+        ali_dirpath = os.path.join(get_mg_testfolder(), "TESTSET", "_Ali")
+        for al in ("1.fasta", "2.fasta", "3.fasta"):
+            alipath = os.path.join(ali_dirpath, al)
+            if os.path.exists(alipath):
+                self.build_cluster_from_alignment_file(alipath)
+                print "# Loading", al
+
             #self.seq_fasta_lst = get_multiple_random_seqfasta() # una lista di 4 seq fasta
-            self.seq_fasta_lst = mg_test.get_all_test_fasta() # tutto il testset
+            #self.seq_fasta_lst = mg_test.get_all_test_fasta() # tutto il testset
 
-            if os.path.exists(self.seq_fasta_lst[0]):
+            #if os.path.exists(self.seq_fasta_lst[0]):
                 #self.open_sequence_file(self.seq_fasta) # apre una sequenza
-                for i in self.seq_fasta_lst:        # ciclo che apre 4 sequenze
-                    self.open_sequence_file(i)
-        except:
-            pass
+            #    for i in self.seq_fasta_lst:        # ciclo che apre 4 sequenze
+            #        self.open_sequence_file(i)
+        # except Exception:
+        #     print Exception
+        #     pass
 
         #################### end of MG code #######################
 

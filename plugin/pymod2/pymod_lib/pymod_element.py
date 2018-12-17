@@ -38,6 +38,16 @@ class PyMod_element(object):
         self.mother = None
         self.list_of_children = []
 
+        self.parent_seq = None
+        # It is not the same of 'mother'. This attribute is only present when the
+        # Element is created from a longer sequence splitted into domains.
+        self.parent_seq_residues = self.parent_seq.residues if self.parent_seq else []
+        self.domain_children_array = []
+        # It is not the same of 'list_of_children'. This attribute is only present when the
+        # Element is splitted into domains.
+        # User can split many times a sequence, with differents offsets,
+        # but this list will store only the last.
+
         self.blast_query = False
         self.lead = False
         self.bridge = False
@@ -101,6 +111,10 @@ class PyMod_element(object):
     #################################################################
     # Methods for managing PyMod clusters.                          #
     #################################################################
+
+    def __repr__(self):
+        return self.my_header+' '+self.__class__.__name__
+
 
     def is_cluster(self):
         return self.cluster
@@ -298,9 +312,6 @@ class PyMod_cluster_element(PyMod_element):
         seq_manipulation.adjust_aligned_elements_length(self.get_children())
 
 
-class PyMod_root_element(PyMod_cluster_element):
-    pass
-
 
 # TODO: remove.
 # class Alignment:
@@ -403,6 +414,7 @@ class PyMod_sequence_element(PyMod_element):
         self.feature_list = []
         for r in self.residues:
             r.domain = None
+            #r.parent_seq_index = None
 
     def set_residues_from_sequence(self):
         self.residues = []
@@ -550,6 +562,13 @@ class PyMod_sequence_element(PyMod_element):
             if res.db_index == db_index:
                 return res
         raise Exception("No residue with db_index '%s' found." % db_index)
+
+    def get_residue_by_alignment_position(self, ali_position):
+        for res in self.residues:
+            if res.get_id_in_aligned_sequence() == ali_position:
+                return res
+        raise Exception("No residue found in '%s'." % ali_position)
+
 
     def get_residue_seq_id_from_db_id(self, db_index):
         res = self.get_residue_by_db_index(db_index)
@@ -746,6 +765,12 @@ class PyMod_sequence_element(PyMod_element):
         return isinstance(self, PyMod_model_element)
 
 
+
+
+class PyMod_root_element(PyMod_cluster_element):
+    pass
+
+
 class PyMod_model_element(PyMod_sequence_element):
 
     def __init__(self, model_root_name, **configs):
@@ -893,6 +918,8 @@ class PyMod_residue(object):
         self.scr_score = None
         self.domain = None
 
+    def __repr__(self):
+        return self.one_letter_code+'__'+str(self.index)
 
     def is_polymer_residue(self): # TODO: rename this to something more clear.
         """
@@ -972,6 +999,8 @@ class Element_feature():
         self.name = name
         self.type_of_feature = type_of_feature
         self.description = description
+        self.parent_seq_start = None
+        self.parent_seq_end = None
 
     def __repr__(self):
         return str(self.__dict__)
@@ -993,6 +1022,7 @@ class Domain_Feature(Element_feature):
         self.domain_color = color
         self.evalue = evalue
         self.element = element
+        self.offset = None # symmetric, nterm offset and cterm offset if the seq is splitted into domains
         if self.element:
             self.sequence = self.element.my_sequence[int(start)-1:int(end)]
         else:

@@ -1,4 +1,4 @@
-import Bio
+import Bio.pairwise2
 import re
 from pymod_lib import pymod_vars
 

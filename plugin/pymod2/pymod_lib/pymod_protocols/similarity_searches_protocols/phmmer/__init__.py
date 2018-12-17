@@ -26,7 +26,14 @@ class PHMMER_search(Generic_BLAST_search):
 
 
     def check_blast_program(self):
-        self.databases_directories_list = self.build_hmmer_db_list()
+        db_dirpath = self.pymod.hmmer_tool["database_dir_path"].get_value()
+        if db_dirpath and os.path.exists(db_dirpath):
+            self.databases_directories_list = self.build_hmmer_db_list()
+        else:
+            title = "Database Error"
+            message = "The default database directory is missing. Please set one in the Tools > Options menu."
+            self.pymod.show_error_message(title, message)
+            return False
         # If performing a PHMMER search, check if PHMMER is installed.
         if not self.pymod.hmmer_tool["exe_dir_path"].path_exists():
             self.pymod.hmmer_tool.exe_not_found()

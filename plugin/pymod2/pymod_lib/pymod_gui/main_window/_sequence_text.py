@@ -152,6 +152,7 @@ class Sequence_text(Text, PyMod_main_window_mixin):
             if not self.is_current_position_indel():
                 highlighted_residue = self.get_highlighted_residue()
                 residue_messagebar_text = "%s %s" % (highlighted_residue.three_letter_code, highlighted_residue.db_index)
+
                 if self.pymod_element.is_child():
                     residue_messagebar_text += " - %s" % self.get_alignment_position_text()
             # For indels.
@@ -162,6 +163,7 @@ class Sequence_text(Text, PyMod_main_window_mixin):
             residue_messagebar_text = self.get_alignment_position_text()
 
         self.residue_bar.helpmessage(residue_messagebar_text)
+
 
         #-------------------------------------------
         # Updates the 'Sequence' message bar text. -

@@ -19,7 +19,8 @@ class PyMod_elements_interactions(object):
         """
         Dynamically builds the class of the PyMod element.
         """
-        return type("Dynamic_element", (PyMod_element_GUI, base_class), {})(*args, **configs)
+        #return type("Dynamic_element", (PyMod_element_GUI, base_class), {})(*args, **configs)
+        return type(base_class.__name__, (PyMod_element_GUI, base_class), {})(*args, **configs)
 
 
     def build_pymod_element_from_args(self, sequence_name, sequence):
@@ -32,6 +33,7 @@ class PyMod_elements_interactions(object):
         to the it.
         """
         new_element = self.build_pymod_element(PyMod_sequence_element, str(seqrecord.seq), seqrecord.id, description=seqrecord.description)
+        #print new_element
         return new_element
 
 
@@ -166,6 +168,7 @@ class PyMod_elements_interactions(object):
         # Add the children, if some were supplied in the argument.
         if child_elements != []:
             cluster_element.add_children(child_elements)
+            #print cluster_element.get_children()
             # Computes the stars of the new alignment element.
             if update_stars:
                 cluster_element.update_stars()
