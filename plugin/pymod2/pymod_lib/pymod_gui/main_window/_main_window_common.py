@@ -101,6 +101,7 @@ class PyMod_main_window_mixin:
         if update_menus:
             self.build_alignment_submenu()
             self.build_models_submenu()
+            self.build_domains_submenu()
 
         t2 = time.time()                 # TEST.
         print "Gridded in: %s" % (t2-t1) # TEST.

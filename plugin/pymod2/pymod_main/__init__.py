@@ -155,6 +155,10 @@ class PyMod(PyMod_development,
         self.temp_database_directory_name = "db_temp"
         self.blast_cluster_counter = 0
 
+        # Domain analysis.
+        self.active_domain_analysis_dict = {}
+        self.active_domain_analysis_list = []
+
         # Gets the home directory of the user.
         self.home_directory = pmos.get_home_dir()
         self.current_project_name = None

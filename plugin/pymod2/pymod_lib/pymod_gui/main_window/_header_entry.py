@@ -251,9 +251,13 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             self.sequence_menu.add_separator()
         self.sequence_menu.add_command(label="Duplicate Sequence",command=self.duplicate_sequence_from_the_left_pane)
         self.sequence_menu.add_command(label="Delete Sequence", command=self.delete_sequence_from_the_left_pane)
-        if self.can_be_colored_by_domain(self.pymod_element):
-            self.sequence_menu.add_separator()
-            self.sequence_menu.add_command(label="Split Sequence into Domains",command=self.split_seq_command)
+        # if self.can_be_colored_by_domain(self.pymod_element):
+        #     self.sequence_menu.add_separator()
+        #     try:
+        #         active_protocol_for_element = self.pymod.active_domain_analysis_dict[self.pymod_element]
+        #     except:
+        #         pass
+        #     self.sequence_menu.add_command(label="Split Sequence into Domains",command=self.split_seq_command)
 
         self.header_popup_menu.add_cascade(menu=self.sequence_menu, label="Sequence")
 
@@ -619,8 +623,8 @@ class Header_entry(Entry, PyMod_main_window_mixin):
         raise Exception("TODO.")
 
 
-    def split_seq_command(self):
-        self.pymod.show_split_seq_offset_window(self.pymod_element)
+    # def split_seq_command(self):
+    #     self.pymod.show_split_seq_offset_window(self.pymod_element)
 
     #------------------------------------------------
     # Build new sequences and delete old sequences. -

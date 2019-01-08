@@ -617,39 +617,6 @@ class Edit_sequence_window(Raw_sequence_window):
         self.textarea.insert(END, self.pymod_element.my_sequence)
 
 
-class Split_seq_offset_window(PyMod_tool_window):
-
-    def __init__(self, parent, pymod_element, *args, **configs):
-
-        PyMod_tool_window.__init__(self, parent, *args, **configs)
-
-        self.pymod_element = pymod_element
-
-        self.geometry("400x250")
-
-        self.TEntry1 = PyMod_entryfield(self.midframe,
-            # label_text = "N-Term offset",
-            label_text = "N-Term and C-Term offset",
-            label_style = label_style_1,
-            value = 40,
-            validate = {'validator' : 'integer', 'min' : 0, 'max' : 1000} )
-        self.TEntry1.grid(row=1)
-
-        # self.TEntry2 = PyMod_entryfield(self.midframe,
-        #     label_text = "C-Term offset",
-        #     label_style = label_style_1,
-        #     value = 20,
-        #     validate = {'validator' : 'integer', 'min' : 0, 'max' : 1000} )
-        # self.TEntry2.grid(row=2)
-
-        self.add_widget_to_align(self.TEntry1)
-        # self.add_widget_to_align(self.TEntry2)
-
-        self.add_widget_to_validate(self.TEntry1)
-        # self.add_widget_to_validate(self.TEntry2)
-
-        self.align_widgets()
-
 
 
 class Import_from_pymol_window(PyMod_tool_window):

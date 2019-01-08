@@ -22,10 +22,11 @@ from pymod_lib.pymod_protocols.similarity_searches_protocols.phmmer import PHMME
 from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment, Clustalw_profile_alignment
 
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMPO_analysis
+from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.weblogo import WebLogo_analysis
+from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.espript import ESPript_analysis
 
 #MG code
-from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import Domain_search_protocol_launcher
-from pymod_lib.pymod_protocols.alignment_protocols.fuse_alignments.fuse_alignments_with_centerstar import Fuse_protocol_launcher
+from pymod_lib.pymod_protocols.domain_analysis_protocols import DomainAnalysisProtocol, InvalidSelectionError
 
 class PyMod_main_menu_commands(object):
 
@@ -255,7 +256,23 @@ class PyMod_main_menu_commands(object):
         hmmer_search = PHMMER_search(self, "phmmer", output_directory=self.similarity_searches_dirpath)
         hmmer_search.launch_from_gui()
 
-        ###############################################################################################
+    ###############################################################################################
+    # DOMAIN ANALYSIS                                                                             #
+    ###############################################################################################
+
+    def launch_domain_analysis(self):
+        try:
+            dom_an = DomainAnalysisProtocol(self)
+        except InvalidSelectionError:
+            return
+        dom_an.launch_from_gui()
+
+    def launch_splitting_protocol(self, domainanalysis_root_protocol):
+        pymod_element = domainanalysis_root_protocol.get_pymod_element()
+        print pymod_element
+
+
+    ###############################################################################################
     # ALIGNMENT BUILDING.                                                                         #
     ###############################################################################################
 
@@ -431,27 +448,21 @@ class PyMod_main_menu_commands(object):
         campo = CAMPO_analysis(self, "campo", pymod_cluster)
         campo.launch_from_gui()
 
-    def launch_scr_find_from_main_menu(self, pymod_cluster):
-        reload(pmptc.evolutionary_analysis_protocols)
-        scr_find = pmptc.evolutionary_analysis_protocols.scr_find.SCR_FIND_analysis(self, pymod_cluster)
-        scr_find.launch_from_gui()
-
+    # def launch_scr_find_from_main_menu(self, pymod_cluster):
+    #     reload(evolutionary_analysis_protocols)
+    #     scr_find = evolutionary_analysis_protocols.scr_find.SCR_FIND_analysis(self, pymod_cluster)
+    #     scr_find.launch_from_gui()
+    #
 
     def launch_weblogo_from_main_menu(self, pymod_cluster):
-        weblogo = pmptc.evolutionary_analysis_protocols.weblogo.WebLogo_analysis(self, pymod_cluster)
+        weblogo = WebLogo_analysis(self, "WebLogo", pymod_cluster)
         weblogo.launch_from_gui()
 
 
     def launch_espript_from_main_menu(self, pymod_cluster):
-        espript = pmptc.evolutionary_analysis_protocols.espript.ESPript_analysis(self, pymod_cluster)
+        espript = ESPript_analysis(self, "ESPript", pymod_cluster)
         espript.launch_from_gui()
 
-    def launch_alignment_fusion_from_mainmenu(self):
-        #pass
-        #clusters = self.get_cluster_elements()
-        #print [c.my_header for c in clusters]
-        fuse = Fuse_protocol_launcher(self)
-        fuse.launch_from_gui()
 
 
     #################################################################
@@ -596,7 +607,7 @@ class PyMod_main_menu_commands(object):
         Called when the users clicks on the "Build Tree from Alignment" voice in the Alignments
         menu.
         """
-        tree_building = pmptc.evolutionary_analysis_protocols.tree_building.Tree_building(self, alignment_element)
+        tree_building = evolutionary_analysis_protocols.tree_building.Tree_building(self, alignment_element)
         tree_building.launch_from_gui()
 
 
@@ -768,8 +779,9 @@ class PyMod_main_menu_commands(object):
         #     self.show_error_message("Update Failed", update_results[1])
 
 
-
     def show_hmmer_window(self):
-        #hmmer_protocol = Search_parsing_protocol(self) #0503
-        hmmer_protocol = Domain_search_protocol_launcher(self)
-        hmmer_protocol.launch_from_gui()
+        # hmmer_protocol = Domain_search_protocol_launcher(self)
+        # hmmer_protocol.launch_from_gui()
+        hmmer_protocol = DomainAnalysisProtocol(self)
+        hmmer_protocol.run_hmmscan_search()
+

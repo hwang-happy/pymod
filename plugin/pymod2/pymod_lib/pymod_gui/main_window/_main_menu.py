@@ -52,11 +52,10 @@ class PyMod_main_window_main_menu(object):
 
         self.tools_menu = Menu(self.menubar, tearoff=0)
 
-
-        # Domain parsing tools.
-        self.domain_menu = Menu(self.tools_menu, tearoff = 0)
-        self.tools_menu.add_cascade(label = "Domain Search", menu = self.domain_menu)
-        self.domain_menu.add_command(label = "HMMSCAN", command = self.pymod.show_hmmer_window) #self.pymod.superpose_from_main_menu)
+        # Domain tools.
+        self.searchdomain_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label="Domain Analysis", menu=self.searchdomain_menu)
+        self.searchdomain_menu.add_command(label="HMMSCAN", command=self.pymod.launch_domain_analysis)
 
         # Database search for homologous sequences.
         self.database_search_menu = Menu(self.tools_menu, tearoff=0)
@@ -128,6 +127,16 @@ class PyMod_main_window_main_menu(object):
         # Adds the "Alignments" menu to the main menu
         self.menubar.add_cascade(label = "Models", menu = self.models_menu)
 
+        #-----------------
+        # "Domains" menu. -
+        #-----------------
+
+        self.domains_menu = Menu(self.menubar, tearoff = 0)
+        # When the plugin is started there are no domains.
+        self.build_domains_submenu()
+        # Adds the "Alignments" menu to the main menu
+        self.menubar.add_cascade(label = "Domains", menu = self.domains_menu)
+
         #--------------------
         # "Selection" menu. -
         #--------------------
@@ -192,16 +201,6 @@ class PyMod_main_window_main_menu(object):
         self.help_menu.add_separator()
         self.help_menu.add_command(label = "Check for PyMod Updates", command = self.pymod.launch_pymod_update)
 
-        # ########## MG CODE ############ #TODO DEVELOPMENT
-        # def recompileall():
-        #     import compileall
-        #     pathlib = "/Users/mariagiulia/Dropbox/Pymodproject/newclasses-mg/plugin/pymod2/pymod_lib"
-        #     compileall.compile_dir(pathlib, force=1)
-        # self.recompile_menu = Menu(self.menubar, tearoff = 0)
-        # self.menubar.add_cascade(label = "Restart", menu = self.recompile_menu)
-        # self.recompile_menu.add_command(label = "Recompile", command = recompileall)
-        # ########## END OF MG CODE ############
-
         self.config(menu = self.menubar)
 
 
@@ -253,18 +252,15 @@ class PyMod_main_window_main_menu(object):
                 # if self.pymod.all_sequences_have_structure(): # alignment_element.algorithm in pmdt.can_use_scr_find:
                 #     evolutionary_submenu.add_command(label = "SCR_FIND", command = lambda e=alignment_element: self.pymod.launch_scr_find_from_main_menu(e))
 
-                # # Render alignment.
-                # render_submenu = Menu(alignment_submenu, tearoff = 0)
-                # alignment_submenu.add_cascade(label = "Render Alignment", menu = render_submenu)
-                # render_submenu.add_command(label = "Generate Logo through WebLogo 3", command = lambda e=alignment_element: self.pymod.launch_weblogo_from_main_menu(e))
-                # render_submenu.add_command(label = "Launch ESPript in Web Browser", command = lambda e=alignment_element: self.pymod.launch_espript_from_main_menu(e))
+                # Render alignment.
+                render_submenu = Menu(alignment_submenu, tearoff = 0)
+                alignment_submenu.add_cascade(label = "Render Alignment", menu = render_submenu)
+                render_submenu.add_command(label = "Generate Logo through WebLogo 3", command = lambda e=alignment_element: self.pymod.launch_weblogo_from_main_menu(e))
+                render_submenu.add_command(label = "Launch ESPript in Web Browser", command = lambda e=alignment_element: self.pymod.launch_espript_from_main_menu(e))
 
                 # Adds the alignment submenu to the PyMod main menu.
                 label_text = alignment_element.my_header
                 self.alignments_menu.add_cascade(label = label_text, menu = alignment_submenu)
-
-            # Fuse #TODO
-            self.alignments_menu.add_command(label = "Fuse alignments...", command = self.pymod.launch_alignment_fusion_from_mainmenu)
 
         else:
             self.alignments_menu.add_command(label = "There aren't any alignments")
@@ -302,3 +298,27 @@ class PyMod_main_window_main_menu(object):
                 self.models_menu.add_cascade(label = label_text, menu = modeling_session_submenu)
         else:
             self.models_menu.add_command(label = "There aren't any models")
+
+
+    def build_domains_submenu(self):
+        """
+        Build the "Domains" menu once there are active domain analysis protocols
+        """
+        self.domains_menu.delete(0,500)
+
+        # print self.pymod.active_domain_analysis_list
+
+        if self.pymod.active_domain_analysis_list:
+            for domain_session in self.pymod.active_domain_analysis_list:
+                domain_session._refresh()
+                domain_session_submenu = Menu(self.domains_menu, tearoff = 0)
+                domain_session_submenu.add_command(label = "Split into Domains", command = domain_session.run_split_element_into_domains)
+                domain_session_submenu.add_command(label = "Fuse", command = domain_session.run_fuse_protocol)
+
+                if domain_session.fuse_protocol:
+                    domain_session_submenu.entryconfigure(1, state='disabled')
+
+                label_text = domain_session.get_pymod_element().my_header
+                self.domains_menu.add_cascade(label=label_text, menu=domain_session_submenu)
+        else:
+            self.domains_menu.add_command(label = "There aren't domain analysis")

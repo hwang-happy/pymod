@@ -1,8 +1,7 @@
 from pymod_lib.pymod_gui.shared_components import *
 
-#from pymod_lib.pymod_protocols.similarity_searches_protocols.pfam_hmmer import PFAM_parsing_protocol, Hmmer_parsing_protocol
 import pymod_lib.pymod_vars as pmdt
-import pymod_lib.pymod_element as pmdel
+from pymod_lib.pymod_element_feature import DomainFeature
 
 
 class Hmmer_options_window(PyMod_tool_window):
@@ -426,7 +425,7 @@ class Hmmer_graphic(Canvas):
 
 class Hmmer_results_window(Toplevel):
 
-    def __init__(self, pfam_data, sequence_element, parent=None, **configs):
+    def __init__(self, pfam_data, sequence_element, parent=None, protocol=None, **configs):
         Toplevel.__init__(self, parent, **configs)
         #self.resizable(1,1)
         self.geometry('800x520')#('920x520') # '800x320', "920x520"
@@ -436,6 +435,7 @@ class Hmmer_results_window(Toplevel):
         self.main_frame.pack(expand = YES, fill = BOTH)
         self.query_element = sequence_element
         self.pfam_data = pfam_data
+        self.protocol = protocol
 
         self.descr_frame = Label(self.main_frame, bg='#FFFFFF')
         self.descr_frame.grid(row=0, column=0, sticky='we',)
@@ -565,7 +565,6 @@ class Hmmer_results_window(Toplevel):
 
 
     def import_results_in_pymod(self, color_sequence, color_structure):
-    #def import_results_in_pymod(self):
         self.query_element.clear_features()
         for d_index in range(len(self.pfam_data)):
             #d = self.pfam_data[d_index]
@@ -576,14 +575,14 @@ class Hmmer_results_window(Toplevel):
                 if d['selected']:
                     startindex = int(d['start'])
                     endindex = int(d['end'])
-                    new_domain = pmdel.Domain_Feature(ID=d['hsp_number_id'],
-                                                name=d_item['id'],
-                                                start=startindex,
-                                                end=endindex,
-                                                evalue=d['evalue'],
-                                                color=d_item['dom_color'], #tupla
-                                                description=d_item['desc'],
-                                                element=self.query_element)
+                    new_domain = DomainFeature(ID=d['hsp_number_id'],
+                                               name=d_item['id'],
+                                               start=startindex,
+                                               end=endindex,
+                                               evalue=d['evalue'],
+                                               color=d_item['dom_color'],  #tupla
+                                               description=d_item['desc'],
+                                               element=self.query_element)
                     #print new_domain.sequence
                     self.query_element.add_domain_feature(new_domain)
 
@@ -596,8 +595,14 @@ class Hmmer_results_window(Toplevel):
         if color_sequence:
             self.master.color_selection("single", self.query_element, "domains", color_in_pymol=color_structure)
 
-
         self.submit_button.config(state='disabled')
+
+        # memorizza lo stato dell'oggetto nell'oggetto di livello root,
+        # ovvero il protocollo di domain analysis che si sta occupando di questa sequenza
+        # se la ricerca e l'importazione sono andati a buon fine,
+        # chiama il metodo del gestore superiore, che si occupera' di memorizzare
+        # l'analisi dei domini di questa sequenza nella lista di analisi attive di PyMod stesso.
+        self.protocol.father_protocol.evaluate_domain_search()
         # print self.query_element.feature_list
 
 

@@ -135,17 +135,18 @@ class PyMod_development(object):
         # seqfilepath = '/Users/mariagiulia/Dropbox/Pymodproject/tesipymod/allineamenti/LRP5/075197.fasta'
         # self.open_sequence_file(seqfilepath)
 
-        self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'P30487', 'uniprot_seq.fasta') # una sequenza
-        el = self.open_sequence_file(self.seq_fasta)
-
-        print "# Loading P30487"
-
-        ali_dirpath = os.path.join(get_mg_testfolder(), "TESTSET", "_Ali")
-        for al in ("1.fasta", "2.fasta", "3.fasta"):
-            alipath = os.path.join(ali_dirpath, al)
-            if os.path.exists(alipath):
-                self.build_cluster_from_alignment_file(alipath)
-                print "# Loading", al
+        # self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'P30487', 'uniprot_seq.fasta') # una sequenza
+        # self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'Q00013', 'Q00013.fasta') # una sequenza
+        # el = self.open_sequence_file(self.seq_fasta)
+        #
+        # # print "# Loading P30487"
+        #
+        # ali_dirpath = os.path.join(get_mg_testfolder(), "TESTSET", "_Ali")
+        # for al in ("1.fasta", "2.fasta", "3.fasta"):
+        #     alipath = os.path.join(ali_dirpath, al)
+        #     if os.path.exists(alipath):
+        #         self.build_cluster_from_alignment_file(alipath)
+        #         print "# Loading", al
 
             #self.seq_fasta_lst = get_multiple_random_seqfasta() # una lista di 4 seq fasta
             #self.seq_fasta_lst = mg_test.get_all_test_fasta() # tutto il testset
