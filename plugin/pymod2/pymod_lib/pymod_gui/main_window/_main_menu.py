@@ -94,10 +94,10 @@ class PyMod_main_window_main_menu(object):
         # self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
         # self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
 
-        # # Modeling.
-        # self.modeling_menu = Menu(self.tools_menu, tearoff = 0)
-        # self.tools_menu.add_cascade(label = "Modeling", menu = self.modeling_menu)
-        # self.modeling_menu.add_command(label = "MODELLER (Homology Modeling)", command = self.pymod.launch_modeller_hm_from_main_menu)
+        # Modeling.
+        self.modeling_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Modeling", menu = self.modeling_menu)
+        self.modeling_menu.add_command(label = "MODELLER (Homology Modeling)", command = self.pymod.launch_modeller_hm_from_main_menu)
         # self.modeling_menu.add_command(label = "MODELLER (Loop Refinement)", command = self.pymod.launch_modeller_lr_from_main_menu)
 
         # Options.

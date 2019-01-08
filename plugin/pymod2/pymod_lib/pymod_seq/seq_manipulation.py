@@ -1,5 +1,7 @@
-import Bio.pairwise2
 import re
+
+import Bio
+
 from pymod_lib import pymod_vars
 
 
@@ -143,8 +145,11 @@ def global_pairwise_alignment(seq1, seq2, toss_modres=False, use_matrix=False):
     If seq1 contains gaps, also aseq1 will maintain these gaps.
     """
 
+    import Bio.pairwise2
+
     if use_matrix:
         from Bio.SubsMat import MatrixInfo as matlist
+
         matrix = matlist.blosum62.copy()
         matrix.update({("X","X"):5})
         [matrix.update({("-", i):-1}) for i in "QWERTYIPASDFGHKLXCVNM"]

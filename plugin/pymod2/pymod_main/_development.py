@@ -8,11 +8,15 @@ import random
 import sys
 
 
+
+
 class PyMod_development(object):
 
     ###############################################################################################
     # TO BE REMOVED.                                                                              #
     ###############################################################################################
+
+    _developer_name = "giacomo"
 
     def _launch_default(self):
         """
@@ -20,22 +24,32 @@ class PyMod_development(object):
         'build_cluster_from_alignment_file' methods to import sequences when PyMod starts.
         """
 
-        ################ MG code ##################
+        if self._developer_name == "mg":
+            ################ MG code ##################
 
-        def get_mg_testfolder():
-            relative_testset_pathlist = ['Pymodproject', 'tesipymod']
-            if sys.platform == 'win32':
-                root = 'C:\\Users\\Maria Giulia\\Dropbox'
-            elif sys.platform == 'darwin':
-                #root = '/Users/MariaGiulia/Desktop/'
-                root = '/Users/mariagiulia/Dropbox/'
-            else:
-                # root = '/home/mariagiulia/Dropbox/' # LAB
-                root = '/media/psf/Dropbox'
-            TESTSET = os.path.join(root, *relative_testset_pathlist)
-            return TESTSET
+            def get_mg_testfolder():
+                relative_testset_pathlist = ['Pymodproject', 'tesipymod']
+                if sys.platform == 'win32':
+                    root = 'C:\\Users\\Maria Giulia\\Dropbox'
+                elif sys.platform == 'darwin':
+                    root = '/Users/MariaGiulia/Desktop/'
+                else:
+                    root = '/home/mariagiulia/Dropbox/'
+                TESTSET = os.path.join(root, *relative_testset_pathlist)
+                return TESTSET
 
-        #################### end of MG code #######################
+            #################### end of MG code #######################
+
+            try:
+                self.testset_dir = get_mg_testfolder() #MG CODE # cambiato il path del testset
+
+                if os.path.isdir(self.testset_dir):
+                    print ""
+                    print "# Loading testset", self.testset_dir
+                    sys.path.append(self.testset_dir)
+                    import mg_test #MG CODE
+            except:
+                pass
 
 
         # self.seqs_dir = r"C:\Users\Maria Giulia\Desktop"
