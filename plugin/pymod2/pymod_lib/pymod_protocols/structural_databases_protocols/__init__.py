@@ -68,20 +68,29 @@ class Fetch_structure_file(PyMod_protocol):
 
     def _get_pdb_code_from_header(self, pymod_element):
         element_header = pymod_element.my_header
-        if element_header.split("|")[2] == "pdb":
-            pdb_code = element_header.split("|")[3]
-            if element_header.split("|")[4] != "":
-                pdb_chain = element_header.split("|")[4][0]
+        if pymod_element.pdb_id:
+            code = pymod_element.pdb_id
+            if code[-2] == '_':
+                pdb_code = code[:code.rindex('_')]
+                pdb_chain = code[-1]
             else:
+                pdb_code = code
                 pdb_chain = None
-                # import_mode = "multiple-chains"
-        elif element_header.split("|")[4] == "pdb":
-            pdb_code=element_header.split("|")[5]
-            if element_header.split("|")[6][0] != "":
-                pdb_chain = element_header.split("|")[6][0]
-            else:
-                pdb_chain = None
-                # import_mode = "multiple-chains"
+        else:
+            if element_header.split("|")[2] == "pdb":
+                pdb_code = element_header.split("|")[3]
+                if element_header.split("|")[4] != "":
+                    pdb_chain = element_header.split("|")[4][0]
+                else:
+                    pdb_chain = None
+                    # import_mode = "multiple-chains"
+            elif element_header.split("|")[4] == "pdb":
+                pdb_code=element_header.split("|")[5]
+                if element_header.split("|")[6][0] != "":
+                    pdb_chain = element_header.split("|")[6][0]
+                else:
+                    pdb_chain = None
+                    # import_mode = "multiple-chains"
         return str(pdb_code), str(pdb_chain) # Unicode strings are not recognized by MODELLER.
 
 
@@ -93,7 +102,7 @@ class Fetch_structure_file(PyMod_protocol):
         pdb_code, pdb_chain_id = self._get_pdb_code_from_header(old_element)
         try:
             pdb_file_shortcut = self._fetch_structure_file(pdb_code, self.pymod.temp_directory_dirpath)
-        except ValueError: # ERRORE A CASO
+        except IOError:
             title = "Connection Error"
             message = "Can not access to the PDB database.\nPlease check your Internet access."
             self.pymod.show_error_message(title, message)
@@ -111,7 +120,7 @@ class Fetch_structure_file(PyMod_protocol):
         # Load each chain found in the PDB file where the 3D structure of the hit sequence is -
         # present. This is actually like opening a new PDB file with the                      -
         # 'open_structure_file()' method, except that in this case, the chains not            -
-        # corresponging to the hit sequence are colored in gray.                              -
+        # corresponding to the hit sequence are colored in gray.                              -
         #--------------------------------------------------------------------------------------
         elif self.import_mode == "multiple-chains":
             # Builds a 'Parsed_pdb_file' object.
@@ -231,6 +240,8 @@ class Associate_structure(PyMod_protocol):
         # crop the 3D structure.
         start_position = self.structure_chain_element.get_residue_by_index(matching_positions[0]["tc"]).db_index
         end_position = self.structure_chain_element.get_residue_by_index(matching_positions[-1]["tc"]).db_index
+        print start_position
+        print end_position
 
         #------------------------------------------------
         # Use PyMOL to build the new cropped structure. -
@@ -276,7 +287,7 @@ class Associate_structure(PyMod_protocol):
             if p != "-":
                 adc += 1
         new_sequence = "".join(new_sequence)
-        new_element_with_structure.set_sequence(new_sequence)
+        new_element_with_structure.set_sequence(new_sequence, permissive=True)
 
     def _set_options(self, pdb_file_path, chain_id):
         self.original_pdb_file_path = pdb_file_path

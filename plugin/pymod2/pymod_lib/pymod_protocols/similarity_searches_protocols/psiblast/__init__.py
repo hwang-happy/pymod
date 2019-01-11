@@ -350,6 +350,21 @@ class PSI_BLAST_options_window(BLAST_base_options_window):
         #     self.add_widget_to_align(self.use_current_pssm_rds)
         #     self.add_advanced_widget(self.use_current_pssm_rds)
 
+    #TODO togliere questi due metodi, sono duplicati. Rifare la struttura.
+    def get_blast_database_prefix(self, dbpath):
+        database_files = filter(lambda f: f != ".DS_Store", os.listdir(dbpath))
+        return os.path.commonprefix(database_files)[:-1]
+
+    def verify_valid_blast_dbdir(self, dbpath):
+        """
+        Checks if the folder specified in 'dbpath' contains a valid set of sequence database files.
+        """
+        dbprefix = self.get_blast_database_prefix(dbpath)
+        if dbprefix == "":
+            return False
+        else:
+            return True
+
 
     def choose_psiblast_db_dir(self):
         """
@@ -360,8 +375,8 @@ class PSI_BLAST_options_window(BLAST_base_options_window):
         # Lets users choose a new path.
         new_path = askdirectory(title = "Search for a BLAST database directory", initialdir=current_path, mustexist = True, parent = self)
         if new_path:
-            if pymod_os_specific.verify_valid_blast_dbdir(new_path):
-                prefix = pymod_os_specific.get_blast_database_prefix(new_path)
+            if self.verify_valid_blast_dbdir(new_path):
+                prefix = self.get_blast_database_prefix(new_path)
                 # Updates the label with the new prefix name.
                 self.choose_path_label.configure(text=prefix)
                 self.current_protocol.databases_directories_list[0]["full-path"] = new_path

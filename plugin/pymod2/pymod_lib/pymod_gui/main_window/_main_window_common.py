@@ -819,7 +819,11 @@ class PyMod_main_window_mixin:
 
     def form_domain_color_name(self, residue):
         if residue.domain:
-            return residue.domain.domain_color[0]
+            if isinstance(residue.domain, list):
+                # sovrapposizione di due domini
+                return 'teal'
+            else:
+                return residue.domain.domain_color[0]
         else:
             return 'grey70'
 

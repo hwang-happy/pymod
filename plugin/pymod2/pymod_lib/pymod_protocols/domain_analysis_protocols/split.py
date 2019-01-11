@@ -24,7 +24,7 @@ class SplitIntoDomainsProtocol(PyMod_protocol):
         self.split_seq_offset_window = SplitSeqOffsetWindow(self.pymod.main_window,
                                                     pymod_element=self._pymod_element,
                                                     title = "Offset",
-                                                    upper_frame_title = "Choose how many residues attach\nto each domain",
+                                                    upper_frame_title = "Choose how many residues append\nto each domain",
                                                     submit_command = self.split_seq_offset_window_state)
 
     def split_seq_offset_window_state(self):
@@ -49,11 +49,11 @@ class SplitIntoDomainsProtocol(PyMod_protocol):
         for domain in domains_list:
 
             # preparing the lines for the tmp file
-            line_str = 'dom___'+domain.name+'\t'+str(domain.start-1)+'\t'+str(domain.end)+'\n'
+            line_str = 'dom___'+domain.name+'\t'+str(domain.start)+'\t'+str(domain.end)+'\n'
             lines_to_write.append(line_str)
 
             # splitting into pymod
-            new_startindex = max(0, domain.start-(n_c_term_offset+1))
+            new_startindex = max(0, domain.start-(n_c_term_offset))
             new_endindex = min(len(sequence_element.my_sequence), domain.end+n_c_term_offset)
             #print new_startindex, new_endindex
             new_seq = sequence_element.my_sequence[new_startindex:new_endindex]

@@ -403,7 +403,7 @@ domain_colors_dict = { '01_limegreen': (0.5, 1.0, 0.5) ,
                         '11_violetpurple': (0.55, 0.25, 0.6) ,
                         '12_slate': (0.5, 0.5, 1.0) ,
                         '13_smudge': (0.55, 0.7, 0.4) ,
-                        '14_teal': (0.0, 0.75, 0.75) ,
+                        # '14_teal': (0.0, 0.75, 0.75) ,
                         }
 domain_color_orderedkeys = domain_colors_dict.keys()
 domain_color_orderedkeys.sort()

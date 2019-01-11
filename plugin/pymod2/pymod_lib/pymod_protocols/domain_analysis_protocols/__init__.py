@@ -74,10 +74,6 @@ class DomainAnalysisProtocol(PyMod_protocol):
         # 4. fuse
         self.fuse_protocol = None
 
-        # conferma se i tre protocolli automatizzati sono giunti a termine o sono stati interrotti per un qualunque motivo
-        self.evaluated_search_protocol = False
-        self.evaluated_split_protocol = False
-        self.evaluated_fuse_protocol = False
 
 
     def additional_initialization(self):
@@ -349,20 +345,21 @@ class DomainAnalysisProtocol(PyMod_protocol):
     def evaluate_fuse_protocol(self):
         print '\n............FUSE SUCCESSFUL............\n\n'
 
-        # carica ali fuso in pymod
+        # cancello gli split
+        for el in self._element_splits_children_list:
+            el.delete()
 
-        # creo nuovi elementi dai seqrecord dell'allineamento fuso
-        self.fused_ali_elements = [self.pymod.build_pymod_element_from_seqrecord(seqrecord) for seqrecord in self.fuse_protocol.seqrecords_list]
-        for el in self.fused_ali_elements:
-            self.pymod.add_element_to_pymod(el)
-        self.pymod.main_window.gridder()
-
-        # creo un nuovo cluster
-        self.fused_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type='alignment', algorithm='imported', child_elements=self.fused_ali_elements)
+        # # creo nuovi elementi dai seqrecord dell'allineamento fuso
+        # self.fused_ali_elements = [self.pymod.build_pymod_element_from_seqrecord(seqrecord) for seqrecord in self.fuse_protocol.seqrecords_list]
+        # for el in self.fused_ali_elements:
+        #     self.pymod.add_element_to_pymod(el)
+        # self.pymod.main_window.gridder()
+        #
+        # # creo un nuovo cluster
+        # self.fused_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type='alignment', algorithm='imported', child_elements=self.fused_ali_elements)
 
         # aggiungo la lead, che e' lo stesso elemento madre, pero' aggiornato
-        # all'interno dello stesso protocollo (metodo update_mother_element)
-        self.fused_cluster.add_child(self._pymod_element)
+        # # all'interno dello stesso protocollo (metodo update_mother_element)
+        # self.fused_cluster.add_child(self._pymod_element)
         self._pymod_element.set_as_lead()
-
         self.pymod.main_window.gridder(update_clusters=True, update_menus=True)

@@ -16,7 +16,7 @@ class PyMod_development(object):
     # TO BE REMOVED.                                                                              #
     ###############################################################################################
 
-    _developer_name = "giacomo"
+    _developer_name = "mg"
 
     def _launch_default(self):
         """
@@ -32,27 +32,13 @@ class PyMod_development(object):
                 if sys.platform == 'win32':
                     root = 'C:\\Users\\Maria Giulia\\Dropbox'
                 elif sys.platform == 'darwin':
-                    root = '/Users/MariaGiulia/Desktop/'
+                    root = '/Users/mariagiulia/Dropbox/'
                 else:
                     root = '/home/mariagiulia/Dropbox/'
                 TESTSET = os.path.join(root, *relative_testset_pathlist)
                 return TESTSET
 
             #################### end of MG code #######################
-
-            try:
-                self.testset_dir = get_mg_testfolder() #MG CODE # cambiato il path del testset
-
-                if os.path.isdir(self.testset_dir):
-                    print ""
-                    print "# Loading testset", self.testset_dir
-                    sys.path.append(self.testset_dir)
-                    import mg_test #MG CODE
-            except:
-                pass
-
-
-        # self.seqs_dir = r"C:\Users\Maria Giulia\Desktop"
 
         # if os.path.isdir(self.seqs_dir):
             # self.open_sequence_file(os.path.join(self.seqs_dir, "P0DPA7.fasta"))
@@ -151,10 +137,11 @@ class PyMod_development(object):
 
         # self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'P30487', 'uniprot_seq.fasta') # una sequenza
         # self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'Q00013', 'Q00013.fasta') # una sequenza
-        # el = self.open_sequence_file(self.seq_fasta)
-        #
-        # # print "# Loading P30487"
-        #
+        self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'Q92823', 'Q92823.fasta') # una sequenza
+        el = self.open_sequence_file(self.seq_fasta)
+
+        # print "# Loading P30487"
+
         # ali_dirpath = os.path.join(get_mg_testfolder(), "TESTSET", "_Ali")
         # for al in ("1.fasta", "2.fasta", "3.fasta"):
         #     alipath = os.path.join(ali_dirpath, al)

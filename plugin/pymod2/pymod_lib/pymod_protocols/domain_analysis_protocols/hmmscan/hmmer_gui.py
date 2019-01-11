@@ -427,18 +427,18 @@ class Hmmer_results_window(Toplevel):
 
     def __init__(self, pfam_data, sequence_element, parent=None, protocol=None, **configs):
         Toplevel.__init__(self, parent, **configs)
-        #self.resizable(1,1)
+        self.resizable(1,1)
         self.geometry('800x520')#('920x520') # '800x320', "920x520"
         self.title = "HMMER Sequence Search results"
         self.configure(background='#000000')
         self.main_frame = PyMod_frame(self)
-        self.main_frame.pack(expand = YES, fill = BOTH)
+        self.main_frame.pack(expand=YES, fill=BOTH)
         self.query_element = sequence_element
         self.pfam_data = pfam_data
         self.protocol = protocol
 
         self.descr_frame = Label(self.main_frame, bg='#FFFFFF')
-        self.descr_frame.grid(row=0, column=0, sticky='we',)
+        self.descr_frame.grid(row=0, column=0, sticky='wens',)
         if pfam_data[0].has_key('query_descr') and pfam_data[0]['query_descr']:
             querydescr = (pfam_data[0]['query_descr'][:80] + '...' if len(pfam_data[0]['query_descr'])>81 else pfam_data[0]['query_descr'])
             labelseq = sequence_element.my_header + '\n' + querydescr
@@ -463,8 +463,8 @@ class Hmmer_results_window(Toplevel):
 
         self.midframe = Pmw.ScrolledFrame(self.main_frame, hull_bg='black', frame_bg='black',
            usehullsize = 0, borderframe = 0, hscrollmode='dynamic',
-           vscrollmode='dynamic', hull_borderwidth = 0, clipper_bg='black',)
-        self.midframe.grid(row=2, column=0,  sticky='wens', )
+           vscrollmode='dynamic', hull_borderwidth = 0, clipper_bg='black',)# vertflex='elastic', horizflex='elastic')
+        self.midframe.grid(row=2, column=0,  sticky='WENS', )
         self.hmmer_output_frame = Frame(self.midframe.interior(), background='black')
         self.hmmer_output_frame.pack(expand=True, fill="both")
 
@@ -485,11 +485,18 @@ class Hmmer_results_window(Toplevel):
         self.color_square_lst = []  # all in a row
         self.domain_check_states = []   # clustered
 
+        # check if there are colors
+        counter = 2
+        while len(pfam_data) > len(self.figure.color_palette_dec):
+            self.figure.color_palette *= counter
+            self.figure.color_palette_dec *= counter
+            counter += 1
+
         # # Display the output
         for d in range(len(pfam_data)):
-
             dom_color_rgbtuple = self.figure.color_palette_dec[d]
             dom_color_hexa = self.figure.color_palette[d] #pmdt.convert_to_tkinter_rgb(dom_color_rgbtuple[1])
+
             self.pfam_data[d].update({'dom_color':dom_color_rgbtuple, 'dom_color_hexa':dom_color_hexa})
 
             new_row_index = d+1+len(self.color_square_lst)
@@ -566,6 +573,7 @@ class Hmmer_results_window(Toplevel):
 
     def import_results_in_pymod(self, color_sequence, color_structure):
         self.query_element.clear_features()
+
         for d_index in range(len(self.pfam_data)):
             #d = self.pfam_data[d_index]
             d_item = self.pfam_data[d_index] #1304
@@ -573,10 +581,11 @@ class Hmmer_results_window(Toplevel):
 
             for d in d_hsp_lst:
                 if d['selected']:
-                    startindex = int(d['start'])
-                    endindex = int(d['end'])
+                    startindex = int(d['start'])-1 # lo start originale conta da 1
+                    endindex = int(d['end'])        # qui va bene, perche' l'ultimo indice e' esclusivo
                     new_domain = DomainFeature(ID=d['hsp_number_id'],
-                                               name=d_item['id'],
+                                               # name=d_item['id'],
+                                               name=d['hsp_number_id'],
                                                start=startindex,
                                                end=endindex,
                                                evalue=d['evalue'],

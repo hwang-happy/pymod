@@ -46,6 +46,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, PyMod_window_mixin, P
         self.bind("<Control-a>", self.select_all_sequences_binding)
         self.bind("<Up>", self.press_up_key)
         self.bind("<Down>", self.press_down_key)
+        self.bind("<BackSpace>", self.delete_element_from_bksp)
 
 
     def create_main_window_frames(self):
@@ -129,6 +130,14 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, PyMod_window_mixin, P
 
     def deselect_all_sequences_binding(self, event):
         self.pymod.deselect_all_sequences()
+
+    def delete_element_from_bksp(self, event):
+        # Delete the selected sequences.
+        for element in self.pymod.get_selected_sequences():
+            element.delete()
+        # Empty cluster elements will be deleted in the 'gridder' method.
+        self.pymod.main_window.gridder(update_clusters=True, update_menus=True)
+
 
 
     ####################################

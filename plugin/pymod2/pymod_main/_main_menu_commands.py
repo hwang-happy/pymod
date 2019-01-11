@@ -299,8 +299,8 @@ class PyMod_main_menu_commands(object):
             # elif program == "salign-seq":
             #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
             # # Structural alignments.
-            # elif program == "ce":
-            #     aligment_protocol_class = pmptc.alignment_protocols.CEalign_regular_alignment
+            elif program == "ce":
+                aligment_protocol_class = pmptc.alignment_protocols.CEalign_regular_alignment
             # elif program == "salign-str":
             #     aligment_protocol_class = pmptc.alignment_protocols.salign_str.SALIGN_str_regular_alignment
 

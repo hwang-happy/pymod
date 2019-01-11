@@ -275,10 +275,12 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
             conversion_standard = [(u'name', 'id'),
                                    (u'aliL', 'length'),
                                    (u'ievalue', 'evalue'),
-                                   (u'ienv', 'start'),
-                                   (u'jenv', 'end'),
+                                   (u'ienv', 'env_start'),
+                                   (u'jenv', 'env_end'),
                                    (u'iali', 'ali_start'),
                                    (u'jali', 'ali_end'),
+                                   (u'alisqfrom', 'start'),
+                                   (u'alisqto', 'end'),
                                    (u'alihmmfrom', 'hmm_start'),
                                    (u'alihmmto', 'hmm_end'),
                                    ]
@@ -410,11 +412,11 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
                                     'bitscore': h.bitscore,
                                     'evalue': h.evalue,
                                     'evalue_cond': h.evalue_cond,
-                                    'start': int(h.env_start) + 1,
-                                    'end': h.env_end,
-                                    'ali_start': int(h.query_start) + 1,
-                                    'ali_end': h.query_end,
-                                    'hmm_start': int(h.hit_start) + 1,
+                                    'env_start': h.env_start,
+                                    'env_end': h.env_end,
+                                    'start': int(h.query_start)+1, # per compatibilita' con l'altro, che conta da 1
+                                    'end': h.query_end,
+                                    'hmm_start': h.hit_start,
                                     'hmm_end': h.hit_end, })
 
                     loc_id = parsed_output_item['id'] + '_hsp_' + str(hit.hsps.index(h)).zfill(3)

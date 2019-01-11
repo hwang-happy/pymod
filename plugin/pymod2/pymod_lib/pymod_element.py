@@ -5,6 +5,8 @@ from pymod_seq import seq_manipulation
 from pymod_seq import seq_conservation
 from pymod_residue import PyMod_standard_residue
 
+import re
+
 
 ###################################################################################################
 # PYMOD ELEMENTS.                                                                                 #
@@ -194,8 +196,9 @@ class PyMod_element(object):
 
 
     def delete(self):
-         mother = self.mother
-         mother.remove_child(self)
+        mother = self.mother
+        mother.remove_child(self)
+
 
 
     #################################################################
@@ -359,6 +362,7 @@ class PyMod_sequence_element(PyMod_element):
         #--------------------------
         self.models_count = 0
         self.loop_models_count = 0
+        self.pdb_id = None
 
         #----------------------------------------
         # Builds the residues and the sequence. -
@@ -396,18 +400,20 @@ class PyMod_sequence_element(PyMod_element):
         self.children_list = []
 
 
-    def add_domain_feature(self, domain_feature, whole_element=False):
+    def add_domain_feature(self, domain_feature):
         self.feature_list.append(domain_feature)
-        if not whole_element:
-            for r in self.residues:
-                try:
-                    if int(domain_feature.start-1) <= r.index < int(domain_feature.end):
+        for r in self.residues:
+            try:
+                if int(domain_feature.start) <= r.index < int(domain_feature.end):
+                    if r.domain:
+                        domainlist = [r.domain]
+                        domainlist.append(domain_feature)
+                        r.domain = domainlist
+                    else:
                         r.domain = domain_feature
-                except TypeError:
-                    print 'Invalid integer input for start and end position of domain'
-        else:
-            for r in self.residues:
-                r.domain = domain_feature
+            except TypeError:
+                print 'Invalid integer input for start and end position of domain'
+
 
 
     def clear_features(self):
@@ -723,6 +729,12 @@ class PyMod_sequence_element(PyMod_element):
         return bool(self.feature_list)
 
     def pdb_is_fetchable(self):
+        regex = r"^[a-zA-Z0-9]{4}[_]?[A-Z]?$"
+        match = re.findall(regex, self.my_header, re.MULTILINE)
+        print match
+        if len(match) == 1:
+            self.pdb_id = match[0]
+            return True
         try:
             if self.my_header.split("|")[2]=="pdb" or self.my_header.split("|")[4]=="pdb":
                 return True
@@ -783,7 +795,6 @@ class PyMod_model_element(PyMod_sequence_element):
 ###################################################################################################
 
 class Added_PyMod_element(object):
-# class Added_PyMod_element(PyMod_cluster_element):
     """
     A mixin class for PyMod elements storing information about the whole PyMod plugin. It extends
     their methods so that they will also control other elements of PyMod.

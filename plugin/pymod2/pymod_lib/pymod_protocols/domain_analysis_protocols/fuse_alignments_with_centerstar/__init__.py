@@ -2,8 +2,6 @@ import os.path
 import Bio.SeqIO
 import Bio.AlignIO
 import Bio.Alphabet
-# from Bio.Seq import Seq
-# from Bio.SeqRecord import SeqRecord
 from _internal_fuse import *
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol
 
@@ -52,6 +50,7 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
         self.matrixfrags = []
         self.ali_seqstrings = {self.seq_object.id: ''}
 
+
         # --------------------------------- #
         # campi ottenuti da tutto il lavoro #
         # --------------------------------- #
@@ -78,15 +77,16 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
     def get_pymod_element(self):
         return self.father_protocol.get_pymod_element()
 
-    def run(self, with_lead=False):
+    def run(self):
         self._save_ali_files()
         self._save_info_matrix_files()
         self._parse_ali_files()
         self._set_matrix_frags()
         self._update_ali_seq_strings()
         self.build_seqrecords_lists()
-        self.build_fused_ali(with_lead)
+        self.build_fused_ali()
         self.update_mother_element()
+        self.update_nonlead_elements()
 
     def _save_ali_files(self):
 
@@ -103,7 +103,8 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
             self.numprotocol = str(self.father_protocol.get_index_of_domain_protocol()).zfill(2)
             filename = self.numprotocol+'_tobefused_'+str(counter).zfill(2)+'_____'+domname
             # ali_filepath = os.path.join(self.output_directory, ali_filename+'.fasta')
-            self.pymod.save_alignment_fasta_file(filename, clusters[c].get_children(), first_element=c, custom_directory=self.output_directory)
+            self.pymod.save_alignment_fasta_file(filename, clusters[c].get_children(), first_element=c, custom_directory=self.output_directory,
+                                                 unique_indices_headers=True)
             self.ali_filenames.append(filename+'.fasta')
             counter += 1
             # print 'Done'
@@ -241,8 +242,14 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
                     iterable = fr.overlapping_ali_object
                 for s in iterable:
                     key = remove_pymod_heading_numer_from_name(s.id)
-                    if key not in self.ali_seqstrings.keys() and key not in self.dom_names:
-                        self.ali_seqstrings.update({key: ''})
+                    # if key not in self.ali_seqstrings.keys() and key not in self.dom_names:
+                    #     self.ali_seqstrings.update({key: ''})
+                    if key not in self.dom_names:
+                        self.ali_seqstrings.update({s.id: ''})
+
+                        print '\n\n*** iter primo ciclo ***\n', self.ali_seqstrings, '\n\n'
+
+        print '\n\n*********** fine iter primo ciclo **********\n', self.ali_seqstrings, '\n\n'
 
         # print ali_seqstrings
         # print '____-----____'
@@ -251,9 +258,13 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
         for fr in self.matrixfrags:
 
             len_frag = fr.fragment_length
+            print '--------------------\n', fr
 
             # tratto prima il caso in cui ci sia effettivamente un allineamento da aggiungere
             if fr.fragment_type != 'out':
+
+                print '----allineamento da aggiungere, tipo NON out----'
+
                 try:
                     # un solo allineamento
                     iterable = fr.ali_obj
@@ -268,17 +279,29 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
 
                     # se non e' la madre, si aggiorna la chiave corrispondente all'id
                     if key not in self.dom_names:
-                        new_str = self.ali_seqstrings[key] + str(s.seq)
-                        self.ali_seqstrings.update({key: new_str})
+                        # new_str = self.ali_seqstrings[key] + str(s.seq)
+                        # self.ali_seqstrings.update({key: new_str})
+                        new_str = self.ali_seqstrings[s.id] + str(s.seq)
+                        self.ali_seqstrings.update({s.id: new_str})
+
+                        print '\n\n**** iter secondo ciclo se NO madre ****\n', self.ali_seqstrings, '\n\n'
+
                     # se invece e' la madre, allora si deve aggiornare la chiave della madre
                     else:
                         new_str = self.ali_seqstrings[self.seq_object.id] + str(s.seq)
                         self.ali_seqstrings.update({self.seq_object.id: new_str})
 
+                        print '\n\n**** iter secondo ciclo se madre **********\n', self.ali_seqstrings, '\n\n'
+
+
             # se invece il frammento e' un 'out', si aggiorna solo la madre
             else:
+                print '------ tipo OUT ------'
+
                 new_str = self.ali_seqstrings[self.seq_object.id] + str(fr.reference_mother_seq)
                 self.ali_seqstrings.update({self.seq_object.id: new_str})
+
+                print '\n\n**** iter secondo ciclo se out ****\n', self.ali_seqstrings, '\n\n'
 
             # ora bisogna stare attenti ad equilibrare tutte le altre sequenze non manipolate
             # controllo sul dizionario se tutte quante sono state aggiornate e hanno la lunghezza giusta
@@ -291,12 +314,16 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
                     new_value = value + '-' * len_frag
                     self.ali_seqstrings[seqid] = new_value
 
+            print '\n\n*********** dopo il riequilibrio **********\n', self.ali_seqstrings, '\n\n'
+
             # a questo punto, posso aggiornare il counter
             counter = counter + len_frag
+            print 'COUNTER:', counter
 
-        # for k in self.ali_seqstrings.keys():
-        #     # print ''
-        #     print self.ali_seqstrings[k]
+        print "\n------- ALI SEQSTRINGS -------"
+        for k in self.ali_seqstrings.keys():
+            # print ''
+            print k, self.ali_seqstrings[k]
 
 
     def build_seqrecords_lists(self):
@@ -313,25 +340,24 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
 
 
 
-    def build_fused_ali(self, with_lead=False):
-        # l'oggetto allineamento finale, che puo' avere o no la lead a seconda di come viene creato,
-        # se con il flag 'with_lead' True o False.
-        if with_lead:
-            # prima la lead
-            self.fused_ali = MultipleSeqAlignment([self.seqrecord_lead], Bio.Alphabet.SingleLetterAlphabet())
-            # poi tutto il resto
-            self.fused_ali.extend(self.seqrecords_list)
-        else:
-            self.fused_ali = MultipleSeqAlignment(self.seqrecords_list, Bio.Alphabet.SingleLetterAlphabet())
+    def build_fused_ali(self):
+        # l'oggetto allineamento finale. quello che viene restituito non ha la lead,
+        # ma quello salvato su file si', se ci fosse bisogno di recuperarlo.
+        self.fused_ali = MultipleSeqAlignment(self.seqrecords_list, Bio.Alphabet.SingleLetterAlphabet())
 
-        # print self.fused_ali
+            # prima la lead
+        self.fused_ali_withlead = MultipleSeqAlignment([self.seqrecord_lead], Bio.Alphabet.SingleLetterAlphabet())
+            # poi tutto il resto
+        self.fused_ali_withlead.extend(self.seqrecords_list)
+
+        # salvo il file CON LA LEAD
         self.save_fused_ali_file()
 
 
     def save_fused_ali_file(self):
         fused_ali_output_filename = 'FUSED-ALI-' + str(self.seqrecord_lead.id) + '.fasta'
         self.fused_ali_output_filepath = os.path.join(self.output_directory, fused_ali_output_filename)
-        Bio.AlignIO.write(self.fused_ali, self.fused_ali_output_filepath, 'fasta')
+        Bio.AlignIO.write(self.fused_ali_withlead, self.fused_ali_output_filepath, 'fasta')
 
 
     def update_mother_element(self):
@@ -341,9 +367,47 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
         # print gapped_seq
 
         # aggiorno la sequenza
-        self.father_protocol._pymod_element.set_sequence(gapped_seq)
+        try:
+            self.father_protocol._pymod_element.set_sequence(gapped_seq)
+        except:
+            print "MADRE NON COINCIDE"
+            self.father_protocol._pymod_element.set_sequence(gapped_seq, permissive=True)
+
         self.pymod.main_window.gridder(update_clusters=True, update_elements=True)
+
+
+    def update_nonlead_elements(self):
+        # creo un dizionario di tutte le seqs
+        all_seq_list = self.pymod.get_all_sequences()
+        all_seq_dict = {}
+        for s_el in all_seq_list:
+            # all_seq_dict.update({s_el.unique_id: s_el})
+            all_seq_dict.update({s_el.my_header: s_el})
+
+        print all_seq_list
+        print '-------------'
+        print all_seq_dict
+
+        # aggiorno tutte le altre seqs
+        updated_el_seqs = [self.father_protocol._pymod_element]
+        for k in self.ali_seqstrings.keys():
+            el_to_update = all_seq_dict[k]
+            print '\nel to update\n', el_to_update
+            new_seq = self.ali_seqstrings[k]
+            print '\nnew seq\n', new_seq
+            try:
+                el_to_update.set_sequence(new_seq, permissive=False)
+            except:
+                print "NON COINCIDONO"
+                el_to_update.set_sequence(new_seq, permissive=True)
+            self.pymod.main_window.gridder(update_clusters=True, update_elements=True)
+            updated_el_seqs.append(el_to_update)
+
+        # creo un nuovo cluster
+        self.fused_cluster = self.pymod.add_new_cluster_to_pymod(cluster_type='alignment', algorithm='imported',
+                                                                 child_elements=updated_el_seqs)
+        self.pymod.main_window.gridder(update_clusters=True, update_elements=True)
+
 
         # comunico al protocollo "padre" che ho finito
         self.father_protocol.evaluate_fuse_protocol()
-

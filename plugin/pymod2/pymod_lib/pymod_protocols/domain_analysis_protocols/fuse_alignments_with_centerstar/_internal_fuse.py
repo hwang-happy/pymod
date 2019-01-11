@@ -28,8 +28,13 @@ def _create_empty_copy_of_alignment_object(alignment, len=None):
 
 
 def remove_pymod_heading_numer_from_name(namestring):
-    if namestring[0].isdigit():
-        return namestring[namestring.index('_')+1:]
+    if namestring[0].isdigit() and namestring[1] == '_':
+        try:
+            # n = namestring[namestring.index('_')+1:]
+            n = namestring[2:]
+            return n
+        except ValueError:
+            return namestring
     else:
         return namestring
 

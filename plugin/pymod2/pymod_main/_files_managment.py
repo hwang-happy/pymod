@@ -32,9 +32,12 @@ class PyMod_files_managment(object):
                                    first_element=first_element)
 
 
-    def save_alignment_fasta_file(self, file_name, aligned_elements, first_element=None, custom_directory=None):
+    def save_alignment_fasta_file(self, file_name, aligned_elements, first_element=None, custom_directory=None, unique_indices_headers=False):
         """
         Saves in the Alignments directory a .fasta alignment file containing the sequences of the
         "aligned_elements".
         """
-        self.build_sequence_file(aligned_elements, file_name, file_format="fasta", remove_indels=False, first_element=first_element, new_directory=custom_directory)
+        self.build_sequence_file(aligned_elements, file_name, file_format="fasta",
+                                 remove_indels=False, first_element=first_element,
+                                 new_directory=custom_directory,
+                                 unique_indices_headers=unique_indices_headers)
