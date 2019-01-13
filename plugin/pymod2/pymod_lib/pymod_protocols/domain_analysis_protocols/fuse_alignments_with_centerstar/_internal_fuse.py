@@ -135,9 +135,9 @@ class OverlapMatrixFragmentWithAliObject(MatrixFragment):
             # print a # e' un oggetto fragment, non ali
             for record in a.ali_obj[1:, :]: # la prima e' la lead, non va ripetuta
                 # print type(record)
-                recordnames = [remove_pymod_heading_numer_from_name(r.id) for r in self.overlapping_records_list]
+                recordnames = [(r.id) for r in self.overlapping_records_list]
                 # print recordnames
-                if remove_pymod_heading_numer_from_name(record.id) not in recordnames:
+                if (record.id) not in recordnames:
                     # print record.id
                     self.overlapping_records_list.append(record)
 

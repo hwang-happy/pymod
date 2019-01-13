@@ -21,8 +21,11 @@ from pymod_lib.pymod_protocols.similarity_searches_protocols.psiblast import PSI
 from pymod_lib.pymod_protocols.similarity_searches_protocols.phmmer import PHMMER_search
 
 from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment, Clustalw_profile_alignment
+from pymod_lib.pymod_protocols.alignment_protocols.salign_str import SALIGN_str_regular_alignment
+from pymod_lib.pymod_protocols.alignment_protocols.ce_alignment import CEalign_regular_alignment
 
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMPO_analysis
+from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.scr_find import SCR_FIND_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.weblogo import WebLogo_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.espript import ESPript_analysis
 
@@ -300,9 +303,9 @@ class PyMod_main_menu_commands(object):
             #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
             # # Structural alignments.
             elif program == "ce":
-                aligment_protocol_class = pmptc.alignment_protocols.CEalign_regular_alignment
-            # elif program == "salign-str":
-            #     aligment_protocol_class = pmptc.alignment_protocols.salign_str.SALIGN_str_regular_alignment
+                aligment_protocol_class = CEalign_regular_alignment
+            elif program == "salign-str":
+                aligment_protocol_class = SALIGN_str_regular_alignment
 
         # Profile.
         elif strategy == "profile":
@@ -450,11 +453,10 @@ class PyMod_main_menu_commands(object):
         campo = CAMPO_analysis(self, "campo", pymod_cluster)
         campo.launch_from_gui()
 
-    # def launch_scr_find_from_main_menu(self, pymod_cluster):
-    #     reload(evolutionary_analysis_protocols)
-    #     scr_find = evolutionary_analysis_protocols.scr_find.SCR_FIND_analysis(self, pymod_cluster)
-    #     scr_find.launch_from_gui()
-    #
+    def launch_scr_find_from_main_menu(self, pymod_cluster):
+        # reload(evolutionary_analysis_protocols)
+        scr_find = SCR_FIND_analysis(self, "scr_find", pymod_cluster)
+        scr_find.launch_from_gui()
 
     def launch_weblogo_from_main_menu(self, pymod_cluster):
         weblogo = WebLogo_analysis(self, "WebLogo", pymod_cluster)
@@ -786,4 +788,3 @@ class PyMod_main_menu_commands(object):
         # hmmer_protocol.launch_from_gui()
         hmmer_protocol = DomainAnalysisProtocol(self)
         hmmer_protocol.run_hmmscan_search()
-

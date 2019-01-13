@@ -160,6 +160,16 @@ class PyMod_development(object):
         #     print Exception
         #     pass
 
+
+        #@@@@@@@
+        # SCR_FIND.
+
+        # scr_find_dirpath = "/home/mariagiulia/Desktop/scr_find_test"
+        # for fn in os.listdir(scr_find_dirpath):
+        #     self.open_structure_file(os.path.join(scr_find_dirpath, fn))
+
+        #@@@@@@@
+
         #################### end of MG code #######################
 
 

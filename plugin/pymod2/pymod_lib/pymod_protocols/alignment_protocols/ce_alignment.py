@@ -1,6 +1,8 @@
 import Bio.PDB # Only needed for old CE-alignment implementation.
 import pymol
 from pymol import cmd, stored, selector
+import pymod_lib.pymod_os_specific as pmos
+from _base_alignment._base_regular_alignment import Regular_structural_alignment
 
 # CE-alignment.
 global ce_alignment_mode

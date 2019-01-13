@@ -103,8 +103,9 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
             self.numprotocol = str(self.father_protocol.get_index_of_domain_protocol()).zfill(2)
             filename = self.numprotocol+'_tobefused_'+str(counter).zfill(2)+'_____'+domname
             # ali_filepath = os.path.join(self.output_directory, ali_filename+'.fasta')
-            self.pymod.save_alignment_fasta_file(filename, clusters[c].get_children(), first_element=c, custom_directory=self.output_directory,
-                                                 unique_indices_headers=True)
+            self.pymod.save_alignment_fasta_file(filename, clusters[c].get_children(), first_element=c,
+                                                 custom_directory=self.output_directory)
+                                                 # unique_indices_headers=True)
             self.ali_filenames.append(filename+'.fasta')
             counter += 1
             # print 'Done'
