@@ -16,7 +16,7 @@ try:
     import modeller
     from modeller.scripts import complete_pdb
 except:
-    pass
+    print "# Cannot import MODELLER module"
 
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
@@ -25,8 +25,8 @@ import pymod_lib.pymod_plot as pplt
 import pymod_lib.pymod_sup as pmsp
 from pymod_lib.pymod_protocols.base_protocols import PyMod_protocol, MODELLER_common
 from pymod_lib.pymod_protocols.similarity_searches_protocols.psiblast import PSI_BLAST_common
-import pymod_lib.pymod_gui as pmgi
 
+from pymod_lib.pymod_gui.structural_analysis_components import Ramachandran_plot_options_window
 
 ###################################################################################################
 # SECONDARY STRUCTURE ASSIGNMENT.                                                                 #
@@ -492,7 +492,6 @@ class DOPE_assessment(PyMod_protocol, MODELLER_common):
         Called when users decide calculate DOPE of a structure loaded in PyMod.
         """
 
-        # TODO: use the same system for all protocols.
         self.selected_sequences = self.pymod.get_selected_sequences() # self.get_pymod_elements(self.selected_sequences)
 
         #-----------------------------------------------
@@ -522,7 +521,7 @@ class DOPE_assessment(PyMod_protocol, MODELLER_common):
         # Initializes MODELLER. -
         #------------------------
         if self.run_modeller_internally:
-            env = self._initialiaze_env()
+            env = self._initialize_env()
         else:
             env = None
 
@@ -595,12 +594,12 @@ class DOPE_assessment(PyMod_protocol, MODELLER_common):
         """
         if run_internally:
             if env == None:
-                env = self._initialiaze_env()
-            modstr = complete_pdb(env, str_file_path)
+                env = self._initialize_env()
+            modstr = complete_pdb(env, str(str_file_path))
             # Assess with DOPE.
             s = modeller.selection(modstr).only_std_residues() # only_het_residues, only_std_residues, only_water_residues
             # Gets the DOPE score.
-            score = s.assess_dope(output='ENERGY_PROFILE NO_REPORT',file=profile_file_path, normalize_profile=True, smoothing_window=15)
+            score = s.assess_dope(output='ENERGY_PROFILE NO_REPORT',file=str(profile_file_path), normalize_profile=True, smoothing_window=15)
 
         else:
             if not os.path.isfile(modeller_path) or not hasattr(run_externally_command, "__call__"):
@@ -1088,7 +1087,7 @@ class Ramachandran_plot(PyMod_protocol):
         if os.path.isfile(filename):
             self.PDB_file.append(filename)
             if self.title:
-                self.title=title+", "+header
+                self.title=self.title+", "+header
             else:
                 self.title=header
 
@@ -1097,7 +1096,7 @@ class Ramachandran_plot(PyMod_protocol):
 
 
     def ramachandran_option(self,PDB_file,title): # choose kind of aa to plot
-        self.options_window = pmgi.structural_analysis_components.Ramachandran_plot_options_window(
+        self.options_window = Ramachandran_plot_options_window(
             parent=self.pymod.main_window,
             protocol=self,
             title = "Ramachandran Plot Options",

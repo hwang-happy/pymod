@@ -249,7 +249,7 @@ class CAMPO:
                         blosum_term = (abs(self.get_match_score((AAi,AAi)))+abs(self.get_match_score((AAj,AAj)))) * float(0.5)
                         try:
                             numeratore= self.get_match_score((AAi,AAj)) /  (blosum_term) * (1-self.id_matrix[i][indice])
-                        except Exception,e:
+                        except Exception:
                             numeratore= self.get_match_score((AAi,AAj)) /  (1) * (1-self.id_matrix[i][indice])
 
                         self.lista.append(round(float(numeratore),2))

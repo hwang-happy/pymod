@@ -161,18 +161,34 @@ class Generic_BLAST_search(PyMod_protocol):
         dictionary.
         """
         # Gets the id% of the hsp.
-        matches = float(len(hsp.query) - hsp.gaps)
-        idp = float(hsp.identities)/matches
-        # Gets the query span.
-        qt = len(str(self.blast_query_element.my_sequence).replace("-",""))
-        qs = hsp.query_start
-        qe = len(str(hsp.query).replace("-","")) + qs
-        query_span = float(qe - qs)/float(qt)
-        # Gets the subject span.
-        hs = hsp.sbjct_start
-        he = len(str(hsp.sbjct).replace("-","")) + hs
-        # Returns the information.
-        additional_infor_dict = {"id": idp, "query_span":query_span, "matches":matches, "query_end":qe, "sbjct_end":he}
+        try:
+            matches = float(len(hsp.query) - hsp.gaps)
+            idp = float(hsp.identities)/matches
+            # Gets the query span.
+            qt = len(str(self.blast_query_element.my_sequence).replace("-",""))
+            qs = hsp.query_start
+            qe = len(str(hsp.query).replace("-","")) + qs
+            query_span = float(qe - qs)/float(qt)
+            # Gets the subject span.
+            hs = hsp.sbjct_start
+            he = len(str(hsp.sbjct).replace("-","")) + hs
+            # Returns the information.
+            additional_infor_dict = {"id": idp, "query_span":query_span, "matches":matches, "query_end":qe, "sbjct_end":he}
+        except AttributeError: #PHMMER
+            gaps = hsp._items[0]._hit.seq.count('-')
+            matches = float(len(hsp.query) - gaps)
+            # Gets the query span.
+            qt = len(str(self.blast_query_element.my_sequence).replace("-",""))
+            qs = hsp.query_start
+            qe = len(str(hsp.query).replace("-","")) + qs
+            query_span = float(qe - qs)/float(qt)
+            # # Gets the subject span.
+            # hs = hsp.sbjct_start
+            # he = len(str(hsp.sbjct).replace("-","")) + hs
+            # Returns the information.
+            additional_infor_dict = {"query_span":query_span, "matches":matches, "query_end":qe}
+
+
         return additional_infor_dict
 
 

@@ -241,8 +241,10 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         self._perform_modelization()
         try:
             pass
-        except Exception, e:
-            self.finish_modeling_session(successful=False, error_message=e)
+        # except Exception, e:
+        #     self.finish_modeling_session(successful=False, error_message=e)
+        except Exception:
+            self.finish_modeling_session(successful=False, error_message='Error')
 
 
     def _perform_modelization(self):

@@ -30,7 +30,7 @@ try:
     import numpy
     numpy_found = True
 # If NumPy can not be imported, check for a systemwide NumPy installation.
-except ImportError, e:
+except ImportError:
     system_numpy_path = pymod_os_specific.find_systemwide_lib("numpy")
     if system_numpy_path:
         # If a systemwide NumPy was found, try to import it.
@@ -52,7 +52,7 @@ global biopython_found
 try:
     pymod_os_specific.check_biopython(raise_exception_on_fail=True)
     biopython_found = True
-except ImportError, e:
+except ImportError:
     system_biopython_path = pymod_os_specific.find_systemwide_lib("Bio")
     if system_biopython_path:
         try:

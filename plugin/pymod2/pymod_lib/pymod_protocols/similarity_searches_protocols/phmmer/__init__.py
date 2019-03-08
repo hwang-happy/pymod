@@ -304,7 +304,7 @@ class PHMMER_search(Generic_BLAST_search):
                 if count == select_top:
                     break
 
-    def display_phmmer_hits(self, iteration=1):
+    def display_phmmer_hits(self):
         """
         This used inside phmmer_output_selection to display for each hit some information and a
         checkbutton to select it for importing it inside Pymod.

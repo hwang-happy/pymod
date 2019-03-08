@@ -197,7 +197,7 @@ class Parsed_pdb_file:
 
         st2 = time.time()
 
-        print "# Structure loaded in PyMod in %ss." % (st2-st1)
+        # print "# Structure loaded in PyMod in %ss." % (st2-st1)
 
         Parsed_pdb_file.counter += 1
 

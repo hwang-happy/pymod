@@ -215,8 +215,8 @@ class Associate_structure(PyMod_protocol):
                                                   self.structure_chain_element.my_sequence.replace("-",""),
                                                   toss_modres=True)
         # If the sequences do not match, interrupt the process.
-        if self.ali["id"] < 99.9: # TODO: use a 'PyMod_alignment' class.
-            raise PyModAssociateStructureError("The target sequence does not match with the sequence of the structure to associate (sequence identity percentage = %s)." % self.ali["id"])
+        # if self.ali["id"] < 99.9: # TODO: use a 'PyMod_alignment' class. #TODO bug su alcune strutture, ripristinare appena si capisce il motivo
+        #     raise PyModAssociateStructureError("The target sequence does not match with the sequence of the structure to associate (sequence identity percentage = %s)." % self.ali["id"])
 
         #-------------------------------------------------------------------------------------
         # Gets information about matching and missing residues in the two aligned sequences. -
@@ -240,8 +240,6 @@ class Associate_structure(PyMod_protocol):
         # crop the 3D structure.
         start_position = self.structure_chain_element.get_residue_by_index(matching_positions[0]["tc"]).db_index
         end_position = self.structure_chain_element.get_residue_by_index(matching_positions[-1]["tc"]).db_index
-        print start_position
-        print end_position
 
         #------------------------------------------------
         # Use PyMOL to build the new cropped structure. -
@@ -351,9 +349,11 @@ class Associate_structure(PyMod_protocol):
                 self.associate(self.pdb_file_path_from_gui, self.associate_structure_window.get_structure_chain())
                 self.associate_structure_window.destroy()
                 self.pymod.main_window.gridder(update_elements=True, update_clusters=True)
-            except Exception, e:
+            # except Exception, e:
+            except Exception:
                 title = "Associate Structure Failure"
-                message = "The structure association failed because of the following error: %s" % e
+                # message = "The structure association failed because of the following error: %s" % e
+                message = "The structure association failed because of an error"
                 self.associate_structure_window.show_error_message(title, message)
 
 

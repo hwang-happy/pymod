@@ -41,3 +41,12 @@ class PyMod_files_managment(object):
                                  remove_indels=False, first_element=first_element,
                                  new_directory=custom_directory,
                                  unique_indices_headers=unique_indices_headers)
+
+
+    def convert_sequence_file_format(self, input_filepath, input_format, output_format, output_filename=None):
+        """
+        Wrapper. Original function in seq_io module.
+        Converts an sequence file specified in the 'input_format' argument in an alignment file
+        in the format specified in the 'output_format'.
+        """
+        seq_io.convert_sequence_file_format(input_filepath, input_format, output_format, output_filename)

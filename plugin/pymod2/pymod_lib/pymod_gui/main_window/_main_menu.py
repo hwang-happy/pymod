@@ -55,14 +55,14 @@ class PyMod_main_window_main_menu(object):
         # Domain tools.
         self.searchdomain_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label="Domain Analysis", menu=self.searchdomain_menu)
-        self.searchdomain_menu.add_command(label="HMMSCAN", command=self.pymod.launch_domain_analysis)
+        self.searchdomain_menu.add_command(label="hmmscan", command=self.pymod.launch_domain_analysis)
 
         # Database search for homologous sequences.
         self.database_search_menu = Menu(self.tools_menu, tearoff=0)
         self.tools_menu.add_cascade(label = "Database Search", menu=self.database_search_menu)
         self.database_search_menu.add_command(label = "BLAST", command = lambda program="blast": self.pymod.launch_blast_algorithm(program))
         self.database_search_menu.add_command(label="PSI-BLAST", command=lambda program="psi-blast": self.pymod.launch_blast_algorithm(program))
-        self.database_search_menu.add_command(label="PHMMER", command=lambda program="phmmer": self.pymod.launch_hmmer_algorithm(program))
+        self.database_search_menu.add_command(label="phmmer", command=lambda program="phmmer": self.pymod.launch_hmmer_algorithm(program))
 
         # Sequence alignment tools.
         self.sequence_alignment_menu = Menu(self.tools_menu, tearoff = 0)
@@ -83,15 +83,15 @@ class PyMod_main_window_main_menu(object):
         # Structural alignment tools.
         self.structural_alignment_menu = Menu(self.tools_menu, tearoff = 0)
         self.tools_menu.add_cascade(label = "Structural Alignment", menu = self.structural_alignment_menu)
-        # self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose_from_main_menu)
+        self.structural_alignment_menu.add_command(label = "Superpose", command = self.pymod.superpose_from_main_menu)
         self.structural_alignment_menu.add_command(label = "CE Alignment", command = lambda program="ce", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
         self.structural_alignment_menu.add_command(label = "SALIGN (Structure Alignment)", command = lambda program="salign-str", strategy="regular": self.pymod.launch_alignment_from_the_main_menu(program, strategy))
 
         # # Structural analysis.
-        # self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
-        # self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
-        # self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot_from_main_menu)
-        # self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
+        self.structural_analysis_menu = Menu(self.tools_menu, tearoff = 0)
+        self.tools_menu.add_cascade(label = "Structural Analysis", menu = self.structural_analysis_menu)
+        self.structural_analysis_menu.add_command(label = "Ramachandran plot", command = self.pymod.ramachandran_plot_from_main_menu)
+        self.structural_analysis_menu.add_command(label = "Assess with DOPE", command = self.pymod.dope_from_main_menu)
         # self.structural_analysis_menu.add_command(label = "PSIPRED", command = self.pymod.launch_psipred_from_main_menu)
 
         # Modeling.
@@ -315,8 +315,8 @@ class PyMod_main_window_main_menu(object):
                 domain_session_submenu.add_command(label = "Split into Domains", command = domain_session.run_split_element_into_domains)
                 domain_session_submenu.add_command(label = "Fuse", command = domain_session.run_fuse_protocol)
 
-                if domain_session.fuse_protocol:
-                    domain_session_submenu.entryconfigure(1, state='disabled')
+                # if domain_session.fuse_protocol:
+                #     domain_session_submenu.entryconfigure(1, state='disabled')
 
                 label_text = domain_session.get_pymod_element().my_header
                 self.domains_menu.add_cascade(label=label_text, menu=domain_session_submenu)

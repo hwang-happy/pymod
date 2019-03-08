@@ -137,8 +137,10 @@ class PyMod_development(object):
 
         # self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'P30487', 'uniprot_seq.fasta') # una sequenza
         # self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'Q00013', 'Q00013.fasta') # una sequenza
-        self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'Q92823', 'Q92823.fasta') # una sequenza
-        el = self.open_sequence_file(self.seq_fasta)
+        # self.seq_fasta = os.path.join(get_mg_testfolder(), "TESTSET", 'Q92823', 'Q92823.fasta') # una sequenza
+        # el = self.open_sequence_file(self.seq_fasta)
+        # new_path = os.path.join(get_mg_testfolder(), "TESTSET", "_filespdbvari", "1hho.pdb") # una struttura
+        # self.open_structure_file(new_path)
 
         # print "# Loading P30487"
 
@@ -193,7 +195,7 @@ class PyMod_development(object):
         temp_pdb_path = urllib.urlretrieve("https://files.rcsb.org/download/%s.pdb" % code)[0]
         new_path = os.path.join(self.temp_directory_name, "%s.pdb" % code)
         shutil.copy(temp_pdb_path, new_path)
-        print "# Fetching: %s." % code
+        #print "# Fetching: %s." % code
         return self.open_structure_file(new_path)
 
     def randomize_sequence(self, sequence):

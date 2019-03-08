@@ -1,8 +1,12 @@
 import Bio.PDB # Only needed for old CE-alignment implementation.
-import pymol
-from pymol import cmd, stored, selector
+from Bio import SeqIO, Seq, SeqRecord
+from pymol import cmd, stored, selector, fitting
+import numpy
+import shutil
+import os
 import pymod_lib.pymod_os_specific as pmos
 from _base_alignment._base_regular_alignment import Regular_structural_alignment
+from _base_alignment._gui import CEalign_regular_window
 
 # CE-alignment.
 global ce_alignment_mode
@@ -10,11 +14,12 @@ try:
     # Try to import the ccealign module.
     from pymod_lib.ccealign import ccealign
     ce_alignment_mode = "plugin"
-except:
+except ImportError:
     if pmos.check_pymol_builtin_cealign():
         ce_alignment_mode = "pymol"
     else:
        ce_alignment_mode = None
+
 
 ##################################################################################################
 # CE alignment.                                                                                  #
@@ -27,16 +32,13 @@ class CEalign_alignment:
     def additional_initialization(self):
         self.tool = None
 
-
     def alignment_program_exists(self):
         return ce_exists()
-
 
     def alignment_program_not_found(self):
         title = "CE-alignment Error"
         message = "CE-alignment is not available on your PyMod installation. If you want to use this function please see CE-alignment installation instructions on PyMod's User Guide."
         self.pymod.main_window.show_error_message(title, message)
-
 
     def update_aligned_sequences(self):
         if get_ce_mode() == "plugin":
@@ -48,7 +50,7 @@ class CEalign_alignment:
 class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment):
 
     def get_alignment_window_class(self):
-        return pmgi.alignment_components.CEalign_regular_window
+        return CEalign_regular_window
 
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
@@ -57,16 +59,16 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
 
 
     def run_ce_alignment(self, structures_to_align, output_file_name, use_seq_info=False):
-        """
-        Used to launch          Ce_align.
-        """
-        # If there are just two selected sequences, just call self.ce_align().
-        if len(structures_to_align) == 2:
-            current_elements_to_align = structures_to_align[:]
-            # Just produce as output an .aln file as output.
-            self.ce_align(current_elements_to_align, output_file_name=output_file_name, output_format="aln", use_seq_info=use_seq_info)
-        # Multiple structural alignment: Ce_align two sequences per round.
-        else:
+            """
+            Used to launch          Ce_align.
+            """
+            # If there are just two selected sequences, just call self.ce_align().
+            # if len(structures_to_align) == 2:
+            #     current_elements_to_align = structures_to_align[:]
+            #     # Just produce as output an .aln file as output.
+            #     self.ce_align(current_elements_to_align, output_file_name=output_file_name, output_format="aln", use_seq_info=use_seq_info)
+            # # # Multiple structural alignment: Ce_align two sequences per round.
+            # else:
             backup_list= structures_to_align[:]
 
             #-----------------------------------------------------------------------------
@@ -74,6 +76,7 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
             #-----------------------------------------------------------------------------
             temp_ce_alignment = "ce_temp"
             current_elements_to_align = backup_list[0:2]
+
             self.ce_align(current_elements_to_align, output_file_name=temp_ce_alignment, output_format="txt", use_seq_info=use_seq_info)
 
             #-------------------------------------------------------------------
@@ -100,6 +103,7 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
                 self.pymod.convert_sequence_file_format(
                     os.path.join(self.pymod.alignments_dirpath, output_file_name + ".txt"),
                     "pymod", "clustal")
+
 
             # In this other cases pymod will need an .aln alignment file, so an .aln file has to be
             # built from a .txt file.
@@ -418,9 +422,10 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
             cmd.set_name(sel2, tsel2)
 
             # Actually performs the alignment.
-            a = cmd.cealign(target=tsel1, mobile=tsel2, object="pymod_temp_cealign")
+            #a = cmd.cealign(target=tsel1, mobile=tsel2, object="pymod_temp_cealign")
             # cmd.center('%s and %s' % (tsel1, tsel2))
             # cmd.zoom('%s and %s' % (tsel1, tsel2))
+            a = fitting.cealign(target=tsel1, mobile=tsel2, object="pymod_temp_cealign")
 
             # Updates the names of the chains PDB files and saves these new files.
             saved_file1 = sel1 + "_aligned.pdb"
@@ -432,23 +437,37 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
 
             # Finally saves the structural alignment between the sequences.
             # TODO: choose the right file format.
-            cmd.save(os.path.join(self.pymod.alignments_dirpath, output_file_name+".aln"), "pymod_temp_cealign")
-            cmd.delete("pymod_temp_cealign")
+            # cmd.save(os.path.join(self.pymod.alignments_dirpath, output_file_name+".aln"), "pymod_temp_cealign")
+            cmd.save(os.path.join(self.pymod.alignments_dirpath, output_file_name+"_.fasta"), "pymod_temp_cealign")
+            #cmd.save("/Users/mariagiulia/py_ceali.fasta", "pymod_temp_cealign")
+            # cmd.delete("pymod_temp_cealign")
+            final_temp_filepath = os.path.join(self.pymod.alignments_dirpath, output_file_name+".fasta")
+            f = open(final_temp_filepath, 'w')
+            f.write("CLUSTAL\n")
+            ex = open(os.path.join(self.pymod.alignments_dirpath, output_file_name+"_.fasta"), 'r')
+            ex_content = ex.read()
+            ex.close()
+            f.write(ex_content)
+            f.close()
 
             # Sets the names of the objects back to original ones.
             cmd.set_name(tsel1, sel1)
             cmd.set_name(tsel2, sel2)
 
             # Converts it in .txt format.
-            if output_format == "txt":
+            if output_format == "txt" or output_format == "aln":
+            #     self.pymod.convert_sequence_file_format(
+            #         os.path.join(self.pymod.alignments_dirpath, output_file_name + ".txt"),
+            #         "clustal", "pymod")
+            # elif output_format == "aln":
                 self.pymod.convert_sequence_file_format(
-                    os.path.join(self.pymod.alignments_dirpath, output_file_name + ".aln"),
+                    # os.path.join(self.pymod.alignments_dirpath, output_file_name + ".aln"),
+                    os.path.join(self.pymod.alignments_dirpath, output_file_name + ".fasta"),
                     "clustal", "pymod")
-            elif output_format == "aln":
-                # self.pymod.convert_sequence_file_format(
-                #     os.path.join(self.pymod.alignments_dirpath, output_file_name + ".fasta"),
-                #     "fasta", "clustal")
-                pass
+            else:
+                self.pymod.convert_sequence_file_format(
+                    os.path.join(self.pymod.alignments_dirpath, output_file_name + ".fasta"),
+                    "fasta", "clustal")
 
             if retain_order:
                 cmd.set("retain_order", 0)
@@ -556,7 +575,7 @@ def doScoring(L,s1,s2,matrix,sc,sequence_information):
                 else:
                     L[i] = newDict(upscore, 'U', upscore)
 
-def trackback(L,s1,s2,blosum):
+def trackback(L, s1, s2, blosum):
     R = len(s1) + 1  # items per row or numCols
 
     def handlePos(i,s1L,s2L):

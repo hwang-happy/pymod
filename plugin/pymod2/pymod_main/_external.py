@@ -57,8 +57,9 @@ class PyMod_external(object):
             import modeller.automodel
             from modeller.scripts import complete_pdb
             importable_modeller = True
-        except Exception, e:
-            print e
+        # except Exception, e:
+        except Exception:
+            # print e
             importable_modeller = False
 
         # Updates MODELLER tool status.

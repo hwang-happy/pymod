@@ -7,6 +7,7 @@ import os
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from Bio.Alphabet import SingleLetterAlphabet
 
 from pymod_lib import pymod_vars
 from pymod_lib.pymod_seq import seq_manipulation
@@ -92,22 +93,41 @@ def convert_sequence_file_format(input_filepath, input_format, output_format, ou
     """
     input_file_basename = os.path.basename(input_filepath)
     input_file_name = os.path.splitext(input_file_basename)[0]
-    input_file_handler = open(input_filepath, "rU")
+
+
     if not output_filename:
         output_file_basename = "%s.%s" % (input_file_name, pymod_vars.alignment_extensions_dictionary[output_format])
     else:
         output_file_basename = "%s.%s" % (output_filename, pymod_vars.alignment_extensions_dictionary[output_format])
     output_file_handler = open(os.path.join(os.path.dirname(input_filepath), output_file_basename), "w")
 
+
     if input_format == "pymod":
+        input_file_handler = open(input_filepath, "rU")
         records = [SeqRecord(Seq(l.split(" ")[1].rstrip("\n\r")), id=l.split(" ")[0]) for l in input_file_handler.readlines()]
     else:
-        records = SeqIO.parse(input_file_handler, input_format)
+        # print input_filepath
+        input_file_handler = open(input_filepath, "r")
+        # raise Exception(2)
+        records = list(SeqIO.read(input_file_handler, input_format, alphabet=SingleLetterAlphabet()))
+        # print 'DUE'
+        # print records
+
+    # raise Exception(3)
 
     if output_format == "pymod":
-        for rec in records:
-            print >> output_file_handler, rec.id, rec.seq
+
+        line_tuples = [(rec.id, rec.seq) for rec in records]
+        # raise Exception('3 e mezzo')
+        lines = []
+        for i in line_tuples:
+            lines.append(str(i[0])+'\n')
+            lines.append(str(i[1])+'\n')
+        output_file_handler.writelines(lines)
+        # for rec in records:
+        #     print >> output_file_handler, rec.id, rec.seq
     else:
+        # raise Exception(4)
         SeqIO.write(records, output_file_handler, output_format)
 
     input_file_handler.close()

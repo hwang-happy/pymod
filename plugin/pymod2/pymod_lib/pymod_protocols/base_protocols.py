@@ -1,5 +1,7 @@
 import os
 import sys
+import numpy
+import modeller
 from cStringIO import StringIO
 
 from pymol import cmd, stored
@@ -224,7 +226,7 @@ class MODELLER_common:
     def __init__(self):
         self.run_modeller_internally = self.pymod.modeller.run_internally()
 
-    def _initialiaze_env(self, use_hetatm=True, use_water=True):
+    def _initialize_env(self, use_hetatm=True, use_water=True):
         env = modeller.environ()
         env.io.atom_files_directory = []
         env.io.atom_files_directory.append(".")

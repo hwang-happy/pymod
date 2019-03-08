@@ -38,7 +38,7 @@ class SplitIntoDomainsProtocol(PyMod_protocol):
         self.split_seq_offset_window.destroy()
 
 
-    def split_sequence_into_domains(self, n_c_term_offset=40):
+    def split_sequence_into_domains(self, n_c_term_offset=20):
 
         domains_list = self.father_protocol.get_domain_features_list()
         sequence_element = self._pymod_element
@@ -53,10 +53,12 @@ class SplitIntoDomainsProtocol(PyMod_protocol):
             lines_to_write.append(line_str)
 
             # splitting into pymod
+            ungapped = sequence_element.my_sequence.replace('-', '')
             new_startindex = max(0, domain.start-(n_c_term_offset))
-            new_endindex = min(len(sequence_element.my_sequence), domain.end+n_c_term_offset)
+            new_endindex = min(len(ungapped), domain.end+n_c_term_offset)
             #print new_startindex, new_endindex
-            new_seq = sequence_element.my_sequence[new_startindex:new_endindex]
+            # new_seq = sequence_element.my_sequence[new_startindex:new_endindex]
+            new_seq = ungapped[new_startindex:new_endindex]
 
             my_el = self.pymod.build_pymod_element_from_args(domain.name, new_seq)
             my_el.parent_seq = sequence_element
@@ -100,8 +102,6 @@ class SplitIntoDomainsProtocol(PyMod_protocol):
         #print "CHILDREN ARRAY:", sequence_element.domain_children_array
 
         self.father_protocol.evaluate_splitting()
-
-
 
 
 

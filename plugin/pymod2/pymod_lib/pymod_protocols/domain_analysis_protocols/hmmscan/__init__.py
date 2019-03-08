@@ -61,6 +61,7 @@ class Domain_search_protocol(PyMod_protocol):
         self.query_element = self.get_pymod_elements()[0]
         # print self.query_element.seq_id#, self.continuous_seq
 
+        reload(hmmer_gui) #TODO developing
         self.hmmer_options_window = hmmer_gui.Hmmer_options_window(parent=self.pymod.main_window,
                                                                    submit_command=self.domain_search_state,
                                                                    pymod=self.pymod)
@@ -176,9 +177,9 @@ class Search_parsing_protocol(Domain_search_protocol):
         array = []
         for i in parser_generator:
             array.append(i.copy())
-        # sorted_array = sorted(array, key=lambda x: x[])
-        return array
-
+        sorted_array = sorted(array, key=lambda x: x['evalue'])
+        # return array
+        return sorted_array
 
 ################################################################################
 
@@ -216,7 +217,6 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
         print enc_params
 
-        # gcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)  # Only for gangstars
         # post the search request to the server
         request = urllib2.Request(hmm_url, enc_params)
 
@@ -321,7 +321,9 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
             for loc in loclist:
                 locitem.update(_readable_attrs(loc))  #
                 loc_id = parsed_output_item['id'] + '_hsp_' + str(loclist.index(loc)).zfill(3)
-                locitem.update({'hsp_number_id': loc_id})
+                loc_res = self.query_element_seq_id+'_'+parsed_output_item['id']+'_'+str(int(locitem['start'])-1)+'-'+str(locitem['end'])
+                # print 'LOCRES:', loc_res
+                locitem.update({'hsp_number_id':loc_id, 'hsp_res_id':loc_res})
 
                 # print loc_id, locitem['evalue'], self.evaluecutoff
                 try:
@@ -420,7 +422,11 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
                                     'hmm_end': h.hit_end, })
 
                     loc_id = parsed_output_item['id'] + '_hsp_' + str(hit.hsps.index(h)).zfill(3)
-                    locitem.update({'hsp_number_id': loc_id})
+                    loc_res = self.query_element_seq_id + '_' + parsed_output_item['id'] + '_' + str(
+                        int(locitem['start']) - 1) + '-' + str(locitem['end'])
+                    # print 'LOCRES:', loc_res
+                    locitem.update({'hsp_number_id': loc_id, 'hsp_res_id': loc_res})
+
                     if locitem['evalue'] < self.evaluecutoff:
                         locattrs.append(locitem.copy())
 

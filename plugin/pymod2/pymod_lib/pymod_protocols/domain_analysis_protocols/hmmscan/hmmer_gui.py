@@ -12,7 +12,6 @@ class Hmmer_options_window(PyMod_tool_window):
 
         PyMod_tool_window.__init__(self, parent, upper_frame_title=upper_frame_title, **configs)
         self.pymod = pymod
-        # se non metto le () alla funzione del commands, non viene chiamata
 
         # E-value selection.
         self.e_value_threshold_enf = PyMod_entryfield(self.midframe,
@@ -201,7 +200,7 @@ class Hmmer_graphic(Canvas):
                 return (true_length*seq_position)/graph_seq_len
             else:
                 return (graph_seq_len*seq_position)/true_length
-        except TypeError, ValueError:
+        except TypeError:
             print "Bad input, Integer needed"
             return ''
 
@@ -427,12 +426,13 @@ class Hmmer_results_window(Toplevel):
 
     def __init__(self, pfam_data, sequence_element, parent=None, protocol=None, **configs):
         Toplevel.__init__(self, parent, **configs)
-        self.resizable(1,1)
-        self.geometry('800x520')#('920x520') # '800x320', "920x520"
+        # self.resizable(1,1)
+        # self.geometry('800x520')#('920x520') # '800x320', "920x520"
         self.title = "HMMER Sequence Search results"
         self.configure(background='#000000')
         self.main_frame = PyMod_frame(self)
-        self.main_frame.pack(expand=YES, fill=BOTH)
+        # self.main_frame.pack(expand=YES, fill=BOTH)
+        self.main_frame.grid(sticky='wens')
         self.query_element = sequence_element
         self.pfam_data = pfam_data
         self.protocol = protocol
@@ -453,8 +453,8 @@ class Hmmer_results_window(Toplevel):
         self.figure = Hmmer_graphic(master=self.main_frame)
         self.figure.grid(row=1, column=0,  sticky='wens', )
 
-        lenseq = len(sequence_element.my_sequence.replace('-', ''))
-        sequence = self.figure.create_sequence(seq_len=lenseq)
+        self.lenseq = len(sequence_element.my_sequence.replace('-', ''))
+        sequence = self.figure.create_sequence(seq_len=self.lenseq)
         self.figure.add_placeholders_to_seq(sequence, standard=True)
         self.figure.add_placeholders_to_seq(sequence, standard=False, domains_graph=pfam_data)
 
@@ -584,8 +584,8 @@ class Hmmer_results_window(Toplevel):
                     startindex = int(d['start'])-1 # lo start originale conta da 1
                     endindex = int(d['end'])        # qui va bene, perche' l'ultimo indice e' esclusivo
                     new_domain = DomainFeature(ID=d['hsp_number_id'],
-                                               # name=d_item['id'],
-                                               name=d['hsp_number_id'],
+                                               # name=d['hsp_number_id'],
+                                               name=d['hsp_res_id'],
                                                start=startindex,
                                                end=endindex,
                                                evalue=d['evalue'],
@@ -600,6 +600,7 @@ class Hmmer_results_window(Toplevel):
                     #     if r.domain:
                     #         print r.full_name, r.index
 
+        self.sort = self.query_element.feature_list.sort(key=lambda x: x.start)
 
         if color_sequence:
             self.master.color_selection("single", self.query_element, "domains", color_in_pymol=color_structure)
@@ -614,6 +615,27 @@ class Hmmer_results_window(Toplevel):
         self.protocol.father_protocol.evaluate_domain_search()
         # print self.query_element.feature_list
 
+
+    def create_little_canvas(self, master_frame, defaultwidth, hsp, color):
+        hsp_canvas = Canvas(master_frame, bg='black', height=11, width=defaultwidth, highlightthickness=0, relief='ridge')
+        # secondo stack overflow, questo e' il modo di togliere il bordo grigio ai canvas
+        configdict = hsp_canvas.config()
+
+        one_res_span = float(defaultwidth)/float(self.lenseq) # proporzione tra la lunghezza della seq e lo spazio grafico
+
+        queryspan_start = int(hsp['start'])
+        queryspan_end = int(hsp['end'])
+
+        queryspan_start_graphic = int(queryspan_start*one_res_span)
+        queryspan_end_graphic   = int(queryspan_end*one_res_span)
+        canvas_true_width = int(queryspan_end_graphic-queryspan_start_graphic)
+        # space_at_end = int(int(defaultwidth)-(canvas_true_width+queryspan_start_graphic))
+
+        hsp_canvas.create_line(1,5, queryspan_start_graphic, 5, fill='grey', width=2.5)
+        hsp_canvas.create_rectangle(queryspan_start_graphic,0,queryspan_end_graphic,11, fill=color)
+        hsp_canvas.create_line(queryspan_end_graphic,5,defaultwidth,5, fill='grey', width=2.5)
+
+        hsp_canvas.grid()
 
 
 
@@ -648,10 +670,8 @@ class Hmmer_results_window(Toplevel):
         descr.grid(row=row_index, column=1, sticky = 'W', padx=10, )
             # E-value info.
         evalue=Label(master_frame, text=hit['evalue'], **self.row_options)
+        evalue.config(fg=hit['dom_color_hexa'])
         evalue.grid(row=row_index, column=2, sticky = 'W', padx=10)
-        #     # Evalue label.
-        # ev_info=Label(master_frame, text='full sequence', **self.row_options)
-        # ev_info.grid(row=row_index, column=3, sticky = 'W', padx=10)
 
         self.domain_check_states.append([]) #1204
 
@@ -671,12 +691,12 @@ class Hmmer_results_window(Toplevel):
             color_square.config(command=lambda x=hsp['hsp_number_id'], v=self.color_square_lst[-1]: selection_command(x, v))
             color_square.grid(row=0, column=1)
 
-            # #empty label
-            # emptylabel = Label(namecolor, text=' ')
-            # emptylabel.grid(row=0, column=0)
                 #hit number
-            hsp_index_label = Label(master_frame, text='HSP '+str(hsp_index+1), **self.row_options)
-            hsp_index_label.grid(row=row_index+hsp_index+1, column=1)
+            # hsp_index_label = Label(master_frame, text='HSP '+str(hsp_index+1), **self.row_options)
+            # hsp_index_label.grid(row=row_index+hsp_index+1, column=1)
+            hsp_index_frame = PyMod_frame(master_frame)
+            self.create_little_canvas(hsp_index_frame, 300, hsp, dom_globalcolor_hexa)
+            hsp_index_frame.grid(row=row_index+hsp_index+1, column=1, sticky='we')
 
                 # Individual E-value info.
             hsp_ievalue=Label(master_frame, text=hsp['evalue'], **self.row_options)

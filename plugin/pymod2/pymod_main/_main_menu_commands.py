@@ -22,14 +22,16 @@ from pymod_lib.pymod_protocols.similarity_searches_protocols.phmmer import PHMME
 
 from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment, Clustalw_profile_alignment
 from pymod_lib.pymod_protocols.alignment_protocols.salign_str import SALIGN_str_regular_alignment
-from pymod_lib.pymod_protocols.alignment_protocols.ce_alignment import CEalign_regular_alignment
+# from pymod_lib.pymod_protocols.alignment_protocols.ce_alignment import CEalign_regular_alignment
+from pymod_lib.pymod_protocols.alignment_protocols import ce_alignment as cealign
+
 
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMPO_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.scr_find import SCR_FIND_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.weblogo import WebLogo_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.espript import ESPript_analysis
 
-from pymod_lib.pymod_protocols.structural_analysis_protocols import DOPE_assessment, show_dope_plot
+from pymod_lib.pymod_protocols.structural_analysis_protocols import *
 
 #MG code
 from pymod_lib.pymod_protocols.domain_analysis_protocols import DomainAnalysisProtocol, InvalidSelectionError
@@ -62,7 +64,8 @@ class PyMod_main_menu_commands(object):
                     self.open_structure_file(single_file_path, extension)
                 else:
                     pass
-            except PyModInvalidFile, e:
+            #except PyModInvalidFile, e:
+            except PyModInvalidFile:
                 title = "File Type Error"
                 message = "The selected File is not a valid %s." % (pmdt.supported_sequence_file_types[extension])
                 self.show_error_message(title, message)
@@ -303,7 +306,8 @@ class PyMod_main_menu_commands(object):
             #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
             # # Structural alignments.
             elif program == "ce":
-                aligment_protocol_class = CEalign_regular_alignment
+                reload(cealign)
+                aligment_protocol_class = cealign.CEalign_regular_alignment
             elif program == "salign-str":
                 aligment_protocol_class = SALIGN_str_regular_alignment
 
@@ -326,7 +330,7 @@ class PyMod_main_menu_commands(object):
     ###############################################################################################
 
     def assign_secondary_structure(self, element):
-        sec_str_assignment = pmptc.structural_analysis_protocols.Secondary_structure_assignment(self, element)
+        sec_str_assignment = Secondary_structure_assignment(self, element)
         sec_str_assignment.assign_secondary_structure()
 
 
@@ -334,7 +338,8 @@ class PyMod_main_menu_commands(object):
         """
         Called when users decide calculate DOPE of a structure loaded in PyMod.
         """
-        dope_assessment = (self)
+        # dope_assessment = (self)
+        dope_assessment = DOPE_assessment(self)
         dope_assessment.launch_from_gui()
 
 
@@ -342,19 +347,19 @@ class PyMod_main_menu_commands(object):
         """
         PROCHEK style Ramachandran Plot.
         """
-        ramachandran_plot = pmptc.structural_analysis_protocols.Ramachandran_plot(self)
+        ramachandran_plot = Ramachandran_plot(self)
         ramachandran_plot.launch_from_gui()
 
     def launch_psipred_from_main_menu(self):
         """
         Called when users decide to predict the secondary structure of a sequence using PSIPRED.
         """
-        psipred_protocol = pmptc.structural_analysis_protocols.PSIPRED_prediction(self)
+        psipred_protocol = PSIPRED_prediction(self)
         psipred_protocol.launch_from_gui()
 
 
     def superpose_from_main_menu(self):
-        psipred_protocol = pmptc.structural_analysis_protocols.Superpose(self)
+        psipred_protocol = Superpose(self)
         psipred_protocol.launch_from_gui()
 
 

@@ -200,7 +200,6 @@ class PyMod_element(object):
         mother.remove_child(self)
 
 
-
     #################################################################
     # Check element properties.                                     #
     #################################################################
@@ -731,7 +730,7 @@ class PyMod_sequence_element(PyMod_element):
     def pdb_is_fetchable(self):
         regex = r"^[a-zA-Z0-9]{4}[_]?[A-Z]?$"
         match = re.findall(regex, self.my_header, re.MULTILINE)
-        print match
+        # print match
         if len(match) == 1:
             self.pdb_id = match[0]
             return True

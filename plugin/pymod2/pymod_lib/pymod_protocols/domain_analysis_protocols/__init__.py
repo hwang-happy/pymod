@@ -264,6 +264,7 @@ class DomainAnalysisProtocol(PyMod_protocol):
                 # self._reinitialize_before_resplitting()
 
         # eseguo la ricerca con il codice di hmmascan gia' scritto
+        reload(hmmscan)
         self.search_protocol = Domain_search_protocol(self.pymod, protocol_name='Domain Search',
                                                  output_directory=self.output_directory, father_protocol=self)
         self.search_protocol.launch_from_gui()

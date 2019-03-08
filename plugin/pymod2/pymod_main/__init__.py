@@ -470,7 +470,8 @@ class PyMod(PyMod_development,
             pickle.dump(pymod_config_data, cfgfile)
             cfgfile.close()
 
-        except Exception, e:
+        # except Exception, e:
+        except Exception:
             title = "PyMod Directory Error"
             message = "Unable to write the PyMod configuration directory '%s' because of the following error: %s." % (
                 self.cfg_directory_path, e)

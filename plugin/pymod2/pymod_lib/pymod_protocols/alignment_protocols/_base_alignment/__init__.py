@@ -150,9 +150,11 @@ class Alignment_protocol(PyMod_protocol):
         # Updates the PyMod elements just aligned. -
         #-------------------------------------------
         self.create_alignment_element()
+
         self.update_aligned_elements()
-        if 0: # TODO.
-            self.remove_alignment_temp_files()
+
+        # if 0: # TODO.
+        #     self.remove_alignment_temp_files()
         self.finish_alignment()
 
 
@@ -177,6 +179,7 @@ class Alignment_protocol(PyMod_protocol):
         """
 
         self.update_aligned_sequences()
+        # TODO QUESTO METODO BLOCCA CE ALIGN
 
         # Performs additional operations on the aligned sequences.
         self.perform_additional_sequence_editing()
@@ -193,7 +196,7 @@ class Alignment_protocol(PyMod_protocol):
 
     def update_aligned_sequences_with_modres(self):
         """
-        Used when the aligned sequences in the ouptu file already have modres.
+        Used when the aligned sequences in the output file already have modres.
         """
         # Gets from an alignment file the sequences with their indels produced in the alignment.
         ouput_handle = open(os.path.join(self.pymod.alignments_dirpath, self.protocol_output_file_name+".aln"), "rU")
@@ -211,9 +214,12 @@ class Alignment_protocol(PyMod_protocol):
         from the sequences this method will reinsert them in the sequences.
         """
         # Gets from an alignment file the aligned sequences.
+
+        # TODO QUESTO METODO BLOCCA CE ALIGN
         input_handle = open(os.path.join(self.pymod.alignments_dirpath, self.protocol_output_file_name+".aln"), "rU")
         records = list(SeqIO.parse(input_handle, "clustal"))
         input_handle.close()
+        # TODO QUESTO METODO BLOCCA CE ALIGN
 
         # Aligns the full sequences (with 'X' characters) to the sequence without 'X' characters.
         elements_to_update = [self.elements_to_align_dict[str(r.id)] for r in records]
