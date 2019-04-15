@@ -16,7 +16,7 @@ try:
     import modeller
     from modeller.scripts import complete_pdb
 except:
-    print "# Cannot import MODELLER module"
+    print("# Cannot import MODELLER module")
 
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
@@ -154,13 +154,13 @@ class Secondary_structure_assignment(PyMod_protocol):
             # Assume PDB_file is the content of a PDB file
             PDB_file_isfile=False
             fp=open(".runKSDSSP.PDB_file.tmp",'w')
-            print >> fp, PDB_file
+            print(PDB_file, file=fp)
             fp.close()
             PDB_file=".runKSDSSP.PDB_file.tmp"
 
         if not os.path.isfile(ksdssp_exe) and not which(ksdssp_exe):
-            print "Warning! cannot find KSDSSP executable!"
-            print "Specify ksdssp_exe parameter to point to KSDSSP."
+            print("Warning! cannot find KSDSSP executable!")
+            print("Specify ksdssp_exe parameter to point to KSDSSP.")
 
         cline=[ksdssp_exe,
                "-c", str(energy_cutoff),
@@ -194,13 +194,13 @@ class Secondary_structure_assignment(PyMod_protocol):
             try:
                 os.remove(".runKSDSSP.std.tmp")
             except:
-                print "Fail to remove temporary file .runKSDSSP.std.tmp"
+                print("Fail to remove temporary file .runKSDSSP.std.tmp")
 
         if PDB_file_isfile==False:
             try:
                 os.remove(".runKSDSSP.PDB_file.tmp")
             except:
-                print "Fail to remove temporary file .runKSDSSP.PDB_file.tmp'"
+                print("Fail to remove temporary file .runKSDSSP.PDB_file.tmp'")
         return return_code
 
 
@@ -232,7 +232,7 @@ class Secondary_structure_assignment(PyMod_protocol):
         if not (len(sec_str_results) == len(self.pymod_element.get_polymer_residues())):
             # raise Exception("Error in secondary structure assignment by PyMOL dss.")
             pass # TODO.
-        map(lambda t: self.assign_sec_str_to_residue(t[0], t[1]), zip(self.pymod_element.get_polymer_residues(), sec_str_results))
+        list(map(lambda t: self.assign_sec_str_to_residue(t[0], t[1]), list(zip(self.pymod_element.get_polymer_residues(), sec_str_results))))
 
     def assign_sec_str_to_residue(self, res, ssr):
         res.secondary_structure = ssr
@@ -306,41 +306,41 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         print_output = False
         sequence_header = element.my_header
         if print_output:
-            print "Beginning PSIPRED prediction for:", sequence_header
+            print("Beginning PSIPRED prediction for:", sequence_header)
 
         # The name of the BLAST database file.
         # If the database files are contained in a folder like this: /home/user/pymod/databases/swissprot/swissprot
         dbpath = self.pymod.psipred["database_dir_path"].get_value() # e.g.: /home/user/pymod/databases/swissprot
         dbprefix = pmos.get_blast_database_prefix(dbpath) # e.g.: swissprot
         if print_output:
-            print "dbpath:", dbpath
+            print("dbpath:", dbpath)
 
         # Where the NCBI programs have been installed.
         ncbidir = self.pymod.blast_plus["exe_dir_path"].get_value()
         if print_output:
-            print "ncbidir:", ncbidir
+            print("ncbidir:", ncbidir)
 
         # Where the PSIPRED V2 programs have been installed.
         execdir = self.pymod.psipred["exe_dir_path"].get_value()
         if print_output:
-            print "execdir:", execdir
+            print("execdir:", execdir)
 
         # Where the PSIPRED V2 data files have been installed.
         datadir = self.pymod.psipred["data_dir_path"].get_value()
         if print_output:
-            print "datadir",datadir
+            print("datadir",datadir)
 
         # Write the temporary input fasta file, setting its basename.
         basename = "psipred_temp"
         if print_output:
-            print "basename: ", basename
+            print("basename: ", basename)
         self.pymod.build_sequence_file([element], basename, file_format="fasta", remove_indels=True, new_directory=self.pymod.psipred_directory)
 
         #---------------------
         # Execute PSI-BLAST. -
         #---------------------
         if print_output:
-            print "Running PSI-BLAST with sequence", basename ,"..."
+            print("Running PSI-BLAST with sequence", basename ,"...")
         try:
             self.execute_psiblast(
                 ncbi_dir = ncbidir,
@@ -357,7 +357,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
 
         except:
             if print_output:
-                print "FATAL: Error whilst running psiblast - script terminated!"
+                print("FATAL: Error whilst running psiblast - script terminated!")
             self.pymod.show_error_message("PSIPRED Error", "There was an error while running PSI-BLAST, so PSIPRED cannot perform a prediction for %s." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
@@ -366,7 +366,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         # Execute chkparse. -
         #--------------------
         if print_output:
-            print "Predicting secondary structure..."
+            print("Predicting secondary structure...")
         chkdir_command = (pmos.build_commandline_path_string(os.path.join(execdir, pmos.get_exe_file_name("chkparse"))) + " " +
                           pmos.build_commandline_path_string("%s.chk" % os.path.join(self.pymod.psipred_directory, basename)))
         try:
@@ -375,7 +375,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
             chkdir_output.close()
         except:
             if print_output:
-                print "FATAL: Error whilst running chkdir - script terminated!"
+                print("FATAL: Error whilst running chkdir - script terminated!")
             self.pymod.show_error_message("PSIPRED Error", "No homologous sequences were found by PSI-BLAST for %s, so PSIPRED cannot perform a prediction for this sequence." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
@@ -394,7 +394,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
             psipass1_output.close()
         except:
             if print_output:
-                print "FATAL: Error whilst running psipred 1 - script terminated!"
+                print("FATAL: Error whilst running psipred 1 - script terminated!")
             self.pymod.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
@@ -412,7 +412,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
             psipass2_output.close()
         except:
             if print_output:
-                print "FATAL: Error whilst running psipass 2 - script terminated!"
+                print("FATAL: Error whilst running psipass 2 - script terminated!")
             self.pymod.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
@@ -421,7 +421,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         # Clean up PSIPRED files. -
         #--------------------------
         if print_output:
-            print "Cleaning up ..."
+            print("Cleaning up ...")
 
         # Remove temporary files.
         self.remove_psipred_temp_files()
@@ -433,8 +433,8 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
                       os.path.join(self.pymod.psipred_directory, output_files_name+ext))
 
         if print_output:
-            print "Final output files:" + output_files_name + ".ss2 " + output_files_name + ".horiz"
-            print "Finished."
+            print("Final output files:" + output_files_name + ".ss2 " + output_files_name + ".horiz")
+            print("Finished.")
 
         #----------------------------------------------
         # Parses the results from .horiz output file. -
@@ -461,8 +461,8 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
 
     def remove_psipred_temp_files(self):
         try:
-            files_to_remove = filter(lambda f: not os.path.splitext(f)[1] in pmdt.psipred_output_extensions, os.listdir(self.pymod.psipred_directory))
-            map(lambda f: os.remove(os.path.join(self.pymod.psipred_directory,f)) , files_to_remove)
+            files_to_remove = [f for f in os.listdir(self.pymod.psipred_directory) if not os.path.splitext(f)[1] in pmdt.psipred_output_extensions]
+            list(map(lambda f: os.remove(os.path.join(self.pymod.psipred_directory,f)) , files_to_remove))
         except:
             pass
 
@@ -606,22 +606,22 @@ class DOPE_assessment(PyMod_protocol, MODELLER_common):
                 raise Exception("Can not run MODELLER externally.")
             # Builds the MODELLER script file to be executed externally.
             dope_profile_script_file = open(self.script_file_name, "w")
-            print >> dope_profile_script_file, "import modeller"
-            print >> dope_profile_script_file, "from modeller.scripts import complete_pdb"
-            print >> dope_profile_script_file, "env = modeller.environ()"
-            print >> dope_profile_script_file, "env.io.atom_files_directory = []"
-            print >> dope_profile_script_file, "env.io.atom_files_directory.append('.')"
-            print >> dope_profile_script_file, "env.io.hetatm = True"
-            print >> dope_profile_script_file, "env.io.water = True"
-            print >> dope_profile_script_file, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
-            print >> dope_profile_script_file, "env.libs.parameters.read(file='$(LIB)/par.lib')"
-            print >> dope_profile_script_file, "modstr = complete_pdb(env, '%s')" % str_file_path
-            print >> dope_profile_script_file, "s = modeller.selection(modstr).only_std_residues()"
-            print >> dope_profile_script_file, "score = s.assess_dope(output='ENERGY_PROFILE NO_REPORT',file='%s', normalize_profile=True, smoothing_window=15)" % profile_file_path
-            print >> dope_profile_script_file, "\n# Needed to compute DOPE in PyMod when MODELLER is run externally from PyMOL."
-            print >> dope_profile_script_file, "dope_profile_out_file = open('%s','w')" % self.script_temp_output_name
-            print >> dope_profile_script_file, "dope_profile_out_file.write(str(score))"
-            print >> dope_profile_script_file, "dope_profile_out_file.close()"
+            print("import modeller", file=dope_profile_script_file)
+            print("from modeller.scripts import complete_pdb", file=dope_profile_script_file)
+            print("env = modeller.environ()", file=dope_profile_script_file)
+            print("env.io.atom_files_directory = []", file=dope_profile_script_file)
+            print("env.io.atom_files_directory.append('.')", file=dope_profile_script_file)
+            print("env.io.hetatm = True", file=dope_profile_script_file)
+            print("env.io.water = True", file=dope_profile_script_file)
+            print("env.libs.topology.read(file='$(LIB)/top_heav.lib')", file=dope_profile_script_file)
+            print("env.libs.parameters.read(file='$(LIB)/par.lib')", file=dope_profile_script_file)
+            print("modstr = complete_pdb(env, '%s')" % str_file_path, file=dope_profile_script_file)
+            print("s = modeller.selection(modstr).only_std_residues()", file=dope_profile_script_file)
+            print("score = s.assess_dope(output='ENERGY_PROFILE NO_REPORT',file='%s', normalize_profile=True, smoothing_window=15)" % profile_file_path, file=dope_profile_script_file)
+            print("\n# Needed to compute DOPE in PyMod when MODELLER is run externally from PyMOL.", file=dope_profile_script_file)
+            print("dope_profile_out_file = open('%s','w')" % self.script_temp_output_name, file=dope_profile_script_file)
+            print("dope_profile_out_file.write(str(score))", file=dope_profile_script_file)
+            print("dope_profile_out_file.close()", file=dope_profile_script_file)
             dope_profile_script_file.close()
 
             # Executes the script.
@@ -791,7 +791,7 @@ class DOPE_profile_window:
                                y_label_text="DOPE score")
         for chain_dope_data in self.selection_dope_plot_data:
             # Adds the new plot corresponding to the current chain.
-            cp.add_plot(range(1, len(chain_dope_data["dope_scores"])+1), chain_dope_data["dope_scores"],
+            cp.add_plot(list(range(1, len(chain_dope_data["dope_scores"])+1)), chain_dope_data["dope_scores"],
                         label=chain_dope_data["label"],
                         additional_data=chain_dope_data["additional_data"])
         cp.show()
@@ -899,13 +899,13 @@ class Energy_minimization(PyMod_protocol, MODELLER_common):
                             state[i] -= alpha * dstate[i]
                         (newe, dstate) = self.energy(state)
                         if abs(newe - olde) < min_ediff:
-                            print "Finished at step %d due to energy criterion" % self.step
+                            print("Finished at step %d due to energy criterion" % self.step)
                             break
                         elif self.shiftmax < minshift:
-                            print "Finished at step %d due to shift criterion" % self.step
+                            print("Finished at step %d due to shift criterion" % self.step)
                             break
                         elif maxit is not None and self.step >= maxit:
-                            print "Finished at step %d due to step criterion" % self.step
+                            print("Finished at step %d due to step criterion" % self.step)
                             break
                         if newe < olde:
                             alpha *= 2
@@ -951,92 +951,92 @@ class Energy_minimization(PyMod_protocol, MODELLER_common):
         else:
             optimize_script_file_path = os.path.join(model_file_directory, "optimize.py")
             optimize_fh = open(optimize_script_file_path, "w")
-            print >> optimize_fh, "import modeller, modeller.optimizers"
-            print >> optimize_fh, "from modeller.scripts import complete_pdb"
-            print >> optimize_fh, "env = modeller.environ()"
+            print("import modeller, modeller.optimizers", file=optimize_fh)
+            print("from modeller.scripts import complete_pdb", file=optimize_fh)
+            print("env = modeller.environ()", file=optimize_fh)
             if use_hetatm:
-                print >> optimize_fh, "env.io.hetatm = True"
+                print("env.io.hetatm = True", file=optimize_fh)
                 if use_water:
-                    print >> optimize_fh, "env.io.water = True"
-            print >> optimize_fh, "env.edat.dynamic_sphere = True"
-            print >> optimize_fh, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
-            print >> optimize_fh, "env.libs.parameters.read(file='$(LIB)/par.lib')"
-            print >> optimize_fh, 'code = "%s"' % opt_code
-            print >> optimize_fh, 'env.edat.dynamic_coulomb = True'
-            print >> optimize_fh, 'env.edat.dynamic_lennard = True'
-            print >> optimize_fh, 'env.edat.contact_shell = %s' % parameters_dict["non_bonded_cutoff"]
-            print >> optimize_fh, 'mdl = complete_pdb(env, "%s")' % os.path.join(model_file_directory, model_file_name)
-            print >> optimize_fh, "mdl.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.ini')
-            print >> optimize_fh, "atmsel = modeller.selection(mdl)"
+                    print("env.io.water = True", file=optimize_fh)
+            print("env.edat.dynamic_sphere = True", file=optimize_fh)
+            print("env.libs.topology.read(file='$(LIB)/top_heav.lib')", file=optimize_fh)
+            print("env.libs.parameters.read(file='$(LIB)/par.lib')", file=optimize_fh)
+            print('code = "%s"' % opt_code, file=optimize_fh)
+            print('env.edat.dynamic_coulomb = True', file=optimize_fh)
+            print('env.edat.dynamic_lennard = True', file=optimize_fh)
+            print('env.edat.contact_shell = %s' % parameters_dict["non_bonded_cutoff"], file=optimize_fh)
+            print('mdl = complete_pdb(env, "%s")' % os.path.join(model_file_directory, model_file_name), file=optimize_fh)
+            print("mdl.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.ini'), file=optimize_fh)
+            print("atmsel = modeller.selection(mdl)", file=optimize_fh)
             # Generate the restraints:
             if parameters_dict["restraints"]["bond"]:
-                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='bond', spline_on_site=False)"
+                print("mdl.restraints.make(atmsel, restraint_type='bond', spline_on_site=False)", file=optimize_fh)
             if parameters_dict["restraints"]["angle"]:
-                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='angle', spline_on_site=False)"
+                print("mdl.restraints.make(atmsel, restraint_type='angle', spline_on_site=False)", file=optimize_fh)
             if parameters_dict["restraints"]["dihedral"]:
-                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='dihedral', spline_on_site=False)"
+                print("mdl.restraints.make(atmsel, restraint_type='dihedral', spline_on_site=False)", file=optimize_fh)
             if parameters_dict["restraints"]["improper"]:
-                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='improper', spline_on_site=False)"
+                print("mdl.restraints.make(atmsel, restraint_type='improper', spline_on_site=False)", file=optimize_fh)
             if parameters_dict["restraints"]["coulomb"]:
-                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='coulomb', spline_on_site=False)"
+                print("mdl.restraints.make(atmsel, restraint_type='coulomb', spline_on_site=False)", file=optimize_fh)
             if parameters_dict["restraints"]["lj"]:
-                print >> optimize_fh, "mdl.restraints.make(atmsel, restraint_type='lj', spline_on_site=False)"
-            print >> optimize_fh, "mdl.restraints.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.rsr')
-            print >> optimize_fh, "mpdf = atmsel.energy()"
-            print >> optimize_fh, 'class SteepestDescent(modeller.optimizers.state_optimizer):'
-            print >> optimize_fh, '   """'
-            print >> optimize_fh, '   Very simple steepest descent optimizer, in Python, as reported at:'
-            print >> optimize_fh, '   http://www.salilab.org/modeller/9v4/manual/node252.html'
-            print >> optimize_fh, '   """'
-            print >> optimize_fh, "   _ok_keys = modeller.optimizers.state_optimizer._ok_keys + ('min_atom_shift', 'min_e_diff', 'step_size', 'max_iterations')"
-            print >> optimize_fh, "   def __init__(self, step_size=0.0001, min_atom_shift=0.01, min_e_diff=1.0, max_iterations=None, **vars):"
-            print >> optimize_fh, '       modeller.optimizers.state_optimizer.__init__(self, step_size=step_size,'
-            print >> optimize_fh, '                                min_atom_shift=min_atom_shift,'
-            print >> optimize_fh, '                                min_e_diff=min_e_diff,'
-            print >> optimize_fh, '                                max_iterations=max_iterations, **vars)'
-            print >> optimize_fh, "   def optimize(self, atmsel, **vars):"
-            print >> optimize_fh, "        modeller.optimizers.state_optimizer.optimize(self, atmsel, **vars)"
-            print >> optimize_fh, "        alpha = self.get_parameter('step_size')"
-            print >> optimize_fh, "        minshift = self.get_parameter('min_atom_shift')"
-            print >> optimize_fh, "        min_ediff = self.get_parameter('min_e_diff')"
-            print >> optimize_fh, "        maxit = self.get_parameter('max_iterations')"
-            print >> optimize_fh, "        state = self.get_state()"
-            print >> optimize_fh, "        (olde, dstate) = self.energy(state)"
-            print >> optimize_fh, "        while True:"
-            print >> optimize_fh, "            for i in range(len(state)):"
-            print >> optimize_fh, "                state[i] -= alpha * dstate[i]"
-            print >> optimize_fh, "            (newe, dstate) = self.energy(state)"
-            print >> optimize_fh, "            if abs(newe - olde) < min_ediff:"
-            print >> optimize_fh, '                print "Finished at step" + str(self.step) + "due to energy criterion"'
-            print >> optimize_fh, '                break'
-            print >> optimize_fh, '            elif self.shiftmax < minshift:'
-            print >> optimize_fh, '                print "Finished at step" + str(self.step) + "due to shift criterion"'
-            print >> optimize_fh, '                break'
-            print >> optimize_fh, '            elif maxit is not None and self.step >= maxit:'
-            print >> optimize_fh, '                print "Finished at step" + str(self.step) + "due to step criterion"'
-            print >> optimize_fh, '                break'
-            print >> optimize_fh, '            if newe < olde:'
-            print >> optimize_fh, '                alpha *= 2'
-            print >> optimize_fh, '            else:'
-            print >> optimize_fh, '                alpha /= 2'
-            print >> optimize_fh, '            olde = newe'
-            print >> optimize_fh, '            self.next_step()'
-            print >> optimize_fh, '        self.finish()'
-            print >> optimize_fh, "trcfil = file('%s','w')" % os.path.join(model_file_directory, opt_code+'.D00000001')
+                print("mdl.restraints.make(atmsel, restraint_type='lj', spline_on_site=False)", file=optimize_fh)
+            print("mdl.restraints.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.rsr'), file=optimize_fh)
+            print("mpdf = atmsel.energy()", file=optimize_fh)
+            print('class SteepestDescent(modeller.optimizers.state_optimizer):', file=optimize_fh)
+            print('   """', file=optimize_fh)
+            print('   Very simple steepest descent optimizer, in Python, as reported at:', file=optimize_fh)
+            print('   http://www.salilab.org/modeller/9v4/manual/node252.html', file=optimize_fh)
+            print('   """', file=optimize_fh)
+            print("   _ok_keys = modeller.optimizers.state_optimizer._ok_keys + ('min_atom_shift', 'min_e_diff', 'step_size', 'max_iterations')", file=optimize_fh)
+            print("   def __init__(self, step_size=0.0001, min_atom_shift=0.01, min_e_diff=1.0, max_iterations=None, **vars):", file=optimize_fh)
+            print('       modeller.optimizers.state_optimizer.__init__(self, step_size=step_size,', file=optimize_fh)
+            print('                                min_atom_shift=min_atom_shift,', file=optimize_fh)
+            print('                                min_e_diff=min_e_diff,', file=optimize_fh)
+            print('                                max_iterations=max_iterations, **vars)', file=optimize_fh)
+            print("   def optimize(self, atmsel, **vars):", file=optimize_fh)
+            print("        modeller.optimizers.state_optimizer.optimize(self, atmsel, **vars)", file=optimize_fh)
+            print("        alpha = self.get_parameter('step_size')", file=optimize_fh)
+            print("        minshift = self.get_parameter('min_atom_shift')", file=optimize_fh)
+            print("        min_ediff = self.get_parameter('min_e_diff')", file=optimize_fh)
+            print("        maxit = self.get_parameter('max_iterations')", file=optimize_fh)
+            print("        state = self.get_state()", file=optimize_fh)
+            print("        (olde, dstate) = self.energy(state)", file=optimize_fh)
+            print("        while True:", file=optimize_fh)
+            print("            for i in range(len(state)):", file=optimize_fh)
+            print("                state[i] -= alpha * dstate[i]", file=optimize_fh)
+            print("            (newe, dstate) = self.energy(state)", file=optimize_fh)
+            print("            if abs(newe - olde) < min_ediff:", file=optimize_fh)
+            print('                print "Finished at step" + str(self.step) + "due to energy criterion"', file=optimize_fh)
+            print('                break', file=optimize_fh)
+            print('            elif self.shiftmax < minshift:', file=optimize_fh)
+            print('                print "Finished at step" + str(self.step) + "due to shift criterion"', file=optimize_fh)
+            print('                break', file=optimize_fh)
+            print('            elif maxit is not None and self.step >= maxit:', file=optimize_fh)
+            print('                print "Finished at step" + str(self.step) + "due to step criterion"', file=optimize_fh)
+            print('                break', file=optimize_fh)
+            print('            if newe < olde:', file=optimize_fh)
+            print('                alpha *= 2', file=optimize_fh)
+            print('            else:', file=optimize_fh)
+            print('                alpha /= 2', file=optimize_fh)
+            print('            olde = newe', file=optimize_fh)
+            print('            self.next_step()', file=optimize_fh)
+            print('        self.finish()', file=optimize_fh)
+            print("trcfil = file('%s','w')" % os.path.join(model_file_directory, opt_code+'.D00000001'), file=optimize_fh)
             if parameters_dict["steepest_descent"]["use"]:
-                print >> optimize_fh, "sd = SteepestDescent(max_iterations=%s)" % parameters_dict["steepest_descent"]["cycles"]
-                print >> optimize_fh, "sd.optimize(atmsel, actions=modeller.optimizers.actions.trace(5))"
+                print("sd = SteepestDescent(max_iterations=%s)" % parameters_dict["steepest_descent"]["cycles"], file=optimize_fh)
+                print("sd.optimize(atmsel, actions=modeller.optimizers.actions.trace(5))", file=optimize_fh)
             if parameters_dict["conjugate_gradients"]["use"]:
-                print >> optimize_fh, "cg = modeller.optimizers.conjugate_gradients(output='REPORT')"
-                print >> optimize_fh, "cg.optimize(atmsel, max_iterations=%s, actions=modeller.optimizers.actions.trace(5, trcfil))" % parameters_dict["conjugate_gradients"]["cycles"]
+                print("cg = modeller.optimizers.conjugate_gradients(output='REPORT')", file=optimize_fh)
+                print("cg.optimize(atmsel, max_iterations=%s, actions=modeller.optimizers.actions.trace(5, trcfil))" % parameters_dict["conjugate_gradients"]["cycles"], file=optimize_fh)
             if parameters_dict["quasi_newton"]["use"]:
-                print >> optimize_fh, "qn = modeller.optimizers.conjugate_gradients(output='REPORT')"
-                print >> optimize_fh, "qn.optimize(atmsel, max_iterations=%s, actions=modeller.optimizers.actions.trace(5, trcfil))" % parameters_dict["quasi_newton"]["cycles"]
+                print("qn = modeller.optimizers.conjugate_gradients(output='REPORT')", file=optimize_fh)
+                print("qn.optimize(atmsel, max_iterations=%s, actions=modeller.optimizers.actions.trace(5, trcfil))" % parameters_dict["quasi_newton"]["cycles"], file=optimize_fh)
             if parameters_dict["molecular_dynamics"]["use"]:
-                print >> optimize_fh, "md = modeller.optimizers.molecular_dynamics(output='REPORT')"
-                print >> optimize_fh, "md.optimize(atmsel, temperature=%s, max_iterations=%s, actions=modeller.optimizers.actions.trace(10, trcfil))" % (parameters_dict["molecular_dynamics"]["temperature"], parameters_dict["molecular_dynamics"]["cycles"])
-            print >> optimize_fh, "mpdf = atmsel.energy()"
-            print >> optimize_fh, "mdl.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.pdb')
+                print("md = modeller.optimizers.molecular_dynamics(output='REPORT')", file=optimize_fh)
+                print("md.optimize(atmsel, temperature=%s, max_iterations=%s, actions=modeller.optimizers.actions.trace(10, trcfil))" % (parameters_dict["molecular_dynamics"]["temperature"], parameters_dict["molecular_dynamics"]["cycles"]), file=optimize_fh)
+            print("mpdf = atmsel.energy()", file=optimize_fh)
+            print("mdl.write(file='%s')" % os.path.join(model_file_directory, opt_code+'.pdb'), file=optimize_fh)
             optimize_fh.close()
             cline= "%s %s" % (self.pymod.modeller.get_exe_file_path(), optimize_script_file_path)
             self.pymod.execute_subprocess(cline, executing_modeller=True)

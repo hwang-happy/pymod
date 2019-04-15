@@ -8,7 +8,7 @@ from pymod_lib.pymod_gui.shared_components import PyMod_radioselect
 from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast import Generic_BLAST_search, BLAST_base_options_window
 
 
-print __file__
+print(__file__)
 
 
 ###################################################################################################
@@ -131,11 +131,11 @@ class NCBI_BLAST_search(Generic_BLAST_search):
         http://www.ncbi.nlm.nih.gov/BLAST/Doc/urlapi.html
         """
         import time
-        import urllib, urllib2
+        import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
         try:
-            from cStringIO import StringIO
+            from io import StringIO
         except ImportError:
-            from StringIO import StringIO
+            from io import StringIO
 
         assert program in ['blastn', 'blastp', 'blastx', 'tblastn', 'tblastx']
 
@@ -182,16 +182,16 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             ('CMD', 'Put'),
             ]
         query = [x for x in parameters if x[1] is not None]
-        message = str(urllib.urlencode(query))
+        message = str(urllib.parse.urlencode(query))
 
         # Send off the initial query to qblast.
         # Note the NCBI do not currently impose a rate limit here, other
         # than the request not to make say 50 queries at once using multiple
         # threads.
-        request = urllib2.Request("https://blast.ncbi.nlm.nih.gov/Blast.cgi",
+        request = urllib.request.Request("https://blast.ncbi.nlm.nih.gov/Blast.cgi",
                            message,
                            {"User-Agent": "BiopythonClient"})
-        handle = urllib2.urlopen(request)
+        handle = urllib.request.urlopen(request)
 
         # Format the "Get" command, which gets the formatted results from qblast
         # Parameters taken from http://www.ncbi.nlm.nih.gov/BLAST/Doc/node6.html on 9 July 2007
@@ -214,7 +214,7 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             ('CMD', 'Get'),
             ]
         query = [x for x in parameters if x[1] is not None]
-        message = str(urllib.urlencode(query))
+        message = str(urllib.parse.urlencode(query))
 
         # Poll NCBI until the results are ready.  Use a backoff delay from 2 - 120 second wait
         delay = 2.0
@@ -232,10 +232,10 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             else:
                 delay = 120
 
-            request = urllib2.Request("https://blast.ncbi.nlm.nih.gov/Blast.cgi",
+            request = urllib.request.Request("https://blast.ncbi.nlm.nih.gov/Blast.cgi",
                                message,
                                {"User-Agent": "BiopythonClient"})
-            handle = urllib2.urlopen(request)
+            handle = urllib.request.urlopen(request)
             results = str(handle.read())
 
             # Can see an "\n\n" page while results are in progress,

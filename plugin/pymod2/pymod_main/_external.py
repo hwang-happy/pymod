@@ -74,7 +74,7 @@ class PyMod_external(object):
     def execute_subprocess(self, commandline, new_stdout = subprocess.PIPE, new_stderr = subprocess.PIPE, new_shell = (sys.platform!="win32"), print_stdinfo = True, executing_modeller=False):
 
         if print_stdinfo:
-            print "Executing the following command:", commandline
+            print("Executing the following command:", commandline)
 
         if not executing_modeller:
             try:
@@ -84,12 +84,12 @@ class PyMod_external(object):
                 if returncode != 0:
                     raise Exception("Subprocess returned non-zero return code...")
                 if print_stdinfo:
-                    print "Stdout:", out_std
-            except Exception, e:
-                print commandline
+                    print("Stdout:", out_std)
+            except Exception as e:
+                print(commandline)
                 if print_stdinfo:
-                    print "Exception:", e
-                    print "Stderr:", err_std
+                    print("Exception:", e)
+                    print("Stderr:", err_std)
                 raise Exception("An error occurred while running the child process.")
         # Official PyMOL builds on Mac OS will crash if executing MODELLER through using the
         # 'subprocess' module. For this reason, the 'os' module will be used instead.

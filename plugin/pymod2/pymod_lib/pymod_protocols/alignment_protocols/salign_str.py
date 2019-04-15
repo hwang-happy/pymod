@@ -13,9 +13,9 @@ except:
 
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
-from _base_alignment._base_regular_alignment import Regular_structural_alignment
-from _base_alignment._gui import SALIGN_str_regular_window
-from _salign_common import SALIGN_regular_alignment, SALIGN_alignment
+from ._base_alignment._base_regular_alignment import Regular_structural_alignment
+from ._base_alignment._gui import SALIGN_str_regular_window
+from ._salign_common import SALIGN_regular_alignment, SALIGN_alignment
 
 
 ###################################################################################################
@@ -51,7 +51,7 @@ class SALIGN_str_regular_alignment(SALIGN_regular_alignment, SALIGN_alignment, R
         #     self.build_salign_dendrogram_menu=False
 
         shortcut_to_temp_files = os.path.join(self.pymod.current_project_dirpath,self.pymod.alignments_dirpath,output_file_name)
-        struct_tup=range(0,len(structures_to_align))
+        struct_tup=list(range(0,len(structures_to_align)))
         for ii in range(0,len(structures_to_align)):
             struct_entry=structures_to_align[ii].get_structure_file(strip_extension=True)
             header = structures_to_align[ii].get_unique_index_header()
@@ -99,20 +99,20 @@ class SALIGN_str_regular_alignment(SALIGN_regular_alignment, SALIGN_alignment, R
             # create salign_multiple_struc.py for external modeller execution
 
             config=open("salign_multiple_struc.py", "w")
-            print >> config, "import modeller"
-            print >> config, "modeller.log.verbose()"
-            print >> config, "env = modeller.environ()"
-            print >> config, "aln = modeller.alignment(env)"
+            print("import modeller", file=config)
+            print("modeller.log.verbose()", file=config)
+            print("env = modeller.environ()", file=config)
+            print("aln = modeller.alignment(env)", file=config)
             for (pdb_file_name, code, chain) in struct_tup:
-                print >> config, "mdl = modeller.model(env, file='"+pdb_file_name+"', model_segment=('FIRST:"+chain+"','LAST:"+chain+"'))"
-                print >> config, "aln.append_model(mdl, atom_files='"+pdb_file_name+"', align_codes='"+code+"')"
-            print >> config, "for (weights, write_fit, whole) in (((1., 0., 0., 0., 1., 0.), False, True), ((1., 0.5, 1., 1., 1., 0.), False, True), ((1., 1., 1., 1., 1., 0.), True, False)):"
-            print >> config, "    aln.salign(rms_cutoff=3.5, normalize_pp_scores=False, rr_file='$(LIB)/as1.sim.mat', overhang=30, gap_penalties_1d=(-450, -50), gap_penalties_3d=(0, 3), gap_gap_score=0, gap_residue_score=0, dendrogram_file='%s.tree', alignment_type='tree', feature_weights=weights, improve_alignment=True, fit=True, write_fit=write_fit, write_whole_pdb=whole, output='ALIGNMENT QUALITY')" % (shortcut_to_temp_files)
-            print >> config, "aln.write(file='%s.ali', alignment_format='PIR')" % (shortcut_to_temp_files)
-            print >> config, "aln.salign(rms_cutoff=1.0, normalize_pp_scores=False, rr_file='$(LIB)/as1.sim.mat', overhang=30, gap_penalties_1d=(-450, -50), gap_penalties_3d=(0, 3), gap_gap_score=0, gap_residue_score=0, dendrogram_file='%s.tree', alignment_type='progressive', feature_weights=[0]*6, improve_alignment=False, fit=False, write_fit=True, write_whole_pdb=False, output='QUALITY')" % (shortcut_to_temp_files)
-            print >> config, "aln.write(file='%s.ali', alignment_format='PIR')" % (shortcut_to_temp_files)
-            print >> config, "aln.salign(rms_cutoff=1.0, normalize_pp_scores=False, rr_file='$(LIB)/as1.sim.mat', overhang=30, gap_penalties_1d=(-450, -50), gap_penalties_3d=(0, 3), gap_gap_score=0, gap_residue_score=0, dendrogram_file='%s.tree', alignment_type='progressive', feature_weights=[0]*6, improve_alignment=False, fit=False, write_fit=True, write_whole_pdb=False, output='QUALITY')" % (shortcut_to_temp_files)
-            print >> config, ""
+                print("mdl = modeller.model(env, file='"+pdb_file_name+"', model_segment=('FIRST:"+chain+"','LAST:"+chain+"'))", file=config)
+                print("aln.append_model(mdl, atom_files='"+pdb_file_name+"', align_codes='"+code+"')", file=config)
+            print("for (weights, write_fit, whole) in (((1., 0., 0., 0., 1., 0.), False, True), ((1., 0.5, 1., 1., 1., 0.), False, True), ((1., 1., 1., 1., 1., 0.), True, False)):", file=config)
+            print("    aln.salign(rms_cutoff=3.5, normalize_pp_scores=False, rr_file='$(LIB)/as1.sim.mat', overhang=30, gap_penalties_1d=(-450, -50), gap_penalties_3d=(0, 3), gap_gap_score=0, gap_residue_score=0, dendrogram_file='%s.tree', alignment_type='tree', feature_weights=weights, improve_alignment=True, fit=True, write_fit=write_fit, write_whole_pdb=whole, output='ALIGNMENT QUALITY')" % (shortcut_to_temp_files), file=config)
+            print("aln.write(file='%s.ali', alignment_format='PIR')" % (shortcut_to_temp_files), file=config)
+            print("aln.salign(rms_cutoff=1.0, normalize_pp_scores=False, rr_file='$(LIB)/as1.sim.mat', overhang=30, gap_penalties_1d=(-450, -50), gap_penalties_3d=(0, 3), gap_gap_score=0, gap_residue_score=0, dendrogram_file='%s.tree', alignment_type='progressive', feature_weights=[0]*6, improve_alignment=False, fit=False, write_fit=True, write_whole_pdb=False, output='QUALITY')" % (shortcut_to_temp_files), file=config)
+            print("aln.write(file='%s.ali', alignment_format='PIR')" % (shortcut_to_temp_files), file=config)
+            print("aln.salign(rms_cutoff=1.0, normalize_pp_scores=False, rr_file='$(LIB)/as1.sim.mat', overhang=30, gap_penalties_1d=(-450, -50), gap_penalties_3d=(0, 3), gap_gap_score=0, gap_residue_score=0, dendrogram_file='%s.tree', alignment_type='progressive', feature_weights=[0]*6, improve_alignment=False, fit=False, write_fit=True, write_whole_pdb=False, output='QUALITY')" % (shortcut_to_temp_files), file=config)
+            print("", file=config)
             config.close()
 
             cline=self.tool.get_exe_file_path()+" salign_multiple_struc.py"

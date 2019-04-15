@@ -2,7 +2,7 @@
 Classes needed to join alignments and to perform a center star alignment.
 """
 
-from seq_manipulation import get_starting_gaps, count_indels_to_next_residue, get_residue_id_in_aligned_sequence
+from .seq_manipulation import get_starting_gaps, count_indels_to_next_residue, get_residue_id_in_aligned_sequence
 
 
 class Star_alignment:
@@ -20,7 +20,7 @@ class Star_alignment:
         self.query_str = query
         self.query = list(query)
         self.original_query = self.query[:]
-        self.query_length = len(filter(lambda x: x != "-", self.query))
+        self.query_length = len([x for x in self.query if x != "-"])
         self.query_starting_indels = get_starting_gaps(self.original_query)
 
         # A list comprising the query (as its first element) and all the other sequences of the
@@ -177,8 +177,8 @@ class Pairwise_alignment:
         self.aligned_sequence[0:0] = ["-"]*(aligned_start_id)
 
         # Pad on the right.
-        gapless_full_query = filter(lambda p:p!="-",self.full_query)
-        gapless_aligned_query = filter(lambda p:p!="-",self.aligned_query)
+        gapless_full_query = [p for p in self.full_query if p!="-"]
+        gapless_aligned_query = [p for p in self.aligned_query if p!="-"]
         length_difference = len(gapless_full_query) - len(gapless_aligned_query)
         if length_difference != 0:
             extended_sequence = gapless_full_query[len(gapless_aligned_query):]

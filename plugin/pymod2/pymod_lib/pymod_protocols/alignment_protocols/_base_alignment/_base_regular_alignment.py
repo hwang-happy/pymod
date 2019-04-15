@@ -6,7 +6,7 @@ import os
 
 from Bio import SeqIO
 
-import tkMessageBox
+import tkinter.messagebox
 
 from pymod_lib import pymod_vars
 from pymod_lib.pymod_seq import seq_io
@@ -50,7 +50,7 @@ class Regular_alignment(Alignment_protocol):
             else:
                 title = "Extract children?"
                 message = "Would you like to extract the selected children and build a new alignment?"
-                proceed_with_alignment = tkMessageBox.askyesno(title, message, parent=self.pymod.main_window)
+                proceed_with_alignment = tkinter.messagebox.askyesno(title, message, parent=self.pymod.main_window)
                 self.extract_siblings_choice = proceed_with_alignment
 
         # Multiple clusters are involved.
@@ -342,12 +342,12 @@ class Regular_alignment(Alignment_protocol):
                     # Write the results to the al_result.txt file.
                     f=open(os.path.join(self.pymod.alignments_dirpath, output_file_name + ".txt"), "w")
                     for seq_file1 in range(0,ax+1):
-                        print >>f, structs[seq_file1][0].split()[0], "".join(seq1[seq_file1])
+                        print(structs[seq_file1][0].split()[0], "".join(seq1[seq_file1]), file=f)
                     for seq_file2 in range(len(records1)):
                         if seq_file2 != line:
-                            print >>f, records1[seq_file2].id, "".join(seq2[seq_file2])
+                            print(records1[seq_file2].id, "".join(seq2[seq_file2]), file=f)
                     for seq_file1_again in range(ax+1, len(structs)):
-                        print >>f, structs[seq_file1_again][0].split()[0], "".join(seq1[seq_file1_again])
+                        print(structs[seq_file1_again][0].split()[0], "".join(seq1[seq_file1_again]), file=f)
                     f.close()
                     break # This stops the cicle when a bridge sequence has been found.
                 else:

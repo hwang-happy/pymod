@@ -1,9 +1,9 @@
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 
-from _main_window_common import PyMod_main_window_mixin
-from _header_entry import Header_entry
-from _sequence_text import Sequence_text
+from ._main_window_common import PyMod_main_window_mixin
+from ._header_entry import Header_entry
+from ._sequence_text import Sequence_text
 import time # TEST.
 
 

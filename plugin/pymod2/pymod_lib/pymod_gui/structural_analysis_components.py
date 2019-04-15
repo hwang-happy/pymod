@@ -1,4 +1,4 @@
-from Tkinter import *
+from tkinter import *
 
 from pymod_lib.pymod_seq import seq_manipulation
 from pymod_lib.pymod_gui.shared_components import PyMod_tool_window

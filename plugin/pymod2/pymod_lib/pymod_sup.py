@@ -28,7 +28,7 @@ from distutils.spawn import find_executable as which # Used in a method to run k
 # modules for ramachandran_matplotlib & ramachandran_tkinter
 from Bio import PDB
 from math import pi
-import Tkinter
+import tkinter
 from pymol import cmd
 
 # Global variable for Ramachandran Plots
@@ -90,14 +90,14 @@ def draw_salign_dendrogram(dendrogram_file, engine='tkinter'):
             from matplotlib import pylab
             draw_salign_dendrogram_matplotlib(dendrogram_file)
         except:
-            print "WARNING! matplotlib is absent. No dendrogram is plotted"
+            print("WARNING! matplotlib is absent. No dendrogram is plotted")
     elif engine == 'tkinter':
         draw_salign_dendrogram_tkinter(dendrogram_file)
 
 def draw_salign_dendrogram_tkinter(dendrogram_file):
     """ Draw `dendrogram_file` for salign tree file using matplotlib"""
     if not os.path.isfile(dendrogram_file):
-        print "ERROR! Cannot find dendrogram_file"+str(dendrogram_file)
+        print("ERROR! Cannot find dendrogram_file"+str(dendrogram_file))
         return
 
     from matplotlib import pylab
@@ -161,7 +161,7 @@ def draw_salign_dendrogram_tkinter(dendrogram_file):
 def draw_salign_dendrogram_matplotlib(dendrogram_file):
     """ Draw `dendrogram_file` for salign tree file using matplotlib"""
     if not os.path.isfile(dendrogram_file):
-        print "ERROR! Cannot find dendrogram_file"+str(dendrogram_file)
+        print("ERROR! Cannot find dendrogram_file"+str(dendrogram_file))
         return
 
     from matplotlib import pylab
@@ -230,37 +230,37 @@ class pylab:
     """ pylab: Fake module imported by PyMod when matplotlib is absent """
     @classmethod
     def figure(num=None, figsize=None, dpi=None, facecolor=None, edgecolor=None, frameon=True, FigureClass='matplotlib.figure.Figure', **kwargs):
-        print "Warning! Failed to import matplotlib so no figure will be drawn"
+        print("Warning! Failed to import matplotlib so no figure will be drawn")
 
     @classmethod
     def xlabel(s, *args, **kwargs):
-        print "Warning! Failed to import matplotlib so no axes will be labeled"
+        print("Warning! Failed to import matplotlib so no axes will be labeled")
 
     @classmethod
     def ylabel(s, *args, **kwargs):
-        print "Warning! Failed to import matplotlib so no axes will be labeled"
+        print("Warning! Failed to import matplotlib so no axes will be labeled")
 
     @classmethod
     def plot(*args, **kwargs):
-        print "Warning! Failed to import matplotlib so nothing will be plotted"
+        print("Warning! Failed to import matplotlib so nothing will be plotted")
 
     @classmethod
     def legend(*args, **kwargs):
-        print "Warning! Failed to import matplotlib so legend will be present"
+        print("Warning! Failed to import matplotlib so legend will be present")
 
     @classmethod
     def show(*args, **kw):
-        print "Warning! Failed to import matplotlib so nothing can be shown"
+        print("Warning! Failed to import matplotlib so nothing can be shown")
 
     @classmethod
     def ion(*args):
-        print "Warning! Failed to import matplotlib so no interactive mode will be turned on"
+        print("Warning! Failed to import matplotlib so no interactive mode will be turned on")
 
 ######################################################################
-class SimpleAxis(Tkinter.Canvas):
+class SimpleAxis(tkinter.Canvas):
 
     def __init__(self, *args, **kwargs):
-        Tkinter.Canvas.__init__(self, *args, **kwargs)
+        tkinter.Canvas.__init__(self, *args, **kwargs)
 
     def axis(self, imin, imax, jmin, jmax, xlabels=[], ylabels=[]):
 
@@ -338,10 +338,10 @@ def ramachandran_tkinter(PDB_file,title="Ramachandran Plot",AA_list=None,
     jmin=40
     imax=imin+360
     jmax=jmin+360
-    rootframe=Tkinter.Toplevel() # Tkinter.Tk()
+    rootframe=tkinter.Toplevel() # Tkinter.Tk()
     rootframe.title("Ramachandran Plot")
     canvas=SimpleAxis(rootframe,width=450,height=640)
-    canvas.pack(side=Tkinter.LEFT, fill="both", expand=1)
+    canvas.pack(side=tkinter.LEFT, fill="both", expand=1)
     mark_size=2
 
     xticks_num=[-180,-135,-90,-45,0,45,90,135,180]
@@ -718,7 +718,7 @@ def ramachandran_tkinter(PDB_file,title="Ramachandran Plot",AA_list=None,
     canvas.tag_bind(text_dict["non_gly_non_pro_por"], "<Leave>", decolor_marker)
 
     def save_as_postscript(event):
-        from tkFileDialog import asksaveasfilename
+        from tkinter.filedialog import asksaveasfilename
         filename=asksaveasfilename(filetypes=[("Postscript","*.ps")],
             initialdir=os.path.dirname(PDB_file[0]),
             initialfile=os.path.basename(PDB_file[0]).split('.')[0]+".ps")
@@ -846,7 +846,7 @@ def ClustalOmegaCommandline( cmd = "clustalo", infile = '', outfile = '',
     Molecular Systems Biology 7:539 doi:10.1038/msb.2011.75
     """
     if not os.path.isfile(cmd) and not which(cmd):
-        print "Warning! cannot find Clustal Omega executable!"
+        print("Warning! cannot find Clustal Omega executable!")
 
     cline='"'+cmd+'"'
     if infile:

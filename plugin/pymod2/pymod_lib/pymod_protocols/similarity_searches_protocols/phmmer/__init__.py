@@ -4,8 +4,8 @@ import Pmw
 
 from Bio.Blast import NCBIXML
 from Bio import SearchIO
-from Tkinter import *
-from tkFileDialog import askopenfilename
+from tkinter import *
+from tkinter.filedialog import askopenfilename
 
 from pymod_lib.pymod_gui import shared_components
 from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast import BLAST_base_options_window
@@ -116,7 +116,7 @@ class PHMMER_search(Generic_BLAST_search):
         # Sets some parameters in needed to run PHMMER.
         exe_filepath = os.path.join(self.pymod.hmmer_tool["exe_dir_path"].get_value(), get_exe_file_name("phmmer"))
         out_filepath = os.path.join(self.output_directory, "phmmer_out.txt")
-        print out_filepath
+        print(out_filepath)
         query_filepath = os.path.join(self.output_directory, "query.fasta")
         db_dirpath = self.pymod.hmmer_tool["database_dir_path"].get_value()
         try:
@@ -147,7 +147,7 @@ class PHMMER_search(Generic_BLAST_search):
 
         #phmmer_command_ls = [exe_filepath, "-o", out_filepath, "-E", evaluecutoff, query_filepath, db_filepath]
         phmmer_command_ls = [exe_filepath, "-o", out_filepath, query_filepath, db_filepath]
-        print phmmer_command_ls
+        print(phmmer_command_ls)
         try:
             self.pymod.new_execute_subprocess(phmmer_command_ls)
         except:
@@ -168,7 +168,7 @@ class PHMMER_search(Generic_BLAST_search):
             # phmmer_query_result = SearchIO.parse(result_handle, 'hmmer3-text'
             phmmer_query_result = SearchIO.read(result_handle, 'hmmer3-text')
             result_handle.close()
-        except IOError, ValueError:
+        except IOError as ValueError:
             return False
 
         if len(phmmer_query_result):
@@ -391,7 +391,7 @@ class PHMMER_search(Generic_BLAST_search):
         Called when the 'SUBMIT' button is pressed on some phmmer results window.
         """
         # For each hsp takes the state of its tkinter checkbutton.
-        self.my_phmmer_map = map((lambda var: var.get()), self.phmmer_states)
+        self.my_phmmer_map = list(map((lambda var: var.get()), self.phmmer_states))
 
         # If the user selected at least one HSP.
         if 1 in self.my_phmmer_map:

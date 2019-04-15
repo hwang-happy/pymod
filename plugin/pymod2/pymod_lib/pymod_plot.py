@@ -5,11 +5,12 @@ Matplotlib in many PyMOL builds, PyMod makes use of this plotting engine.
 NumPy and Pmw are required.
 """
 
-from Tkinter import *
-import tkFileDialog
-import tkMessageBox
-import StringIO
+from tkinter import *
+import tkinter.filedialog
+import tkinter.messagebox
+import io
 import math
+from functools import reduce
 # Pmw.
 global has_pmw
 try:
@@ -213,7 +214,7 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
 
 
     def get_plot_control_frames(self):
-        return filter(lambda cf: isinstance(cf, Plot_control_frame), self.control_frames_list)
+        return [cf for cf in self.control_frames_list if isinstance(cf, Plot_control_frame)]
 
 
     #################################################################
@@ -225,7 +226,7 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
         A wrapper method for the 'add_plot' method of the 'Canvas_plot' class.
         """
         self.check_plotting_area()
-        if not configs.has_key("label"):
+        if "label" not in configs:
             configs["label"] = "a custom plot"
         plot = self.canvas_plot.add_plot(x_data, y_data, **configs)
         if self.use_plotting_controls:
@@ -260,16 +261,16 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
         """
         Show the line of the plot and its points.
         """
-        map(lambda segment: self.canvas_plot.itemconfig(segment.id, state='normal'), plot.segments_list)
-        map(lambda p: self.canvas_plot.itemconfig(p.id, state='normal'), plot.get_points())
+        list(map(lambda segment: self.canvas_plot.itemconfig(segment.id, state='normal'), plot.segments_list))
+        list(map(lambda p: self.canvas_plot.itemconfig(p.id, state='normal'), plot.get_points()))
 
 
     def hide_plot_from_controls(self, plot):
         """
         Hide the line of the plot and its points.
         """
-        map(lambda segment: self.canvas_plot.itemconfig(segment.id, state='hidden'), plot.segments_list)
-        map(lambda p: self.canvas_plot.itemconfig(p.id, state='hidden'), plot.get_points())
+        list(map(lambda segment: self.canvas_plot.itemconfig(segment.id, state='hidden'), plot.segments_list))
+        list(map(lambda p: self.canvas_plot.itemconfig(p.id, state='hidden'), plot.get_points()))
 
 
     def draw_line(self, coords):
@@ -387,19 +388,19 @@ class Custom_plot_window(Toplevel, Custom_plot_mixin):
 
     def export_data(self):
         if self.canvas_plot.plots_list != []:
-            filepath = tkFileDialog.asksaveasfilename(filetypes=[("csv","*.csv")],parent=self)
+            filepath = tkinter.filedialog.asksaveasfilename(filetypes=[("csv","*.csv")],parent=self)
             if not filepath == "":
                 try:
                     output_file_handler = open(filepath,"w")
-                    print >> output_file_handler, self.canvas_plot.export_to_csv()
+                    print(self.canvas_plot.export_to_csv(), file=output_file_handler)
                     output_file_handler.close()
                 except:
                     pass
         else:
-            tkMessageBox.showerror("Export Error", "No data to export.", parent=self)
+            tkinter.messagebox.showerror("Export Error", "No data to export.", parent=self)
 
     def save_postscript(self):
-        filepath = tkFileDialog.asksaveasfilename(filetypes=[("ps","*.ps")],parent=self)
+        filepath = tkinter.filedialog.asksaveasfilename(filetypes=[("ps","*.ps")],parent=self)
         if not filepath == "":
             try:
                 # Lowers the stack level of the points in order to hide them in the .ps image.
@@ -689,8 +690,8 @@ class Canvas_plot(Canvas):
         if self.plots_list != []:
             all_axis_data = reduce(lambda v1,v2: v1+v2, [plot.get_data_coords(component=axis) for plot in self.plots_list])
             if axis == "y":
-                self.min_data_values[axis] = min(filter(lambda v: v != None, all_axis_data))
-                self.max_data_values[axis] = max(filter(lambda v: v != None, all_axis_data))
+                self.min_data_values[axis] = min([v for v in all_axis_data if v != None])
+                self.max_data_values[axis] = max([v for v in all_axis_data if v != None])
             else:
                 self.min_data_values[axis] = min(all_axis_data)
                 self.max_data_values[axis] = max(all_axis_data)
@@ -844,13 +845,13 @@ class Canvas_plot(Canvas):
         """
         # Prepares x data.
         if x_data == None:
-            x_data = range(0,len(y_data))
+            x_data = list(range(0,len(y_data)))
         # Prepares the additional data.
-        if not configs.has_key("additional_data") or (configs.has_key("additional_data") and configs["additional_data"] == None):
+        if "additional_data" not in configs or ("additional_data" in configs and configs["additional_data"] == None):
             configs["additional_data"] = [{None:None}]*len(y_data)
 
         # Adds the new plot.
-        if not configs.has_key("color"):
+        if "color" not in configs:
             configs["color"] = self.plot_colors[self.plot_color_index]
             self.change_plot_color_index()
         new_plot = Custom_plot(x_data, y_data, plot_id=self.plot_index, **configs)
@@ -1087,11 +1088,11 @@ class Canvas_plot(Canvas):
         if self.interaction_mode == "interact":
             plot = self.find_closest(self.canvasx(event.x), self.canvasy(event.y))[0]
             self.remove_last_clicked_item()
-            if not self.plots_dict.has_key(plot):
+            if plot not in self.plots_dict:
                 self.click_on_plotting_area(event)
             else:
                 plot_object = self.plots_dict[plot]
-                nearest_point_item = self.get_nearest_point(event, plot_object.points_dict.keys(), distance_along="x")
+                nearest_point_item = self.get_nearest_point(event, list(plot_object.points_dict.keys()), distance_along="x")
                 if nearest_point_item:
                     self.activate_point(event, nearest_point_item)
         elif self.interaction_mode == "zoom":
@@ -1195,7 +1196,7 @@ class Canvas_plot(Canvas):
 
 
     def get_nearest_point(self, event, items, distance_along="xy"):
-        points_list = filter(lambda i: self.is_point(i), items)
+        points_list = [i for i in items if self.is_point(i)]
         distances_list = []
         xcf, ycf = self.get_event_coords(event)
         for point in points_list:
@@ -1299,15 +1300,15 @@ class Canvas_plot(Canvas):
     #################################################################
 
     def export_to_csv(self):
-        output = StringIO.StringIO()
+        output = io.StringIO()
         for plot in self.plots_list:
-            print >> output, plot.label
+            print(plot.label, file=output)
             for point in plot.points_list:
-                if point.additional_data.has_key("export_label"):
-                    print >> output, point.additional_data["export_label"], ",", point.xd, "," , point.yd
+                if "export_label" in point.additional_data:
+                    print(point.additional_data["export_label"], ",", point.xd, "," , point.yd, file=output)
                 else:
-                    print >> output, point.xd, "," , point.yd
-            print >> output, ""
+                    print(point.xd, "," , point.yd, file=output)
+            print("", file=output)
         contents = output.getvalue()
         output.close()
         return contents
@@ -1330,7 +1331,7 @@ class Custom_plot:
         # Sets the x,y data in the 'data' coordinate system.
         self.set_data_coords(x_data, y_data)
         self.set_additional_data(additional_data)
-        self.filtered_points_list = filter(lambda v: v.xd != None and v.yd != None, self.points_list)
+        self.filtered_points_list = [v for v in self.points_list if v.xd != None and v.yd != None]
 
         # Sets some attributes of the plot.
         self.id = plot_id
@@ -1388,11 +1389,11 @@ class Custom_plot:
     def get_coords(self, component="xy", system="d", return_mode="lists"):
         if component == "xy":
             if return_mode == "lists":
-                return map(lambda point: getattr(point, "x"+system), self.get_points()), map(lambda point: getattr(point, "y"+system), self.points_list)
+                return [getattr(point, "x"+system) for point in self.get_points()], [getattr(point, "y"+system) for point in self.points_list]
             elif return_mode == "vectors":
-                return map(lambda point: (getattr(point, "x"+system), getattr(point, "y"+system)), self.get_points())
+                return [(getattr(point, "x"+system), getattr(point, "y"+system)) for point in self.get_points()]
         else:
-            return map(lambda point: getattr(point, component+system), self.get_points())
+            return [getattr(point, component+system) for point in self.get_points()]
 
     def get_additional_data(self):
         return [point.additional_data for point in self.get_points()]
@@ -1499,11 +1500,11 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
     dmao = get_order_of_magnitude(d)
     # ---
     if out:
-        print "#########################"
-        print "# Defining a new plotting interval."
-        print "Initial rounding of:",  min_val, max_val
-        print "Difference:", d
-        print "Difference order of magnitude:", dmao
+        print("#########################")
+        print("# Defining a new plotting interval.")
+        print("Initial rounding of:",  min_val, max_val)
+        print("Difference:", d)
+        print("Difference order of magnitude:", dmao)
     # ---
 
     #-----------------------------------------------------------------------------------------------
@@ -1515,7 +1516,7 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
     if mode == "expand":
         # ---
         if out:
-            print "Expanding the initial limits to find an equally spaced interval."
+            print("Expanding the initial limits to find an equally spaced interval.")
         # ---
         cmi = round_min(min_val, dmao, to_half=True)
         cma = round_max(max_val, dmao, to_half=True)
@@ -1528,7 +1529,7 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
             cma = round_max(cma, tdmao, to_half=True)
             # ---
             if out:
-                print "Adjusting rounding for oom < 0:", cmi,cma, tdmao
+                print("Adjusting rounding for oom < 0:", cmi,cma, tdmao)
             # ---
         else:
             tdmao = dmao
@@ -1547,12 +1548,12 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
                 r = (cma-cmi)%i
                 # ---
                 if out:
-                    print "Try:", r, cma, cmi, (cma-cmi)%i
+                    print("Try:", r, cma, cmi, (cma-cmi)%i)
                 # ---
                 if r == 0:
                     # ---
                     if out:
-                        print "Solution found at cycle:", counter
+                        print("Solution found at cycle:", counter)
                     # ---
                     steps = i
                     delta = (cma-cmi)/i
@@ -1587,11 +1588,11 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
 
         # ---
         if out:
-            print "#########################"
-            print "Results, obtained in cycles:", counter
-            print "Adjusted Min and Max:", cmi, cma
-            print "Steps:", steps, "Delta:", delta
-            print "Linspace:", numbers_linspace
+            print("#########################")
+            print("Results, obtained in cycles:", counter)
+            print("Adjusted Min and Max:", cmi, cma)
+            print("Steps:", steps, "Delta:", delta)
+            print("Linspace:", numbers_linspace)
         # ---
 
     #-----------------------------------------------------------------------------------------------
@@ -1601,7 +1602,7 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
     elif mode == "use_min_and_max":
         # ---
         if out:
-            print "Finding an equally spaced interval overlapping the min and max limits."
+            print("Finding an equally spaced interval overlapping the min and max limits.")
         # ---
 
         # Round the min and max values.
@@ -1623,16 +1624,16 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
 
         # ---
         if out:
-            print "Rounded Min and Max:", cmi, cma, cmi == cma
-            print "Initial linspace:", numbers_linspace
+            print("Rounded Min and Max:", cmi, cma, cmi == cma)
+            print("Initial linspace:", numbers_linspace)
         # ---
 
         if len(numbers_linspace) > 1:
             # ---
             if out:
-                print "Adjusting to obtain at least 4 thicks."
+                print("Adjusting to obtain at least 4 thicks.")
             # ---
-            filtered_numbers_linspace = filter(lambda v: v >= min_val and v <= max_val, numbers_linspace)
+            filtered_numbers_linspace = [v for v in numbers_linspace if v >= min_val and v <= max_val]
             filtered_numbers_set = set(filtered_numbers_linspace)
             c = 0
             # Try to produce a linspace with at least 4 equally spaced numbers.
@@ -1665,7 +1666,7 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
                     break
             filtered_numbers_linspace = sorted(list(filtered_numbers_set))
             numbers_linspace = filtered_numbers_linspace
-            numbers_linspace = filter(lambda v: v >= min_val and v <= max_val, numbers_linspace)
+            numbers_linspace = [v for v in numbers_linspace if v >= min_val and v <= max_val]
 
     # Rounds numbers in the linspace which have an order of magnitude smaller than order of
     # magnitude of the difference between the original min and max values.
@@ -1678,8 +1679,8 @@ def get_plotting_interval(min_val, max_val, mode="use_min_and_max"): # "expand",
             rounded_numbers_linspace.append(n)
     # ---
     if out:
-        print "Formatted linspace",rounded_numbers_linspace
-        print "Delta:", numbers_linspace[1] - numbers_linspace[0]
+        print("Formatted linspace",rounded_numbers_linspace)
+        print("Delta:", numbers_linspace[1] - numbers_linspace[0])
     # ---
 
     # This will be populated with labels for each number of the linspace.
@@ -1951,7 +1952,7 @@ def draw_modeller_dendrogram(dendrogram_file, plotting_window_parent):
 
 if __name__ == "__main__":
     def prova(point, plot):
-        print "Test: ", point.xd, point.yd, point.additional_data, plot.label
+        print("Test: ", point.xd, point.yd, point.additional_data, plot.label)
     root = Tk()
     cp = Custom_plot_window(root, title="A test plotting window.")
     cp.build_plotting_area(message_bar_initial_text="Initial text: ", y_label_text="DOPE profile", on_click_action=prova)

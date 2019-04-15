@@ -13,7 +13,7 @@ class PSI_BLAST_common:
     """
 
     def get_blast_database_prefix(self, dbpath):
-        database_files = filter(lambda f: f != ".DS_Store", os.listdir(dbpath))
+        database_files = [f for f in os.listdir(dbpath) if f != ".DS_Store"]
         return os.path.commonprefix(database_files)[:-1]
 
 
@@ -289,8 +289,8 @@ class PSI_BLAST_search(Generic_BLAST_search, PSI_BLAST_common):
 # GUI.                                                                                            #
 ###################################################################################################
 
-from Tkinter import *
-from tkFileDialog import askdirectory
+from tkinter import *
+from tkinter.filedialog import askdirectory
 
 from pymod_lib.pymod_gui import shared_components
 from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast import BLAST_base_options_window
@@ -352,7 +352,7 @@ class PSI_BLAST_options_window(BLAST_base_options_window):
 
     #TODO togliere questi due metodi, sono duplicati. Rifare la struttura.
     def get_blast_database_prefix(self, dbpath):
-        database_files = filter(lambda f: f != ".DS_Store", os.listdir(dbpath))
+        database_files = [f for f in os.listdir(dbpath) if f != ".DS_Store"]
         return os.path.commonprefix(database_files)[:-1]
 
     def verify_valid_blast_dbdir(self, dbpath):

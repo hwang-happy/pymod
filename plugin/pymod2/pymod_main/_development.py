@@ -3,7 +3,7 @@ Module for development.
 """
 
 import os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import random
 import sys
 
@@ -185,14 +185,14 @@ class PyMod_development(object):
             rev_string = "yes"
         else:
             rev_string = "no"
-        temp_fasta_path = urllib.urlretrieve("http://www.uniprot.org/uniprot/?query=reviewed:%s+AND+organism:9606&random=yes&format=fasta" % rev_string)[0]
+        temp_fasta_path = urllib.request.urlretrieve("http://www.uniprot.org/uniprot/?query=reviewed:%s+AND+organism:9606&random=yes&format=fasta" % rev_string)[0]
         self.open_sequence_file(temp_fasta_path)
 
     def load_pdb_random(self):
         pdb_set = "all_proteins"
         ids = [i.replace(" ", "") for i in open(os.path.join(self.seqs_dir, "modeling/pdb_ids/%s.txt" % pdb_set)).read().split(",")]
         code = ids[random.randint(0, len(ids)-1)]
-        temp_pdb_path = urllib.urlretrieve("https://files.rcsb.org/download/%s.pdb" % code)[0]
+        temp_pdb_path = urllib.request.urlretrieve("https://files.rcsb.org/download/%s.pdb" % code)[0]
         new_path = os.path.join(self.temp_directory_name, "%s.pdb" % code)
         shutil.copy(temp_pdb_path, new_path)
         #print "# Fetching: %s." % code

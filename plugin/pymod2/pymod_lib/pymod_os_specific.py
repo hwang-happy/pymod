@@ -22,7 +22,7 @@ import subprocess
 import shutil
 import zipfile
 import struct
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import pymol
 from pymol import cmd
 import platform
@@ -460,7 +460,7 @@ def get_askopenfilename_tuple(askopenfilename_result):
     """
     if isinstance(askopenfilename_result, tuple) or isinstance(askopenfilename_result, list):
         return askopenfilename_result
-    elif isinstance(askopenfilename_result, str) or isinstance(askopenfilename_result, unicode):
+    elif isinstance(askopenfilename_result, str) or isinstance(askopenfilename_result, str):
         substituted_string = re.sub(" \{([A-Z]:/)", " \g<1>", askopenfilename_result).lstrip("{")
         substituted_string = re.sub("\} ([A-Z]:/)", " \g<1>", substituted_string).rstrip("}")
         result_list = re.split("([A-Z]:/)", substituted_string)
@@ -619,7 +619,7 @@ def get_python_version():
 
 def check_network_connection(remote_address):
     try:
-        response=urllib2.urlopen(remote_address)
+        response=urllib.request.urlopen(remote_address)
         return True
-    except urllib2.URLError:
+    except urllib.error.URLError:
         return False

@@ -20,7 +20,7 @@
 ###########################################################################
 
 # Tkinter.
-import tkMessageBox
+import tkinter.messagebox
 
 # Python standard library.
 import sys
@@ -50,14 +50,14 @@ import pymod_lib.pymod_structure as pmstr  # Classes to represent 3D structures.
 import pymod_lib.pymod_protocols as pmptc  # Classes to represent protocols executed using PyMod tools.
 
 # Import modules with classes used to extend the 'PyMod' base class.
-from _development import PyMod_development
-from _main_menu_commands import PyMod_main_menu_commands
-from _workspaces import PyMod_workspaces
-from _external import PyMod_external
-from _files_managment import PyMod_files_managment
-from _elements_interactions import PyMod_elements_interactions
-from _elements_loading import PyMod_elements_loading
-from _pymol_interactions import PyMod_pymol_interactions
+from ._development import PyMod_development
+from ._main_menu_commands import PyMod_main_menu_commands
+from ._workspaces import PyMod_workspaces
+from ._external import PyMod_external
+from ._files_managment import PyMod_files_managment
+from ._elements_interactions import PyMod_elements_interactions
+from ._elements_loading import PyMod_elements_loading
+from ._pymol_interactions import PyMod_pymol_interactions
 
 global DEBUG
 DEBUG = True
@@ -296,7 +296,7 @@ class PyMod(PyMod_development,
                 self.show_configuration_file_error(e, "read")
                 title = 'Configuration file repair'
                 message = "Would you like to delete PyMod configuration file and build a new functional copy of it?"
-                repair_choice = tkMessageBox.askyesno(title, message)
+                repair_choice = tkinter.messagebox.askyesno(title, message)
                 self.configuration_file_error = True
                 if repair_choice:
                     self.show_pymod_directory_selection_window()
@@ -308,7 +308,7 @@ class PyMod(PyMod_development,
         title = "PyMod first session"
         message = "This is the first time you run PyMod. Please specify a folder inside which to build the 'PyMod Directory'. "
         message += "All PyMod files (such as its external tools executables, sequence databases and its project files) will be stored in this 'PyMod Directory' on your system."
-        tkMessageBox.showinfo(title, message, parent=self.main_window)
+        tkinter.messagebox.showinfo(title, message, parent=self.main_window)
 
     ###############################################################################################
     # Configuration file and first time usage.                                                    #
@@ -319,12 +319,12 @@ class PyMod(PyMod_development,
         Updates the values of the PyMod Tools parameters according to the information in the main
         configuration file.
         """
-        cfgfile = open(self.cfg_file_path, 'r')
+        cfgfile = open(self.cfg_file_path, 'rb')
         # Reads the pickle configuration file, where PyMod options are stored in a dictionary.
         pymod_config_data = pickle.load(cfgfile)
         for tool_object in self.pymod_tools:
             tool_dict = pymod_config_data[tool_object.name]
-            for parameter_name in tool_dict.keys():
+            for parameter_name in list(tool_dict.keys()):
                 tool_object[parameter_name].value = tool_dict[parameter_name]
         cfgfile.close()
 
@@ -388,7 +388,7 @@ class PyMod(PyMod_development,
                 title = 'PyMod directory Warning'
                 message = "A folder named '%s' already exists on your system. Would you like to overwrite it and all its contents to build a new 'PyMod Directory'?" % (
                     new_pymod_directory_path)
-                overwrite = tkMessageBox.askyesno(title, message, parent=self.pymod_dir_window)
+                overwrite = tkinter.messagebox.askyesno(title, message, parent=self.pymod_dir_window)
                 if overwrite:
                     pmos.pymod_rm(new_pymod_directory_path)
                 else:
@@ -436,8 +436,8 @@ class PyMod(PyMod_development,
 
             # If an empty configuration file was built by the PyMod installer script, update it.
             if self.check_installer_script_temp_directory():
-                for tool in pymod_config_data.keys():
-                    for parameter_name in pymod_config_data[tool].keys():
+                for tool in list(pymod_config_data.keys()):
+                    for parameter_name in list(pymod_config_data[tool].keys()):
                         if pymod_config_data[tool][parameter_name] == "":
                             if tool in ("clustalw", "muscle", "clustalo", "ksdssp"):
                                 exe_file_name = os.path.join(new_pymod_directory_path, self.external_tools_dirname,
@@ -474,7 +474,7 @@ class PyMod(PyMod_development,
         except Exception:
             title = "PyMod Directory Error"
             message = "Unable to write the PyMod configuration directory '%s' because of the following error: %s." % (
-                self.cfg_directory_path, e)
+                self.cfg_directory_path)
             self.show_error_message(title, message)
             return False
 
@@ -639,7 +639,7 @@ class PyMod(PyMod_development,
 
     # TODO can be private
     def update_pymod_color_dict_with_dict(self, color_dict, update_in_pymol=True):
-        for color_name in color_dict.keys():
+        for color_name in list(color_dict.keys()):
             if update_in_pymol:
                 cmd.set_color(color_name, color_dict[color_name])
             self.all_colors_dict_tkinter.update({color_name: pmdt.convert_to_tkinter_rgb(color_dict[color_name])})
@@ -662,7 +662,7 @@ class PyMod(PyMod_development,
 
     # TODO nessun utilizzo
     def element_has_widgets(self, pymod_element):
-        return self.main_window.dict_of_elements_widgets.has_key(pymod_element)
+        return pymod_element in self.main_window.dict_of_elements_widgets
 
     # TODO bugga su shared components (l 719). usa anche _main menu l 46
     def confirm_close(self, parent=None):
@@ -674,7 +674,7 @@ class PyMod(PyMod_development,
         else:
             parent_window = self.main_window
         confirm_message = "Are you really sure you want to exit PyMod?"
-        answer = tkMessageBox.askyesno(message=confirm_message, title="Exit PyMod?", parent=parent_window) # TODO!
+        answer = tkinter.messagebox.askyesno(message=confirm_message, title="Exit PyMod?", parent=parent_window) # TODO!
         if answer:
             self.main_window.destroy()
 

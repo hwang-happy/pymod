@@ -282,7 +282,7 @@ class Parsed_pdb_file:
 
     def _get_atom_by_type(self, residue, atom_types_tuple):
         for atom_type in atom_types_tuple:
-            if residue.child_dict.has_key(atom_type):
+            if atom_type in residue.child_dict:
                 if not residue.child_dict[atom_type].is_disordered():
                     return residue.child_dict[atom_type]
         return None

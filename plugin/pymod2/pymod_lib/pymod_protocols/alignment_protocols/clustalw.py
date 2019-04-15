@@ -7,11 +7,11 @@ import os
 from Bio.Align.Applications import ClustalwCommandline
 
 # Protocols.
-from _clustal_common import Clustal_regular_alignment, Clustal_profile_alignment
+from ._clustal_common import Clustal_regular_alignment, Clustal_profile_alignment
 
 # GUI.
-from _base_alignment._gui import Regular_alignment_window
-from _base_alignment._gui import Profile_alignment_window
+from ._base_alignment._gui import Regular_alignment_window
+from ._base_alignment._gui import Profile_alignment_window
 from pymod_lib.pymod_gui.shared_components import PyMod_radioselect, PyMod_entryfield
 
 

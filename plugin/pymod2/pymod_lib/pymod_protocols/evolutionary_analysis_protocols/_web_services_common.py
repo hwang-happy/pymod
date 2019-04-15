@@ -1,6 +1,6 @@
 import os
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 
 
 ###################################################################################################
@@ -60,10 +60,10 @@ class Web_services_common:
 
         try:
             #Creates a request
-            data = urllib.urlencode(values)
-            req = urllib2.Request(url, data, headers=headers)
+            data = urllib.parse.urlencode(values)
+            req = urllib.request.Request(url, data, headers=headers)
             #Gets server response and reads it
-            response = urllib2.urlopen(req)
+            response = urllib.request.urlopen(req)
             response_content = response.read()
         except:
             if show_error:

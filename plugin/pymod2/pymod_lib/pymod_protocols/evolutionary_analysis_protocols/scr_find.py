@@ -1,15 +1,15 @@
 import os
 import math
 
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 
 import pymol
 from pymol import cmd
 
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
-from _evolutionary_analysis_base import Evolutionary_analysis_protocol
+from ._evolutionary_analysis_base import Evolutionary_analysis_protocol
 
 import time
 
@@ -92,7 +92,7 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
 
         #Submit command
     def scr_window_submit(self, value = None):
-        print "Computing centroids. This will take a bit, but just on first SCR_FIND Submit"
+        print("Computing centroids. This will take a bit, but just on first SCR_FIND Submit")
         self.hide_non_scrs=pmdt.yesno_dict[self.scr_find_hide_non_scrs.getvalue()]
         self.GP = float(self.scr_find_gap_penalty_enf.getvalue())
         self.score_limit = float(self.sc_scale.get())
@@ -129,13 +129,13 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
                             self.matrix[ali_id].append((cmd.get_atom_coords(res_arg), residue))
                         except:
                             self.matrix[ali_id].append((["bugged_residue"], None))
-                            print "Some problems occurred with structure %s, aminoacid %s, alignment position %s" %( pymod_element.my_header,
-                                                                                                                        pos, ali_id)
+                            print("Some problems occurred with structure %s, aminoacid %s, alignment position %s" %( pymod_element.my_header,
+                                                                                                                        pos, ali_id))
                             aa_error = True
                     else:
                          self.matrix[ali_id].append((['-', '-', '-'], None))
             if aa_error:
-                print "We suggest you to check your structures for split aminoacids"
+                print("We suggest you to check your structures for split aminoacids")
 
 
             ###################################
@@ -182,15 +182,15 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
             for s in range(len(self.matrix[i])):
                 if '-' not in self.matrix[i][s][0] and "bugged_residue" not in self.matrix[i][s][0]:
                     for c in range(0,3):
-	                    dc = (self.matrix[i][s][0][c] - self.centroid_list[i][c])**2
-	                    dc_list.append(dc)
+                        dc = (self.matrix[i][s][0][c] - self.centroid_list[i][c])**2
+                        dc_list.append(dc)
                     N+=1
                 elif "-" in self.matrix[i][s][0]:
                     gaps+=1
                 elif "bugged_residue" in self.matrix[i][s][0]:
                     pass
             if N == 0:
-			    SC = 1000 + (gaps*(float(self.GP)))
+                SC = 1000 + (gaps*(float(self.GP)))
             else:
                 SC = ((math.sqrt(sum(dc_list)/(N)))+(gaps*(float(self.GP))))
             for pos_in_str in self.matrix[i]:
@@ -198,7 +198,7 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
                     pos_in_str[1].scr_score = {"score": SC, "interval": None}
             self.score_list.append(SC)
 
-        print 'SC score list done'
+        print('SC score list done')
 
         ################################
         #Finding SCRs with a sliding widow of lenght choosen by the user
@@ -234,7 +234,7 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
                     s+=1
 
         if self.SCR_list == []:
-            print 'No SCRs found! try to change your parameters!'
+            print('No SCRs found! try to change your parameters!')
         else:
             for element in self.input_cluster_element.get_children():
                 for residue in element.get_polymer_residues():
@@ -245,7 +245,7 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
                             residue.is_scr = True
         #TODO:
         if self.print_SCRs:
-            print 'SCRs list:', self.SCR_list
+            print('SCRs list:', self.SCR_list)
 
 
         #defines 10 color intervals, between the lowest and the highest value for SC score in any SCR

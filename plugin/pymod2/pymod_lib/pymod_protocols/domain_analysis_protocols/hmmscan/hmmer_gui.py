@@ -201,7 +201,7 @@ class Hmmer_graphic(Canvas):
             else:
                 return (graph_seq_len*seq_position)/true_length
         except TypeError:
-            print "Bad input, Integer needed"
+            print("Bad input, Integer needed")
             return ''
 
 
@@ -439,7 +439,7 @@ class Hmmer_results_window(Toplevel):
 
         self.descr_frame = Label(self.main_frame, bg='#FFFFFF')
         self.descr_frame.grid(row=0, column=0, sticky='wens',)
-        if pfam_data[0].has_key('query_descr') and pfam_data[0]['query_descr']:
+        if 'query_descr' in pfam_data[0] and pfam_data[0]['query_descr']:
             querydescr = (pfam_data[0]['query_descr'][:80] + '...' if len(pfam_data[0]['query_descr'])>81 else pfam_data[0]['query_descr'])
             labelseq = sequence_element.my_header + '\n' + querydescr
 #            self.descr_frame.config(text=labelseq, font=11, anchor='w', justify=LEFT)
@@ -567,7 +567,7 @@ class Hmmer_results_window(Toplevel):
             self.import_results_in_pymod(self.colorseq_var.get(), self.colorstruct_var.get())
             self.destroy()
         else:
-            print 'No domains selected'
+            print('No domains selected')
             #TODO implementare il messaggio
 
 
@@ -662,7 +662,7 @@ class Hmmer_results_window(Toplevel):
 
             # Description
         descr=Label(master_frame, **self.row_options)
-        if hit.has_key('desc'):
+        if 'desc' in hit:
             descr_text = (hit['desc'][:40]+'...' if len(hit['desc'])>41 else hit['desc'])
             descr.config(text=descr_text, font=10)
         else:

@@ -1,9 +1,9 @@
 import os
 import sys
 
-from Tkinter import *
-from tkFileDialog import *
-import tkMessageBox
+from tkinter import *
+from tkinter.filedialog import *
+import tkinter.messagebox
 import Pmw
 
 import pymod_lib.pymod_vars as pmdt
@@ -205,8 +205,8 @@ class Generic_BLAST_search(PyMod_protocol):
         try:
             os.rename(os.path.join(self.output_directory, self.xml_blast_output_file_name),
                       os.path.join(self.output_directory, output_filename))
-            files_to_remove = filter(lambda f: not os.path.splitext(f)[-1] == ".xml", os.listdir(self.output_directory))
-            map(lambda f: os.remove(os.path.join(self.output_directory,f)), files_to_remove)
+            files_to_remove = [f for f in os.listdir(self.output_directory) if not os.path.splitext(f)[-1] == ".xml"]
+            list(map(lambda f: os.remove(os.path.join(self.output_directory,f)), files_to_remove))
         except:
             pass
 
@@ -385,7 +385,7 @@ class Generic_BLAST_search(PyMod_protocol):
         Called when the 'SUBMIT' button is pressed on some BLAST results window.
         """
         # For each hsp takes the state of its tkinter checkbutton.
-        self.my_blast_map = map((lambda var: var.get()), self.blast_states)
+        self.my_blast_map = list(map((lambda var: var.get()), self.blast_states))
 
         # If the user selected at least one HSP.
         if 1 in self.my_blast_map:
@@ -533,8 +533,8 @@ class Generic_BLAST_search(PyMod_protocol):
 # BLAST ALGORITHMS.                                                                           #
 ###############################################################################################
 
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 
 import os
 import sys

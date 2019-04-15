@@ -1,7 +1,7 @@
 import os
 
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 
 from pymod_lib import pymod_vars
 from pymod_lib import pymod_gui
@@ -12,7 +12,7 @@ from Bio.SubsMat import MatrixInfo
 import numpy
 from pymod_lib.pymod_seq import seq_manipulation
 
-from _evolutionary_analysis_base import Evolutionary_analysis_protocol
+from ._evolutionary_analysis_base import Evolutionary_analysis_protocol
 
 
 ###################################################################################################
@@ -171,7 +171,7 @@ class CAMPO:
             self.mutational_matrix = MatrixInfo.pam30
 
         # Completes the "other half" of the Biopython matrix.
-        for pair in self.mutational_matrix.keys():
+        for pair in list(self.mutational_matrix.keys()):
             value = self.mutational_matrix[pair]
             reversed_pair = (pair[1],pair[0])
             self.mutational_matrix.update({reversed_pair: value})
@@ -199,7 +199,7 @@ class CAMPO:
         This should be called just after an object of this class is built.
         """
         self.id_matrix = []
-        for i in xrange (self.num_seq-1):
+        for i in range (self.num_seq-1):
             self.id_matrix.append([])
 
         for i in range (0, self.num_seq-1):
@@ -219,7 +219,7 @@ class CAMPO:
         #############################
 
         self.matrice_somme=[]
-        for i in xrange(0, self.num_seq-1):
+        for i in range(0, self.num_seq-1):
             self.matrice_somme.append([])
 
         # Genera una variabile denominatore che conterra' la sommatoria di tutti i valori (1-matrice[i][indice])
@@ -334,7 +334,7 @@ class CAMPO:
 
     def get_campo_items_list(self):
         # Tosses alignment positions with too much gaps.
-        filtered_scores = filter(lambda x : x != None, self.normalized_campo_scores)
+        filtered_scores = [x for x in self.normalized_campo_scores if x != None]
         clist = numpy.array([round(i, 3) for i in filtered_scores])
         min_campo = min(clist)
         max_campo = max(clist)

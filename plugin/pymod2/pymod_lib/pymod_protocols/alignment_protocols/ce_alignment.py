@@ -5,8 +5,8 @@ import numpy
 import shutil
 import os
 import pymod_lib.pymod_os_specific as pmos
-from _base_alignment._base_regular_alignment import Regular_structural_alignment
-from _base_alignment._gui import CEalign_regular_window
+from ._base_alignment._base_regular_alignment import Regular_structural_alignment
+from ._base_alignment._gui import CEalign_regular_window
 
 # CE-alignment.
 global ce_alignment_mode
@@ -217,8 +217,8 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
                 cmd.alter_state(1,name2,"(x,y,z)=stored.sel2.pop(0)")
 
                 if False:
-                    print "NumAligned=%d" % L
-                    print "RMSD=%f" % RMSD
+                    print("NumAligned=%d" % L)
+                    print("RMSD=%f" % RMSD)
 
             def cealign( sel1, sel2, verbose=1 ):
                 winSize = 8
@@ -255,10 +255,10 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
                 cmd.iterate_state(1, mol2, "stored.mol2.append([x,y,z])")
 
                 if ( len(stored.mol1) == 0 ):
-                        print "ERROR: Your first selection was empty."
+                        print("ERROR: Your first selection was empty.")
                         return
                 if ( len(stored.mol2) == 0 ):
-                        print "ERROR: Your second selection was empty."
+                        print("ERROR: Your second selection was empty.")
                         return
 
                 # call the C function
@@ -266,8 +266,8 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
 
                 if ( len(alignString) == 1 ):
                     if ( len(alignString[0]) == 0 ):
-                        print "\n\nERROR: There was a problem with CEAlign's C Module.  The return value was blank."
-                        print "ERROR: This is obviously bad.  Please inform a CEAlign developer.\n\n"
+                        print("\n\nERROR: There was a problem with CEAlign's C Module.  The return value was blank.")
+                        print("ERROR: This is obviously bad.  Please inform a CEAlign developer.\n\n")
                         return
 
                 bestPathID = -1
@@ -354,7 +354,7 @@ class CEalign_regular_alignment(CEalign_alignment, Regular_structural_alignment)
                 if output_format == "txt":
                     output_handle = open(os.path.join(self.pymod.alignments_dirpath, output_file_name+".txt"), "w")
                     for t in ((pymod_element1, seq1), (pymod_element2, seq2)):
-                        print >> output_handle, t[0].get_unique_index_header(), t[1]
+                        print(t[0].get_unique_index_header(), t[1], file=output_handle)
                     output_handle.close()
 
                 elif output_format == "aln":
@@ -539,7 +539,7 @@ def doScoring(L,s1,s2,matrix,sc,sequence_information):
                 i = (r-1)*R + c-1
                 m = s1[c-2]
                 n = s2[r-2]
-                if matrix.has_key(m+n):
+                if m+n in matrix:
                     diag = matrix[m+n]
                 else:
                     diag=0

@@ -1,12 +1,12 @@
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 import Pmw
 
 import pymod_lib.pymod_vars as pmdt
-from _main_window_common import PyMod_main_window_mixin
-from _element_widgets import PyMod_element_widgets_group
+from ._main_window_common import PyMod_main_window_mixin
+from ._element_widgets import PyMod_element_widgets_group
 from pymod_lib.pymod_gui.shared_components import PyMod_window_mixin
-from _main_menu import PyMod_main_window_main_menu
+from ._main_menu import PyMod_main_window_main_menu
 
 
 class PyMod_main_window(Toplevel, PyMod_main_window_mixin, PyMod_window_mixin, PyMod_main_window_main_menu):
@@ -172,7 +172,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, PyMod_window_mixin, P
                 self.move_single_element(direction, element, element.mother.get_children())
         # Remove the 'None' values added before.
         for container in containers_set:
-            container.list_of_children = filter(lambda e: e != None, container.list_of_children)
+            container.list_of_children = [e for e in container.list_of_children if e != None]
         # Shows the the elements in the new order.
         if elements_to_move != []:
             self.gridder()

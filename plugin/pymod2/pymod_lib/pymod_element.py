@@ -1,9 +1,9 @@
 import os
 
-import pymod_vars as pmdt
-from pymod_seq import seq_manipulation
-from pymod_seq import seq_conservation
-from pymod_residue import PyMod_standard_residue
+from . import pymod_vars as pmdt
+from .pymod_seq import seq_manipulation
+from .pymod_seq import seq_conservation
+from .pymod_residue import PyMod_standard_residue
 
 import re
 
@@ -172,7 +172,7 @@ class PyMod_element(object):
     def filter_for_sequences(method):
         def filterer(self, sequences_only=False):
             if sequences_only:
-                return filter(lambda e: not e.is_cluster(), method(self, sequences_only))
+                return [e for e in method(self, sequences_only) if not e.is_cluster()]
             else:
                 return method(self, sequences_only)
         return filterer
@@ -183,7 +183,7 @@ class PyMod_element(object):
         if not self.mother:
             return []
         else:
-            return filter(lambda c: c != self, self.mother.list_of_children)
+            return [c for c in self.mother.list_of_children if c != self]
 
 
     def extract_to_upper_level(self):
@@ -411,7 +411,7 @@ class PyMod_sequence_element(PyMod_element):
                     else:
                         r.domain = domain_feature
             except TypeError:
-                print 'Invalid integer input for start and end position of domain'
+                print('Invalid integer input for start and end position of domain')
 
 
 
@@ -463,9 +463,9 @@ class PyMod_sequence_element(PyMod_element):
         if new_sequence_ungapped != current_sequence_ungapped:
             if not permissive:
                 # TODO: remove the output.
-                print "# Sequence:", self.my_header
-                print "# New:", new_sequence_ungapped
-                print "# Old:", current_sequence_ungapped
+                print("# Sequence:", self.my_header)
+                print("# New:", new_sequence_ungapped)
+                print("# Old:", current_sequence_ungapped)
                 raise PyModSequenceConflict("The new sequence does not match with the previous one.")
             else:
                 self.update_sequence(new_sequence)
@@ -508,19 +508,19 @@ class PyMod_sequence_element(PyMod_element):
     ###############################################################################################
 
     def get_polymer_residues(self):
-        return filter(lambda r: r.is_polymer_residue(), self.residues)
+        return [r for r in self.residues if r.is_polymer_residue()]
 
     def get_polymer_sequence_string(self):
         return "".join([res.one_letter_code for res in self.get_polymer_residues()])
 
     def get_standard_residues(self):
-        return filter(lambda r: r.is_polymer_residue() and not r.is_modified_residue(), self.residues)
+        return [r for r in self.residues if r.is_polymer_residue() and not r.is_modified_residue()]
 
     def get_heteroresidues(self, exclude_water=True):
-        return filter(lambda r: r.is_heteroresidue(exclude_water=exclude_water), self.residues)
+        return [r for r in self.residues if r.is_heteroresidue(exclude_water=exclude_water)]
 
     def get_waters(self):
-        return filter(lambda r: r.is_water(), self.residues)
+        return [r for r in self.residues if r.is_water()]
 
     def has_waters(self):
         return len(self.get_waters()) > 0

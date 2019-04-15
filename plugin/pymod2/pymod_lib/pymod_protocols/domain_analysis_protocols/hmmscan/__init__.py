@@ -9,9 +9,10 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import xml.dom.minidom
 
-import urllib2
-import urllib
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import os
+import imp
 
 '''
 @author Maria Giulia
@@ -61,7 +62,7 @@ class Domain_search_protocol(PyMod_protocol):
         self.query_element = self.get_pymod_elements()[0]
         # print self.query_element.seq_id#, self.continuous_seq
 
-        reload(hmmer_gui) #TODO developing
+        imp.reload(hmmer_gui) #TODO developing
         self.hmmer_options_window = hmmer_gui.Hmmer_options_window(parent=self.pymod.main_window,
                                                                    submit_command=self.domain_search_state,
                                                                    pymod=self.pymod)
@@ -119,12 +120,12 @@ class Domain_search_protocol(PyMod_protocol):
                 self.pymod.show_error_message(title, message)
                 return
 
-        print 'res:', res
+        print('res:', res)
         # res = self.search_protocol.search_domains(self.continuous_seq, database=db)#, evalue_cutoff=cutoff) #0603
         try:
             parsed_res = self.search_protocol.get_parsed_output_lst(
                 self.search_protocol.parse(res))  # (control_path)) #0603
-        except AttributeError, TypeError:
+        except AttributeError as TypeError:
             return None
         # print parsed_res
 
@@ -200,34 +201,34 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         #                           name='', description="toxic membrane protein, small")
 
         # install a custom handler to prevent following of redirects automatically.
-        class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
+        class SmartRedirectHandler(urllib.request.HTTPRedirectHandler):
             def http_error_302(self, req, fp, code, msg, headers):
                 return headers
 
-        opener = urllib2.build_opener(SmartRedirectHandler())
-        urllib2.install_opener(opener)
+        opener = urllib.request.build_opener(SmartRedirectHandler())
+        urllib.request.install_opener(opener)
 
         parameters = {  # 'E':evalue_cutoff,# significance evalue hit
             # 'E':0.001, #0903
             'hmmdb': database.lower(),  # 'pfam'  #0303
             'seq': self.query_element_seq, }
 
-        enc_params = urllib.urlencode(parameters)
+        enc_params = urllib.parse.urlencode(parameters)
         hmm_url = 'https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan'
 
-        print enc_params
+        print(enc_params)
 
         # post the search request to the server
-        request = urllib2.Request(hmm_url, enc_params)
+        request = urllib.request.Request(hmm_url, enc_params)
 
         # get the url where the results can be fetched from
         try:
-            results_url = urllib2.urlopen(request).getheader('location')
-            print 'Submitted request to', hmm_url
-        except urllib2.URLError:
+            results_url = urllib.request.urlopen(request).getheader('location')
+            print('Submitted request to', hmm_url)
+        except urllib.error.URLError:
             title = "Connection Error"
             message = "URL Error. Please check Internet connection."
-            print self.pymod.show_error_message(title, message)
+            print(self.pymod.show_error_message(title, message))
             return None
 
         # modify the range, format and presence of alignments in your results here
@@ -235,14 +236,14 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         res_params = {'output': 'xml'}
 
         # add the parameters to your request for the results
-        enc_res_params = urllib.urlencode(res_params)
+        enc_res_params = urllib.parse.urlencode(res_params)
         modified_res_url = results_url + '?' + enc_res_params
 
         # send a GET request to the server
-        results_request = urllib2.Request(modified_res_url)
+        results_request = urllib.request.Request(modified_res_url)
         try:
-            data = urllib2.urlopen(results_request)
-            print 'Submitted request to', results_url
+            data = urllib.request.urlopen(results_request)
+            print('Submitted request to', results_url)
         except:
             title = "Connection Error"
             message = "URL Error. Please check Internet connection."
@@ -261,7 +262,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         import re
         regex = r"(?i)>\s*<act_site[^>]*>\s*<[^>]*>\s*</act_site>\s*</domains>"
         xml_cleaned = re.sub(regex, ' />', response_content)
-        print xml_cleaned[35690:]
+        print(xml_cleaned[35690:])
 
         r = open(results_file, 'w')
         r.write(xml_cleaned)
@@ -272,21 +273,21 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
 
         def _readable_attrs(node):
             """Returns attrs of the node in classic-dictionary format"""
-            conversion_standard = [(u'name', 'id'),
-                                   (u'aliL', 'length'),
-                                   (u'ievalue', 'evalue'),
-                                   (u'ienv', 'env_start'),
-                                   (u'jenv', 'env_end'),
-                                   (u'iali', 'ali_start'),
-                                   (u'jali', 'ali_end'),
-                                   (u'alisqfrom', 'start'),
-                                   (u'alisqto', 'end'),
-                                   (u'alihmmfrom', 'hmm_start'),
-                                   (u'alihmmto', 'hmm_end'),
+            conversion_standard = [('name', 'id'),
+                                   ('aliL', 'length'),
+                                   ('ievalue', 'evalue'),
+                                   ('ienv', 'env_start'),
+                                   ('jenv', 'env_end'),
+                                   ('iali', 'ali_start'),
+                                   ('jali', 'ali_end'),
+                                   ('alisqfrom', 'start'),
+                                   ('alisqto', 'end'),
+                                   ('alihmmfrom', 'hmm_start'),
+                                   ('alihmmto', 'hmm_end'),
                                    ]
             attrs = {}
             if node.attributes:
-                for k in node.attributes.keys():
+                for k in list(node.attributes.keys()):
                     attrs.update({k: node.attributes[k].value})
                 for t in conversion_standard:
                     if t[0] in attrs:
@@ -364,8 +365,8 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
 
         cline = [exe_filepath, "-o", out_filepath, "-E", str(evaluecutoff), db_dirpath.replace('.h3m', ''),
                  self.query_filepath]
-        print os.getcwd()
-        print cline
+        print(os.getcwd())
+        print(cline)
         try:
             self.pymod.new_execute_subprocess(cline)
         except CalledProcessError:

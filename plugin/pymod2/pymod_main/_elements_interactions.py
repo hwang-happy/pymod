@@ -135,7 +135,7 @@ class PyMod_elements_interactions(object):
         #--------------------------------
         if cluster_name == None:
             if cluster_type == "alignment":
-                if pymod_vars.algorithms_full_names_dict.has_key(algorithm):
+                if algorithm in pymod_vars.algorithms_full_names_dict:
                     algorithm_full_name = pymod_vars.algorithms_full_names_dict[algorithm]
                 else:
                     algorithm_full_name = "Unknown"

@@ -81,10 +81,10 @@ supported_file_types = [
 ]
 
 # Sequences.
-sequence_file_types_atl = build_askopenfilename_tuples_list(filter(lambda ft: "sequence" in ft.data_types, supported_file_types))
+sequence_file_types_atl = build_askopenfilename_tuples_list([ft for ft in supported_file_types if "sequence" in ft.data_types])
 all_sequence_file_types_atl = add_all_askopenfilename_tuple(sequence_file_types_atl)
 # Structure file types.
-structure_file_types_atl = build_askopenfilename_tuples_list(filter(lambda ft: "structure" in ft.data_types, supported_file_types))
+structure_file_types_atl = build_askopenfilename_tuples_list([ft for ft in supported_file_types if "structure" in ft.data_types])
 all_structure_file_types_atl = add_all_askopenfilename_tuple(structure_file_types_atl)
 # All formats currently supported by PyMod and which can be opened in the 'Open from File'.
 all_file_types_atl = []
@@ -92,7 +92,7 @@ all_file_types_atl.extend(sequence_file_types_atl)
 all_file_types_atl.extend(structure_file_types_atl)
 all_file_types_atl = add_all_askopenfilename_tuple(all_file_types_atl)
 # Alignment file formats.
-alignment_file_formats_atl = build_askopenfilename_tuples_list(filter(lambda ft: "alignment" in ft.data_types, supported_file_types))
+alignment_file_formats_atl = build_askopenfilename_tuples_list([ft for ft in supported_file_types if "alignment" in ft.data_types])
 all_alignment_file_formats_atl = add_all_askopenfilename_tuple(alignment_file_formats_atl)
 
 # The keys are the name of the alignment file format and values are the extension for those
@@ -125,8 +125,9 @@ tree_building_alg_dict = {"Neighbor Joining": "nj", "UPGMA": "upgma"}
 ###################################################################################################
 
 def convert_to_tkinter_rgb(rgb_tuple):
-    rgb_tuple = [i*255 for i in rgb_tuple]
-    return '#%02x%02x%02x' % tuple(rgb_tuple)
+    rgb_tuple = [int(i*255) for i in rgb_tuple]
+    hexa = [format(c, "02x") for c in rgb_tuple]
+    return "#" + "".join(hexa)
 
 #--------------------------
 # Regular colors palette. -
@@ -405,7 +406,7 @@ domain_colors_dict = { '01_limegreen': (0.5, 1.0, 0.5) ,
                         '13_smudge': (0.55, 0.7, 0.4) ,
                         # '14_teal': (0.0, 0.75, 0.75) ,
                         }
-domain_color_orderedkeys = domain_colors_dict.keys()
+domain_color_orderedkeys = list(domain_colors_dict.keys())
 domain_color_orderedkeys.sort()
 domain_colors_ordered = [(k, domain_colors_dict[k]) for k in domain_color_orderedkeys]
 

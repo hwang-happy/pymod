@@ -5,7 +5,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 import Bio.AlignIO
 import Bio.Alphabet
-from cstar import CenterStar
+from .cstar import CenterStar
 
 
 def _create_empty_copy_of_alignment_object(alignment, len=None):
@@ -202,9 +202,9 @@ class ConverterForTmpfileToSplitfiles:
         self.ali_files_dict = {}
         for al in ali_filespath_list:
             self.ali_files_dict.update({os.path.basename(al)[:os.path.basename(al).rindex('.')]:Bio.AlignIO.read(al, 'fasta')})
-        print self.ali_files_dict
+        print(self.ali_files_dict)
 
-        self.ali_files = self.ali_files_dict.values()
+        self.ali_files = list(self.ali_files_dict.values())
         self.ungapped_ali_dict_with_ali_indexes = {}
         self.ali_dict_with_indexes = {}
         self.ungapped_ali_dict_with_double_indexes = {}
@@ -250,7 +250,7 @@ class ConverterForTmpfileToSplitfiles:
         return ali_indexes
 
     def _populate_ali_dict_with_ixs(self):
-        for k1 in self.ali_files_dict.keys():
+        for k1 in list(self.ali_files_dict.keys()):
             ali = self.ali_files_dict[k1]
             leadseq = ali[0].seq
             key = k1[k1.index('_____') + 5:].replace('.fasta', '')
@@ -258,10 +258,10 @@ class ConverterForTmpfileToSplitfiles:
             self.ali_dict_with_indexes.update({key:value})
             self.ungapped_ali_dict_with_ali_indexes.update({key:[cou for cou in value if cou[0].isalpha()]})
 
-        for k in self.split_seq_dict.keys():
-            seqindexlst = range(len(self.split_seq_dict[k]))
+        for k in list(self.split_seq_dict.keys()):
+            seqindexlst = list(range(len(self.split_seq_dict[k])))
             listvalue = self.ungapped_ali_dict_with_ali_indexes[k]
-            dicvalue = dict(zip(seqindexlst, listvalue))
+            dicvalue = dict(list(zip(seqindexlst, listvalue)))
             self.ungapped_ali_dict_with_double_indexes.update({k:dicvalue})
             pass
             #dizionario doppio, p.es. 's3' : {0: ['P', 0], 1: ['S', 1], 2: ['A', 2], 3: ['A', 3], 4: ['F', 5], 5: ['A', 6], 6....}, in pratica il value e' un dizionario a sua volta.
@@ -354,13 +354,13 @@ class ConverterForTmpfileToSplitfiles:
 
     def get_split_file_path(self):
         if not self.outfile1:
-            print 'Warning: Output file not defined.'
+            print('Warning: Output file not defined.')
         else:
             return self.outfile1
 
     def get_matrix_file_path(self):
         if not self.outfile2:
-            print 'Warning: Matrix output file not defined.'
+            print('Warning: Matrix output file not defined.')
         else:
             return self.outfile2
 

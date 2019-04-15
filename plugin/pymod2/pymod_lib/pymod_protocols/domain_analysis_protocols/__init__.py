@@ -21,6 +21,7 @@ from pymod_lib.pymod_protocols.domain_analysis_protocols.hmmscan import hmmer_gu
 from pymod_lib.pymod_protocols.domain_analysis_protocols.hmmscan import *
 from pymod_lib.pymod_protocols.domain_analysis_protocols.split import SplitIntoDomainsProtocol
 from pymod_lib.pymod_protocols.domain_analysis_protocols.fuse_alignments_with_centerstar import FuseAlignmentCenterstarProtocol
+import imp
 
 
 class InvalidSelectionError(Exception):
@@ -99,7 +100,7 @@ class DomainAnalysisProtocol(PyMod_protocol):
         element = self.get_pymod_element()
         self.pymod.active_domain_analysis_dict.update({element:self})
 
-        self.pymod.active_domain_analysis_list = self.pymod.active_domain_analysis_dict.values()
+        self.pymod.active_domain_analysis_list = list(self.pymod.active_domain_analysis_dict.values())
         self._index_of_domain_protocol = self.pymod.active_domain_analysis_list.index(self)+1
 
     # def _add_self_to_pymod_active_domainanalysis_processes(self):
@@ -139,7 +140,7 @@ class DomainAnalysisProtocol(PyMod_protocol):
         # print [type(c.mother) for c in self._element_splits_children_list]
         # print [c.mother.cluster_type for c in self._element_splits_children_list]
         self._cluster_elements_children_dict = {c:c.mother for c in self._element_splits_children_list}
-        self._cluster_elements_children_list = self._cluster_elements_children_dict.values()
+        self._cluster_elements_children_list = list(self._cluster_elements_children_dict.values())
         # self._cluster_elements_children_list = [c.mother for c in self._element_splits_children_list if c.mother.cluster_type == "alignment"]
 
 
@@ -264,7 +265,7 @@ class DomainAnalysisProtocol(PyMod_protocol):
                 # self._reinitialize_before_resplitting()
 
         # eseguo la ricerca con il codice di hmmascan gia' scritto
-        reload(hmmscan)
+        imp.reload(hmmscan)
         self.search_protocol = Domain_search_protocol(self.pymod, protocol_name='Domain Search',
                                                  output_directory=self.output_directory, father_protocol=self)
         self.search_protocol.launch_from_gui()
@@ -339,12 +340,12 @@ class DomainAnalysisProtocol(PyMod_protocol):
         if not self.check_fuse_conditions():
             return None
         else:
-            print '\n\n__________FUSE___________\n........................'
+            print('\n\n__________FUSE___________\n........................')
             self.fuse_protocol = FuseAlignmentCenterstarProtocol(pymod=self.pymod, father_protocol=self, output_directory=self.output_directory)
             self.fuse_protocol.run()
 
     def evaluate_fuse_protocol(self):
-        print '\n............FUSE SUCCESSFUL............\n\n'
+        print('\n............FUSE SUCCESSFUL............\n\n')
 
         # cancello gli split
         for el in self._element_splits_children_list:

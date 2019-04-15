@@ -12,8 +12,8 @@ Module imported by the PyMOL plugin system. Contains:
 
 import os
 import sys
-import tkMessageBox
-from pymod_lib import pymod_os_specific
+import tkinter.messagebox
+from .pymod_lib import pymod_os_specific
 
 
 ###################################################################################################
@@ -84,7 +84,7 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
             import numpy
             numpy_found = True
         except:
-            for m in sys.modules.keys():
+            for m in list(sys.modules.keys()):
                 if m.startswith("numpy"):
                     del sys.modules[m]
             try:
@@ -101,7 +101,7 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
             # Some old PyMOL builds have old Biopython versions lacking some new modules (such as
             # Phylo). If this old Biopython version was imported while initializing PyMOL, it must be
             # reloaded in order to import the new modules in PyMod.
-            for m in sys.modules.keys():
+            for m in list(sys.modules.keys()):
                 if m.startswith("Bio"):
                     del sys.modules[m]
             try:
@@ -120,7 +120,7 @@ if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpat
 #----------------------------------------
 
 global __version__
-__version__ = "0.2.1"
+__version__ = "IN TRE 0.2.1"
 global __revision__
 __revision__ = "0.1"
 global pymod_plugin_name
@@ -138,10 +138,10 @@ def __init__(self):
     self.menuBar.addmenuitem('Plugin', 'command', pymod_plugin_name, label = pymod_plugin_name,
                              command = lambda s=self : startup_pymod(s))
     #MG per avviare subito
-    try:
-        startup_pymod(self)
-    except:
-        print sys.exc_info()
+    # try:
+    #     startup_pymod(self)
+    # except:
+    #     print(sys.exc_info())
 
 def startup_pymod(app):
     """
@@ -151,12 +151,12 @@ def startup_pymod(app):
     if not numpy_found:
         title = "Import Error"
         message = "NumPy is not installed on your system. Please install it in order to use PyMod."
-        tkMessageBox.showerror(title, message)
+        tkinter.messagebox.showerror(title, message)
         return False
     if not biopython_found:
         title = "Import Error"
         message = "Biopython is not installed on your system. Please install it in order to use PyMod."
-        tkMessageBox.showerror(title, message)
+        tkinter.messagebox.showerror(title, message)
         return False
-    import pymod_main
+    from . import pymod_main
     pymod_main.pymod_launcher(app, pymod_plugin_name, __version__, __revision__)

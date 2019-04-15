@@ -2,7 +2,7 @@
 
 import gzip
 import os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 from pymol import cmd
 
@@ -149,7 +149,7 @@ class Structure_file_fetcher:
 
     def fetch(self):
         # Retrieve the PDB file from the internet.
-        temp_gzipped_file_name = urllib.urlretrieve("http://www.rcsb.org/pdb/files/%s.pdb.gz" % self.pdb_code)[0]
+        temp_gzipped_file_name = urllib.request.urlretrieve("http://www.rcsb.org/pdb/files/%s.pdb.gz" % self.pdb_code)[0]
         open_gzipped_file = gzip.open(temp_gzipped_file_name) # Uncompress the file while reading
         output_path = os.path.join(self.output_dir, self.output_name)
         saved_file = open(output_path, 'w')

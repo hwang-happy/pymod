@@ -22,7 +22,7 @@ import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_seq.seq_manipulation as pmsm
 import pymod_lib.pymod_structure as pmstr
-from modeling_gui import Modeling_window
+from .modeling_gui import Modeling_window
 
 
 ###################################################################################################
@@ -427,7 +427,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 if modeling_protocol.multiple_chain_mode:
                     count_dictionary = {}
                     for chain in self.chains:
-                        if chain.name not in count_dictionary.keys():
+                        if chain.name not in list(count_dictionary.keys()):
                             count_dictionary.update({chain.name: 1})
                     for chain in self.chains:
                         for num, residue in enumerate(chain.residues):
@@ -1317,7 +1317,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         # will result in alignments in which ligands and waters of a template are grouped together.
 
         # Builds the updated PIR sequences.
-        for seq in self.pir_sequences_dict.keys():
+        for seq in list(self.pir_sequences_dict.keys()):
             self.pir_sequences_dict[seq]["pir_seq"] = "".join(self.pir_sequences_dict[seq]["list_seq"])
 
         #--------------------------------
@@ -1326,12 +1326,12 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
 
         # First write the template complex block (only for multiple chain mode).
         if self.multiple_chain_mode:
-            print >> pir_align_file_handle, ">P1;%s" % self.template_complex_modeller_name
-            print >> pir_align_file_handle, "structure:%s:.:.:.:.::::" % self.template_complex_modeller_name # TODO: (template_code,template_chain,template_chain)
+            print(">P1;%s" % self.template_complex_modeller_name, file=pir_align_file_handle)
+            print("structure:%s:.:.:.:.::::" % self.template_complex_modeller_name, file=pir_align_file_handle) # TODO: (template_code,template_chain,template_chain)
             tc_pir_string = ""
             for template_complex_chain in self.get_template_complex_chains(sorted_by_id=True): # TODO: order them.
                 tc_pir_string += self.pir_sequences_dict[template_complex_chain]["pir_seq"] + self.get_chain_separator()
-            print >> pir_align_file_handle, self.get_pir_formatted_sequence(tc_pir_string)
+            print(self.get_pir_formatted_sequence(tc_pir_string), file=pir_align_file_handle)
 
         # Then write the single chain template blocks.
         for modeling_cluster in self.get_modeling_clusters_list(sorted_by_id=True):
@@ -1339,23 +1339,23 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
                 # Writes the first line of the template.
                 template_code = modeling_cluster.template_options_dict[template]["modeller_name"]
                 template_chain = template.get_chain_id()
-                print >> pir_align_file_handle , ">P1;%s" % template_code
-                print >> pir_align_file_handle , "structure:%s:.:%s:.:%s::::" % (template_code,template_chain,template_chain)
+                print(">P1;%s" % template_code, file=pir_align_file_handle)
+                print("structure:%s:.:%s:.:%s::::" % (template_code,template_chain,template_chain), file=pir_align_file_handle)
                 sct_pir_string = ""
                 for target_chain in self.get_targets_list(sorted_by_id=True):
                     if target_chain != modeling_cluster.target:
                         sct_pir_string += len(self.pir_sequences_dict[target_chain]["pir_seq"])*"-" + self.get_chain_separator() # TODO: adjust separator for single chain modeling.
                     else:
                         sct_pir_string += self.pir_sequences_dict[template]["pir_seq"] + self.get_chain_separator()
-                print >> pir_align_file_handle, self.get_pir_formatted_sequence(sct_pir_string)
+                print(self.get_pir_formatted_sequence(sct_pir_string), file=pir_align_file_handle)
 
         # Finally write the target block.
-        print >> pir_align_file_handle , ">P1;%s" % self.modeller_target_name
-        print >> pir_align_file_handle , "sequence:%s:.:.:.:.::::" % self.modeller_target_name
+        print(">P1;%s" % self.modeller_target_name, file=pir_align_file_handle)
+        print("sequence:%s:.:.:.:.::::" % self.modeller_target_name, file=pir_align_file_handle)
         targets_pir_string = ""
         for target in self.get_targets_list(sorted_by_id=True):
             targets_pir_string += self.pir_sequences_dict[target]["pir_seq"] + self.get_chain_separator()
-        print >> pir_align_file_handle, self.get_pir_formatted_sequence(targets_pir_string)
+        print(self.get_pir_formatted_sequence(targets_pir_string), file=pir_align_file_handle)
 
         pir_align_file_handle.close()
 
@@ -1380,7 +1380,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             hetres_to_insert_count_dict = {}
             for e in modeling_cluster.get_modeling_elements():
                 hetres_to_insert_count_dict.update({e: 0})
-            for ri in filter(lambda r: r["modeling_cluster"] == modeling_cluster and select_residues(r["residue"]), self.hetres_to_use):
+            for ri in [r for r in self.hetres_to_use if r["modeling_cluster"] == modeling_cluster and select_residues(r["residue"])]:
                 for seq in modeling_cluster.get_modeling_elements():
                     # Ligands and water molecules.
                     if not ri["residue"].is_polymer_residue():
@@ -1413,14 +1413,14 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
     ##########################
 
     def get_pir_list(self, sequence):
-        return map(lambda p: p.replace(pmdt.modified_residue_one_letter, "."), list(sequence))
+        return [p.replace(pmdt.modified_residue_one_letter, ".") for p in list(sequence)]
 
     def get_pir_formatted_sequence(self,sequence,multi=False):
         """
         Print one block of the PIR alignment file using 60 characters-long lines.
         """
         formatted_sequence = ""
-        for s in xrange(0,len(sequence),60):
+        for s in range(0,len(sequence),60):
             # For all the lines except the last one.
             if (len(sequence) - s) > 60:
                 formatted_sequence += sequence[s:s+60] + "\n"
@@ -1446,33 +1446,33 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
     def write_modeller_scrit(self):
         self.modeller_script = open(self.modeling_script_name, "w")
         # Environment.
-        print >> self.modeller_script, self.mod_script_dict["environment"]
-        print >> self.modeller_script, self.mod_script_dict["hetres"]
+        print(self.mod_script_dict["environment"], file=self.modeller_script)
+        print(self.mod_script_dict["hetres"], file=self.modeller_script)
         # Automodel derived class.
-        print >> self.modeller_script, self.mod_script_dict["automodel"]["definition"]
+        print(self.mod_script_dict["automodel"]["definition"], file=self.modeller_script)
         if self.check_non_empty_automodel_dict():
             # Default patches.
             if self.mod_script_dict["automodel"]["default_patches"]:
-                print >> self.modeller_script, self.mod_script_dict["automodel"]["default_patches"]
+                print(self.mod_script_dict["automodel"]["default_patches"], file=self.modeller_script)
             # Special patches.
             if self.check_non_empty_special_patches_dict():
-                print >> self.modeller_script, self.mod_script_dict["automodel"]["special_patches"]["definition"]
+                print(self.mod_script_dict["automodel"]["special_patches"]["definition"], file=self.modeller_script)
                 if not "" == self.mod_script_dict["automodel"]["special_patches"]["multichain"]:
-                    print >> self.modeller_script, self.mod_script_dict["automodel"]["special_patches"]["multichain"]
+                    print(self.mod_script_dict["automodel"]["special_patches"]["multichain"], file=self.modeller_script)
                 if not "" == self.mod_script_dict["automodel"]["special_patches"]["disulfides"]:
-                    print >> self.modeller_script, self.mod_script_dict["automodel"]["special_patches"]["disulfides"]
+                    print(self.mod_script_dict["automodel"]["special_patches"]["disulfides"], file=self.modeller_script)
             # Special restraints.
             if self.mod_script_dict["automodel"]["special_restraints"]:
-                print >> self.modeller_script, self.mod_script_dict["automodel"]["special_restraints"]
+                print(self.mod_script_dict["automodel"]["special_restraints"], file=self.modeller_script)
         else:
-            print >> self.modeller_script, "    pass\n"
+            print("    pass\n", file=self.modeller_script)
         # Model building options.
-        print >> self.modeller_script, self.mod_script_dict["automodel_init"]
-        print >> self.modeller_script, self.mod_script_dict["refinement"]
-        print >> self.modeller_script, self.mod_script_dict["models_indices"]
-        print >> self.modeller_script, self.mod_script_dict["make"]
+        print(self.mod_script_dict["automodel_init"], file=self.modeller_script)
+        print(self.mod_script_dict["refinement"], file=self.modeller_script)
+        print(self.mod_script_dict["models_indices"], file=self.modeller_script)
+        print(self.mod_script_dict["make"], file=self.modeller_script)
         if not self.run_modeller_internally:
-             print >> self.modeller_script, self.mod_script_dict["external_post_make"]
+             print(self.mod_script_dict["external_post_make"], file=self.modeller_script)
         self.modeller_script.close()
 
     def check_non_empty_automodel_dict(self):
@@ -1599,7 +1599,7 @@ class Modeling_cluster(Modeling_session):
         """
         for t in self.suitable_templates_list:
             template_original_file = t.get_structure_file(full_file=True)
-            if template_original_file in self.structure_chains_dict.keys():
+            if template_original_file in list(self.structure_chains_dict.keys()):
                 self.structure_chains_dict[template_original_file] += 1
             else:
                 self.structure_chains_dict.update({template_original_file:1})
@@ -1659,7 +1659,7 @@ class Modeling_cluster(Modeling_session):
 
 
     def get_template_nameslist(self):
-        ordered_keys = sorted(self.template_options_dict.keys(), key=lambda k:self.template_options_dict[k]["id"])
+        ordered_keys = sorted(list(self.template_options_dict.keys()), key=lambda k:self.template_options_dict[k]["id"])
         return [self.template_options_dict[k]["modeller_name"] for k in ordered_keys]
 
 
@@ -1691,7 +1691,7 @@ class Modeling_cluster(Modeling_session):
         return None
 
     def get_single_chain_templates(self):
-        return filter(lambda t: not self.is_template_complex_chain(t), self.templates_list)
+        return [t for t in self.templates_list if not self.is_template_complex_chain(t)]
 
     def get_modeling_elements(self):
         """

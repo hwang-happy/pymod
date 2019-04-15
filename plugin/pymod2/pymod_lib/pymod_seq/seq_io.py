@@ -33,10 +33,10 @@ def build_sequence_file(elements, sequences_filepath, file_format="fasta", remov
         for element in elements:
             header, sequence = get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
             # Write an output in FASTA format to the output_file_handler given as argument.
-            print >> output_file_handler , ">"+header
-            for i in xrange(0, len(sequence), 60):
-                print >> output_file_handler , sequence[i:i+60]
-            print >> output_file_handler , ""
+            print(">"+header, file=output_file_handler)
+            for i in range(0, len(sequence), 60):
+                print(sequence[i:i+60], file=output_file_handler)
+            print("", file=output_file_handler)
 
     elif file_format == "pir":
         for element in elements:
@@ -47,13 +47,13 @@ def build_sequence_file(elements, sequences_filepath, file_format="fasta", remov
                 structure=element.get_structure_file()
                 chain=element.get_chain_id()
             if not structure: # sequence
-                print >> output_file_handler, ">P1;"+ header
-                print >> output_file_handler, "sequence:"+header+":::::::0.00:0.00"
+                print(">P1;"+ header, file=output_file_handler)
+                print("sequence:"+header+":::::::0.00:0.00", file=output_file_handler)
             else: # structure
-                print >> output_file_handler, ">P1;"+header
-                print >> output_file_handler, "structure:"+structure+":.:"+chain+":.:"+chain+":::-1.00:-1.00"
-            for ii in xrange(0,len(sequence),75):
-                print >> output_file_handler, sequence[ii:ii+75].replace("X",".")
+                print(">P1;"+header, file=output_file_handler)
+                print("structure:"+structure+":.:"+chain+":.:"+chain+":::-1.00:-1.00", file=output_file_handler)
+            for ii in range(0,len(sequence),75):
+                print(sequence[ii:ii+75].replace("X","."), file=output_file_handler)
 
     elif file_format in ("clustal", "stockholm"):
         records = []
@@ -65,7 +65,7 @@ def build_sequence_file(elements, sequences_filepath, file_format="fasta", remov
     elif file_format == "pymod":
         for element in elements:
             header, sequence = get_id_and_sequence_to_print(element, remove_indels, unique_indices_headers)
-            print >> output_file_handler, header, sequence
+            print(header, sequence, file=output_file_handler)
 
     else:
         output_file_handler.close()

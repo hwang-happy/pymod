@@ -1,11 +1,12 @@
-from Tkinter import *
-from tkFileDialog import *
-import tkMessageBox
-import tkFont
+from tkinter import *
+from tkinter.filedialog import *
+import tkinter.messagebox
+import tkinter.font
 import Pmw
 
 from pymod_lib.pymod_gui import shared_components
 import pymod_lib.pymod_seq.seq_manipulation as pmsm
+from functools import reduce
 
 
 # TODO: make a base class for all kind of protocols window.
@@ -201,11 +202,11 @@ class Modeling_window(Toplevel, Modeling_window_mixin, shared_components.PyMod_w
         Displays informations about which target sequence shares the same sequence of other targets.
         """
         mc_list = self.current_protocol.symmetry_restraints_groups.get_group_by_id(modeling_cluster.symmetry_restraints_id).list_of_clusters
-        mc_list = filter(lambda x: not x is modeling_cluster ,mc_list)
+        mc_list = [x for x in mc_list if not x is modeling_cluster]
         message1 = "The target '%s' shares the same sequence with these other targets:" % (modeling_cluster.target_name)
         seqs = reduce(lambda x,y: x+",\n"+y, [mc.target_name for mc in mc_list])
         message2 = "so you may apply symmetry restraints for them."
-        tkMessageBox.showinfo("Symmetry restraints information", message1 + "\n\n" + seqs + "\n\n" + message2, parent=self)
+        tkinter.messagebox.showinfo("Symmetry restraints information", message1 + "\n\n" + seqs + "\n\n" + message2, parent=self)
 
 
     def build_disulfides_page(self):
@@ -660,7 +661,7 @@ class Structure_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         Gets a dictionary that indicates which heteroresidue to include in the models.
         """
         template_hetres_dict = {}
-        for h in self.structure_hetres_dict.keys():
+        for h in list(self.structure_hetres_dict.keys()):
             if self.hetres_options_var.get() == 1:
                 template_hetres_dict.update({h:1})
             elif self.hetres_options_var.get() == 2:
@@ -781,14 +782,14 @@ class Disulfides_frame(shared_components.PyMod_frame, Modeling_window_mixin):
         # Frame for template disulfides.
         self.template_disulfides_frame = Frame(self.template_dsb_frame, background='black', bd=1, relief = GROOVE, padx = 15, pady = 10)
         # Build a frame for every modeling cluster which have templates with disulfides.
-        for mci, mc in enumerate(filter(lambda mc: mc.has_structures_with_disulfides(), self.current_protocol.modeling_clusters_list)):
+        for mci, mc in enumerate([mc for mc in self.current_protocol.modeling_clusters_list if mc.has_structures_with_disulfides()]):
             # A counter to iterate through all the template structures.
             frame_for_cluster_templates_dsb = Frame(self.template_disulfides_frame, background='black')
             frame_for_cluster_templates_dsb.grid(row=mci, column=0,sticky = "w", pady=(0,10))
             target_label = Label(frame_for_cluster_templates_dsb, text= "Template dsb for target " + mc.target_name, background='black', fg='red', anchor ="nw",font = "comic 9")
             target_label.grid(row=0, column=0, sticky = "w")
 
-            for ei, element in enumerate(filter(lambda x : x.has_disulfides(), mc.suitable_templates_list)):
+            for ei, element in enumerate([x for x in mc.suitable_templates_list if x.has_disulfides()]):
                 disulfides_counter = 0
                 # Frame for each structure.
                 structure_frame_for_disulfides = Frame(frame_for_cluster_templates_dsb, background='black')
@@ -1013,12 +1014,12 @@ class User_dsb_selector_frame(shared_components.PyMod_frame, Modeling_window_mix
         # Checks that both the comboboxes have been used to select a cys.
         if (self.list_of_disulfide_combos[-1].cys1_combobox.get() == "" or self.list_of_disulfide_combos[-1].cys2_combobox.get() == ""):
             txt = "You have to select two cysteines residue to define a disulfide bridge!"
-            tkMessageBox.showwarning("Warning", txt,parent=self.current_protocol.modeling_window)
+            tkinter.messagebox.showwarning("Warning", txt,parent=self.current_protocol.modeling_window)
 
         # Checks that the same cys has not been selected in both comboboxes.
         elif (self.list_of_disulfide_combos[-1].cys1_combobox.get() == self.list_of_disulfide_combos[-1].cys2_combobox.get()):
             txt = "You cannot select the same cysteine to form a disulfide bridge!"
-            tkMessageBox.showwarning("Message", txt,parent=self.current_protocol.modeling_window)
+            tkinter.messagebox.showwarning("Message", txt,parent=self.current_protocol.modeling_window)
 
         # Checks that the selected cys are not engaged in other bridges.
         # ...
@@ -1263,7 +1264,7 @@ class Energy_minimization_frame(shared_components.PyMod_frame, Energy_minimizati
                                                 self.coulomb_checkbutton]
 
         self.non_bondend_cutoff_rds = Pmw.EntryField(self.components_frame, value = 10.0,
-                                                     label_text = "Non Bonded Cutoff (%s): " % (u"\u212B"), labelpos = "w",
+                                                     label_text = "Non Bonded Cutoff (%s): " % ("\u212B"), labelpos = "w",
                                                      validate = {'validator' : 'real', 'min' : 1.0, 'max' : 250.0})
         self.non_bondend_cutoff_rds.grid(row=2, column=1, sticky="nw", padx=(15,0), pady=2)
         self.non_bondend_cutoff_rds.component("entry").configure(width=4)

@@ -1,8 +1,8 @@
 import os
 import copy
-import tkMessageBox
+import tkinter.messagebox
 
-from tkFileDialog import *
+from tkinter.filedialog import *
 
 from Bio import SeqIO
 
@@ -322,12 +322,12 @@ class PyMod_elements_loading(object):
     def delete_cluster_dialog(self, cluster_element):
         title = "Delete Cluster?"
         message = "Are you sure you want to delete %s?" % (cluster_element.my_header)
-        remove_cluster_choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
+        remove_cluster_choice = tkinter.messagebox.askyesno(message=message, title=title, parent=pymod.main_window)
         if not remove_cluster_choice:
             return None
         title = "Delete Sequences?"
         message = "Would you like to delete all the sequences contained in the %s cluster? By selecting 'No', you will only extract them from the cluster." % (cluster_element.my_header)
-        remove_children_choice = tkMessageBox.askyesno(message=message, title=title, parent=pymod.main_window)
+        remove_children_choice = tkinter.messagebox.askyesno(message=message, title=title, parent=pymod.main_window)
 
         # Delete all the sequences.
         if remove_children_choice:

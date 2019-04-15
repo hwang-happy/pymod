@@ -5,7 +5,7 @@ import sys
 import shutil
 import re
 
-from Tkinter import *
+from tkinter import *
 import Pmw
 
 import math
@@ -230,7 +230,7 @@ class Alignment_protocol(PyMod_protocol):
             # Gets the list of indices where 'X' were inserted.
             for i, (rn, ro) in enumerate(zip(new_seq, old_seq)):
                 if rn == "X" and ro == "-":
-                    if residues_to_insert_dict.has_key(i):
+                    if i in residues_to_insert_dict:
                         residues_to_insert_dict[i].append(e)
                     else:
                         residues_to_insert_dict.update({i:[e]})
@@ -291,7 +291,7 @@ class Alignment_protocol(PyMod_protocol):
                 return False
             else:
                 return True
-        files_to_remove = filter(lambda file_basename: check_file_to_keep(file_basename), os.listdir(self.pymod.alignments_dirpath))
+        files_to_remove = [file_basename for file_basename in os.listdir(self.pymod.alignments_dirpath) if check_file_to_keep(file_basename)]
         for file_basename in files_to_remove:
             file_path_to_remove = os.path.join(self.pymod.alignments_dirpath,file_basename)
             os.remove(file_path_to_remove)

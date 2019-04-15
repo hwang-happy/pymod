@@ -2,8 +2,8 @@ import webbrowser
 
 from pymod_lib.pymod_gui import shared_components
 
-from _evolutionary_analysis_base import Evolutionary_analysis_protocol
-from _web_services_common import Web_services_common
+from ._evolutionary_analysis_base import Evolutionary_analysis_protocol
+from ._web_services_common import Web_services_common
 
 
 class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
@@ -23,7 +23,7 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
         # A list of the header names of those aligned sequences with an associated 3D structure.
         self.espript_structures_list = ["None"]
         self.espript_structures_dict = {"None": None}
-        for structure_element in filter(lambda e: e.has_structure(), self.input_cluster_element.get_children()):
+        for structure_element in [e for e in self.input_cluster_element.get_children() if e.has_structure()]:
             self.espript_structures_list.append(structure_element.my_header)
             # Populates 'espript_structures_dict' so that the structures PDB file names can be
             # accessed by using as keys their header names.
@@ -74,14 +74,14 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
             upload_response = self.upload_alignment(self.input_cluster_element, schubert_url, 'sequences_file')
 
         if self.verbose:
-            print 'Attempting to upload...'
+            print('Attempting to upload...')
 
         if len(self.espript_structures_list) > 1:
             self.espript_sec_str_window.destroy()
 
         #Checks if the upload is successful
         if self.verbose:
-            print upload_response
+            print(upload_response)
         if upload_response.startswith('TRUE'):
             if selected_structure_element == None:
                 uploaded_alignment_file = upload_response[6:]
@@ -93,7 +93,7 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
                 espript_url += ";struct1chain0=%s" % (selected_structure_element.get_chain_id())
             webbrowser.open(espript_url)    #opens the URL
             if self.verbose:
-                print 'Done'
+                print('Done')
         else:
             title = "Error"
             message = "Error while uploading the file. Please try again later or check your Internet connection."

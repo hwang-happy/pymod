@@ -282,7 +282,7 @@ def get_invalid_characters_list(sequence, remove_indels=True):
 
 def get_polymer_type(sequence):
     polymer_type = "protein"
-    nucleotides = [nt for nt in pymod_vars.nucleic_acids_dictionary.keys()]
+    nucleotides = [nt for nt in list(pymod_vars.nucleic_acids_dictionary.keys())]
     list_of_three_letter_codes = [r.three_letter_code for r in sequence]
     for res in list_of_three_letter_codes:
         if res in nucleotides:
@@ -299,7 +299,7 @@ def one2three(letter):
     """
     Returns a three letter code for a residue corresponding to a one letter symbol.
     """
-    if pymod_vars.prot_one_to_three_code.has_key(letter):
+    if letter in pymod_vars.prot_one_to_three_code:
         return pymod_vars.prot_one_to_three_code[letter]
     else:
         return "???"
@@ -316,7 +316,7 @@ def three2one(res, force_standard_parent=False):
     if not force_standard_parent:
         # If it is any kind of known modified amminoacid set it as its original non
         # modified amminoacid
-        if pymod_vars.code_standard.has_key(res):
+        if res in pymod_vars.code_standard:
             return pymod_vars.code_standard[res]
         else:
             return "X"

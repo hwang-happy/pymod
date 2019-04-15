@@ -7,8 +7,8 @@ import re
 import webbrowser
 import pickle
 
-from Tkinter import *
-from tkFileDialog import askopenfilename, asksaveasfilename
+from tkinter import *
+from tkinter.filedialog import askopenfilename, asksaveasfilename
 import Pmw
 
 import pymod_lib.pymod_os_specific as pmos
@@ -35,6 +35,7 @@ from pymod_lib.pymod_protocols.structural_analysis_protocols import *
 
 #MG code
 from pymod_lib.pymod_protocols.domain_analysis_protocols import DomainAnalysisProtocol, InvalidSelectionError
+import imp
 
 class PyMod_main_menu_commands(object):
 
@@ -278,7 +279,7 @@ class PyMod_main_menu_commands(object):
 
     def launch_splitting_protocol(self, domainanalysis_root_protocol):
         pymod_element = domainanalysis_root_protocol.get_pymod_element()
-        print pymod_element
+        print(pymod_element)
 
 
     ###############################################################################################
@@ -306,7 +307,7 @@ class PyMod_main_menu_commands(object):
             #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
             # # Structural alignments.
             elif program == "ce":
-                reload(cealign)
+                imp.reload(cealign)
                 aligment_protocol_class = cealign.CEalign_regular_alignment
             elif program == "salign-str":
                 aligment_protocol_class = SALIGN_str_regular_alignment
@@ -440,7 +441,7 @@ class PyMod_main_menu_commands(object):
                 self.pymod_options_window.show_warning_message(title, message)
             self.pymod_options_window.destroy()
 
-        except Exception,e:
+        except Exception as e:
             self.show_configuration_file_error(e, "read")
             self.main_window.destroy()
 

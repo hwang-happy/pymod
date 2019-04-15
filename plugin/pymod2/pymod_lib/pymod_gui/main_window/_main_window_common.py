@@ -1,9 +1,9 @@
 # TODO: adjust the name of the methods.
 
-from Tkinter import *
-from tkFileDialog import *
-import tkMessageBox
-import tkFont
+from tkinter import *
+from tkinter.filedialog import *
+import tkinter.messagebox
+import tkinter.font
 import Pmw
 import os
 import sys
@@ -641,16 +641,16 @@ class PyMod_main_window_mixin:
                 for res in element.get_polymer_residues():
                     # Gets the right color for the current residue.
                     color = get_residue_color_method(residue = res)
-                    if residues_to_color_dict.has_key(color):
+                    if color in residues_to_color_dict:
                         residues_to_color_dict[color].append(res.db_index)
                     else:
                         residues_to_color_dict[color] = [res.db_index]
                 if color_in_pymol:
-                    for color in residues_to_color_dict.keys():
+                    for color in list(residues_to_color_dict.keys()):
                         cmd.color(color, chain_sel + " and resi " + self._join_residues_list(residues_to_color_dict[color]))
 
             t2 = time.time()
-            print "It took %s to color %s." % (t2-t1, chain_sel)
+            print("It took %s to color %s." % (t2-t1, chain_sel))
 
             if not color_in_pymol:
                 return residues_to_color_dict

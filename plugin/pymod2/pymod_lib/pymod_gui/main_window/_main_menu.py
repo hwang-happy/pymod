@@ -1,5 +1,5 @@
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 
 import pymod_lib.pymod_vars as pmdt
 

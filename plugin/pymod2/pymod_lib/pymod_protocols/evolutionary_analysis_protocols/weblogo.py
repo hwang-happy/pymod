@@ -1,13 +1,13 @@
 import os
 
-from Tkinter import *
+from tkinter import *
 
 import pymod_lib.pymod_os_specific as pmos
 from pymod_lib.pymod_gui import shared_components
 
 
-from _evolutionary_analysis_base import Evolutionary_analysis_protocol
-from _web_services_common import Web_services_common
+from ._evolutionary_analysis_base import Evolutionary_analysis_protocol
+from ._web_services_common import Web_services_common
 
 
 class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
@@ -208,7 +208,7 @@ class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
         self.logo_window.destroy()
 
         if self.verbose:
-            print 'Running GetLogo...'
+            print('Running GetLogo...')
 
         #weblogo3 URL
         weblogourl = 'http://weblogo.threeplusone.com/create.cgi'
@@ -238,16 +238,16 @@ class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
             logofile = os.path.join(self.pymod.images_dirpath,'logo_' + str(self.pymod.logo_image_counter) + '.' + extensions[LOGO_FORMAT])
             lf = open(logofile, 'wb')
             if self.verbose:
-                print 'Creating file...'
+                print('Creating file...')
             lf.write(upload_response)
             lf.close()
             self.pymod.logo_image_counter += 1
             pmos.open_document_with_default_viewer(logofile)
             if self.verbose:
-                print 'Done!'
+                print('Done!')
         else:
             if self.verbose:
-                print 'No response. Aborted.'
+                print('No response. Aborted.')
             title = "Error"
             message = "No valid response from server"
             self.pymod.show_error_message(title,message)

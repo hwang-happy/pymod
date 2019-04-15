@@ -108,11 +108,11 @@ def align_similar(s1, s2):
     while s1 != s2:
         if i > len(s1) - 1:
             s1 += s2[i:]
-            change1.extend(range(i, i + len(s2[i:])))
+            change1.extend(list(range(i, i + len(s2[i:]))))
             continue
         if i > len(s2) - 1:
             s2 += s1[i:]
-            change2.extend(range(i, i + len(s1[i:])))
+            change2.extend(list(range(i, i + len(s1[i:]))))
             continue
         if s1[i] != s2[i]:
             if s1[i] == '-':
@@ -164,7 +164,7 @@ class CenterStar:
         max_row, max_value = 0, 0
         len_strings = len(self.strings)
 
-        tasks = tuple(combinations(zip(range(len_strings), self.strings), 2))
+        tasks = tuple(combinations(list(zip(list(range(len_strings)), self.strings)), 2))
 
         # mm = zip(range(len_strings), self.strings)
         # mm = [(0, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY'), (1, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLN---'), (2, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY')]
@@ -174,7 +174,7 @@ class CenterStar:
         #
         # debug_task1 = (((0, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY'), (1, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLN---')), ((0, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY'), (2, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY')), ((1, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLN---'), (2, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY')))
 
-        tasks = zip(tasks, (self.scores for _ in range(len(tasks))))
+        tasks = list(zip(tasks, (self.scores for _ in range(len(tasks)))))
 
         # debug_task2 = [(((0, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY'), (1, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLN---')), ['1', '-1', '-4']),
         #                (((0, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY'), (2, 'TYYCQQGQSYPLTFGGGTKLEIKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFY')), ['1', '-1', '-4']),

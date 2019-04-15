@@ -1,8 +1,11 @@
 import os
 import sys
 import numpy
-import modeller
-from cStringIO import StringIO
+try:
+    import modeller
+except ImportError:
+    print("NO MODELLER FROM BASE PROTOCOLS")
+from io import StringIO
 
 from pymol import cmd, stored
 
@@ -145,8 +148,8 @@ class PyMod_protocol(object):
             try:
                 d = cmd.get_distance(res1_arg, res2_arg)
             except:
-                print "# ERROR IN COMPUTING THE DISTANCE."
-                print res1_arg, res2_arg
+                print("# ERROR IN COMPUTING THE DISTANCE.")
+                print(res1_arg, res2_arg)
                 d = 0.0
             list_of_distances.append(d)
 

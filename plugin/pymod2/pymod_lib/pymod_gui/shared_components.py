@@ -1,7 +1,7 @@
-from Tkinter import *
-from tkFileDialog import askopenfilename, askdirectory
-import tkMessageBox
-import tkFont
+from tkinter import *
+from tkinter.filedialog import askopenfilename, askdirectory
+import tkinter.messagebox
+import tkinter.font
 import Pmw
 
 import os
@@ -122,7 +122,7 @@ class PyMod_gui_mixin(Widget):
         It will be generally used along (and after) the label componets are aligned with
         Pmw.alignlabels().
         """
-        map(lambda w: w.set_input_widget_width(input_widgets_width), widgets_to_align)
+        list(map(lambda w: w.set_input_widget_width(input_widgets_width), widgets_to_align))
 
     #unused
     # def check_non_empty_input(gui_input):
@@ -136,11 +136,11 @@ class PyMod_window_mixin(PyMod_gui_mixin):
         Displays error or warning messages.
         """
         if popup_type == "error":
-            tkMessageBox.showerror(title_to_show, message_to_show, parent=self)
+            tkinter.messagebox.showerror(title_to_show, message_to_show, parent=self)
         elif popup_type == "info":
-            tkMessageBox.showinfo(title_to_show, message_to_show, parent=self)
+            tkinter.messagebox.showinfo(title_to_show, message_to_show, parent=self)
         elif popup_type == "warning":
-            tkMessageBox.showwarning(title_to_show, message_to_show, parent=self)
+            tkinter.messagebox.showwarning(title_to_show, message_to_show, parent=self)
 
     def show_info_message(self, title_to_show, message_to_show):
         self.show_popup_message("info", title_to_show,message_to_show)
@@ -152,7 +152,7 @@ class PyMod_window_mixin(PyMod_gui_mixin):
         self.show_popup_message("error", title_to_show,message_to_show)
 
     def askyesno_dialog(self, title, message):
-        return tkMessageBox.askyesno(title, message, parent=self)
+        return tkinter.messagebox.askyesno(title, message, parent=self)
 
 
 class PyMod_frame(Frame, PyMod_gui_mixin):
@@ -261,7 +261,7 @@ class PyMod_tool_window(PyMod_base_window):
     def show_advanced_button(self):
         # Pads a little the button towards the window's center.
         button_pack_options = self.pack_options.copy()
-        if button_pack_options.has_key("padx"):
+        if "padx" in button_pack_options:
             button_pack_options["padx"] += 5
         self.advance_options_button = Button(self.midframe, text="Show Advanced Options", command=self.toggle_advanced_options,**avdanced_button_style)
         self.advance_options_button.pack(**button_pack_options)
@@ -300,7 +300,7 @@ class PyMod_tool_window(PyMod_base_window):
             if widget.getvalue() in ("","-"):
                 title = "Input Error"
                 message = "Please fill in the '%s' option with valid input." % (widget.component("label").cget("text"))
-                tkMessageBox.showerror(title, message, parent=self)
+                tkinter.messagebox.showerror(title, message, parent=self)
                 return False
         return True
 
@@ -640,7 +640,7 @@ class Import_from_pymol_window(PyMod_tool_window):
             row+=1
 
     def get_objects_to_import(self):
-        return [sele for sele in self.sele_var.keys() if self.sele_var[sele].get()]
+        return [sele for sele in list(self.sele_var.keys()) if self.sele_var[sele].get()]
 
 
 ###############################################

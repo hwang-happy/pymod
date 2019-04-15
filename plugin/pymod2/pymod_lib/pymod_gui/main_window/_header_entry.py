@@ -1,12 +1,12 @@
 import copy
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 
 from pymol import cmd
 
 from pymod_lib.pymod_seq import seq_manipulation
 import pymod_lib.pymod_vars as pmdt
-from _main_window_common import PyMod_main_window_mixin
+from ._main_window_common import PyMod_main_window_mixin
 
 
 import time # TEST.
@@ -688,28 +688,28 @@ class Header_entry(Entry, PyMod_main_window_mixin):
             dic = self._get_cluster_from_popup_menu(self.pymod_element).__dict__
             children = dic['list_of_children']
             for c in children:
-                print c.my_header
+                print(c.my_header)
         else:
             dic = self.pymod_element.__dict__
-        lenkeys = [len(key) for key in dic.keys()]
+        lenkeys = [len(key) for key in list(dic.keys())]
         maxlen = max(lenkeys)
-        centerkeys = [key.center(maxlen) for key in dic.keys()]
-        print '#'*(2+maxlen+3+50+2)
+        centerkeys = [key.center(maxlen) for key in list(dic.keys())]
+        print('#'*(2+maxlen+3+50+2))
         try:
-            print [r.one_letter_code+" "+str(r.index)+" "+str(r.get_id_in_aligned_sequence())  for r in self.pymod_element.residues]
+            print([r.one_letter_code+" "+str(r.index)+" "+str(r.get_id_in_aligned_sequence())  for r in self.pymod_element.residues])
             #print [r.one_letter_code+" "+str(r.index)+" "+str(r.db_index)+" "+str(r.seq_index) for r in self.pymod_element.residues]
         except:
             pass
         for k in centerkeys:
             or_key = k.strip()
             # print "#", k, "#", str(dic[or_key])[:min(50, len(str(dic[or_key])))].center(50), "#"
-            print "#", k, "#", str(dic[or_key]).center(50), "#"
+            print("#", k, "#", str(dic[or_key]).center(50), "#")
             # lo so, ho ottimizzato troppo
-            print '_'*(2+maxlen+3+50+2)
+            print('_'*(2+maxlen+3+50+2))
         #print dic['mother']
         #print dic['feature_list']
 
-        print '#' * (2 + maxlen + 3 + 50 + 2)
+        print('#' * (2 + maxlen + 3 + 50 + 2))
 
 
     #--------------------------------------------

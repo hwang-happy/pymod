@@ -1,8 +1,8 @@
 import os
 import sys
-import pymod_os_specific as pmos
-import pymod_gui as pmgi
-from Tkinter import *
+from . import pymod_os_specific as pmos
+from . import pymod_gui as pmgi
+from tkinter import *
 
 ###################################################################################################
 # Classes used to control PyMod tools (the external programs that PyMod uses).                    #                                                    #

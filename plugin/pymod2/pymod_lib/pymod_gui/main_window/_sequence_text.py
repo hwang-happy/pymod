@@ -1,10 +1,10 @@
-from Tkinter import *
-from tkFileDialog import *
+from tkinter import *
+from tkinter.filedialog import *
 
 # import pymol
 from pymol import cmd
 
-from _main_window_common import PyMod_main_window_mixin
+from ._main_window_common import PyMod_main_window_mixin
 
 import time # TEST.
 

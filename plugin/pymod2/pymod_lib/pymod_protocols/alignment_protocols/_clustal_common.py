@@ -3,8 +3,8 @@ import shutil
 import re
 
 import pymod_lib.pymod_vars as pmdt
-from _base_alignment._base_regular_alignment import Regular_sequence_alignment
-from _base_alignment._base_profile_alignment import Profile_alignment
+from ._base_alignment._base_regular_alignment import Regular_sequence_alignment
+from ._base_alignment._base_profile_alignment import Profile_alignment
 
 
 class Clustal_regular_alignment(Regular_sequence_alignment):

@@ -3,8 +3,8 @@ import shutil
 import re
 
 import pymod_lib.pymod_vars as pmdt
-from _base_alignment._base_regular_alignment import Regular_sequence_alignment
-from _base_alignment._base_profile_alignment import Profile_alignment
+from ._base_alignment._base_regular_alignment import Regular_sequence_alignment
+from ._base_alignment._base_profile_alignment import Profile_alignment
 
 try:
     import modeller
@@ -86,20 +86,20 @@ class SALIGN_seq_alignment(SALIGN_alignment):
         else:
             # create salign_multiple_seq.py to enable external modeller execution
             config=open("salign_multiple_seq.py", "w")
-            print >> config, "import modeller"
-            print >> config, "modeller.log.verbose()"
-            print >> config, "env = modeller.environ()"
-            print >> config, "env.io.atom_files_directory = ['.', '"+self.pymod.structures_dirpath+"']"
+            print("import modeller", file=config)
+            print("modeller.log.verbose()", file=config)
+            print("env = modeller.environ()", file=config)
+            print("env.io.atom_files_directory = ['.', '"+self.pymod.structures_dirpath+"']", file=config)
             if self.use_hetatm:
-                print >> config, "env.io.hetatm = True"
-            print >> config, "aln = modeller.alignment(env,file='%s', alignment_format='PIR')" % (shortcut_to_temp_files + ".ali")
+                print("env.io.hetatm = True", file=config)
+            print("aln = modeller.alignment(env,file='%s', alignment_format='PIR')" % (shortcut_to_temp_files + ".ali"), file=config)
             if use_structural_information:
-                print >> config, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
-                print >> config, "aln.salign(auto_overhang=True, gap_penalties_1d=(-100, 0), gap_penalties_2d=(3.5,3.5,3.5,0.2,4.0,6.5,2.0,0.0,0.0), gap_function=True, feature_weights=(1., 0., 0., 0., 0., 0.), similarity_flag=True, alignment_type='tree', dendrogram_file='%s')" %(shortcut_to_temp_files+".tree")
+                print("env.libs.topology.read(file='$(LIB)/top_heav.lib')", file=config)
+                print("aln.salign(auto_overhang=True, gap_penalties_1d=(-100, 0), gap_penalties_2d=(3.5,3.5,3.5,0.2,4.0,6.5,2.0,0.0,0.0), gap_function=True, feature_weights=(1., 0., 0., 0., 0., 0.), similarity_flag=True, alignment_type='tree', dendrogram_file='%s')" %(shortcut_to_temp_files+".tree"), file=config)
             else:
-                print >> config, "aln.salign(auto_overhang=True, gap_penalties_1d=(-450, -50), dendrogram_file='%s', alignment_type='tree', output='ALIGNMENT')" %(shortcut_to_temp_files+".tree")
-            print >> config, "aln.write(file='"+shortcut_to_temp_files+".ali', alignment_format='PIR')"
-            print >> config, ""
+                print("aln.salign(auto_overhang=True, gap_penalties_1d=(-450, -50), dendrogram_file='%s', alignment_type='tree', output='ALIGNMENT')" %(shortcut_to_temp_files+".tree"), file=config)
+            print("aln.write(file='"+shortcut_to_temp_files+".ali', alignment_format='PIR')", file=config)
+            print("", file=config)
             config.close()
 
             cline=self.tool.get_exe_file_path()+" salign_multiple_seq.py"
@@ -170,19 +170,19 @@ class SALIGN_seq_alignment(SALIGN_alignment):
                 open(profile1_shortcut,'w').write(ali_txt1+ali_txt2)
 
                 config=open("salign_profile_profile.py", "w")
-                print >>config, "import modeller"
-                print >>config, "modeller.log.verbose()"
-                print >>config, "env = modeller.environ()"
-                print >>config, "env.io.atom_files_directory = ['.', '"+self.pymod.structures_dirpath+"']"
+                print("import modeller", file=config)
+                print("modeller.log.verbose()", file=config)
+                print("env = modeller.environ()", file=config)
+                print("env.io.atom_files_directory = ['.', '"+self.pymod.structures_dirpath+"']", file=config)
                 if self.use_hetatm:
-                    print >>config, "env.io.hetatm = True"
-                print >>config, "aln = modeller.alignment(env, file='%s', alignment_format='PIR')"%(profile1_shortcut)
+                    print("env.io.hetatm = True", file=config)
+                print("aln = modeller.alignment(env, file='%s', alignment_format='PIR')"%(profile1_shortcut), file=config)
                 if use_structural_information:
-                    print >>config, "env.libs.topology.read(file='$(LIB)/top_heav.lib')"
-                    print >>config, "aln.salign(rr_file='${LIB}/blosum62.sim.mat', gap_penalties_1d=(-500, 0), output='', align_block=%d, align_what='PROFILE', alignment_type='PAIRWISE', comparison_type='PSSM', gap_function=True, feature_weights=(1., 0., 0., 0., 0., 0.), gap_penalties_2d=(0.35,1.2,0.9,1.2,0.6,8.6,1.2,0.0,0.0), similarity_flag=True, substitution=True,smooth_prof_weight=10.0)"%(align_block)
+                    print("env.libs.topology.read(file='$(LIB)/top_heav.lib')", file=config)
+                    print("aln.salign(rr_file='${LIB}/blosum62.sim.mat', gap_penalties_1d=(-500, 0), output='', align_block=%d, align_what='PROFILE', alignment_type='PAIRWISE', comparison_type='PSSM', gap_function=True, feature_weights=(1., 0., 0., 0., 0., 0.), gap_penalties_2d=(0.35,1.2,0.9,1.2,0.6,8.6,1.2,0.0,0.0), similarity_flag=True, substitution=True,smooth_prof_weight=10.0)"%(align_block), file=config)
                 else:
-                    print >>config, "aln.salign(rr_file='${LIB}/blosum62.sim.mat', gap_penalties_1d=(-500, 0), output='', align_block=%d, align_what='PROFILE', alignment_type='PAIRWISE', comparison_type='PSSM', similarity_flag=True, substitution=True, smooth_prof_weight=10.0) "%(align_block)
-                print >>config, "aln.write(file='%s', alignment_format='PIR')"%(profile1_shortcut)
+                    print("aln.salign(rr_file='${LIB}/blosum62.sim.mat', gap_penalties_1d=(-500, 0), output='', align_block=%d, align_what='PROFILE', alignment_type='PAIRWISE', comparison_type='PSSM', similarity_flag=True, substitution=True, smooth_prof_weight=10.0) "%(align_block), file=config)
+                print("aln.write(file='%s', alignment_format='PIR')"%(profile1_shortcut), file=config)
                 config.close()
 
                 cline=self.tool.get_exe_file_path()+" salign_profile_profile.py"
