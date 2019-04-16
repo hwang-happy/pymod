@@ -1,8 +1,6 @@
-import os
-import copy
+import os.path
 import tkinter.messagebox
-
-from tkinter.filedialog import *
+from tkinter.filedialog import askopenfilename
 
 from Bio import SeqIO
 

@@ -80,14 +80,20 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
             self.espript_sec_str_window.destroy()
 
         #Checks if the upload is successful
-        if self.verbose:
-            print(upload_response)
+        # if self.verbose:
+        upload_response = upload_response.decode('utf-8')
+
         if upload_response.startswith('TRUE'):
+            # Raises TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+            # because urllib opens the file in bytes mode,
+            # and so here calls bytes.startswith() and not str.startswith().
+            # Need to do line.startswith(b'>'), which will make '>' a bytes literal, or
+            # decode the bytes object to produce a string.
             if selected_structure_element == None:
                 uploaded_alignment_file = upload_response[6:]
             else:
                 uploaded_alignment_file, uploaded_structure_file= upload_response[6:].split(",")
-            espript_url = espript_basic_url+schubert_folder_url+uploaded_alignment_file   #creates the URL
+            espript_url = espript_basic_url+schubert_folder_url+uploaded_alignment_file  #creates the URL
             if selected_structure_element != None:
                 espript_url += ";struct1file0=%s%s" % (schubert_folder_url, uploaded_structure_file)
                 espript_url += ";struct1chain0=%s" % (selected_structure_element.get_chain_id())

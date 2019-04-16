@@ -28,7 +28,7 @@ class PyMod_development(object):
             ################ MG code ##################
 
             def get_mg_testfolder():
-                relative_testset_pathlist = ['Pymodproject', 'tesipymod']
+                relative_testset_pathlist = ['Pymodproject']
                 if sys.platform == 'win32':
                     root = 'C:\\Users\\Maria Giulia\\Dropbox'
                 elif sys.platform == 'darwin':
@@ -144,12 +144,12 @@ class PyMod_development(object):
 
         # print "# Loading P30487"
 
-        # ali_dirpath = os.path.join(get_mg_testfolder(), "TESTSET", "_Ali")
-        # for al in ("1.fasta", "2.fasta", "3.fasta"):
-        #     alipath = os.path.join(ali_dirpath, al)
-        #     if os.path.exists(alipath):
-        #         self.build_cluster_from_alignment_file(alipath)
-        #         print "# Loading", al
+        ali_dirpath = os.path.join(get_mg_testfolder(), "TESTSET", "_Ali")
+        for al in ("1.fasta", "2.fasta", "3.fasta"):
+            alipath = os.path.join(ali_dirpath, al)
+            if os.path.exists(alipath):
+                self.build_cluster_from_alignment_file(alipath)
+                # print "# Loading", al
 
             #self.seq_fasta_lst = get_multiple_random_seqfasta() # una lista di 4 seq fasta
             #self.seq_fasta_lst = mg_test.get_all_test_fasta() # tutto il testset

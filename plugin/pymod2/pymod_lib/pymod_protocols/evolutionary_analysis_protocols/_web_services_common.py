@@ -60,7 +60,9 @@ class Web_services_common:
 
         try:
             #Creates a request
-            data = urllib.parse.urlencode(values)
+            data = urllib.parse.urlencode(values).encode("utf-8")
+            # in python 3, params output from urlencode
+            # must be encoded to bytes with 'encode' method before it is sent to urlopen as data
             req = urllib.request.Request(url, data, headers=headers)
             #Gets server response and reads it
             response = urllib.request.urlopen(req)

@@ -168,7 +168,7 @@ class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
         Generates a LOGO of the alignment, by using WebLogo 3 site.
         Requires active Internet connection.
         '''
-        self.verbose = False
+        self.verbose = True
 
         #Units dictionary
         UNITS = {'Bits':'bits', 'Probability':'probability'}
