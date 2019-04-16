@@ -80,8 +80,10 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
             self.espript_sec_str_window.destroy()
 
         #Checks if the upload is successful
-        # if self.verbose:
-        upload_response = upload_response.decode('utf-8')
+        if upload_response:
+            upload_response = upload_response.decode('utf-8')
+        else:
+            return
 
         if upload_response.startswith('TRUE'):
             # Raises TypeError: startswith first arg must be bytes or a tuple of bytes, not str

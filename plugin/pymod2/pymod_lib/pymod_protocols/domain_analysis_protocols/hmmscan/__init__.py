@@ -213,17 +213,17 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
             'hmmdb': database.lower(),  # 'pfam'  #0303
             'seq': self.query_element_seq, }
 
-        enc_params = urllib.parse.urlencode(parameters)
+        enc_params = urllib.parse.urlencode(parameters).encode('utf-8')
         hmm_url = 'https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan'
 
-        print(enc_params)
+        # print(enc_params)
 
         # post the search request to the server
         request = urllib.request.Request(hmm_url, enc_params)
 
         # get the url where the results can be fetched from
         try:
-            results_url = urllib.request.urlopen(request).getheader('location')
+            results_url = urllib.request.urlopen(request).get('location')
             print('Submitted request to', hmm_url)
         except urllib.error.URLError:
             title = "Connection Error"
@@ -255,7 +255,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         #     time.sleep(3)
 
         # print out the results
-        response_content = data.read()
+        response_content = data.read().decode('utf-8')
         results_file_name = self.query_element_seq_id + '_web_' + database + '_hmmeroutput.' + res_params['output']
         results_file = os.path.join(self.output_directory, results_file_name)
 

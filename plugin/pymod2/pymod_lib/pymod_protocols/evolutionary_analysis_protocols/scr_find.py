@@ -4,9 +4,8 @@ import math
 from tkinter import *
 from tkinter.filedialog import *
 
-import pymol
 from pymol import cmd
-
+from pymod_lib.pymod_element import PyModMissingStructure
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
 from ._evolutionary_analysis_base import Evolutionary_analysis_protocol
@@ -118,22 +117,30 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
             aa_error = False
             self.matrix = []
             self.alignment_length = len(self.input_cluster_element.get_children()[0].my_sequence)
-            for ali_id in range(0, self.alignment_length):
-                self.matrix.append([])
-                for pymod_element in self.input_cluster_element.get_children():
-                    pos = pymod_element.my_sequence[ali_id]
-                    if  pos != "-" and pos != "X":
-                        residue = pymod_element.get_residue_by_index(ali_id, aligned_sequence_index=True)
-                        res_arg = "object %s and n. CA and i. %s" % (pymod_element.get_pymol_selector(), residue.db_index)
-                        try:
-                            self.matrix[ali_id].append((cmd.get_atom_coords(res_arg), residue))
-                        except:
-                            self.matrix[ali_id].append((["bugged_residue"], None))
-                            print("Some problems occurred with structure %s, aminoacid %s, alignment position %s" %( pymod_element.my_header,
-                                                                                                                        pos, ali_id))
-                            aa_error = True
-                    else:
-                         self.matrix[ali_id].append((['-', '-', '-'], None))
+
+            try:
+                for ali_id in range(0, self.alignment_length):
+                    self.matrix.append([])
+                    for pymod_element in self.input_cluster_element.get_children():
+                        pos = pymod_element.my_sequence[ali_id]
+                        if  pos != "-" and pos != "X":
+                            residue = pymod_element.get_residue_by_index(ali_id, aligned_sequence_index=True)
+                            res_arg = "object %s and n. CA and i. %s" % (pymod_element.get_pymol_selector(), residue.db_index)
+                            try:
+                                self.matrix[ali_id].append((cmd.get_atom_coords(res_arg), residue))
+                            except:
+                                self.matrix[ali_id].append((["bugged_residue"], None))
+                                print("Some problems occurred with structure %s, aminoacid %s, alignment position %s" %( pymod_element.my_header,
+                                                                                                                         pos, ali_id))
+                                aa_error = True
+                        else:
+                             self.matrix[ali_id].append((['-', '-', '-'], None))
+            except PyModMissingStructure:
+                title = "Structure Error"
+                message = "This cluster does not have any structure loaded in PyMOL."
+                self.pymod.show_error_message(title, message)
+                return
+
             if aa_error:
                 print("We suggest you to check your structures for split aminoacids")
 
@@ -215,7 +222,7 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
             else:
                 mean = (sum(self.score_list[s:e]))/(e-s)
                 if mean <= self.score_limit:
-                    while mean <= self.score_limit and e <= (len(self.score_list)) and (stn_dev <= 4 or stn_dev == None):
+                    while mean <= self.score_limit and e <= (len(self.score_list)) and (stn_dev == None or stn_dev <= 4):
                         e+=1
                         mean = (sum(self.score_list[s:e]))/(e-s)
                         devs = []
@@ -276,7 +283,7 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
             if self.hide_non_scrs:
                 cmd.hide("everything", element.get_pymol_selector())
             for residue in element.get_polymer_residues():
-                if residue.is_scr and residue.scr_score:
+                if residue.is_scr and residue.scr_score and residue.scr_score['score'] is not None:
                     color = False
                     i = 1
                     for interval in intervals:

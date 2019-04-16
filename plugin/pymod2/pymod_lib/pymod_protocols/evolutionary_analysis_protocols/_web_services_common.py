@@ -67,11 +67,10 @@ class Web_services_common:
             #Gets server response and reads it
             response = urllib.request.urlopen(req)
             response_content = response.read()
-        except:
-            if show_error:
-                response_content = ''
-                title = "Connection Error"
-                message = "Can not access the server.\nPlease check your Internet access."
-                self.pymod.show_error_message(title,message)
+        except urllib.error.URLError:
+            response_content = ''
+            title = "Connection Error"
+            message = "Can not access the server.\nPlease check your Internet access."
+            self.pymod.show_error_message(title,message)
 
         return response_content

@@ -1,4 +1,5 @@
 import os
+from urllib.error import URLError
 
 from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
@@ -6,9 +7,6 @@ from Bio.Blast import NCBIXML
 from pymod_lib.pymod_gui.shared_components import PyMod_radioselect
 
 from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast import Generic_BLAST_search, BLAST_base_options_window
-
-
-print(__file__)
 
 
 ###################################################################################################
@@ -79,7 +77,7 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             # In this way the results window can be opened.
             return True
 
-        except:
+        except URLError:
             title = "Connection Error"
             message = 'Can not connect to the NCBI BLAST server. Please check your Internet access.'
             self.blast_options_window.show_error_message(title,message)
@@ -182,7 +180,7 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             ('CMD', 'Put'),
             ]
         query = [x for x in parameters if x[1] is not None]
-        message = str(urllib.parse.urlencode(query))
+        message = urllib.parse.urlencode(query).encode('utf-8')
 
         # Send off the initial query to qblast.
         # Note the NCBI do not currently impose a rate limit here, other
@@ -214,7 +212,7 @@ class NCBI_BLAST_search(Generic_BLAST_search):
             ('CMD', 'Get'),
             ]
         query = [x for x in parameters if x[1] is not None]
-        message = str(urllib.parse.urlencode(query))
+        message = urllib.parse.urlencode(query).encode('utf-8')
 
         # Poll NCBI until the results are ready.  Use a backoff delay from 2 - 120 second wait
         delay = 2.0
@@ -236,7 +234,7 @@ class NCBI_BLAST_search(Generic_BLAST_search):
                                message,
                                {"User-Agent": "BiopythonClient"})
             handle = urllib.request.urlopen(request)
-            results = str(handle.read())
+            results = handle.read().decode('utf-8')
 
             # Can see an "\n\n" page while results are in progress,
             # if so just wait a bit longer...

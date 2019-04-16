@@ -291,7 +291,7 @@ class CAMPO:
         self.campo_scores=[]
 
         for somma_colonna in self.lista_somme_colonne:
-            valore= (1 / (self.num_seq*(self.num_seq-1)*float(0.5))) * float(somma_colonna) / float(denominatore)
+            valore = (1 / (self.num_seq*(self.num_seq-1)*float(0.5))) * float(somma_colonna) / float(denominatore)
             self.campo_scores.append(valore)
 
         # The fraction of gaps in a column of a multiple alignment in order for it to not
@@ -310,7 +310,11 @@ class CAMPO:
                     self.campo_scores[alignment_position] = None
 
         # Normalize on the maximum value. Tosses alignment positions with too much gaps.
-        massimo = max(self.campo_scores)
+        campo_scores_without_none_values = [i for i in self.campo_scores if i is not None]
+        massimo = max(campo_scores_without_none_values)
+        # massimo = max(self.campo_scores)
+        # in python 3, this line generates a TypeError:
+        # '>' not supported between instances of 'NoneType' and 'NoneType'
         self.normalized_campo_scores = []
         for score in self.campo_scores:
             if score != None:
