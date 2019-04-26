@@ -17,6 +17,7 @@ import pymod_lib.pymod_gui as pmgi
 from pymod_lib.pymod_exceptions import PyModInvalidFile
 
 from pymod_lib.pymod_protocols.similarity_searches_protocols.ncbi_blast import NCBI_BLAST_search
+from pymod_lib.pymod_protocols.similarity_searches_protocols.local_blast import LOC_BLAST_search
 from pymod_lib.pymod_protocols.similarity_searches_protocols.psiblast import PSI_BLAST_search
 from pymod_lib.pymod_protocols.similarity_searches_protocols.phmmer import PHMMER_search
 
@@ -258,6 +259,9 @@ class PyMod_main_menu_commands(object):
         elif blast_version == "psi-blast":
             #pass
             blast_search = PSI_BLAST_search(self, "psi-blast", output_directory=self.similarity_searches_dirpath)
+        elif blast_version == "blastp":
+            blast_search = LOC_BLAST_search(self, "psi-blast", output_directory=self.similarity_searches_dirpath)
+
 
         blast_search.launch_from_gui()
 

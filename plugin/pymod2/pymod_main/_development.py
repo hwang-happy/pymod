@@ -145,7 +145,7 @@ class PyMod_development(object):
         # print "# Loading P30487"
 
         ali_dirpath = os.path.join(get_mg_testfolder(), "TESTSET", "_Ali")
-        for al in ("1.fasta", "2.fasta", "3.fasta"):
+        for al in ("1.fasta", "2.fasta", "3.fasta", "desim.fasta"):
             alipath = os.path.join(ali_dirpath, al)
             if os.path.exists(alipath):
                 self.build_cluster_from_alignment_file(alipath)

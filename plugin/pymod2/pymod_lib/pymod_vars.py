@@ -11,6 +11,7 @@ structural_alignment_tools = ("ce", "salign-str")
 algorithms_full_names_dict = {
     # Similarity searches.
     "blast": "NCBI BLAST",
+    "blastp": "local protein BLAST",
     "psi-blast": "PSI-BLAST",
     "phmmer":"PHMMER",
     # Alignments.

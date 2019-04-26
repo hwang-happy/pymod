@@ -341,6 +341,7 @@ class DomainAnalysisProtocol(PyMod_protocol):
             return None
         else:
             print('\n\n__________FUSE___________\n........................')
+            imp.reload(fuse_alignments_with_centerstar)
             self.fuse_protocol = FuseAlignmentCenterstarProtocol(pymod=self.pymod, father_protocol=self, output_directory=self.output_directory)
             self.fuse_protocol.run()
 

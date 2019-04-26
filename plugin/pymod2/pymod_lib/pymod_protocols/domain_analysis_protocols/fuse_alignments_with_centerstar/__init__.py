@@ -69,6 +69,8 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
         # il pth del file backup con l'allineamento intero
         self.fused_ali_output_filepath = None
 
+        self.verbose = True
+
 
 
     def additional_initialization(self):
@@ -79,12 +81,19 @@ class FuseAlignmentCenterstarProtocol(PyMod_protocol):
 
     def run(self):
         self._save_ali_files()
+        print("Done step 1") if self.verbose else 'no'
         self._save_info_matrix_files()
+        print("Done step 2") if self.verbose else 'no'
         self._parse_ali_files()
+        print("Done step 3") if self.verbose else 'no'
         self._set_matrix_frags()
+        print("Done step 4") if self.verbose else 'no'
         self._update_ali_seq_strings()
+        print("Done step 5") if self.verbose else 'no'
         self.build_seqrecords_lists()
+        print("Done step 6") if self.verbose else 'no'
         self.build_fused_ali()
+        print("Done step 7") if self.verbose else 'no'
         self.update_mother_element()
         self.update_nonlead_elements()
 

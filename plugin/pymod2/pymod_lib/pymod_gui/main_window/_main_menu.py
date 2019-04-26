@@ -61,6 +61,7 @@ class PyMod_main_window_main_menu(object):
         self.database_search_menu = Menu(self.tools_menu, tearoff=0)
         self.tools_menu.add_cascade(label = "Database Search", menu=self.database_search_menu)
         self.database_search_menu.add_command(label = "BLAST", command = lambda program="blast": self.pymod.launch_blast_algorithm(program))
+        self.database_search_menu.add_command(label="Local BLAST", command=lambda program="blastp": self.pymod.launch_blast_algorithm(program))
         self.database_search_menu.add_command(label="PSI-BLAST", command=lambda program="psi-blast": self.pymod.launch_blast_algorithm(program))
         self.database_search_menu.add_command(label="phmmer", command=lambda program="phmmer": self.pymod.launch_hmmer_algorithm(program))
 

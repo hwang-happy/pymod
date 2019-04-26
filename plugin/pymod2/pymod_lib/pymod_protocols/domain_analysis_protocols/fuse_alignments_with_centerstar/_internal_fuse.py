@@ -176,7 +176,7 @@ class ConverterForTmpfileToSplitfiles:
         han.close()
 
         #strutture da mantenere
-        self.mother = self.lns[0][1]
+        self.mother = self.lns[0][1].replace('-', '')
         self.offset = int(self.lns[1][1])
         self.dompos_dict = {}
         self.dompos_lst = self.lns[2:]
