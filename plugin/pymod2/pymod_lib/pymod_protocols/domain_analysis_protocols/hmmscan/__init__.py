@@ -56,7 +56,7 @@ class Domain_search_protocol(PyMod_protocol):
         if len(self.get_pymod_elements()) != 1:
             title = "Selection Error"
             message = "Please select one and only one sequence to perform a domain search."
-            self.pymod.show_error_message(title, message)
+            self.pymod.main_window.show_error_message(title, message)
             return None
 
         self.query_element = self.get_pymod_elements()[0]
@@ -73,12 +73,12 @@ class Domain_search_protocol(PyMod_protocol):
             if not self.hmmer_options_window.hmmer_engine_rds.getvalue():
                 title = "Error"
                 message = "Please select a search engine to perform a domain search."
-                self.pymod.show_error_message(title, message)
+                self.pymod.main_window.show_error_message(title, message)
                 return
             elif not self.hmmer_options_window.hmmer_database_rds.getvalue():
                 title = "Error"
                 message = "Please select a database to perform a domain search."
-                self.pymod.show_error_message(title, message)
+                self.pymod.main_window.show_error_message(title, message)
                 return
             else:
                 self.hmmer_options_window.search_params = {
@@ -117,7 +117,7 @@ class Domain_search_protocol(PyMod_protocol):
             else:
                 title = "Error"
                 message = "Please select a correct database to perform a domain search."
-                self.pymod.show_error_message(title, message)
+                self.pymod.main_window.show_error_message(title, message)
                 return
 
         print('res:', res)
@@ -228,7 +228,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         except urllib.error.URLError:
             title = "Connection Error"
             message = "URL Error. Please check Internet connection."
-            print(self.pymod.show_error_message(title, message))
+            print(self.pymod.main_window.show_error_message(title, message))
             return None
 
         # modify the range, format and presence of alignments in your results here
@@ -247,7 +247,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
         except:
             title = "Connection Error"
             message = "URL Error. Please check Internet connection."
-            self.pymod.show_error_message(title, message)
+            self.pymod.main_window.show_error_message(title, message)
             return None
 
         # while not data.read():
@@ -302,7 +302,7 @@ class HMMERweb_parsing_protocol(Search_parsing_protocol):
             # per il momento c'e' una regexp che scrive il file togliendoli, ma potrebbero capitare altri casi simili.
             title = "Error in parsing function"
             message = "Cannot perform the parsing process. The downloaded file may be corrupted, please try again."
-            self.pymod.show_error_message(title, message)
+            self.pymod.main_window.show_error_message(title, message)
             return
         parsed_output_item = {}
 
@@ -370,11 +370,11 @@ class Hmmer_parsing_protocol(Search_parsing_protocol):
         try:
             self.pymod.new_execute_subprocess(cline)
         except CalledProcessError:
-            self.pymod.show_error_message(
+            self.pymod.main_window.show_error_message(
                 "HMMER Error",
                 "Something went wrong while performing the search with the command-line tool. \n(Returned non-zero exit status 1)")
         except:
-            self.pymod.show_error_message(
+            self.pymod.main_window.show_error_message(
                 "HMMER Error",
                 "Something went wrong while performing the search with the command-line tool.")
 

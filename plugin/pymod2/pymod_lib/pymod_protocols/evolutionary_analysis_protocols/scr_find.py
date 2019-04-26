@@ -138,7 +138,7 @@ class SCR_FIND_analysis(Evolutionary_analysis_protocol):
             except PyModMissingStructure:
                 title = "Structure Error"
                 message = "This cluster does not have any structure loaded in PyMOL."
-                self.pymod.show_error_message(title, message)
+                self.pymod.main_window.show_error_message(title, message)
                 return
 
             if aa_error:

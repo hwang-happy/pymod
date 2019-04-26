@@ -71,6 +71,6 @@ class Web_services_common:
             response_content = ''
             title = "Connection Error"
             message = "Can not access the server.\nPlease check your Internet access."
-            self.pymod.show_error_message(title,message)
+            self.pymod.main_window.show_error_message(title,message)
 
         return response_content

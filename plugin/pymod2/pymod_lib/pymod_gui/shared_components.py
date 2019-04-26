@@ -143,16 +143,30 @@ class PyMod_window_mixin(PyMod_gui_mixin):
             tkinter.messagebox.showwarning(title_to_show, message_to_show, parent=self)
 
     def show_info_message(self, title_to_show, message_to_show):
-        self.show_popup_message("info", title_to_show,message_to_show)
+        self.show_popup_message("info", title_to_show, message_to_show)
 
     def show_warning_message(self, title_to_show, message_to_show):
-        self.show_popup_message("warning", title_to_show,message_to_show)
+        self.show_popup_message("warning", title_to_show, message_to_show)
 
     def show_error_message(self, title_to_show, message_to_show):
-        self.show_popup_message("error", title_to_show,message_to_show)
+        self.show_popup_message("error", title_to_show, message_to_show)
 
     def askyesno_dialog(self, title, message):
         return tkinter.messagebox.askyesno(title, message, parent=self)
+
+    # TODO bugga su shared components (l 719). usa anche _main menu l 46
+    def confirm_close(self, parent=None):
+        """
+        Asks confirmation when the main window is closed by the user.
+        """
+        if parent:
+            parent_window = parent
+        else:
+            parent_window = self
+        confirm_message = "Are you really sure you want to exit PyMod?"
+        answer = tkinter.messagebox.askyesno(message=confirm_message, title="Exit PyMod?", parent=parent_window) # TODO!
+        if answer:
+            parent_window.destroy()
 
 
 class PyMod_frame(Frame, PyMod_gui_mixin):
@@ -511,42 +525,17 @@ class Cluster_selection_frame(Frame, PyMod_gui_mixin):
 
 class Use_importable_modeller_radioselect(PyMod_entryfield):
 
-    def __init__(self, parent = None, label_style=None, importable_modeller=False, initial_value=None, **configs):
+    def __init__(self, parent = None, label_style=None, initial_value=None, **configs):
         PyMod_entryfield.__init__(self, parent, label_style, **configs)
         self.interior = self.component('hull') # self.interior()
         self.component("entry").configure(state='readonly', readonlybackground= "black", bd=0, relief=FLAT, fg="white", bg="black")
-        self.importable_modeller = importable_modeller
+
         # If MODELLER libs are importable, then build some radiobuttons to choose whether to us it.
         self.gui_var = StringVar()
         self.gui_var.set(str(initial_value))
-        if self.importable_modeller:
-            rbs = radiobutton_style_1.copy()
-            rbs["padx"] = 0
-            use_radiobutton = Radiobutton(self.interior, text="Use", variable=self.gui_var, value="True", width=8, command=self.run_after_selection, **rbs)
-            use_radiobutton.grid(row=2, column=3, sticky = "w",padx=(15,0), pady=(0,3))
-            dont_use_radiobutton = Radiobutton(self.interior, text="Don't use", variable=self.gui_var, value="False", width=8, command=self.run_after_selection, **rbs)
-            dont_use_radiobutton.grid(row=3, column=3, sticky = "w",padx=(15,0))
 
     def getvalue(self):
         return self.gui_var.get()
-
-
-class Modeller_exec_entryfield(PyMod_path_entryfield):
-
-    def __init__(self, parent = None, label_style=None, path_type="file", askpath_title = "Search for a path", file_types="", **configs):
-        PyMod_path_entryfield.__init__(self, parent, label_style, path_type=path_type, askpath_title=askpath_title, file_types=file_types, **configs)
-        self.not_necessary_label = Label(self.interior, text="Not necessary",**small_label_style)
-
-    def show_path_selector(self, path_to_show):
-        self.component("entry").configure(state=NORMAL)
-        self.not_necessary_label.grid_forget()
-        self.choose_path_button.grid(column=3,row=2, padx=(15,0))
-
-    def hide_path_selector(self):
-        self.component("entry").configure(state=NORMAL)
-        self.choose_path_button.grid_forget()
-        self.not_necessary_label.grid(column=3,row=2, padx=(15,0))
-        self.component("entry").configure(state="readonly")
 
 
 #####################################################################

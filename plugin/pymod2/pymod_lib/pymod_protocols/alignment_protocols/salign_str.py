@@ -1,6 +1,4 @@
 import os
-import shutil
-import re
 
 from Bio import SeqIO
 
@@ -11,11 +9,10 @@ try:
 except:
     pass
 
-import pymod_lib.pymod_vars as pmdt
-import pymod_lib.pymod_gui as pmgi
 from ._base_alignment._base_regular_alignment import Regular_structural_alignment
-from ._base_alignment._gui import SALIGN_str_regular_window
-from ._salign_common import SALIGN_regular_alignment, SALIGN_alignment
+from ._salign_common import SALIGN_alignment, SALIGN_regular_alignment
+
+from ._base_alignment._gui import Structural_alignment_base_window, Regular_alignment_window
 
 
 ###################################################################################################
@@ -149,3 +146,11 @@ class SALIGN_str_regular_alignment(SALIGN_regular_alignment, SALIGN_alignment, R
     def update_additional_information(self):
         SALIGN_regular_alignment.update_additional_information(self)
         Regular_structural_alignment.update_additional_information(self)
+
+
+class SALIGN_str_base_window(Structural_alignment_base_window):
+    def build_algorithm_options_widgets(self):
+        self.build_rmsd_option()
+
+class SALIGN_str_regular_window(SALIGN_str_base_window, Regular_alignment_window):
+    pass

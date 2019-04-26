@@ -29,7 +29,7 @@ class Tool:
         # Method used to display messages raised when using the tool.
 
     def show_message_method(self, title, message):
-        self.pymod.show_error_message(title, message)
+        self.pymod.main_window.show_error_message(title, message)
 
 
     def initialize_parameters(self, parameter_list):
@@ -337,60 +337,32 @@ class Modeller_tool(Executable_tool):
 ###############
 # Parameters. #
 ###############
+
 class Use_importable_modeller(Tool_parameter):
 
-    def __init__(self, paramater_name, parameter_full_name, parameter_default_value = None):
-        Tool_parameter.__init__(self, paramater_name, parameter_full_name, parameter_default_value = parameter_default_value)
+    def __init__(self, paramater_name, parameter_full_name, parameter_default_value=None):
+        Tool_parameter.__init__(self, paramater_name, parameter_full_name, parameter_default_value=parameter_default_value)
 
     def display_options(self, target_frame):
         # Text of the label to inform the user if MODELLER libs can be imported in PyMOL.
-        text_to_show = "Current status: "
+        text_to_show = "Status: "
         if self.parent_tool.importable_modeller:
             text_to_show += "available"
         else:
             text_to_show += "unavailable"
-        self.rds = pmgi.shared_components.Use_importable_modeller_radioselect (
-            target_frame, importable_modeller=self.parent_tool.importable_modeller, initial_value=self.value,
-            label_text = self.full_name, label_style = pmgi.shared_components.label_style_2, run_after_selection=self.update_status,
-            value = text_to_show)
+        self.rds = pmgi.shared_components.Use_importable_modeller_radioselect(
+            target_frame, initial_value=self.value,
+            label_text=self.full_name, label_style=pmgi.shared_components.label_style_2,
+            run_after_selection=self.update_status,
+            value=text_to_show)
         self.rds.pack(**pmgi.shared_components.pack_options_1)
         return self.rds
 
     def update_status(self):
-        if self.rds.getvalue() == "True":
-            self.parent_tool["exe_file_path"].pef.hide_path_selector()
-        else:
-            path_to_show = self.parent_tool["exe_file_path"].get_value()
-            self.parent_tool["exe_file_path"].pef.show_path_selector(path_to_show)
+        pass
 
     def guess_first_session_value(self):
-        if self.parent_tool.importable_modeller:
-            return "True"
-        else:
-            return "False"
+        return "True"
 
     def get_value_from_gui(self):
         return self.rds.getvalue()
-
-
-class Modeller_exec_file(Tool_exec_file):
-
-    def display_options(self, target_frame):
-        starting_text = str(self.get_starting_value())
-        self.pef = pmgi.shared_components.Modeller_exec_entryfield(target_frame,
-            label_text = self.full_name,
-            label_style = pmgi.shared_components.label_style_2,
-            value = starting_text,
-            path_type = "file", run_after_selection = self.run_after_selection,
-            askpath_title = "Search for %s %s" % (self.parent_tool.full_name, self.full_name))
-        self.pef.pack(**pmgi.shared_components.pack_options_1)
-
-        if self.parent_tool["use_importable_modeller"].get_value() == "True":
-            self.pef.hide_path_selector()
-        else:
-            self.pef.show_path_selector(starting_text)
-
-        return self.pef
-
-    def get_value_from_gui(self):
-        return self.pef.getvalue()

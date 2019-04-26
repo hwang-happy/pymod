@@ -6,7 +6,6 @@ from Bio.Blast import NCBIXML
 from pymod_lib import pymod_os_specific
 from pymod_lib.pymod_protocols.similarity_searches_protocols._base_blast import Generic_BLAST_search
 
-
 class LOC_BLAST_common:
     """
     A mixin class for using local BLAST in other protocols.
@@ -163,7 +162,7 @@ class LOC_BLAST_search(Generic_BLAST_search, LOC_BLAST_common):
 
 
     def get_blast_window_class(self):
-        return PSI_BLAST_options_window
+        return BLAST_base_options_window
 
 
     def check_blast_input_parameters(self):

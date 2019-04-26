@@ -751,7 +751,7 @@ class PyMod_main_window_mixin:
 
     # Residue polarity colors.
     def get_polarity_sequence_color(self, residue):
-        return self.pymod.all_colors_dict_tkinter[self.form_residue_polarity_color_name(residue)]
+        return self.pymod.all_colors_dict_tkinter.get(self.form_residue_polarity_color_name(residue), "white")
 
     def get_polarity_structure_color(self, residue):
         return self.form_residue_polarity_color_name(residue)

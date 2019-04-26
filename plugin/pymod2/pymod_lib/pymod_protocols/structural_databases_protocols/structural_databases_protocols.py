@@ -100,7 +100,7 @@
 #         except:
 #             title = "Connection Error"
 #             message = "Can not access to the PDB database.\nPlease check your Internet access."
-#             self.pymod.show_error_message(title, message)
+#             self.pymod.main_window.show_error_message(title, message)
 #             return False
 #
 #         #--------------------------------------------------------------------------------------

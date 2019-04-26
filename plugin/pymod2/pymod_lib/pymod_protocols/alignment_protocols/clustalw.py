@@ -10,8 +10,7 @@ from Bio.Align.Applications import ClustalwCommandline
 from ._clustal_common import Clustal_regular_alignment, Clustal_profile_alignment
 
 # GUI.
-from ._base_alignment._gui import Regular_alignment_window
-from ._base_alignment._gui import Profile_alignment_window
+from ._base_alignment._gui import Regular_alignment_window, Profile_alignment_window
 from pymod_lib.pymod_gui.shared_components import PyMod_radioselect, PyMod_entryfield
 
 
@@ -19,6 +18,33 @@ class Clustalw_alignment:
 
     def additional_initialization(self):
         self.tool = self.pymod.clustalw
+
+    def get_options_from_gui(self):
+
+        self.params_from_gui = {}
+        error_from_gui = False
+
+        try:
+            self.params_from_gui["selected_matrix"] = self.alignment_window.get_matrix_value()
+        except Exception as e:
+            error_from_gui = True
+            error_message = "Invalid Matrix."
+        try:
+            self.params_from_gui["gapopen_value"] = int(self.alignment_window.get_gapopen_value())
+        except Exception as e:
+            error_from_gui = True
+            error_message = "Invalid Gap Open Value."
+        try:
+            self.params_from_gui["gapextension_value"] = float(self.alignment_window.get_gapextension_value())
+        except Exception as e:
+            error_message = "Invalid Gap Extension Value."
+            error_from_gui = True
+
+        if error_from_gui:
+            self.alignment_window.show_error_message("Parameters Error", error_message)
+            return False
+        else:
+            return True
 
 
 class Clustalw_regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
@@ -28,12 +54,11 @@ class Clustalw_regular_alignment(Clustalw_alignment, Clustal_regular_alignment):
 
 
     def run_regular_alignment_program(self, sequences_to_align, output_file_name):
-        # TODO: use_parameters_from_gui.
         self.run_clustalw(sequences_to_align,
                           output_file_name=output_file_name,
-                          matrix=self.alignment_window.get_matrix_value(),
-                          gapopen=int(self.alignment_window.get_gapopen_value()),
-                          gapext=float(self.alignment_window.get_gapextension_value()) )
+                          matrix=self.params_from_gui["selected_matrix"],
+                          gapopen=self.params_from_gui["gapopen_value"],
+                          gapext=self.params_from_gui["gapextension_value"])
 
 
     def run_clustalw(self, sequences_to_align, output_file_name, matrix="blosum", gapopen=10, gapext=0.2):

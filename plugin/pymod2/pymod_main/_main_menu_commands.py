@@ -5,7 +5,10 @@ Commands executed when interacting with PyMod main window.
 import os
 import re
 import webbrowser
+import json
 import pickle
+
+from Bio import Phylo
 
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
@@ -14,6 +17,7 @@ import Pmw
 import pymod_lib.pymod_os_specific as pmos
 import pymod_lib.pymod_vars as pmdt
 import pymod_lib.pymod_gui as pmgi
+import pymod_lib.pymod_plot as pplt
 from pymod_lib.pymod_exceptions import PyModInvalidFile
 
 from pymod_lib.pymod_protocols.similarity_searches_protocols.ncbi_blast import NCBI_BLAST_search
@@ -22,21 +26,23 @@ from pymod_lib.pymod_protocols.similarity_searches_protocols.psiblast import PSI
 from pymod_lib.pymod_protocols.similarity_searches_protocols.phmmer import PHMMER_search
 
 from pymod_lib.pymod_protocols.alignment_protocols.clustalw import Clustalw_regular_alignment, Clustalw_profile_alignment
-from pymod_lib.pymod_protocols.alignment_protocols.salign_str import SALIGN_str_regular_alignment
-# from pymod_lib.pymod_protocols.alignment_protocols.ce_alignment import CEalign_regular_alignment
-from pymod_lib.pymod_protocols.alignment_protocols import ce_alignment as cealign
+from pymod_lib.pymod_protocols.alignment_protocols.clustalo import Clustalomega_regular_alignment, Clustalomega_profile_alignment
+from pymod_lib.pymod_protocols.alignment_protocols.muscle import MUSCLE_regular_alignment
+from pymod_lib.pymod_protocols.alignment_protocols.salign_seq import SALIGN_seq_regular_alignment, SALIGN_seq_profile_alignment
 
+from pymod_lib.pymod_protocols.alignment_protocols.ce_alignment import CEalign_regular_alignment
+from pymod_lib.pymod_protocols.alignment_protocols.salign_str import SALIGN_str_regular_alignment
+
+from pymod_lib.pymod_protocols.domain_analysis_protocols import DomainAnalysisProtocol, InvalidSelectionError
 
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.campo import CAMPO_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.scr_find import SCR_FIND_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.weblogo import WebLogo_analysis
 from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.espript import ESPript_analysis
+from pymod_lib.pymod_protocols.evolutionary_analysis_protocols.tree_building import Tree_building
 
-from pymod_lib.pymod_protocols.structural_analysis_protocols import *
+from pymod_lib.pymod_protocols.structural_analysis_protocols import * # TODO: make this explicit.
 
-#MG code
-from pymod_lib.pymod_protocols.domain_analysis_protocols import DomainAnalysisProtocol, InvalidSelectionError
-import imp
 
 class PyMod_main_menu_commands(object):
 
@@ -270,6 +276,7 @@ class PyMod_main_menu_commands(object):
         hmmer_search = PHMMER_search(self, "phmmer", output_directory=self.similarity_searches_dirpath)
         hmmer_search.launch_from_gui()
 
+
     ###############################################################################################
     # DOMAIN ANALYSIS                                                                             #
     ###############################################################################################
@@ -296,34 +303,34 @@ class PyMod_main_menu_commands(object):
         of the main window.
         """
 
-        # TODO: use a 'selected_elements' arguments.
         # Regular.
         if strategy == "regular":
+
             # Sequence alignments.
             if program == "clustalw":
                 aligment_protocol_class = Clustalw_regular_alignment
+            elif program == "clustalo":
+                aligment_protocol_class = Clustalomega_regular_alignment
+            elif program == "muscle":
+                aligment_protocol_class = MUSCLE_regular_alignment
+            elif program == "salign-seq":
+                aligment_protocol_class = SALIGN_seq_regular_alignment
 
-            # elif program == "clustalo":
-            #     aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_regular_alignment
-            # elif program == "muscle":
-            #     aligment_protocol_class = pmptc.alignment_protocols.MUSCLE_regular_alignment
-            # elif program == "salign-seq":
-            #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_regular_alignment
-            # # Structural alignments.
+            # Structural alignments.
             elif program == "ce":
-                imp.reload(cealign)
-                aligment_protocol_class = cealign.CEalign_regular_alignment
+                aligment_protocol_class = CEalign_regular_alignment
             elif program == "salign-str":
                 aligment_protocol_class = SALIGN_str_regular_alignment
 
         # Profile.
         elif strategy == "profile":
+
             if program == "clustalw":
                 aligment_protocol_class = Clustalw_profile_alignment
-            # elif program == "clustalo":
-            #     aligment_protocol_class = pmptc.alignment_protocols.Clustalomega_profile_alignment
-            # elif program == "salign-seq":
-            #     aligment_protocol_class = pmptc.alignment_protocols.SALIGN_seq_profile_alignment
+            elif program == "clustalo":
+                aligment_protocol_class = Clustalomega_profile_alignment
+            elif program == "salign-seq":
+                aligment_protocol_class = SALIGN_seq_profile_alignment
 
         # Actually launches the alignment protocol.
         a = aligment_protocol_class(self, protocol_name=program, output_directory=self.alignments_dirpath)
@@ -431,7 +438,7 @@ class PyMod_main_menu_commands(object):
                 new_tool_parameters.update({parameter.name: parameter.get_value_from_gui()})
             new_tool_dict = {tool.name: new_tool_parameters}
             pymod_config_data.update(new_tool_dict)
-        pickle.dump(pymod_config_data, cfgfile)
+        cfgfile.write(json.dumps(pymod_config_data))
         cfgfile.close()
 
         # Then updates the values of the parameters of the tools contained in "self.pymod_tools" so
@@ -460,23 +467,22 @@ class PyMod_main_menu_commands(object):
 
 
     def launch_campo_from_main_menu(self, pymod_cluster):
-        campo = CAMPO_analysis(self, "campo", pymod_cluster)
+        campo = CAMPO_analysis(self, pymod_cluster)
         campo.launch_from_gui()
 
     def launch_scr_find_from_main_menu(self, pymod_cluster):
         # reload(evolutionary_analysis_protocols)
-        scr_find = SCR_FIND_analysis(self, "scr_find", pymod_cluster)
+        scr_find = SCR_FIND_analysis(self, pymod_cluster)
         scr_find.launch_from_gui()
 
     def launch_weblogo_from_main_menu(self, pymod_cluster):
-        weblogo = WebLogo_analysis(self, "WebLogo", pymod_cluster)
+        weblogo = WebLogo_analysis(self, pymod_cluster)
         weblogo.launch_from_gui()
 
 
     def launch_espript_from_main_menu(self, pymod_cluster):
-        espript = ESPript_analysis(self, "ESPript", pymod_cluster)
+        espript = ESPript_analysis(self, pymod_cluster)
         espript.launch_from_gui()
-
 
 
     #################################################################
@@ -621,7 +627,7 @@ class PyMod_main_menu_commands(object):
         Called when the users clicks on the "Build Tree from Alignment" voice in the Alignments
         menu.
         """
-        tree_building = evolutionary_analysis_protocols.tree_building.Tree_building(self, alignment_element)
+        tree_building = Tree_building(self, input_cluster_element=alignment_element)
         tree_building.launch_from_gui()
 
 

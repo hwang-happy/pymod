@@ -252,7 +252,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
     def launch_from_gui(self):
         if len(self.target_sequences) == 0:
             # TODO: use exceptions instead.
-            self.pymod.show_error_message("PSIPRED Error", "Please select at least one sequence to be analyzed with PSIPRED.")
+            self.pymod.main_window.show_error_message("PSIPRED Error", "Please select at least one sequence to be analyzed with PSIPRED.")
             return False
 
         if self.check_psipred_parameters():
@@ -277,7 +277,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         if not self.pymod.psipred["data_dir_path"].path_exists():
             title = "PSIPRED error"
             message = "PSIPRED 'data' directory not found! Please specify it in the PSIPRED options in the options window of PyMod."
-            self.pymod.show_error_message(title,message)
+            self.pymod.main_window.show_error_message(title,message)
             return False
 
         # Checks for PSI-BLAST on the user's system.
@@ -287,12 +287,12 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
 
         # And finally checks for a BLAST database.
         if not self.pymod.psipred["database_dir_path"].path_exists():
-            self.pymod.show_error_message("PSIPRED error", "A directory containing a BLAST database was not found! Please specify it in the PSIPRED options in the options window of PyMod.")
+            self.pymod.main_window.show_error_message("PSIPRED error", "A directory containing a BLAST database was not found! Please specify it in the PSIPRED options in the options window of PyMod.")
             return False
 
         dbpath = self.pymod.psipred["database_dir_path"].get_value()
         if not pmos.verify_valid_blast_dbdir(dbpath):
-            self.pymod.show_error_message("PSIPRED Error", "The database '%s' directory does not contain a valid set of database files." % (dbpath))
+            self.pymod.main_window.show_error_message("PSIPRED Error", "The database '%s' directory does not contain a valid set of database files." % (dbpath))
             return False
 
         return True
@@ -358,7 +358,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         except:
             if print_output:
                 print("FATAL: Error whilst running psiblast - script terminated!")
-            self.pymod.show_error_message("PSIPRED Error", "There was an error while running PSI-BLAST, so PSIPRED cannot perform a prediction for %s." % (sequence_header))
+            self.pymod.main_window.show_error_message("PSIPRED Error", "There was an error while running PSI-BLAST, so PSIPRED cannot perform a prediction for %s." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
 
@@ -376,7 +376,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         except:
             if print_output:
                 print("FATAL: Error whilst running chkdir - script terminated!")
-            self.pymod.show_error_message("PSIPRED Error", "No homologous sequences were found by PSI-BLAST for %s, so PSIPRED cannot perform a prediction for this sequence." % (sequence_header))
+            self.pymod.main_window.show_error_message("PSIPRED Error", "No homologous sequences were found by PSI-BLAST for %s, so PSIPRED cannot perform a prediction for this sequence." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
 
@@ -395,7 +395,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         except:
             if print_output:
                 print("FATAL: Error whilst running psipred 1 - script terminated!")
-            self.pymod.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
+            self.pymod.main_window.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
 
@@ -413,7 +413,7 @@ class PSIPRED_prediction(PyMod_protocol, PSI_BLAST_common):
         except:
             if print_output:
                 print("FATAL: Error whilst running psipass 2 - script terminated!")
-            self.pymod.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
+            self.pymod.main_window.show_error_message("PSIPRED Error", "There was an error while running PSIPRED and no prediction was made for %s." % (sequence_header))
             self.remove_psipred_temp_files()
             return None
 
@@ -498,18 +498,18 @@ class DOPE_assessment(PyMod_protocol, MODELLER_common):
         # Checks if the DOPE profiles can be computed. -
         #-----------------------------------------------
         if not self.pymod.modeller.can_be_launched():
-            self.pymod.show_error_message("MODELLER Error", "MODELLER is missing. In order to compute DOPE scores of a structure, MODELLER has to be installed.")
+            self.pymod.main_window.show_error_message("MODELLER Error", "MODELLER is missing. In order to compute DOPE scores of a structure, MODELLER has to be installed.")
             return None
         if len(self.selected_sequences) == 0:
-            self.pymod.show_error_message("Selection Error", "Please select at least one structure to assess.")
+            self.pymod.main_window.show_error_message("Selection Error", "Please select at least one structure to assess.")
             return None
         if not self.pymod.all_sequences_have_structure(self.selected_sequences):
-            self.pymod.show_error_message("Selection Error", "Please select only elements that have a 3D structure currently loaded in PyMOL.")
+            self.pymod.main_window.show_error_message("Selection Error", "Please select only elements that have a 3D structure currently loaded in PyMOL.")
             return None
         if len(self.selected_sequences) > 1:
             mothers_set = set([seq.mother for seq in self.selected_sequences])
             if self.pymod.root_element in mothers_set or len(mothers_set) > 1:
-                self.pymod.show_error_message("Selection Error", "You can assess multiple structures DOPE only if they are aligned in the same cluster.")
+                self.pymod.main_window.show_error_message("Selection Error", "You can assess multiple structures DOPE only if they are aligned in the same cluster.")
                 return None
 
         # Ask users if they would like to color the sequences according to their DOPE values.

@@ -5,6 +5,9 @@ Regular alignments.
 import os
 
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+
 
 import tkinter.messagebox
 
@@ -12,6 +15,7 @@ from pymod_lib import pymod_vars
 from pymod_lib.pymod_seq import seq_io
 
 from pymod_lib.pymod_protocols.alignment_protocols._base_alignment import Alignment_protocol
+from pymod_lib.pymod_seq.cstar import build_cstar_alignment, save_cstar_alignment
 
 
 class Regular_alignment(Alignment_protocol):
@@ -66,6 +70,10 @@ class Regular_alignment(Alignment_protocol):
         Used to check if there is a right selection in order to perform the Alignment Joiner
         algorithm to join two or more clusters.
         """
+
+        if len(self.selected_root_sequences_list) != 0:
+            return False
+
         correct_selection = False
         if len(self.involved_clusters_list) > 1:
             # Check that there is only one selected children per cluster.
@@ -121,7 +129,6 @@ class Regular_alignment(Alignment_protocol):
         Actually performs the alignment.
         """
         if self.alignment_mode in ("build-new-alignment", "rebuild-old-alignment"):
-            # TODO: remove the attribure 'elements_to_align'.
             self.elements_to_align = self.pymod.get_selected_sequences()
             self.protocol_output_file_name = self.set_alignment_output_file_name(output_file_name)
             self.build_elements_to_align_dict(self.elements_to_align)
@@ -154,18 +161,9 @@ class Regular_alignment(Alignment_protocol):
 
     def align_and_keep_previous_alignment(self):
         """
-        Align all selected elements to some cluster. Briefly, what it does is the following:
-            - perform a multiple alignment between all the selected sequences in the target cluster
-              and the other selected sequences to add to the alignment, using the algorithm chosen
-              by the user.
-            - for each of the sequences to add, find the sequence in the cluster which is less
-              distant from it (in sequence alignments in terms of sequence identity) and estabilish
-              conserved pairs.
-            - align individually each conserved pair, and the merge the alignments with the original
-              alignment of the target cluster.
+        Align one selected element to a cluster by aligning it to an anchor sequence in the cluster.
         This mode is useful when the user is manually building an alignment and wants to append
-        some sequences to some cluster by aligning them to a specific sequence in the target
-        alignment.
+        some sequences to a cluster by aligning them to a specific sequence in the cluster.
         """
 
         #------------------
@@ -176,11 +174,6 @@ class Regular_alignment(Alignment_protocol):
         alignment_to_keep_elements = self.involved_clusters_list[self.target_cluster_index].get_children()
         # List of the selected sequence in the target cluster.
         self.selected_sequences_in_target_alignment = [e for e in alignment_to_keep_elements if e.selected]
-
-        # Checks if the there are multiple selected sequence in the target cluster.
-        multiple_selected_seq_in_target_alignment = False
-        if len(self.selected_sequences_in_target_alignment) > 1:
-            multiple_selected_seq_in_target_alignment = True
 
         # List of the selected sequences that have to be appended to the target cluster.
         self.elements_to_add = []
@@ -195,53 +188,61 @@ class Regular_alignment(Alignment_protocol):
 
         self.initial_alignment_name = "all_temporary"
         self.elements_to_align = self.selected_sequences_in_target_alignment[:]+self.elements_to_add[:]
-
-        # For sequence alignment algorithms, perform the first multiple alignment with the same
-        # algorithtm.
-        if self.protocol_name in pymod_vars.sequence_alignment_tools:
-            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name)
-
-        # For structural alignment algorithms, perform the first multiple alignment with a sequence
-        # alignment algorithm with default parameters.
-        elif self.protocol_name in pymod_vars.structural_alignment_tools:
-            self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name)
-
-        #-------------------------------------------
-        # Generate the highest identity pair list. -
-        #-------------------------------------------
-
-        highest_identity_pairs_list = self.generate_highest_identity_pairs_list(self.initial_alignment_name)
-
-        # List of filenames of the pairwise alignments of each sequence from "elements_to_add" to
-        # most similiar sequence in the "selected_sequences_in_target_alignment".
-        self.highest_identity_pairs_alignment_list=[]
-
-        # Performs the alignments and stores the name of the output files names (they will be .aln
-        # files) in the list above.
-        self.highest_identity_pairs_alignment_list = self.align_highest_identity_pairs_list(highest_identity_pairs_list)
+        self.perform_regular_alignment(self.elements_to_align, output_file_name=self.initial_alignment_name)
 
         #-------------------------------------
         # Actually joins all the alignments. -
         #-------------------------------------
 
-        # First builds the al_result.txt file with the target alignment, this is needed by
-        # "alignments_joiner()" method used below.
+        # First builds the al_result.txt file with the target alignment.
         merged_alignment_output = "al_result" # align_output.txt
         self.pymod.build_sequence_file(alignment_to_keep_elements, merged_alignment_output,
-                                  file_format="pymod", remove_indels=False, unique_indices_headers=True)
+                                       file_format="clustal", remove_indels=False, unique_indices_headers=True)
 
-        # Performs the alignments joining progressively.
-        for comp in self.highest_identity_pairs_alignment_list:
-            self.alignments_joiner(os.path.join(self.pymod.alignments_dirpath, merged_alignment_output + ".txt"),
-                                   os.path.join(self.pymod.alignments_dirpath, comp + ".aln"))
+
+        # Builds the list of pairwise alignments.
+        j_recs = list(SeqIO.parse(os.path.join(self.pymod.alignments_dirpath, self.initial_alignment_name + ".aln"), "clustal"))
+        c0_recs = list(SeqIO.parse(os.path.join(self.pymod.alignments_dirpath, merged_alignment_output + ".aln"), "clustal"))
+
+        if j_recs[0].id in [r.id for r in c0_recs]:
+            external_seq = j_recs[1]
+            anchor_seq = j_recs[0]
+        elif j_recs[1].id in [r.id for r in c0_recs]:
+            external_seq = j_recs[0]
+            anchor_seq = j_recs[1]
+        else:
+            raise KeyError("External sequence header not found in the cluster.")
+
+        all_recs = [external_seq, [r for r in c0_recs if r.id == anchor_seq.id][0]] + [r for r in c0_recs if r.id != anchor_seq.id]
+        aligned_pairs = []
+
+        for rec_i_id, rec_i in enumerate(all_recs):
+            for rec_j in all_recs[rec_i_id:]:
+                if rec_i.id == rec_j.id:
+                    continue
+                if rec_i.id == external_seq.id:
+                    if rec_j.id == anchor_seq.id:
+                        aligned_pairs.append([str(external_seq.seq), str(anchor_seq.seq)])
+                    else:
+                        # Build a new alignment in the 'build_cstar_alignment' method.
+                        aligned_pairs.append(None)
+                else:
+                    aligned_pairs.append([str(rec_i.seq), str(rec_j.seq)])
+
+
+        # Joins the alignments.
+        seqs = [str(s.seq).replace("-", "") for s in all_recs]
+        all_ids = [str(s.id) for s in all_recs]
+
+        save_cstar_alignment(seqs=seqs, all_ids=all_ids,
+                             pairwise_alis=aligned_pairs, max_row=1,
+                             output_filepath=os.path.join(self.pymod.alignments_dirpath, merged_alignment_output + ".aln")
+                            )
 
         #-----------------------
         # Prepares the output. -
         #-----------------------
 
-        # Converts the .txt file in .aln one.
-        seq_io.convert_sequence_file_format(os.path.join(self.pymod.alignments_dirpath, merged_alignment_output + ".txt"),
-                                            "pymod", "clustal")
         # Builds a list of the elements to update.
         self.build_elements_to_align_dict(alignment_to_keep_elements + self.elements_to_add)
         # Sets the name of the final alignment output file.
@@ -249,110 +250,6 @@ class Regular_alignment(Alignment_protocol):
 
         # The temporary files needed to peform this alignment will be deleted at the end of the
         # alignment process.
-
-
-    def alignments_joiner(self, al1, al2, output_file_name="al_result"):
-        """
-        The algorithm that actually builds the joined alignment.
-        The first file is an alignment file in "PyMod" format, the second is an alignment file in
-        .aln (clustal) format.
-        """
-        # Take the sequences of the CE-aligned structures.
-        struct=open(al1, "r")
-        structs=[]
-        for structure in struct.readlines(): # Maybe just take the sequences instead of the whole line of the file.
-            structs.append([structure])
-        struct.close()
-        # Take the sequences of the non CE-aligned elements to be aligned.
-        mot_and_sons_1 = open(al2, "rU")
-        records1 = list(SeqIO.parse(mot_and_sons_1, "clustal"))
-        mot_and_sons_1.close()
-        # Finds the sequence that the .txt and .aln alignments have in common, the "bridge" sequence.
-        for ax in range(len(structs)):
-            for line in range(len(records1)):
-                # Finds the bridge.
-                if structs[ax][0].split()[0] == records1[line].id:
-                    # Builds a list with as many sub-list elements as the sequences aligned in the
-                    # .txt alignment.
-                    seq1=[]
-                    for s1 in range(len(structs)):
-                        seq1.append([])
-                    # Builds a list with as many sub-list elements as the sequences aligned in the
-                    # .ali alignment.
-                    seq2=[]
-                    for s2 in range(len(records1)):
-                        seq2.append([])
-                    index1=0
-                    index2=0
-                    index1_max=len(structs[ax][0].split()[1])
-                    index2_max=len(records1[line].seq)
-                    # ---
-                    # This is basically an implementation of the part of the "center star" alignment
-                    # method that adds new sequences to the center star by padding indels when
-                    # needed. Here the "bridge" sequence is the "center star".
-                    # ---
-                    # This catches the exception thrown when one of the indices of the sequences goes out of range.
-                    try:
-                        # Start to parse the same bridge sequence in the two alignments.
-                        for aa in range(10000):
-                            # If the indices are referring to the same residue in the two "versions"
-                            # of the bridge sequence.
-                            if structs[ax][0].split()[1][index1] == records1[line].seq[index2]:
-                                for son in range(len(structs)):
-                                    seq1[son].append(structs[son][0].split()[1][index1])
-                                for son2 in range(len(records1)):
-                                    seq2[son2].append(records1[son2].seq[index2])
-                                index1+=1
-                                index2+=1
-                            # If one of the sequences have an indel.
-                            if structs[ax][0].split()[1][index1] == '-' and records1[line].seq[index2] != '-':
-                                for son in range(len(structs)):
-                                    seq1[son].append(structs[son][0].split()[1][index1])
-                                for son2 in range(len(records1)):
-                                        seq2[son2].append('-')
-                                index1+=1
-                            # If one of the sequences have an indel.
-                            if structs[ax][0].split()[1][index1] != '-' and records1[line].seq[index2] == '-':
-                                for son in range(len(structs)):
-                                    seq1[son].append('-')
-                                for son2 in range(len(records1)):
-                                    seq2[son2].append(records1[son2].seq[index2])
-                                index2+=1
-                    except:
-                        stopped_index1=index1
-                        stopped_index2=index2
-                        if index1>=index1_max:
-                            for son in range(len(structs)):
-                                for a in range(index2_max-index2):
-                                    seq1[son].append('-')
-                            for son2 in range(len(records1)):
-                                new_index2=stopped_index2
-                                for b in range(index2_max-stopped_index2):
-                                    seq2[son2].append(records1[son2].seq[new_index2])
-                                    new_index2+=1
-                        if index2>=index2_max:
-                            for son in range(len(records1)):
-                                for a in range(index1_max-index1):
-                                    seq2[son].append('-')
-                            for son2 in range(len(structs)):
-                                new_index1=stopped_index1
-                                for b in range(index1_max-stopped_index1):
-                                    seq1[son2].append(structs[son2][0].split()[1][new_index1])
-                                    new_index1+=1
-                    # Write the results to the al_result.txt file.
-                    f=open(os.path.join(self.pymod.alignments_dirpath, output_file_name + ".txt"), "w")
-                    for seq_file1 in range(0,ax+1):
-                        print(structs[seq_file1][0].split()[0], "".join(seq1[seq_file1]), file=f)
-                    for seq_file2 in range(len(records1)):
-                        if seq_file2 != line:
-                            print(records1[seq_file2].id, "".join(seq2[seq_file2]), file=f)
-                    for seq_file1_again in range(ax+1, len(structs)):
-                        print(structs[seq_file1_again][0].split()[0], "".join(seq1[seq_file1_again]), file=f)
-                    f.close()
-                    break # This stops the cicle when a bridge sequence has been found.
-                else:
-                    pass
-                    # raise Exception("A bridge sequence was not found in the two aligments...")
 
 
     ###################################
@@ -366,9 +263,9 @@ class Regular_alignment(Alignment_protocol):
         # Prepares alignment files containing the alignments which have to be joined. -
         #------------------------------------------------------------------------------
 
-        alignments_to_join_file_list=[]
+        alignments_to_join_file_list = []
         elements_to_update = []
-        for (i,cluster) in enumerate(self.involved_clusters_list):
+        for (i, cluster) in enumerate(self.involved_clusters_list):
             # Build the .fasta files with the alignments.
             file_name = "cluster_%s" % i
             children = cluster.get_children()
@@ -381,18 +278,11 @@ class Regular_alignment(Alignment_protocol):
         #-------------------
 
         self.elements_to_align = self.pymod.get_selected_sequences()
-        user_selected_bridges = True
-        bridges_list =  []
         # If the bridges are specified by the user.
-        if user_selected_bridges:
-            children_list = [e for e in self.elements_to_align if e.is_child()]
-            mothers_list = [e for e in self.elements_to_align if e.is_root_sequence()]
-            bridges_list = children_list[:] + mothers_list[:]
-            elements_to_update.extend(mothers_list)
-        # If the bridges are to be found by Pymod. To be implemented.
-        else:
-            # Perform an initial alignment between all the selected sequences.
-            pass
+        children_list = [e for e in self.elements_to_align if e.is_child()]
+        mothers_list = [e for e in self.elements_to_align if e.is_root_sequence()]
+        bridges_list = children_list[:] + mothers_list[:]
+        elements_to_update.extend(mothers_list)
 
         #-----------------------------------------------
         # Performs an alignment between the "bridges". -
@@ -401,28 +291,80 @@ class Regular_alignment(Alignment_protocol):
         bridges_alignment_name = "bridges_alignment"
         self.perform_regular_alignment(bridges_list, bridges_alignment_name)
 
-        # Builds an al_result.txt file for this alignment.
         alignment_joining_output = "al_result"
-        seq_io.convert_sequence_file_format(os.path.join(self.pymod.alignments_dirpath, bridges_alignment_name +".aln"),
-                                            "clustal", "pymod",
-                                            output_filename=alignment_joining_output)
+
 
         #--------------------------------------------------------------------------------
-        # Actually joins the alignments and produces a final .txt file with the result. -
+        # Actually joins the alignments and produces a final .aln file with the result. -
         #--------------------------------------------------------------------------------
 
-        for alignment_file_name in alignments_to_join_file_list:
-            self.alignments_joiner(
-                os.path.join(self.pymod.alignments_dirpath, alignment_joining_output + ".txt"),
-                os.path.join(self.pymod.alignments_dirpath, alignment_file_name + ".aln"))
+        # Get the list of pairwise alignments.
+        j_recs = list(SeqIO.parse(os.path.join(self.pymod.alignments_dirpath, bridges_alignment_name + ".aln"), "clustal"))
+        j_recs_ids = [r.id for r in j_recs]
+
+        all_recs = []
+        all_recs_clusters = []
+        j_recs_dict = {}
+
+        max_row = 0
+        cstar_id = None
+        all_recs_count = 0
+
+        for clust_id, alignment_file_name in enumerate(alignments_to_join_file_list):
+            # Get all the records from a cluster.
+            c_recs = list(SeqIO.parse(os.path.join(self.pymod.alignments_dirpath, alignment_file_name + ".aln"), "clustal"))
+            all_recs.extend(c_recs)
+            all_recs_clusters.extend([clust_id]*len(c_recs))
+            # Get the anchor sequence of a cluster.
+            for rec_id, rec in enumerate(c_recs):
+                # print ("*", all_recs_count, rec.id, rec.seq, clust_id, rec.id in j_recs_ids)
+                all_recs_count += 1
+                if rec.id in j_recs_ids:
+                    j_recs_dict[clust_id] = rec
+                    # TODO: use the center star in the bridge sequences.
+                    if cstar_id == None:
+                        cstar_id = all_recs_count
+
+        # print ("/", max_row)
+        _pop = all_recs.pop(cstar_id)
+        all_recs.insert(max_row, _pop)
+        _pop = all_recs_clusters.pop(cstar_id)
+        all_recs_clusters.insert(max_row, _pop)
+
+        aligned_pairs = []
+        for rec_i_id, (rec_i, rec_i_cluster) in enumerate(zip(all_recs, all_recs_clusters)):
+
+            for rec_j, rec_j_cluster in zip(all_recs[rec_i_id:], all_recs_clusters[rec_i_id:]):
+
+                if rec_i.id == rec_j.id:
+                    continue
+
+                # Use pairwise alignments already present within in a cluster.
+                if rec_i_cluster == rec_j_cluster:
+                    aligned_pairs.append([str(rec_i.seq), str(rec_j.seq)])
+
+                else:
+                    # If both sequences are anchors, use their pairwise alignment from the
+                    # 'bridge' alignment.
+                    if rec_i.id in j_recs_ids and rec_j.id in j_recs_ids:
+                        aligned_pairs.append([str(j_recs_dict[rec_i_cluster].seq), str(j_recs_dict[rec_j_cluster].seq)])
+                    # Perform a new alignment.
+                    else:
+                        aligned_pairs.append(None)
+
+
+        # Joins the alignments.
+        seqs = [str(s.seq).replace("-", "") for s in all_recs]
+        all_ids = [str(s.id) for s in all_recs]
+
+        save_cstar_alignment(seqs=seqs, all_ids=all_ids,
+                             pairwise_alis=aligned_pairs, max_row=max_row,
+                             output_filepath=os.path.join(self.pymod.alignments_dirpath, alignment_joining_output + ".aln"))
+
 
         #-----------------------
         # Prepares the output. -
         #-----------------------
-
-        # Converts the .txt file in .aln one.
-        seq_io.convert_sequence_file_format(os.path.join(self.pymod.alignments_dirpath, alignment_joining_output + ".txt"),
-                                            "pymod", "clustal")
 
         # Builds a list of the elements to update.
         self.build_elements_to_align_dict(elements_to_update)
@@ -553,7 +495,7 @@ class Regular_sequence_alignment(Regular_alignment):
         """
         title = "Selection Error"
         message = "Please select two or more sequences for the alignment."
-        self.pymod.show_error_message(title, message)
+        self.pymod.main_window.show_error_message(title, message)
 
 
 
@@ -575,11 +517,12 @@ class Regular_structural_alignment(Regular_alignment):
     def selection_not_valid(self):
         title = "Structures Selection Error"
         message = "Please select two or more structures."
-        self.pymod.show_error_message(title, message)
+        self.pymod.main_window.show_error_message(title, message)
 
 
     def get_options_from_gui(self):
         self.compute_rmsd_option = self.alignment_window.get_compute_rmsd_option_value()
+        return True
 
 
     def compute_rmsd_dict(self, aligned_elements):

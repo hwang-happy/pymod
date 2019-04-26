@@ -106,28 +106,17 @@ def convert_sequence_file_format(input_filepath, input_format, output_format, ou
         input_file_handler = open(input_filepath, "rU")
         records = [SeqRecord(Seq(l.split(" ")[1].rstrip("\n\r")), id=l.split(" ")[0]) for l in input_file_handler.readlines()]
     else:
-        # print input_filepath
         input_file_handler = open(input_filepath, "r")
-        # raise Exception(2)
-        records = list(SeqIO.read(input_file_handler, input_format, alphabet=SingleLetterAlphabet()))
-        # print 'DUE'
-        # print records
+        records = list(SeqIO.parse(input_file_handler, input_format, alphabet=SingleLetterAlphabet()))
 
-    # raise Exception(3)
 
     if output_format == "pymod":
-
-        line_tuples = [(rec.id, rec.seq) for rec in records]
-        # raise Exception('3 e mezzo')
         lines = []
-        for i in line_tuples:
+        for i in [(rec.id, rec.seq) for rec in records]:
             lines.append(str(i[0])+'\n')
             lines.append(str(i[1])+'\n')
         output_file_handler.writelines(lines)
-        # for rec in records:
-        #     print >> output_file_handler, rec.id, rec.seq
     else:
-        # raise Exception(4)
         SeqIO.write(records, output_file_handler, output_format)
 
     input_file_handler.close()

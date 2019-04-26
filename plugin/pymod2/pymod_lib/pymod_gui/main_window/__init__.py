@@ -28,7 +28,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, PyMod_window_mixin, P
         self.geometry('800x320')
 
         # Asks confirmation when the main window is closed by the user.
-        self.protocol("WM_DELETE_WINDOW", self.pymod.confirm_close)
+        self.protocol("WM_DELETE_WINDOW", self.confirm_close)
 
         # Hides PyMod main window, it will be displayed once the user begins a new project by
         # inserting the project name in the 'new project' window.
@@ -115,7 +115,7 @@ class PyMod_main_window(Toplevel, PyMod_main_window_mixin, PyMod_window_mixin, P
 
 #################
 
-# Removed code 
+# Removed code
 # duplicated in _main_menu module
 
 #################

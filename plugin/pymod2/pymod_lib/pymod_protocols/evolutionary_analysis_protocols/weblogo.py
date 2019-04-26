@@ -139,17 +139,17 @@ class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
                 correct_input=False
                 errortitle = "Input Error"
                 errormessage = "Start value cannot be greater than the end value.\nPlease correct."
-                self.pymod.show_error_message(errortitle, errormessage)
+                self.pymod.main_window.show_error_message(errortitle, errormessage)
             elif start > self.AL_LENGTH or end > self.AL_LENGTH or start<0 or end<0:
                 correct_input=False
                 errortitle = "Input Error"
                 errormessage = "Values cannot be greater than the sequence length and both must be greater then 0.\nPlease correct."
-                self.pymod.show_error_message(errortitle, errormessage)
+                self.pymod.main_window.show_error_message(errortitle, errormessage)
         except:
             correct_input=False
             errortitle = "Input Error"
             errormessage = "Non valid numeric input.\nPlease correct."
-            self.pymod.show_error_message(errortitle, errormessage)
+            self.pymod.main_window.show_error_message(errortitle, errormessage)
         return correct_input
 
 
@@ -250,4 +250,4 @@ class WebLogo_analysis(Evolutionary_analysis_protocol, Web_services_common):
                 print('No response. Aborted.')
             title = "Error"
             message = "No valid response from server"
-            self.pymod.show_error_message(title,message)
+            self.pymod.main_window.show_error_message(title,message)

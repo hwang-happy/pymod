@@ -133,7 +133,8 @@ class Alignment_protocol(PyMod_protocol):
         # Gets the parameters from the GUI in order to chose the kind of alignment to perform.
         self.define_alignment_mode()
 
-        self.get_options_from_gui()
+        if not self.get_options_from_gui():
+            return None
 
         # This list is going to be used inside in other methods of this class needed to perform the
         # alignment.
@@ -159,7 +160,10 @@ class Alignment_protocol(PyMod_protocol):
 
 
     def get_options_from_gui(self):
-        pass
+        """
+        A protocol-specific method.
+        """
+        return True
 
 
     def build_elements_to_align_dict(self, elements_to_align):
@@ -199,7 +203,7 @@ class Alignment_protocol(PyMod_protocol):
         Used when the aligned sequences in the output file already have modres.
         """
         # Gets from an alignment file the sequences with their indels produced in the alignment.
-        ouput_handle = open(os.path.join(self.pymod.alignments_dirpath, self.protocol_output_file_name+".aln"), "rU")
+        ouput_handle = open(os.path.join(self.pymod.alignments_dirpath, self.protocol_output_file_name + ".aln"), "r")
         records = list(SeqIO.parse(ouput_handle, "clustal"))
         ouput_handle.close()
         # Updates the sequences.
@@ -210,16 +214,14 @@ class Alignment_protocol(PyMod_protocol):
 
     def update_aligned_sequences_inserting_modres(self, replace_modres_symbol=None):
         """
-        When importing alignments built by programs that remove the modified residues (X symbols),
-        from the sequences this method will reinsert them in the sequences.
+        When importing alignments built by programs that remove the modified residues (X symbols)
+        from the sequences, this method will reinsert them in the sequences.
         """
-        # Gets from an alignment file the aligned sequences.
 
-        # TODO QUESTO METODO BLOCCA CE ALIGN
-        input_handle = open(os.path.join(self.pymod.alignments_dirpath, self.protocol_output_file_name+".aln"), "rU")
+        # Gets the aligned sequences from an alignment file.
+        input_handle = open(os.path.join(self.pymod.alignments_dirpath, self.protocol_output_file_name + ".aln"), "r")
         records = list(SeqIO.parse(input_handle, "clustal"))
         input_handle.close()
-        # TODO QUESTO METODO BLOCCA CE ALIGN
 
         # Aligns the full sequences (with 'X' characters) to the sequence without 'X' characters.
         elements_to_update = [self.elements_to_align_dict[str(r.id)] for r in records]
@@ -233,7 +235,8 @@ class Alignment_protocol(PyMod_protocol):
                     if i in residues_to_insert_dict:
                         residues_to_insert_dict[i].append(e)
                     else:
-                        residues_to_insert_dict.update({i:[e]})
+                        # residues_to_insert_dict.update({i: [e]})
+                        residues_to_insert_dict[i] = [e]
             # Builds lists from sequences.
             elements_seqlist_dict.update({e: list(e.my_sequence)})
 
@@ -243,7 +246,7 @@ class Alignment_protocol(PyMod_protocol):
             inserted = False
             for e in elements_to_update:
                 if not e in residues_to_insert_dict[res_id]:
-                    elements_seqlist_dict[e].insert(res_id+inserted_res_count,"-")
+                    elements_seqlist_dict[e].insert(res_id+inserted_res_count, "-")
                     inserted = True
             if inserted:
                 inserted_res_count += 1
@@ -317,7 +320,7 @@ class Alignment_protocol(PyMod_protocol):
         """
         # Reads the output file of the alignment and stores  in a variable a list of its biopython
         # record objects.
-        initial_alignment_file = open(os.path.join(self.pymod.alignments_dirpath, initial_alignment_name + ".aln"), "rU")
+        initial_alignment_file = open(os.path.join(self.pymod.alignments_dirpath, initial_alignment_name + ".aln"), "r")
         initial_alignment_records = list(SeqIO.parse(initial_alignment_file, "clustal"))
         initial_alignment_file.close()
 
@@ -340,19 +343,3 @@ class Alignment_protocol(PyMod_protocol):
                     index += 1
         return pair_list
 
-
-    def align_highest_identity_pairs_list(self,pair_list):
-        alignment_list = []
-        for seq_counter, compared in enumerate(pair_list):
-            pair_to_align=[]
-            for num in range(len(self.selected_sequences_in_target_alignment)):
-                # For each sequence to add perform an aligment to the sequence to which it has the
-                # highest identity according to the initial alignment.
-                if compared[num]==max(compared):
-                    aligned_pair_name = "temp_seq_" + str(seq_counter)
-                    pair_to_align.append(self.selected_sequences_in_target_alignment[num])
-                    pair_to_align.append(self.elements_to_add[seq_counter])
-                    self.perform_regular_alignment(pair_to_align, output_file_name=aligned_pair_name)
-                    alignment_list.append(aligned_pair_name)
-                    break
-        return alignment_list

@@ -51,7 +51,7 @@ class Profile_alignment(Alignment_protocol):
     def selection_not_valid(self):
         title = "Selection Error"
         message = "Please select at least one entire cluster and some other sequences in order to perform a profile alignment."
-        self.pymod.show_error_message(title, message)
+        self.pymod.main_window.show_error_message(title, message)
 
 
     def check_sequences_level(self):

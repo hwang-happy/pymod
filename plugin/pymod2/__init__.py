@@ -4,6 +4,23 @@
 # license. Please see the 'pymod_main.py' file that should have been included
 # as part of this package.
 
+'''
+TODO giacomo:
+    - implement back psipred.
+    - implement the new center star alignment for similarity searches.
+
+    - implement back MODELLER and fix it.
+    - implement optimization options.
+    - remove old optimization options.
+    - merge the Cryo-EM code.
+    - implement altMOD?
+    - implement loop modeling?
+
+    - fixes:
+        - fix the generation of temporay files in the current working directory in SALIGN-seq profile.
+'''
+
+
 """
 Module imported by the PyMOL plugin system. Contains:
     - code to check for the presence of Python libraries needed for PyMod to work.
@@ -72,43 +89,44 @@ pymod_plugin_dirpath = os.path.dirname(__file__)
 if os.path.isdir(pymod_plugin_dirpath):
     sys.path.append(pymod_plugin_dirpath)
 
-# Check if there if there is a 'python_libs' directory in PyMod plugin folder and try to import from
-# it the missing Pyhon libraries. The 'python_libs' folder may have been created by the
-# 'PyMod Installer Bundle', if some Python libraries were missing.
-python_libs_dirpath = os.path.join(pymod_plugin_dirpath, "python_libs")
-if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpath):
-    sys.path.insert(0, python_libs_dirpath)
-    # Try to import the NumPy version provided by the PyMod Installer Bundle.
-    if not numpy_found:
-        try:
-            import numpy
-            numpy_found = True
-        except:
-            for m in list(sys.modules.keys()):
-                if m.startswith("numpy"):
-                    del sys.modules[m]
-            try:
-                import numpy
-                numpy_found = True
-            except:
-                pass
-    # Try to import the Biopython version provided by the PyMod Installer Bundle.
-    if not biopython_found:
-        try:
-            pymod_os_specific.check_biopython(raise_exception_on_fail=True)
-            biopython_found = True
-        except:
-            # Some old PyMOL builds have old Biopython versions lacking some new modules (such as
-            # Phylo). If this old Biopython version was imported while initializing PyMOL, it must be
-            # reloaded in order to import the new modules in PyMod.
-            for m in list(sys.modules.keys()):
-                if m.startswith("Bio"):
-                    del sys.modules[m]
-            try:
-                pymod_os_specific.check_biopython(raise_exception_on_fail=True)
-                biopython_found = True
-            except:
-                pass
+# DELETE.
+# # Check if there if there is a 'python_libs' directory in PyMod plugin folder and try to import from
+# # it the missing Pyhon libraries. The 'python_libs' folder may have been created by the
+# # 'PyMod Installer Bundle', if some Python libraries were missing.
+# python_libs_dirpath = os.path.join(pymod_plugin_dirpath, "python_libs")
+# if (not numpy_found or not biopython_found) and os.path.isdir(python_libs_dirpath):
+#     sys.path.insert(0, python_libs_dirpath)
+#     # Try to import the NumPy version provided by the PyMod Installer Bundle.
+#     if not numpy_found:
+#         try:
+#             import numpy
+#             numpy_found = True
+#         except:
+#             for m in list(sys.modules.keys()):
+#                 if m.startswith("numpy"):
+#                     del sys.modules[m]
+#             try:
+#                 import numpy
+#                 numpy_found = True
+#             except:
+#                 pass
+#     # Try to import the Biopython version provided by the PyMod Installer Bundle.
+#     if not biopython_found:
+#         try:
+#             pymod_os_specific.check_biopython(raise_exception_on_fail=True)
+#             biopython_found = True
+#         except:
+#             # Some old PyMOL builds have old Biopython versions lacking some new modules (such as
+#             # Phylo). If this old Biopython version was imported while initializing PyMOL, it must be
+#             # reloaded in order to import the new modules in PyMod.
+#             for m in list(sys.modules.keys()):
+#                 if m.startswith("Bio"):
+#                     del sys.modules[m]
+#             try:
+#                 pymod_os_specific.check_biopython(raise_exception_on_fail=True)
+#                 biopython_found = True
+#             except:
+#                 pass
 
 
 ###################################################################################################

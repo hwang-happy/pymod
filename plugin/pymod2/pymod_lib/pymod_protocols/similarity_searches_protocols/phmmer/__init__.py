@@ -32,7 +32,7 @@ class PHMMER_search(Generic_BLAST_search):
         else:
             title = "Database Error"
             message = "The default database directory is missing. Please set one in the Tools > Options menu."
-            self.pymod.show_error_message(title, message)
+            self.pymod.main_window.show_error_message(title, message)
             return False
         # If performing a PHMMER search, check if PHMMER is installed.
         if not self.pymod.hmmer_tool["exe_dir_path"].path_exists():

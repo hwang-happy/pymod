@@ -104,6 +104,7 @@ class Regular_alignment_window(Alignment_window):
         #--------------------
         # Alignment joiner. -
         #--------------------
+
         # This can be performed only if there is one selected child per cluster.
         if len(self.current_protocol.involved_clusters_list) > 1 and self.current_protocol.check_alignment_joining_selection():
             self.alignment_mode_row += 1
@@ -114,35 +115,19 @@ class Regular_alignment_window(Alignment_window):
         #---------------------------
         # Keep previous alignment. -
         #---------------------------
-        # Right now it can be used only when the user has selected only one cluster.
-        # This alignment mode might be used also for multiple clusters, but right now this is
-        # prevented in order to keep the alignment modes selection as simple and as intuitive as
-        # possible. If the user wants to append to a cluster some sequences that are contained
-        # in another cluster using this method, he/she should firtst extract them from their
-        # their original cluster. In order to let the user use this option also for multiple
-        # clusters, change the condition below in:
-        # len(self.current_protocol.involved_clusters_list) >= 1 or (len(self.current_protocol.involved_clusters_list) == 1 and len(self.selected_root_sequences_list) > 0)
-        if len(self.current_protocol.involved_clusters_list) == 1 and len(self.current_protocol.selected_root_sequences_list) > 0:
-            keep_alignment_rb_text = None
-            # Shows a different label for the checkbutton if there is one or more clusters involved.
-            if len(self.current_protocol.involved_clusters_list) > 1:
-                # keep_alignment_rb_text = "Keep only one alignment and align to its selected sequences the remaining ones"
-                keep_alignment_rb_text =  "Keep previous alignment (?)"
-            elif len(self.current_protocol.involved_clusters_list) == 1:
-                target_cluster_name = self.current_protocol.involved_clusters_list[0].my_header
-                # keep_alignment_rb_text = "Keep '%s', and align to its selected sequences the remaining ones." % (target_cluster_name)
-                keep_alignment_rb_text =  "Keep previous alignment (?)"
+
+        # Right now it can be used only when the user has selected one sequence in a cluster
+        # and one sequence outside a cluster.
+        if (# Only one selected cluster.
+            len(self.current_protocol.involved_clusters_list) == 1 and
+            # Only one selected sequence in the selected cluster.
+            self.current_protocol.pymod.check_only_one_selected_child_per_cluster(self.current_protocol.involved_clusters_list[0]) and
+            # Only one selected sequence outside any cluster.
+            len(self.current_protocol.selected_root_sequences_list) == 1):
 
             self.alignment_mode_row += 1
-            self.keep_previous_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text=keep_alignment_rb_text, variable=self.alignment_mode_radiobutton_var, value="keep-previous-alignment",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',justify=LEFT,anchor= NW, command=self.click_on_keep_previous_alignment_radio)
-            self.keep_previous_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w",padx=(15,0))
-
-            # Only if there are multiple clusters involved it displays a combobox to select the
-            # target alignment.
-            if len(self.current_protocol.involved_clusters_list) > 1:
-                # Frame with the options to control the new alignment. It will be gridded in the
-                # click_on_keep_previous_alignment_radio() method.
-                self.keep_previous_alignment_frame = Cluster_selection_frame(parent_widget = self.alignment_mode_frame, involved_clusters_list = self.current_protocol.involved_clusters_list, label_text = "Alignment to keep:")
+            self.keep_previous_alignment_radiobutton = Radiobutton(self.alignment_mode_frame, text="Keep previous alignment (?)", variable=self.alignment_mode_radiobutton_var, value="keep-previous-alignment",background='black', foreground = "white", selectcolor = "red", highlightbackground='black',justify=LEFT,anchor= NW, command=self.click_on_keep_previous_alignment_radio)
+            self.keep_previous_alignment_radiobutton.grid(row=self.alignment_mode_row, column=0, sticky = "w", padx=(15,0))
 
 
     def click_on_build_new_alignment_radio(self):
@@ -230,52 +215,6 @@ class Profile_alignment_window(Alignment_window):
 # ALGORITHMS SPECIFIC CLASSES.                                                                    #
 ###################################################################################################
 
-class Clustalomega_base_window:
-
-    def build_algorithm_options_widgets(self):
-        self.extraoption=Label(self.alignment_options_frame, font = "comic 12",
-                           height=1, text="Extra Command Line Option",
-                           background='black', fg='red',
-                           borderwidth = 1, padx = 8)
-        self.extraoption.grid(row=10, column=0, sticky = "we", pady=20)
-        self.extraoption_entry=Entry(self.alignment_options_frame,bg='white',width=10)
-        self.extraoption_entry.insert(0, "--auto -v")
-        self.extraoption_entry.grid(row=10,column=1,sticky="we", pady=20)
-        self.extraoption_def=Label(self.alignment_options_frame, font = "comic 10",
-                               height = 1,
-                               text= "--outfmt clustal --force",
-                               background='black', fg='white',
-                               borderwidth = 1, padx = 8)
-        self.extraoption_def.grid(row=10,column=2,sticky="we",pady=20)
-
-    def get_extraoption_value(self):
-        return self.extraoption_entry.get()
-
-
-class MUSCLE_base_window:
-
-    def build_algorithm_options_widgets(self):
-        pass
-
-
-class SALIGN_seq_base_window:
-
-    def build_algorithm_options_widgets(self):
-        # Use structure information to guide sequence alignment.
-        self.salign_seq_struct_rds = shared_components.PyMod_radioselect(self.alignment_options_frame, label_text = 'Use structural information (?)')
-        for option in ("Yes","No"):
-            self.salign_seq_struct_rds.add(option)
-        self.salign_seq_struct_rds.setvalue("No")
-        self.salign_seq_struct_rds.pack(side = 'top', anchor="w", pady = 10)
-        self.salign_seq_struct_rds.set_input_widget_width(10)
-
-    def get_use_str_information_var(self):
-        if self.current_protocol.structures_are_selected:
-            return pmdt.yesno_dict[self.salign_seq_struct_rds.getvalue()]
-        else:
-            return False
-
-
 class Structural_alignment_base_window:
 
     def build_rmsd_option(self):
@@ -289,40 +228,3 @@ class Structural_alignment_base_window:
     def get_compute_rmsd_option_value(self):
         return pmdt.yesno_dict[self.compute_rmsd_rds.getvalue()]
 
-
-class CEalign_base_window(Structural_alignment_base_window):
-    def build_algorithm_options_widgets(self):
-        self.build_rmsd_option()
-
-
-class SALIGN_str_base_window(Structural_alignment_base_window):
-    def build_algorithm_options_widgets(self):
-        self.build_rmsd_option()
-
-
-###################################################################################################
-# CLASSES ACTUALLY USED IN PROTOCOLS.                                                             #
-###################################################################################################
-
-# Regular alignment protocols.
-class MUSCLE_regular_window(MUSCLE_base_window, Regular_alignment_window):
-    pass
-
-class Clustalomega_regular_window(Clustalomega_base_window, Regular_alignment_window):
-    pass
-
-class SALIGN_seq_regular_window(SALIGN_seq_base_window, Regular_alignment_window):
-    pass
-
-class CEalign_regular_window(CEalign_base_window, Regular_alignment_window):
-    pass
-
-class SALIGN_str_regular_window(SALIGN_str_base_window, Regular_alignment_window):
-    pass
-
-# Profile alignments.
-class Clustalomega_profile_window(Clustalomega_base_window, Profile_alignment_window):
-    pass
-
-class SALIGN_seq_profile_window(SALIGN_seq_base_window, Profile_alignment_window):
-    pass

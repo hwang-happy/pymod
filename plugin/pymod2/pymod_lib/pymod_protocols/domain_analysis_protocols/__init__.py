@@ -115,7 +115,7 @@ class DomainAnalysisProtocol(PyMod_protocol):
         if len(self.get_pymod_elements()) != 1:
             title = "Selection Error"
             message = "Please select one and only one sequence to perform a domain search."
-            self.pymod.show_error_message(title, message)
+            self.pymod.main_window.show_error_message(title, message)
             raise InvalidSelectionError
         else:
             self._pymod_element = self.get_pymod_elements()[0]
@@ -314,12 +314,12 @@ class DomainAnalysisProtocol(PyMod_protocol):
     def check_fuse_conditions(self):
         # se non ha i cluster figli
         if not self.has_children_clusters():
-            self.pymod.show_error_message("Fuse Error", "Element "+self._pymod_element.my_header+" has not children clusters.")
+            self.pymod.main_window.show_error_message("Fuse Error", "Element "+self._pymod_element.my_header+" has not children clusters.")
             return False
         else:
             if len(self._cluster_elements_children_list) == 1:
-                self.pymod.show_error_message("Fuse Error",
-                                              "Element " + self._pymod_element.my_header + " has only one Domain. Cannot perform Fuse operation.")
+                self.pymod.main_window.show_error_message("Fuse Error",
+                                                          "Element " + self._pymod_element.my_header + " has only one Domain. Cannot perform Fuse operation.")
                 return False
             elif not self.children_clusters_are_alignments():
                 message = "Children of Element " + self._pymod_element.my_header + " are not alignments.\n\n"
@@ -330,8 +330,8 @@ class DomainAnalysisProtocol(PyMod_protocol):
                 return False
             else:
                 if not self.all_split_are_in_ali_clusters():
-                    self.pymod.show_error_message("Warning",
-                                                  "Children of Element " + self._pymod_element.my_header + " are not all inserted in an Alignment.")
+                    self.pymod.main_window.show_error_message("Warning",
+                                                              "Children of Element " + self._pymod_element.my_header + " are not all inserted in an Alignment.")
                     return False
                 return True
 

@@ -3,8 +3,6 @@ import sys
 import shutil
 import subprocess
 
-import Bio.SeqIO
-
 import pymol
 from pymol import cmd
 
@@ -98,20 +96,20 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
 
         # First check if at least one sequence is selected.
         if not len(selected_sequences) > 0:
-            self.pymod.show_error_message("Selection Error", "Please select at least one target sequence to use MODELLER.")
+            self.pymod.main_window.show_error_message("Selection Error", "Please select at least one target sequence to use MODELLER.")
             return None
             # TODO: use exceptions instead?
 
         # Checks if all the selected sequences can be used to build a model.
         if False in [s.can_be_modeled() for s in selected_sequences]:
-            self.pymod.show_error_message("Selection Error", "Please select only sequences that do not have a structure loaded in PyMOL.")
+            self.pymod.main_window.show_error_message("Selection Error", "Please select only sequences that do not have a structure loaded in PyMOL.")
             return None
 
         # Checks that all the selected sequences are currently aligned to some other sequence
         # (aligned sequences are always 'children'). Only sequences aligned to some template can be
         # modeled.
         if False in [e.is_child() for e in selected_sequences]:
-            self.pymod.show_error_message("Selection Error", "Please select only target sequences that are currently aligned to some structure.")
+            self.pymod.main_window.show_error_message("Selection Error", "Please select only target sequences that are currently aligned to some structure.")
             return None
 
         #----------------------------------------------------------------------------------------
@@ -131,7 +129,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
 
             # Checks that only one sequence per cluster is selected.
             if not self.pymod.check_only_one_selected_child_per_cluster(cluster_element):
-                self.pymod.show_error_message("Selection Error", "Please select only one target sequence in the following cluster: %s" % (cluster_element.my_header))
+                self.pymod.main_window.show_error_message("Selection Error", "Please select only one target sequence in the following cluster: %s" % (cluster_element.my_header))
                 return False
 
             # Look if there is at least one suitable template aligned to the target sequence.
@@ -145,7 +143,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
 
             # Checks if some templates have been found.
             if not len(templates_temp_list) > 0:
-                self.pymod.show_error_message("Selection Error", "The target sequence %s in the following cluster is currently not aligned to any suitable template." % (target_name))
+                self.pymod.main_window.show_error_message("Selection Error", "The target sequence %s in the following cluster is currently not aligned to any suitable template." % (target_name))
                 return False
                 # TODO: nucleic acids.
 
@@ -175,7 +173,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             if len(self.available_template_complex_list) > 0:
                 self.build_modeling_window()
             else:
-                self.pymod.show_error_message("Selection Error", "There aren't any suitable 'Template Complexes' to perform multiple chain homology modeling.")
+                self.pymod.main_window.show_error_message("Selection Error", "There aren't any suitable 'Template Complexes' to perform multiple chain homology modeling.")
 
 
     def initialize_multichain_modeling(self):
@@ -634,36 +632,10 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             self.mod_script_dict["make"] += "a.make()\n"
 
             # Saves an output file that will be read by PyMod when MODELLER is executed externally.
-            if not self.run_modeller_internally:
-                self.mod_script_dict["external_post_make"] += "##########################################################\n"
-                self.mod_script_dict["external_post_make"] += "# Needed by PyMod to run MODELLER externally from PyMOL. #\n"
-                self.mod_script_dict["external_post_make"] += "# You can comment the following code if running this     #\n"
-                self.mod_script_dict["external_post_make"] += "# script outside PyMod.                                  #\n"
-                self.mod_script_dict["external_post_make"] += "##########################################################\n"
-                self.mod_script_dict["external_post_make"] += "modeller_outputs_file = open('%s','w')\n" % self.modeller_temp_output_name
-                self.mod_script_dict["external_post_make"] += "modeller_outputs_file.write('[')\n"
-                self.mod_script_dict["external_post_make"] += "for model in a.outputs:\n"
-                self.mod_script_dict["external_post_make"] += "    model_copy = model.copy()\n"
-                self.mod_script_dict["external_post_make"] += "    model_copy.pop('pdfterms')\n"
-                self.mod_script_dict["external_post_make"] += "    modeller_outputs_file.write('%s,' % (repr(model_copy)))\n"
-                self.mod_script_dict["external_post_make"] += "modeller_outputs_file.write(']')\n"
-                self.mod_script_dict["external_post_make"] += "modeller_outputs_file.close()\n"
-
             self.write_modeller_scrit()
 
         if not self.run_modeller_internally:
-            cline = "%s %s" % (self.pymod.modeller.get_exe_file_path(), self.modeling_script_name)
-            self.pymod.execute_subprocess(cline)
-            # Builds the 'a.outputs' when MODELLER was executed externally by reading an output file
-            # that was generated in the MODELLER script that was executed externally from PyMOL.
-            modeller_outputs_file = open(self.modeller_temp_output_name,"r")
-            class Empty_automodel:
-                outputs = None
-            a = Empty_automodel()
-            # Gets the a.outputs data.
-            a.outputs = eval(modeller_outputs_file.readline())
-            modeller_outputs_file.close()
-            os.remove(self.modeller_temp_output_name)
+            raise Exception("Not implemented anymore.")
         #------------------------------------------------------------
 
         # Internal --------------------------------------------------
@@ -702,7 +674,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             else:
                 title = "Energy Minimization Error"
                 message = "There was an error in the additional energy minimization performed by MODELLER, therefore the final models will not be optimized using the additional energy minimization protocol you selected."
-                self.pymod.show_error_message(title, message)
+                self.pymod.main_window.show_error_message(title, message)
 
 
         for model_file_number, model in enumerate(a.outputs):
@@ -885,9 +857,9 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
             try:
                 if os.path.isdir(self.modeling_directory):
                     shutil.rmtree(self.modeling_directory)
-                self.pymod.show_error_message("Modeling Session Error", "PyMod has encountered the following error while running MODELLER: %s" % error_message)
+                self.pymod.main_window.show_error_message("Modeling Session Error", "PyMod has encountered the following error while running MODELLER: %s" % error_message)
             except:
-                self.pymod.show_error_message("Modeling Session Error", "PyMod has encountered an unknown error in the modeling session: %s" % error_message)
+                self.pymod.main_window.show_error_message("Modeling Session Error", "PyMod has encountered an unknown error in the modeling session: %s" % error_message)
 
         # Moves back to the current project directory.
         os.chdir(self.pymod.current_project_dirpath)
@@ -1265,7 +1237,7 @@ class MODELLER_homology_modeling(PyMod_protocol, MODELLER_common, Modeling_sessi
         #                 new_mod_seq = new_mod_seq.replace(p,".")
         #         pymod_seq = template.get_pir_sequence(use_hetatm=self.use_hetatm_in_session, use_water=self.use_water_in_session)
         #         if not mod_seq == pymod_seq:
-        #             self.pymod.show_error_message("Sequence Mismatch", "PyMod does not know how MODELLER see the template sequences.")
+        #             self.pymod.main_window.show_error_message("Sequence Mismatch", "PyMod does not know how MODELLER see the template sequences.")
         #             print "###"
         #             print template.my_header
         #             print "mod:", mod_seq

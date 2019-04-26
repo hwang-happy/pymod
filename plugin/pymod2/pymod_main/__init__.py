@@ -27,8 +27,8 @@ import sys
 import os
 import shutil
 import re
-import pickle
 import time
+import json
 
 # PyMOL.
 from pymol import cmd
@@ -43,11 +43,7 @@ from pymod_lib.pymod_gui.shared_components import New_project_window
 
 import pymod_lib.pymod_vars as pmdt  # PyMod data used throughout the plugin.
 import pymod_lib.pymod_tool as pm_tool  # Classes to represent tools used within PyMod.
-import pymod_lib.pymod_plot as pplt  # Basic plots for building DOPE profiles and showing distance trees.
-import pymod_lib.pymod_updater as pmup  # Updates PyMod fetching the latest stable version via network.
 import pymod_lib.pymod_element as pmel  # Classes to represent sequences and alignments.
-import pymod_lib.pymod_structure as pmstr  # Classes to represent 3D structures.
-import pymod_lib.pymod_protocols as pmptc  # Classes to represent protocols executed using PyMod tools.
 
 # Import modules with classes used to extend the 'PyMod' base class.
 from ._development import PyMod_development
@@ -166,7 +162,7 @@ class PyMod(PyMod_development,
 
         # Creates the preferences file in an hidden directory in the home directory.
         self.cfg_directory_path = os.path.join(self.home_directory, ".pymod")
-        self.cfg_file_name = "preferences.pkl"
+        self.cfg_file_name = "preferences.txt"
         self.cfg_file_path = os.path.join(self.cfg_directory_path, self.cfg_file_name)
 
         # -----------------------
@@ -178,7 +174,7 @@ class PyMod(PyMod_development,
         # PyMod itself.
         self.pymod_plugin = pm_tool.Tool("pymod", self.pymod_plugin_name)
         self.pymod_plugin.initialize_parameters(
-            [pm_tool.Tool_directory("pymod_dir_path", "PyMod Directory", parameter_default_value=pmos.get_home_dir())])
+            [pm_tool.Tool_directory("pymod_dir_path", "PyMod Directory")])
         self.pymod_tools.append(self.pymod_plugin)
 
         # ClustalW.
@@ -186,15 +182,15 @@ class PyMod(PyMod_development,
         self.clustalw.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
         self.pymod_tools.append(self.clustalw)
 
-        # # Clustal Omega.
-        # self.clustalo = pm_tool.Executable_tool("clustalo", "Clustal Omega")
-        # self.clustalo.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
-        # self.pymod_tools.append(self.clustalo)
+        # Clustal Omega.
+        self.clustalo = pm_tool.Executable_tool("clustalo", "Clustal Omega")
+        self.clustalo.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
+        self.pymod_tools.append(self.clustalo)
 
-        # # MUSCLE.
-        # self.muscle = pm_tool.Executable_tool("muscle", "MUSCLE")
-        # self.muscle.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
-        # self.pymod_tools.append(self.muscle)
+        # MUSCLE.
+        self.muscle = pm_tool.Executable_tool("muscle", "MUSCLE")
+        self.muscle.initialize_parameters([pm_tool.Tool_exec_file("exe_file_path", "Executable File")])
+        self.pymod_tools.append(self.muscle)
 
         # BLAST+ suite. Used to run PSI-BLAST and store BLAST sequence databases retrieved from
         # ftp://ftp.ncbi.nlm.nih.gov/blast/db/ .
@@ -211,10 +207,6 @@ class PyMod(PyMod_development,
                                                pm_tool.Tool_directory("database_dir_path", "Database Directory")])
         self.pymod_tools.append(self.hmmer_tool)
 
-        # Initializes tools.
-        for tool in self.pymod_tools:
-            tool.pymod = self
-
         # # PSIPRED.
         # self.psipred = pm_tool.Executable_tool("psipred", "PSIPRED", "local")
         # self.psipred.initialize_parameters([pm_tool.Tool_directory("exe_dir_path", "Executable Directory"),
@@ -229,17 +221,16 @@ class PyMod(PyMod_development,
 
         # MODELLER.
         self.modeller = pm_tool.Modeller_tool("modeller", "MODELLER")
-        # Attempts to import MODELLER. If it can't be imported, its usage will be external to
-        # the Python interpreter of PyMOL.
+        # Attempts to import MODELLER.
         self.import_modeller()
         # Then initializes the tool.
-        self.modeller.initialize_parameters([pm_tool.Use_importable_modeller("use_importable_modeller", "Internal MODELLER"),
-                                             pm_tool.Modeller_exec_file("exe_file_path", "Executable File")])
+        self.modeller.initialize_parameters([pm_tool.Use_importable_modeller("use_importable_modeller", "Internal MODELLER"),])
         self.pymod_tools.append(self.modeller)
 
-        # # Finish to initialize PyMod tools.
-        # for tool in self.pymod_tools:
-        #     tool.show_message_method = self.show_error_message
+        # Initializes tools.
+        for tool in self.pymod_tools:
+            tool.pymod = self
+
 
         # Initializes colors for PyMod and PyMOL.
         self.initialize_colors()
@@ -249,7 +240,6 @@ class PyMod(PyMod_development,
         # --------------------------------------
 
         self.main_window = PyMod_main_window(app.root, self)
-        # self.build_pymod_main_window(app)
 
         # -----------------------
         # Starts up a new job. -
@@ -266,33 +256,15 @@ class PyMod(PyMod_development,
 
         # The configuration file is found.
         else:
-            if 1:  # TODO! try:
-                # -------------------------------------------------------------------------------
-                # Check if there is 'pymod_temp_directory' left by the PyMod installer script. -
-                # -------------------------------------------------------------------------------
 
-                # Start an usual PyMod session. Get values options for each PyMod tool and start a
-                # new PyMod job.
-                if not self.check_installer_script_temp_directory():
-                    self.get_parameters_from_configuration_file()
-                    self.check_pymod_directory()
-                    self.new_job_state()
+            # Start an usual PyMod session. Get values options for each PyMod tool and start a
+            # new PyMod job.
+            try:
+                self.get_parameters_from_configuration_file()
+                self.check_pymod_directory()
+                self.new_job_state()
 
-                # If there is 'pymod_temp_directory'.
-                else:
-                    raise Exception("TODO.")
-                    # # The installer script was run before configuring PyMod for the first time (it
-                    # # left an empty configuration file).
-                    # if self.check_empty_configuration_file():
-                    #     self.show_first_time_usage_message()
-                    #     self.show_pymod_directory_selection_window()
-                    # # The installer script was run after the first PyMod session.
-                    # else:
-                    #     self.get_parameters_from_configuration_file()
-                    #     self.check_pymod_directory()
-                    #     self.show_new_job_window()
-
-            if 0:  # TODO! except Exception, e:
+            except Exception as e:
                 self.show_configuration_file_error(e, "read")
                 title = 'Configuration file repair'
                 message = "Would you like to delete PyMod configuration file and build a new functional copy of it?"
@@ -303,6 +275,7 @@ class PyMod(PyMod_development,
                 else:
                     self.main_window.destroy()
 
+
     # TODO can be private
     def show_first_time_usage_message(self):
         title = "PyMod first session"
@@ -310,23 +283,26 @@ class PyMod(PyMod_development,
         message += "All PyMod files (such as its external tools executables, sequence databases and its project files) will be stored in this 'PyMod Directory' on your system."
         tkinter.messagebox.showinfo(title, message, parent=self.main_window)
 
+
     ###############################################################################################
     # Configuration file and first time usage.                                                    #
     ###############################################################################################
+
     # TODO can be private
     def get_parameters_from_configuration_file(self):
         """
         Updates the values of the PyMod Tools parameters according to the information in the main
         configuration file.
         """
-        cfgfile = open(self.cfg_file_path, 'rb')
-        # Reads the pickle configuration file, where PyMod options are stored in a dictionary.
-        pymod_config_data = pickle.load(cfgfile)
+        cfgfile = open(self.cfg_file_path, 'r')
+        # Reads the json configuration file, where PyMod options are stored in a dictionary.
+        pymod_config_data = json.loads(cfgfile.read())
         for tool_object in self.pymod_tools:
             tool_dict = pymod_config_data[tool_object.name]
             for parameter_name in list(tool_dict.keys()):
                 tool_object[parameter_name].value = tool_dict[parameter_name]
         cfgfile.close()
+
 
     # TODO can be private
     def check_pymod_directory(self):
@@ -368,12 +344,14 @@ class PyMod(PyMod_development,
         """
         self.pymod_dir_window = PyMod_dir_selection_window(self, self.main_window)
 
+
     # command
     def pymod_directory_selection_state(self):
         """
         This is called when the SUBMIT button on the "PyMod project" window is pressed.
         """
         try:
+
             # Check if the parent folder of the new PyMod directory exists.
             new_pymod_directory_parent = self.pymod_dir_window.main_entry.get()
             if not os.path.isdir(new_pymod_directory_parent):
@@ -382,12 +360,12 @@ class PyMod(PyMod_development,
                 self.show_error_message(title, message)
                 return None
 
+
             # Check if a PyMod directory already exists in the parent folder.
             new_pymod_directory_path = os.path.join(new_pymod_directory_parent, self.pymod_directory_name)
             if os.path.exists(new_pymod_directory_path):
                 title = 'PyMod directory Warning'
-                message = "A folder named '%s' already exists on your system. Would you like to overwrite it and all its contents to build a new 'PyMod Directory'?" % (
-                    new_pymod_directory_path)
+                message = "A folder named '%s' already exists on your system. Would you like to overwrite it and all its contents to build a new 'PyMod Directory'?" % (new_pymod_directory_path)
                 overwrite = tkinter.messagebox.askyesno(title, message, parent=self.pymod_dir_window)
                 if overwrite:
                     pmos.pymod_rm(new_pymod_directory_path)
@@ -402,6 +380,7 @@ class PyMod(PyMod_development,
             os.mkdir(new_pymod_directory_path)
             os.mkdir(os.path.join(new_pymod_directory_path, self.projects_directory_name))
 
+            """
             # Check if the Installer Bundle 'install_all.py' script was run. If so, a
             # 'pymod_temp_directory' with external tools and data files has been built.
             if self.check_installer_script_temp_directory() and self.check_empty_configuration_file():
@@ -418,64 +397,42 @@ class PyMod(PyMod_development,
                 os.mkdir(os.path.join(new_pymod_directory_path, self.external_tools_dirname))
                 os.mkdir(os.path.join(new_pymod_directory_path, self.data_dirname))
                 pymod_first_run = False
+            """
 
-            # Updates the configuration file.
+            # Builds empty external tools and data directories.
+            os.mkdir(os.path.join(new_pymod_directory_path, self.external_tools_dirname))
+            os.mkdir(os.path.join(new_pymod_directory_path, self.data_dirname))
+            pymod_first_run = False
+
+            # Writes the configuration file and initializes it.
             cfgfile = open(self.cfg_file_path, 'w')
             pymod_config_data = {}
+
             for tool in self.pymod_tools:
                 new_tool_parameters = {}
                 for parameter in tool.parameters:
                     # NOTE: new_tool_parameters.update({parameter.name: parameter.get_first_session_value()})
                     new_tool_parameters.update({parameter.name: parameter.get_starting_value()})
                 pymod_config_data.update({tool.name: new_tool_parameters})
-            # Define the paths of the 'PyMod Directory' and the 'BLAST Database Directory'.
             pymod_config_data["pymod"]["pymod_dir_path"] = new_pymod_directory_path
-            pymod_config_data["blast_plus"]["database_dir_path"] = os.path.join(new_pymod_directory_path,
-                                                                                self.data_dirname,
-                                                                                self.blast_databases_dirname)
 
-            # If an empty configuration file was built by the PyMod installer script, update it.
-            if self.check_installer_script_temp_directory():
-                for tool in list(pymod_config_data.keys()):
-                    for parameter_name in list(pymod_config_data[tool].keys()):
-                        if pymod_config_data[tool][parameter_name] == "":
-                            if tool in ("clustalw", "muscle", "clustalo", "ksdssp"):
-                                exe_file_name = os.path.join(new_pymod_directory_path, self.external_tools_dirname,
-                                                             tool, "bin", tool)
-                                if pymod_first_run:
-                                    exe_file_name = pmos.get_exe_file_name(exe_file_name)
-                                pymod_config_data[tool][parameter_name] = exe_file_name
-                            elif tool == "blast_plus":
-                                if parameter_name == "exe_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path,
-                                                                                           self.external_tools_dirname,
-                                                                                           tool, "bin")
-                            elif tool == "psipred":
-                                if parameter_name == "exe_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path,
-                                                                                           self.external_tools_dirname,
-                                                                                           tool, "bin")
-                                elif parameter_name == "data_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path,
-                                                                                           self.external_tools_dirname,
-                                                                                           tool, "data")
-                                elif parameter_name == "database_dir_path":
-                                    pymod_config_data[tool][parameter_name] = os.path.join(new_pymod_directory_path,
-                                                                                           self.data_dirname,
-                                                                                           self.blast_databases_dirname,
-                                                                                           "swissprot")
-                # Finally remove pymod temp directory in the configuration directory.
-                shutil.rmtree(os.path.join(self.cfg_directory_path, self.pymod_temp_directory_name))
+            print("---")
+            print(pymod_config_data)
+            print("---")
 
-            pickle.dump(pymod_config_data, cfgfile)
+            # # Define the paths of the 'PyMod Directory' and the 'BLAST Database Directory'.
+            # pymod_config_data["pymod"]["pymod_dir_path"] = new_pymod_directory_path
+            # pymod_config_data["blast_plus"]["database_dir_path"] = os.path.join(new_pymod_directory_path,
+            #                                                                     self.data_dirname,
+            #                                                                     self.blast_databases_dirname)
+
+            cfgfile.write(json.dumps(pymod_config_data))
             cfgfile.close()
 
-        # except Exception, e:
-        except Exception:
+        except Exception as e:
             title = "PyMod Directory Error"
-            message = "Unable to write the PyMod configuration directory '%s' because of the following error: %s." % (
-                self.cfg_directory_path)
-            self.show_error_message(title, message)
+            message = "Unable to write the PyMod configuration directory '%s' because of the following error: %s." % (self.cfg_directory_path, e)
+            self.main_window.show_error_message(title, message)
             return False
 
         # Begin a new PyMod job.
@@ -484,7 +441,7 @@ class PyMod(PyMod_development,
         # tkMessageBox.showinfo("PyMod first run", "You are about to begin your first PyMod session.", parent=self.main_window)
         self.new_job_state()
 
-    # TODO can be rewritten with exception
+
     def show_configuration_file_error(self, error, mode):
         action = None
         if mode == "read":
@@ -492,9 +449,9 @@ class PyMod(PyMod_development,
         elif mode == "write":
             action = "writing"
         title = "Configuration file error"
-        message = "There was an error while %s the PyMod configuration file (located at '%s'). The error is: '%s'." % (
-            action, self.cfg_file_path, error)
-        self.show_error_message(title, message)
+        message = "There was an error while %s the PyMod configuration file (located at '%s'). The error is: '%s'." % (action, self.cfg_file_path, error)
+        self.main_window.show_error_message(title, message)
+
 
     ###############################################################################################
     # Start a new job.                                                                            #
@@ -651,45 +608,34 @@ class PyMod(PyMod_development,
                 cmd.set_color(color_name, color_name)
             self.all_colors_dict_tkinter.update({color_name: color_name})
 
+
     ###############################################################################################
     # INTERACTIONS WITH THE GUI.                                                                  #
     ###############################################################################################
-    # TODO riscrivere con eccezioni. nessun utilizzo.
-    def general_error(self, e=''):
-        title = "Unknown Error"
-        message = "PyMod has experienced an unknown error:\n" + str(e)
-        self.show_error_message(title, message)
 
-    # TODO nessun utilizzo
-    def element_has_widgets(self, pymod_element):
-        return pymod_element in self.main_window.dict_of_elements_widgets
-
-    # TODO bugga su shared components (l 719). usa anche _main menu l 46
-    def confirm_close(self, parent=None):
-        """
-        Asks confirmation when the main window is closed by the user.
-        """
-        if parent:
-            parent_window = parent
-        else:
-            parent_window = self.main_window
-        confirm_message = "Are you really sure you want to exit PyMod?"
-        answer = tkinter.messagebox.askyesno(message=confirm_message, title="Exit PyMod?", parent=parent_window) # TODO!
-        if answer:
-            self.main_window.destroy()
-
-    # TODO riscrivere con eccez
-    def show_info_message(self, title_to_show, message_to_show):
-        self.main_window.show_info_message(title_to_show, message_to_show)
-
-    # TODO riscrivere con eccez
-    def show_warning_message(self, title_to_show, message_to_show):
-        self.main_window.show_warning_message(title_to_show, message_to_show)
-
-    # TODO riscrivere con eccez
-    def show_error_message(self, title_to_show, message_to_show):
-        self.main_window.show_error_message(title_to_show, message_to_show)
-
-    # TODO riscrivere con eccez. nessun utilizzo.
-    def work_in_progress(self):
-        raise Exception("Work in progress...")
+    # DELETE.
+    # # TODO riscrivere con eccezioni. nessun utilizzo.
+    # def general_error(self, e=''):
+    #     title = "Unknown Error"
+    #     message = "PyMod has experienced an unknown error:\n" + str(e)
+    #     self.show_error_message(title, message)
+    #
+    # # TODO nessun utilizzo
+    # def element_has_widgets(self, pymod_element):
+    #     return pymod_element in self.main_window.dict_of_elements_widgets
+    #
+    # # TODO riscrivere con eccez
+    # def show_info_message(self, title_to_show, message_to_show):
+    #     self.main_window.show_info_message(title_to_show, message_to_show)
+    #
+    # # TODO riscrivere con eccez
+    # def show_warning_message(self, title_to_show, message_to_show):
+    #     self.main_window.show_warning_message(title_to_show, message_to_show)
+    #
+    # # TODO riscrivere con eccez
+    # def show_error_message(self, title_to_show, message_to_show):
+    #     self.main_window.show_error_message(title_to_show, message_to_show)
+    #
+    # # TODO riscrivere con eccez. nessun utilizzo.
+    # def work_in_progress(self):
+    #     raise Exception("Work in progress...")

@@ -29,7 +29,7 @@ class Generic_BLAST_search(PyMod_protocol):
         if not self.check_blast_search_selection():
             title = "Selection Error"
             message = "Please select one sequence to perform a %s search" % (pmdt.algorithms_full_names_dict[self.blast_version])
-            self.pymod.show_error_message(title, message)
+            self.pymod.main_window.show_error_message(title, message)
             return None
 
         if not self.check_blast_program():

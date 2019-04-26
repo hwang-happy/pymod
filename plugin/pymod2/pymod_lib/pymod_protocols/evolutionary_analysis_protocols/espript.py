@@ -105,4 +105,4 @@ class ESPript_analysis(Evolutionary_analysis_protocol, Web_services_common):
         else:
             title = "Error"
             message = "Error while uploading the file. Please try again later or check your Internet connection."
-            self.pymod.show_error_message(title, message)
+            self.pymod.main_window.show_error_message(title, message)

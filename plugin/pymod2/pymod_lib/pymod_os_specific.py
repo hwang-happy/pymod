@@ -15,7 +15,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-
 # 1301  USA
-import os,sys
+
+import os, sys
 import platform
 import re
 import subprocess
@@ -340,18 +341,19 @@ def find_modlib_dir_on_windows():
 # PyMOL behaviour.                                                  #
 #####################################################################
 
-def check_pymol_builtin_cealign():
-    """
-    Try to see if PyMOL 'cealign' command can be used within PyMod.
-    """
-    has_builtin_cealign = False
-    if hasattr(cmd,"cealign"):
-        # Some old PyMOL builds have the 'cealign' method, but not they don't have its 'object'
-        # argument, which is needed to make it work in PyMod.
-        import inspect
-        if "object" in inspect.getargspec(cmd.cealign)[0]:
-            has_builtin_cealign = True
-    return has_builtin_cealign
+# DELETE.
+# def check_pymol_builtin_cealign():
+#     """
+#     Try to see if PyMOL 'cealign' command can be used within PyMod.
+#     """
+#     has_builtin_cealign = False
+#     if hasattr(cmd, "cealign"):
+#         # Some old PyMOL builds have the 'cealign' method, but not they don't have its 'object'
+#         # argument, which is needed to make it work in PyMod.
+#         import inspect
+#         if "object" in inspect.getargspec(cmd.cealign)[0]:
+#             has_builtin_cealign = True
+#     return has_builtin_cealign
 
 
 #####################################################################
@@ -465,7 +467,7 @@ def get_askopenfilename_tuple(askopenfilename_result):
         substituted_string = re.sub("\} ([A-Z]:/)", " \g<1>", substituted_string).rstrip("}")
         result_list = re.split("([A-Z]:/)", substituted_string)
         return tuple([disk+path.rstrip(" ").replace("\\","") for disk, path in zip(result_list[1::2], result_list[2::2])])
-        
+
 
 def get_askopenfilename_string(askopenfilename_result):
     """

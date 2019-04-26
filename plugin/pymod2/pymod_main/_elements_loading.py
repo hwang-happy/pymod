@@ -73,7 +73,7 @@ class PyMod_elements_loading(object):
             raise Exception("File does not exist: %s." % file_full_path)
         if not self.is_sequence_file(file_full_path, file_format):
             raise PyModInvalidFile("Can not open an invalid '%s' file." % file_format)
-        fn = open(file_full_path, "rU")
+        fn = open(file_full_path, "r")
         # Parses a sequence file through Biopython. This will automatically crop headers that have
         # " " (space) characters.
         elements_to_return = []
@@ -92,7 +92,7 @@ class PyMod_elements_loading(object):
         """
         # Gets the sequences using Biopython.
         aligned_elements = []
-        fh = open(alignment_file, "rU")
+        fh = open(alignment_file, "r")
         records = SeqIO.parse(fh, extension)
         for record in records:
             new_child_element = self.build_pymod_element_from_seqrecord(record)
@@ -274,7 +274,7 @@ class PyMod_elements_loading(object):
         aligned_elements = alignment_element.get_children()[:]
 
         # Sequences in the alignment files.
-        fh = open(openfilename, "rU")
+        fh = open(openfilename, "r")
         external_records = list(SeqIO.parse(fh, extension))
         fh.close()
 

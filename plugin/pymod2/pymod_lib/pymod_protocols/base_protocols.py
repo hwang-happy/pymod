@@ -1,9 +1,11 @@
 import os
 import sys
 import numpy
+
+# This will give a message if MODELLER is installed, but the licence key is not inserted.
 try:
     import modeller
-except ImportError:
+except:
     print("NO MODELLER FROM BASE PROTOCOLS")
 from io import StringIO
 
