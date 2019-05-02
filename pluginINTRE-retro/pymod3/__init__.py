@@ -17,7 +17,7 @@ TODO giacomo:
     - implement loop modeling?
 
     - fixes:
-        - fix the generation of temporay files in the current working directory in SALIGN-seq profile.
+        - fix the generation of temporary files in the current working directory in SALIGN-seq profile.
 '''
 
 

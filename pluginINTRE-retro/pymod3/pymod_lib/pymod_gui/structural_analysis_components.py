@@ -51,7 +51,7 @@ class Ramachandran_plot_options_window(PyMod_tool_window):
                 variable=self.aa_sele_var[aa], background="black",
                 foreground="white",selectcolor="red",
                 highlightbackground="black")
-            self.aa_checkbutton[aa].grid(row=i%10,column=i/10,sticky='w')
+            self.aa_checkbutton[aa].grid(row=int(i%10),column=int(i/10),sticky='w')
             # Only enable selection of aa present in primary sequence
             if not aa_freq:
                 self.aa_checkbutton[aa].config(state=DISABLED)

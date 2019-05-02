@@ -14,7 +14,7 @@ class PyMod_development(object):
     # TO BE REMOVED.                                                                              #
     ###############################################################################################
 
-    _developer_name = "giacomo"
+    _developer_name = "mg"
 
     def _launch_default(self):
         """
